@@ -1,25 +1,25 @@
 # Brezn - Dezentrale Feed-App
 
-Eine komplett dezentrale, anonyme Feed-App wie Jodel/X mit I2P-Anonymisierung. Alle Netzwerk-Teilnehmer sehen alle Posts. Komplett dezentral, keine Server, Open Source für F-Droid.
+Eine komplett dezentrale, anonyme Feed-App wie Jodel/X mit Tor-Anonymisierung für rechtliche Absicherung. Alle Netzwerk-Teilnehmer sehen alle Posts. Komplett dezentral, keine Server, Open Source für F-Droid.
 
 ## 🥨 Features
 
 - **Anonyme Posts**: Nutzer posten unter Pseudonymen
 - **Dezentrales Netzwerk**: P2P-Netzwerk ohne zentrale Server
-- **Tor-Integration**: SOCKS5 Proxy für Anonymisierung
+- **Tor-Integration**: SOCKS5 Proxy für Anonymisierung und Rechtssicherheit
 - **End-to-End Verschlüsselung**: NaCl Box für sichere Kommunikation
 - **Lokale Verschlüsselung**: AES-256-GCM für lokale Daten
-- **Multi-Plattform**: Linux, Windows, iOS, Android
+- **Multi-Plattform**: Linux, Windows (später iOS, Android)
 
 ## 🏗️ Architektur
 
 ### Tech-Stack
 - **Backend**: Rust (2021 Edition)
-- **Frontend**: React Native + Capacitor
-- **Netzwerk**: Tor SOCKS5 Proxy
+- **Frontend**: Einfache Web-UI (HTML/CSS/JS) - später React Native
+- **Netzwerk**: Tor SOCKS5 Proxy (für Rechtssicherheit)
 - **Krypto**: ring + sodiumoxide
-- **DB**: rusqlite + SQLCipher
-- **Plattformen**: Linux, Windows, iOS, Android
+- **DB**: rusqlite
+- **Plattformen**: Linux, Windows (später iOS, Android)
 
 ### Komponenten
 
@@ -27,13 +27,27 @@ Eine komplett dezentrale, anonyme Feed-App wie Jodel/X mit I2P-Anonymisierung. A
 brezn/
 ├── src/
 │   ├── lib.rs          # Hauptbibliothek mit FFI
-│   ├── types.rs        # Datenstrukturen
+│   ├── types.rs        # Datenstrukturen (Post, Config, TorProxy)
 │   ├── database.rs     # SQLite-Operationen
 │   ├── crypto.rs       # Verschlüsselung
 │   └── network.rs      # P2P-Netzwerk
 ├── Cargo.toml          # Rust-Dependencies
+├── index.html          # Einfache Web-UI
 └── README.md
 ```
+
+## 🔒 Rechtssicherheit & Anonymität
+
+### Tor SOCKS5 Integration (Priorität 1)
+- **Störerhaftung**: Tor-Integration umgeht rechtliche Risiken für Nutzer
+- **Anonymität**: Keine Logs von Nutzer-IPs
+- **Rechtssicherheit**: Alle Verbindungen über Tor für rechtliche Absicherung
+
+### Sicherheitsfeatures (Backlog)
+- Anti-Spam-Signaturen
+- Rate-Limiting
+- Sybil-Attack-Schutz
+- **Begründung**: MVP wird von wenigen Nutzern gesehen, Sicherheit später
 
 ## 🚀 Setup
 
@@ -45,21 +59,18 @@ cargo build
 cargo test
 ```
 
-### React Native Frontend (Coming Soon)
+### Web-UI (Aktuell)
 
 ```bash
-# React Native App wird hier erstellt
-npx react-native init BreznApp
-cd BreznApp
-npm install @capacitor/core @capacitor/cli
-npx cap init
+# Einfache HTML/CSS/JS UI
+# Später: React Native Frontend
 ```
 
 ## 🔧 Entwicklung
 
 ### Rust Backend
 
-Das Backend ist als Library konfiguriert und bietet FFI-Funktionen für React Native:
+Das Backend ist als Library konfiguriert und bietet FFI-Funktionen für Frontend-Integration:
 
 ```rust
 // FFI-Funktionen
@@ -100,7 +111,7 @@ struct Config {
 ### Netzwerk
 
 - **Protokoll**: P2P über TCP
-- **Anonymisierung**: Tor SOCKS5 Proxy
+- **Anonymisierung**: Tor SOCKS5 Proxy (für Rechtssicherheit)
 - **Nachrichten**: JSON-basiert mit Längen-Präfix
 
 ## 🔒 Sicherheit
@@ -109,15 +120,20 @@ struct Config {
 - **Verschlüsselung**: End-to-End für alle Nachrichten
 - **Lokale Sicherheit**: Verschlüsselte SQLite-Datenbank
 - **Pseudonyme**: Keine echten Identitäten
+- **Rechtssicherheit**: Tor schützt vor Störerhaftung
 
-## 📱 Mobile App (Coming Soon)
+## 📱 Frontend (Aktuell)
 
-Die React Native App wird folgende Features haben:
-
+### Web-UI Features:
 - **Feed-Ansicht**: Alle Posts chronologisch
 - **Post-Erstellung**: Anonyme Beiträge
 - **Einstellungen**: Tor, Pseudonym, Netzwerk
 - **Offline-Funktionalität**: Lokale Speicherung
+
+### Später: React Native App
+- Mobile-optimierte UI
+- Native Performance
+- Cross-Platform (iOS/Android)
 
 ## 🛠️ Build
 
@@ -127,14 +143,11 @@ Die React Native App wird folgende Features haben:
 cargo build --release
 ```
 
-### Mobile App
+### Web-UI
 
 ```bash
-# Android
-npx cap build android
-
-# iOS
-npx cap build ios
+# Einfache HTML/CSS/JS
+# Später: React Native Builds
 ```
 
 ## 📄 Lizenz
@@ -153,16 +166,22 @@ Open Source - siehe LICENSE Datei.
 
 - Tor-Integration noch in Entwicklung
 - P2P-Netzwerk Discovery fehlt
-- Mobile UI noch nicht implementiert
+- React Native UI noch nicht implementiert
 
 ## 📋 Roadmap
 
+### MVP (Aktuell)
 - [x] Rust Backend mit SQLite
 - [x] Verschlüsselung (AES + NaCl)
 - [x] P2P-Netzwerk Grundlagen
 - [x] Tor-Integration
+- [x] Einfache Web-UI
+- [ ] QR-Code Features
+- [ ] Netzwerk-Discovery
+
+### Backlog (Später)
+- [ ] Erweiterte Sicherheitsfeatures
 - [ ] React Native Frontend
 - [ ] Android/iOS Builds
 - [ ] F-Droid Release
-- [ ] Netzwerk Discovery
 - [ ] Offline-Synchronisation 
