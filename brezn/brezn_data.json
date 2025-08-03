@@ -22,6 +22,13 @@
     "network_port": 8080,
     "discovery_port": 8081
   },
-  "peers": {},
+  "peers": {
+    "brezn-185849b7c79504dc-945871": {
+      "id": "brezn-185849b7c79504dc-945871",
+      "address": "127.0.0.1:8080",
+      "last_seen": 1754234037,
+      "posts_count": 2
+    }
+  },
   "node_id": "brezn-185849b7c79504dc-945871"
 }

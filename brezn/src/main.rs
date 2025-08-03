@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
+use base64::{Engine as _, engine::general_purpose};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Post {
@@ -19,6 +20,14 @@ struct Peer {
     address: String,
     last_seen: u64,
     posts_count: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NetworkInfo {
+    node_id: String,
+    port: u16,
+    posts_count: usize,
+    timestamp: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -165,6 +174,108 @@ impl BreznData {
                 println!("📝 {}", post.content);
                 println!("🔗 ID: {}", i + 1);
                 println!("{}", "-".repeat(30));
+            }
+        }
+    }
+
+    fn generate_network_info(&self) -> NetworkInfo {
+        NetworkInfo {
+            node_id: self.node_id.clone(),
+            port: self.config.network_port,
+            posts_count: self.posts.len(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        }
+    }
+
+    fn generate_qr_code(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let network_info = self.generate_network_info();
+        let json_data = serde_json::to_string(&network_info)?;
+        let encoded_data = general_purpose::STANDARD.encode(json_data.as_bytes());
+        
+        Ok(encoded_data)
+    }
+
+    fn display_qr_code(&self) {
+        match self.generate_qr_code() {
+            Ok(encoded_data) => {
+                println!("\n📱 QR-Code für Netzwerkbeitritt:");
+                println!("{}", "=".repeat(50));
+                println!("🆔 Node-ID: {}", self.node_id);
+                println!("🔌 Port: {}", self.config.network_port);
+                println!("📊 Posts: {}", self.posts.len());
+                println!("\n📋 Encoded Network-Info:");
+                println!("{}", "-".repeat(30));
+                println!("{}", encoded_data);
+                println!("{}", "-".repeat(30));
+                println!("💡 Kopiere diese Daten in eine andere Brezn-Instanz zum Beitritt");
+            }
+            Err(e) => {
+                println!("❌ Fehler beim Generieren des QR-Codes: {}", e);
+            }
+        }
+    }
+
+    fn scan_qr_code(&mut self) {
+        println!("\n📱 QR-Code scannen:");
+        println!("{}", "=".repeat(50));
+        println!("Gib die encoded Network-Info ein:");
+        print!("> ");
+        io::stdout().flush().unwrap();
+        
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let encoded_data = input.trim();
+        
+        if encoded_data.is_empty() {
+            println!("❌ Keine Daten eingegeben!");
+            return;
+        }
+        
+        // Decode Base64
+        match general_purpose::STANDARD.decode(encoded_data) {
+            Ok(decoded_bytes) => {
+                match String::from_utf8(decoded_bytes) {
+                    Ok(json_string) => {
+                        match serde_json::from_str::<NetworkInfo>(&json_string) {
+                            Ok(network_info) => {
+                                println!("✅ QR-Code erfolgreich gescannt!");
+                                println!("🆔 Node-ID: {}", network_info.node_id);
+                                println!("🔌 Port: {}", network_info.port);
+                                println!("📊 Posts: {}", network_info.posts_count);
+                                
+                                // Füge Peer hinzu
+                                let peer = Peer {
+                                    id: network_info.node_id,
+                                    address: format!("127.0.0.1:{}", network_info.port),
+                                    last_seen: network_info.timestamp,
+                                    posts_count: network_info.posts_count,
+                                };
+                                
+                                self.peers.insert(peer.id.clone(), peer);
+                                println!("✅ Peer erfolgreich hinzugefügt!");
+                                
+                                // Speichere nach Peer-Hinzufügung
+                                if self.config.auto_save {
+                                    if let Err(e) = self.save() {
+                                        println!("⚠️  Fehler beim Speichern: {}", e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                println!("❌ Fehler beim Parsen der Network-Info: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("❌ Fehler beim Decodieren der Daten: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("❌ Fehler beim Base64-Decoding: {}", e);
             }
         }
     }
@@ -411,11 +522,13 @@ fn main() {
         println!("5. Netzwerk-Status");
         println!("6. Netzwerk-Server starten");
         println!("7. Peers suchen");
-        println!("8. Konfiguration anzeigen");
-        println!("9. Konfiguration bearbeiten");
-        println!("10. Beenden");
+        println!("8. QR-Code generieren");
+        println!("9. QR-Code scannen");
+        println!("10. Konfiguration anzeigen");
+        println!("11. Konfiguration bearbeiten");
+        println!("12. Beenden");
         println!("Aktuelles Pseudonym: {}", current_pseudonym);
-        print!("Wähle eine Option (1-10): ");
+        print!("Wähle eine Option (1-12): ");
         io::stdout().flush().unwrap();
         
         let mut input = String::new();
@@ -490,9 +603,15 @@ fn main() {
                 println!("💡 Tipp: Starte mehrere Brezn-Instanzen auf verschiedenen Ports");
             }
             "8" => {
-                data.show_config();
+                data.display_qr_code();
             }
             "9" => {
+                data.scan_qr_code();
+            }
+            "10" => {
+                data.show_config();
+            }
+            "11" => {
                 data.edit_config();
                 // Nach Konfigurationsänderungen speichern
                 if let Err(e) = data.save() {
@@ -501,7 +620,7 @@ fn main() {
                     println!("✅ Konfiguration gespeichert!");
                 }
             }
-            "10" => {
+            "12" => {
                 println!("💾 Speichere Daten...");
                 if let Err(e) = data.save() {
                     println!("⚠️  Fehler beim Speichern: {}", e);
