@@ -1,9 +1,6 @@
-use rusqlite::{Connection, Result as SqliteResult};
-use serde::{Serialize, Deserialize};
-use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use anyhow::{Result, Context};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use uuid::Uuid;
 
 pub mod types;
@@ -11,7 +8,7 @@ pub mod crypto;
 pub mod network;
 pub mod database;
 
-use types::*;
+use types::{Post, Config, TorProxy};
 use database::Database;
 
 #[derive(Debug)]

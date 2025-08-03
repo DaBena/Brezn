@@ -32,14 +32,12 @@ fn main() {
         println!("cargo:rustc-link-lib=iphlpapi");
     } else {
         // Linux/Unix configurations
-        println!("cargo:rustc-cfg=target_os=\"linux\"");
+        // Note: Removed target_os cfg to avoid compiler warnings
     }
     
     // Set up FFI bindings
-    if cfg!(feature = "ffi") {
-        // Generate FFI bindings for React Native
-        generate_ffi_bindings();
-    }
+    // Note: FFI feature is not defined in Cargo.toml, so we'll always generate bindings
+    generate_ffi_bindings();
 }
 
 fn generate_ffi_bindings() {
