@@ -23,3 +23,6 @@ chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
 thiserror = "1.0"
 actix-web = "4.4"
+qrcode = "0.13"
+image = "0.24"
+base64 = "0.21"
