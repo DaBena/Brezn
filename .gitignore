@@ -5,24 +5,56 @@ target/
 # Cargo
 Cargo.lock
 
+# Binaries
+*.exe
+*.pdb
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Logs
+# Temporary files
+*~
+*.tmp
+*.temp
 *.log
 
-# Database files
+# Build artifacts
+**/*.rs.bk
+
+# Database files (for this specific project)
 *.db
 *.sqlite
 *.sqlite3
 
+# Node modules (if using any JS tooling)
+node_modules/
+
 # Environment files
 .env
 .env.local
+.env.*.local
+
+# Tauri specific
+src-tauri/target/
+dist/
+dist-ssr/
+
+# Rust analyzer
+.rust-analyzer/
