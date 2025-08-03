@@ -30,6 +30,8 @@ async fn main() -> Result<()> {
             .route("/api/config", web::post().to(update_config_handler))
             .route("/api/network/toggle", web::post().to(toggle_network_handler))
             .route("/api/tor/toggle", web::post().to(toggle_tor_handler))
+            .route("/api/network/status", web::get().to(network_status_handler))
+            .route("/api/network/qr", web::get().to(qr_code_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -166,6 +168,78 @@ async fn toggle_tor_handler(
     });
     HttpResponse::Ok()
         .content_type("application/json")
-        .header("access-control-allow-origin", "*")
+        .append_header(("access-control-allow-origin", "*"))
+        .json(response)
+}
+
+async fn network_status_handler(
+    app: web::Data<Arc<BreznApp>>,
+) -> HttpResponse {
+    let config = match app.get_config() {
+        Ok(config) => config,
+        Err(e) => {
+            let response = json!({
+                "success": false,
+                "error": e.to_string()
+            });
+            return HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response);
+        }
+    };
+    
+    let response = json!({
+        "success": true,
+        "network": {
+            "node_id": app.get_node_id(),
+            "enabled": config.network_enabled,
+            "port": config.network_port,
+            "tor_enabled": app.is_tor_enabled(),
+            "tor_port": config.tor_socks_port,
+            "peers_count": 0, // Will be implemented in Phase 2
+            "status": if config.network_enabled { "active" } else { "inactive" }
+        }
+    });
+    
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .append_header(("access-control-allow-origin", "*"))
+        .json(response)
+}
+
+async fn qr_code_handler(
+    app: web::Data<Arc<BreznApp>>,
+) -> HttpResponse {
+    let config = match app.get_config() {
+        Ok(config) => config,
+        Err(e) => {
+            let response = json!({
+                "success": false,
+                "error": e.to_string()
+            });
+            return HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response);
+        }
+    };
+    
+    let qr_data = json!({
+        "node_id": app.get_node_id(),
+        "address": "127.0.0.1",
+        "port": config.network_port,
+        "timestamp": chrono::Utc::now().timestamp()
+    });
+    
+    let response = json!({
+        "success": true,
+        "qr_data": qr_data,
+        "message": "QR code data for network join (implementation pending)"
+    });
+    
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .append_header(("access-control-allow-origin", "*"))
         .json(response)
 }

@@ -7,6 +7,7 @@ pub mod types;
 pub mod crypto;
 pub mod network;
 pub mod database;
+pub mod cli;
 
 use types::{Post, Config, TorProxy};
 use database::Database;

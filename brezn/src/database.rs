@@ -134,3 +134,63 @@ impl Database {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Post, Config};
+    
+    #[test]
+    fn test_database_creation() {
+        let db = Database::new();
+        assert!(db.is_ok());
+    }
+    
+    #[test]
+    fn test_add_and_get_post() {
+        let db = Database::new().unwrap();
+        
+        let post = Post {
+            id: None,
+            content: "Test post".to_string(),
+            timestamp: 1234567890,
+            pseudonym: "TestUser".to_string(),
+            node_id: Some("test-node".to_string()),
+        };
+        
+        let id = db.add_post(&post).unwrap();
+        assert!(id > 0);
+        
+        let posts = db.get_posts(10).unwrap();
+        // Check that our post is in the list (there might be existing posts)
+        let our_post = posts.iter().find(|p| p.content == "Test post" && p.pseudonym == "TestUser");
+        assert!(our_post.is_some());
+        
+        let found_post = our_post.unwrap();
+        assert_eq!(found_post.content, "Test post");
+        assert_eq!(found_post.pseudonym, "TestUser");
+    }
+    
+    #[test]
+    fn test_config_defaults() {
+        let db = Database::new().unwrap();
+        let config = db.get_config().unwrap();
+        
+        assert_eq!(config.default_pseudonym, "AnonymBrezn42");
+        assert_eq!(config.max_posts, 100);
+        assert!(config.auto_save);
+    }
+    
+    #[test]
+    fn test_muted_users() {
+        let db = Database::new().unwrap();
+        
+        db.add_muted_user("Spammer").unwrap();
+        db.add_muted_user("Troll").unwrap();
+        
+        let muted = db.get_muted_users().unwrap();
+        assert_eq!(muted.len(), 2);
+        assert!(muted.contains(&"Spammer".to_string()));
+        assert!(muted.contains(&"Troll".to_string()));
+    }
+}

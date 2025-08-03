@@ -72,7 +72,7 @@ impl NetworkManager {
         
         loop {
             match listener.accept().await {
-                Ok((socket, addr)) => {
+                Ok((socket, _addr)) => {
                     let network_manager = Arc::new(Mutex::new(self.clone()));
                     tokio::spawn(async move {
                         if let Err(e) = Self::handle_connection(socket, network_manager).await {
@@ -235,6 +235,8 @@ impl NetworkManager {
         let peers = self.peers.lock().unwrap();
         peers.values().cloned().collect()
     }
+
+
 }
 
 impl Clone for NetworkManager {

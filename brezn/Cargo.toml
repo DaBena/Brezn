@@ -11,6 +11,10 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 name = "brezn-server"
 path = "src/main.rs"
 
+[[bin]]
+name = "brezn-cli"
+path = "src/bin/cli.rs"
+
 [dependencies]
 rusqlite = { version = "0.31", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
