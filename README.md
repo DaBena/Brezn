@@ -8,8 +8,8 @@ Nutzer posten anonyme Beiträge in einen öffentlichen Feed. Alle Netzwerk-Teiln
 ## 🛠️ Tech-Stack (FINAL)
 ```
 Sprache: Rust (2021 Edition)
-GUI: eframe/egui 0.24+
-Netzwerk: I2P (i2p-rs crate)
+GUI: React Native + Capacitor
+Netzwerk: Tor SOCKS5 Proxy
 Krypto: ring + sodiumoxide
 DB: rusqlite + SQLCipher
 Plattformen: Linux, Windows, iOS, Android
@@ -21,7 +21,7 @@ Plattformen: Linux, Windows, iOS, Android
 3. **QR-Netzwerkbeitritt**: QR scannen → Feed-Netzwerk beitreten
 4. **Anonyme Pseudonyme**: Wechselbare Handles, keine echten Namen
 5. **Lokale Mute-Liste**: Störende Poster stummschalten
-6. **I2P-Anonymisierung**: Alle Verbindungen über I2P-Tunnel
+6. **Tor-Anonymisierung**: Alle Verbindungen über Tor SOCKS5-Proxy
 
 ## 🏗️ Projektstruktur
 ```
