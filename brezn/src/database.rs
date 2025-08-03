@@ -47,9 +47,10 @@ impl Database {
     }
     
     pub fn add_post(&self, post: &Post) -> SqliteResult<i64> {
+        let node_id_str = post.node_id.as_deref().unwrap_or("").to_string();
         self.conn.execute(
             "INSERT INTO posts (content, timestamp, pseudonym, node_id) VALUES (?, ?, ?, ?)",
-            [&post.content, &post.timestamp.to_string(), &post.pseudonym, &post.node_id.as_deref().unwrap_or("")]
+            [&post.content, &post.timestamp.to_string(), &post.pseudonym, &node_id_str]
         )?;
         
         Ok(self.conn.last_insert_rowid())

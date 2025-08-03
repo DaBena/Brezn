@@ -106,8 +106,12 @@ impl NetworkManager {
             
             // Try to parse complete messages
             while let Some(message) = Self::extract_message(&buffer)? {
-                let network_manager = network_manager.lock().unwrap();
-                network_manager.handle_message(&message).await?;
+                let message_clone = message.clone();
+                let network_manager_clone = {
+                    let network_manager = network_manager.lock().unwrap();
+                    network_manager.clone()
+                }; // Lock is released here
+                network_manager_clone.handle_message(&message_clone).await?;
             }
         }
         

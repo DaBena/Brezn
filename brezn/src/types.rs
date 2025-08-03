@@ -96,7 +96,7 @@ impl TorProxy {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkMessage {
     pub message_type: String,
     pub payload: serde_json::Value,
