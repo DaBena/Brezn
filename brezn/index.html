@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brezn - Dezentrale Feed-App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content {
+            display: none;
+        }
+        
+        .content.active {
+            display: block;
+        }
+        
+        .post {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .pseudonym {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .timestamp {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .post-content {
+            line-height: 1.6;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .config-section h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥨 Brezn - Dezentrale Feed-App</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('feed')">📰 Feed</div>
+            <div class="tab" onclick="showTab('new-post')">✏️ Neuer Post</div>
+            <div class="tab" onclick="showTab('network')">🌐 Netzwerk</div>
+            <div class="tab" onclick="showTab('config')">⚙️ Konfiguration</div>
+        </div>
+        
+        <!-- Feed Tab -->
+        <div id="feed" class="content active">
+            <div id="posts-container">
+                <div class="post">
+                    <div class="post-header">
+                        <span class="pseudonym">AnonymBrezn42</span>
+                        <span class="timestamp">gerade eben</span>
+                    </div>
+                    <div class="post-content">
+                        Willkommen bei Brezn! 🥨
+                    </div>
+                </div>
+                
+                <div class="post">
+                    <div class="post-header">
+                        <span class="pseudonym">GeheimUser99</span>
+                        <span class="timestamp">vor 5min</span>
+                    </div>
+                    <div class="post-content">
+                        Das ist ein anonymer Post!
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New Post Tab -->
+        <div id="new-post" class="content">
+            <div class="form-group">
+                <label for="pseudonym">Pseudonym:</label>
+                <input type="text" id="pseudonym" value="AnonymBrezn42" placeholder="Dein Pseudonym">
+            </div>
+            
+            <div class="form-group">
+                <label for="post-content">Post-Inhalt:</label>
+                <textarea id="post-content" rows="5" placeholder="Was möchtest du teilen?"></textarea>
+            </div>
+            
+            <button onclick="createPost()">📝 Post erstellen</button>
+        </div>
+        
+        <!-- Network Tab -->
+        <div id="network" class="content">
+            <div class="status">
+                <div class="status-item">
+                    <span>📊 Posts lokal:</span>
+                    <span>2</span>
+                </div>
+                <div class="status-item">
+                    <span>🔇 Stummgeschaltete Benutzer:</span>
+                    <span>0</span>
+                </div>
+                <div class="status-item">
+                    <span>🆔 Node-ID:</span>
+                    <span>brezn-1234567890-123456</span>
+                </div>
+                <div class="status-item">
+                    <span>🌐 Netzwerk:</span>
+                    <span>Inaktiv</span>
+                </div>
+                <div class="status-item">
+                    <span>🔌 Port:</span>
+                    <span>8080</span>
+                </div>
+                <div class="status-item">
+                    <span>🔒 Tor:</span>
+                    <span>Inaktiv</span>
+                </div>
+            </div>
+            
+            <button onclick="toggleNetwork()">🌐 Netzwerk starten</button>
+            <button onclick="toggleTor()">🔒 Tor aktivieren</button>
+        </div>
+        
+        <!-- Config Tab -->
+        <div id="config" class="content">
+            <div class="config-section">
+                <h3>Allgemeine Einstellungen</h3>
+                <div class="form-group">
+                    <label for="default-pseudonym">Standard-Pseudonym:</label>
+                    <input type="text" id="default-pseudonym" value="AnonymBrezn42">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-save" checked> Auto-Save aktivieren
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-posts">Max Posts:</label>
+                    <input type="number" id="max-posts" value="100" min="10" max="1000">
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <h3>Netzwerk-Einstellungen</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="network-enabled"> Netzwerk aktiviert
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="network-port">Netzwerk-Port:</label>
+                    <input type="number" id="network-port" value="8080" min="1024" max="65535">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tor-port">Tor SOCKS5 Port:</label>
+                    <input type="number" id="tor-port" value="9050" min="1024" max="65535">
+                </div>
+            </div>
+            
+            <button onclick="saveConfig()">💾 Konfiguration speichern</button>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all content
+            const contents = document.querySelectorAll('.content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+        
+        function createPost() {
+            const pseudonym = document.getElementById('pseudonym').value;
+            const content = document.getElementById('post-content').value;
+            
+            if (!content.trim()) {
+                alert('Bitte gib einen Post-Inhalt ein!');
+                return;
+            }
+            
+            // Add new post to feed
+            const postsContainer = document.getElementById('posts-container');
+            const newPost = document.createElement('div');
+            newPost.className = 'post';
+            newPost.innerHTML = `
+                <div class="post-header">
+                    <span class="pseudonym">${pseudonym}</span>
+                    <span class="timestamp">gerade eben</span>
+                </div>
+                <div class="post-content">
+                    ${content}
+                </div>
+            `;
+            
+            postsContainer.insertBefore(newPost, postsContainer.firstChild);
+            
+            // Clear form
+            document.getElementById('post-content').value = '';
+            
+            // Show feed tab
+            showTab('feed');
+        }
+        
+        function toggleNetwork() {
+            const networkStatus = document.querySelector('#network .status-item:nth-child(4) span:last-child');
+            const button = event.target;
+            
+            if (networkStatus.textContent === 'Inaktiv') {
+                networkStatus.textContent = 'Aktiv';
+                button.textContent = '🌐 Netzwerk stoppen';
+                button.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
+            } else {
+                networkStatus.textContent = 'Inaktiv';
+                button.textContent = '🌐 Netzwerk starten';
+                button.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+            }
+        }
+        
+        function toggleTor() {
+            const torStatus = document.querySelector('#network .status-item:nth-child(6) span:last-child');
+            const button = event.target;
+            
+            if (torStatus.textContent === 'Inaktiv') {
+                torStatus.textContent = 'Aktiv';
+                button.textContent = '🔓 Tor deaktivieren';
+                button.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
+            } else {
+                torStatus.textContent = 'Inaktiv';
+                button.textContent = '🔒 Tor aktivieren';
+                button.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+            }
+        }
+        
+        function saveConfig() {
+            // Collect all config values
+            const config = {
+                defaultPseudonym: document.getElementById('default-pseudonym').value,
+                autoSave: document.getElementById('auto-save').checked,
+                maxPosts: document.getElementById('max-posts').value,
+                networkEnabled: document.getElementById('network-enabled').checked,
+                networkPort: document.getElementById('network-port').value,
+                torPort: document.getElementById('tor-port').value
+            };
+            
+            // Update pseudonym in new post tab
+            document.getElementById('pseudonym').value = config.defaultPseudonym;
+            
+            alert('✅ Konfiguration gespeichert!');
+        }
+    </script>
+</body>
+</html> 
