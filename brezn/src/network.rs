@@ -4,7 +4,7 @@ use serde_json;
 use anyhow::{Result, Context};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use crate::types::{NetworkMessage, MessageType, Post, Config};
+use crate::types::{NetworkMessage, Post, Config};
 use crate::crypto::CryptoManager;
 use sodiumoxide::crypto::box_;
 

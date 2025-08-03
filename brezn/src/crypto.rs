@@ -43,7 +43,7 @@ impl CryptoManager {
         
         let nonce_bytes = self.generate_nonce();
         let nonce = Nonce::assume_unique_for_key(nonce_bytes);
-        let mut nonce_sequence = SingleNonceSequence::new(nonce);
+        let nonce_sequence = SingleNonceSequence::new(nonce);
         
         let mut key = aead::SealingKey::new(unbound_key, nonce_sequence);
         let mut encrypted = data.to_vec();
@@ -66,7 +66,7 @@ impl CryptoManager {
         let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
         let nonce = Nonce::try_assume_unique_for_key(nonce_bytes)
             .map_err(|_| anyhow::anyhow!("Failed to create nonce"))?;
-        let mut nonce_sequence = SingleNonceSequence::new(nonce);
+        let nonce_sequence = SingleNonceSequence::new(nonce);
         
         let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
             .map_err(|_| anyhow::anyhow!("Failed to create decryption key"))?;

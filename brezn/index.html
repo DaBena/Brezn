@@ -309,7 +309,7 @@
             event.target.classList.add('active');
         }
         
-        function createPost() {
+        async function createPost() {
             const pseudonym = document.getElementById('pseudonym').value;
             const content = document.getElementById('post-content').value;
             
@@ -318,27 +318,69 @@
                 return;
             }
             
-            // Add new post to feed
-            const postsContainer = document.getElementById('posts-container');
-            const newPost = document.createElement('div');
-            newPost.className = 'post';
-            newPost.innerHTML = `
-                <div class="post-header">
-                    <span class="pseudonym">${pseudonym}</span>
-                    <span class="timestamp">gerade eben</span>
-                </div>
-                <div class="post-content">
-                    ${content}
-                </div>
-            `;
-            
-            postsContainer.insertBefore(newPost, postsContainer.firstChild);
-            
-            // Clear form
-            document.getElementById('post-content').value = '';
-            
-            // Show feed tab
-            showTab('feed');
+            try {
+                const response = await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        pseudonym: pseudonym
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear form
+                    document.getElementById('post-content').value = '';
+                    
+                    // Reload posts
+                    loadPosts();
+                    
+                    // Show feed tab
+                    showTab('feed');
+                } else {
+                    alert('Fehler beim Erstellen des Posts: ' + result.error);
+                }
+            } catch (error) {
+                alert('Fehler beim Verbinden zum Server: ' + error.message);
+            }
+        }
+        
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/posts');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const postsContainer = document.getElementById('posts-container');
+                    postsContainer.innerHTML = '';
+                    
+                    result.posts.forEach(post => {
+                        const postElement = document.createElement('div');
+                        postElement.className = 'post';
+                        
+                        const timestamp = new Date(post.timestamp * 1000);
+                        const timeString = timestamp.toLocaleString('de-DE');
+                        
+                        postElement.innerHTML = `
+                            <div class="post-header">
+                                <span class="pseudonym">${post.pseudonym}</span>
+                                <span class="timestamp">${timeString}</span>
+                            </div>
+                            <div class="post-content">
+                                ${post.content}
+                            </div>
+                        `;
+                        
+                        postsContainer.appendChild(postElement);
+                    });
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Posts:', error);
+            }
         }
         
         function toggleNetwork() {
@@ -387,6 +429,11 @@
             
             alert('✅ Konfiguration gespeichert!');
         }
+        
+        // Load posts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+        });
     </script>
 </body>
 </html> 
