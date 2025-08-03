@@ -1,11 +1,8 @@
-use std::collections::HashSet;
 use rusqlite::{Connection, Result as SqliteResult};
 use serde::{Serialize, Deserialize};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tauri::{App, AppHandle, Manager, Window};
+use std::collections::HashSet;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Post {
     id: Option<i64>,
     content: String,
@@ -14,7 +11,7 @@ struct Post {
     node_id: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Config {
     auto_save: bool,
     max_posts: usize,
@@ -130,9 +127,10 @@ impl Database {
     }
     
     fn add_post(&self, post: &Post) -> SqliteResult<i64> {
+        let node_id = post.node_id.as_deref().unwrap_or("").to_string();
         self.conn.execute(
             "INSERT INTO posts (content, timestamp, pseudonym, node_id) VALUES (?, ?, ?, ?)",
-            [&post.content, &post.timestamp.to_string(), &post.pseudonym, &post.node_id.as_deref().unwrap_or("")]
+            [&post.content, &post.timestamp.to_string(), &post.pseudonym, &node_id]
         )?;
         Ok(self.conn.last_insert_rowid())
     }
@@ -309,72 +307,183 @@ impl BreznData {
     }
 }
 
-// Tauri Commands
-#[tauri::command]
-async fn get_posts(app_handle: AppHandle) -> Result<Vec<Post>, String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let data = data.lock().await;
-    data.get_posts().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn create_post(content: String, pseudonym: String, app_handle: AppHandle) -> Result<(), String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let mut data = data.lock().await;
-    data.add_post(content, pseudonym).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn get_config(app_handle: AppHandle) -> Result<Config, String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let data = data.lock().await;
-    Ok(data.config.clone())
-}
-
-#[tauri::command]
-async fn update_config(config: Config, app_handle: AppHandle) -> Result<(), String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let mut data = data.lock().await;
-    data.config = config;
-    data.update_config().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn toggle_tor(app_handle: AppHandle) -> Result<bool, String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let mut data = data.lock().await;
-    
-    if data.is_tor_enabled() {
-        data.disable_tor();
-        Ok(false)
+fn format_time_diff(timestamp: u64) -> String {
+    let current_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let time_diff = current_time - timestamp;
+    if time_diff < 60 {
+        "gerade eben".to_string()
+    } else if time_diff < 3600 {
+        format!("vor {}min", time_diff / 60)
+    } else if time_diff < 86400 {
+        format!("vor {}h", time_diff / 3600)
     } else {
-        data.enable_tor();
-        Ok(true)
+        format!("vor {}d", time_diff / 86400)
     }
 }
 
-#[tauri::command]
-async fn get_network_status(app_handle: AppHandle) -> Result<serde_json::Value, String> {
-    let data = app_handle.state::<Arc<Mutex<BreznData>>>();
-    let data = data.lock().await;
+fn show_feed(data: &BreznData) {
+    println!("{}", "=".repeat(50));
+    println!("📰 FEED");
+    println!("{}", "=".repeat(50));
     
-    let posts = data.get_posts().map_err(|e| e.to_string())?;
-    let muted_users = data.get_muted_users().map_err(|e| e.to_string())?;
+    match data.get_posts() {
+        Ok(posts) => {
+            let muted_users: HashSet<String> = data.get_muted_users().unwrap_or_default().into_iter().collect();
+            
+            for (i, post) in posts.iter().enumerate() {
+                if !muted_users.contains(&post.pseudonym) {
+                    let time_str = format_time_diff(post.timestamp);
+                    println!("👤 {} • {}", post.pseudonym, time_str);
+                    println!("📝 {}", post.content);
+                    println!("🔗 ID: {}", i + 1);
+                    println!("{}", "-".repeat(30));
+                }
+            }
+        }
+        Err(e) => eprintln!("Fehler beim Laden der Posts: {}", e),
+    }
+}
+
+fn show_new_post(data: &mut BreznData, current_pseudonym: &mut String) {
+    println!("{}", "=".repeat(50));
+    println!("✏️  NEUER POST");
+    println!("{}", "=".repeat(50));
     
-    Ok(serde_json::json!({
-        "posts_count": posts.len(),
-        "muted_users_count": muted_users.len(),
-        "node_id": data.node_id,
-        "network_enabled": data.config.network_enabled,
-        "network_port": data.config.network_port,
-        "tor_enabled": data.is_tor_enabled(),
-        "tor_port": data.config.tor_socks_port
-    }))
+    println!("Aktuelles Pseudonym: {}", current_pseudonym);
+    println!("Drücke Enter für neues Pseudonym oder gib dein Pseudonym ein:");
+    
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let input = input.trim();
+    
+    if !input.is_empty() {
+        *current_pseudonym = input.to_string();
+    } else {
+        let random_num = (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() % 9999) as u32;
+        *current_pseudonym = format!("AnonymBrezn{}", random_num);
+    }
+    
+    println!("Gib deinen Post ein:");
+    let mut content = String::new();
+    std::io::stdin().read_line(&mut content).unwrap();
+    let content = content.trim().to_string();
+    
+    if !content.is_empty() {
+        if let Err(e) = data.add_post(content, current_pseudonym.clone()) {
+            eprintln!("Fehler beim Erstellen des Posts: {}", e);
+        } else {
+            println!("✅ Post erstellt!");
+        }
+    }
+}
+
+fn show_network(data: &BreznData) {
+    println!("{}", "=".repeat(50));
+    println!("🌐 NETZWERK");
+    println!("{}", "=".repeat(50));
+    
+    match data.get_posts() {
+        Ok(posts) => {
+            println!("📊 {} Posts lokal", posts.len());
+        }
+        Err(_) => {
+            println!("📊 Posts konnten nicht geladen werden");
+        }
+    }
+    
+    match data.get_muted_users() {
+        Ok(muted_users) => {
+            println!("🔇 {} stummgeschaltete Benutzer", muted_users.len());
+        }
+        Err(_) => {
+            println!("🔇 Stummgeschaltete Benutzer konnten nicht geladen werden");
+        }
+    }
+    
+    println!("🆔 Node-ID: {}", data.node_id);
+    println!("🌐 Netzwerk: {}", 
+        if data.config.network_enabled { "Aktiv" } else { "Inaktiv" });
+    println!("🔌 Port: {}", data.config.network_port);
+    println!("🔒 Tor: {}", 
+        if data.is_tor_enabled() { "Aktiv" } else { "Inaktiv" });
+    if data.is_tor_enabled() {
+        println!("🔌 Tor SOCKS5: {}", data.tor_proxy.get_socks_url());
+    }
+}
+
+fn show_config(data: &mut BreznData) {
+    println!("{}", "=".repeat(50));
+    println!("⚙️  KONFIGURATION");
+    println!("{}", "=".repeat(50));
+    
+    println!("1. Standard-Pseudonym ändern (aktuell: {})", data.config.default_pseudonym);
+    println!("2. Auto-Save {} (aktuell: {})", 
+        if data.config.auto_save { "deaktivieren" } else { "aktivieren" },
+        if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
+    println!("3. Max Posts ändern (aktuell: {})", data.config.max_posts);
+    println!("4. Netzwerk-Einstellungen");
+    println!("5. Tor-Einstellungen");
+    println!("6. Speichern");
+    println!("0. Zurück");
+    
+    let mut choice = String::new();
+    std::io::stdin().read_line(&mut choice).unwrap();
+    
+    match choice.trim() {
+        "1" => {
+            println!("Neues Standard-Pseudonym:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            data.config.default_pseudonym = input.trim().to_string();
+        }
+        "2" => {
+            data.config.auto_save = !data.config.auto_save;
+            println!("Auto-Save: {}", if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
+        }
+        "3" => {
+            println!("Neue Max Posts Anzahl:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            if let Ok(num) = input.trim().parse::<usize>() {
+                data.config.max_posts = num;
+            }
+        }
+        "4" => {
+            println!("Netzwerk aktiviert: {}", data.config.network_enabled);
+            data.config.network_enabled = !data.config.network_enabled;
+            println!("Netzwerk aktiviert: {}", data.config.network_enabled);
+            println!("Netzwerk-Port: {}", data.config.network_port);
+        }
+        "5" => {
+            println!("Tor aktiviert: {}", data.is_tor_enabled());
+            if data.is_tor_enabled() {
+                data.disable_tor();
+            } else {
+                data.enable_tor();
+            }
+            println!("Tor SOCKS5 Port: {}", data.config.tor_socks_port);
+        }
+        "6" => {
+            if let Err(e) = data.update_config() {
+                eprintln!("Fehler beim Speichern: {}", e);
+            } else {
+                println!("✅ Konfiguration gespeichert!");
+            }
+        }
+        _ => {}
+    }
 }
 
 fn main() {
-    // Initialize BreznData
-    let brezn_data = match BreznData::new() {
+    println!("🥨 Willkommen bei Brezn - Dezentrale Feed-App!");
+    
+    let mut data = match BreznData::new() {
         Ok(data) => data,
         Err(e) => {
             eprintln!("Fehler beim Initialisieren der Datenbank: {}", e);
@@ -382,18 +491,32 @@ fn main() {
         }
     };
     
-    let brezn_data = Arc::new(Mutex::new(brezn_data));
+    let mut current_pseudonym = data.config.default_pseudonym.clone();
     
-    tauri::Builder::default()
-        .manage(brezn_data)
-        .invoke_handler(tauri::generate_handler![
-            get_posts,
-            create_post,
-            get_config,
-            update_config,
-            toggle_tor,
-            get_network_status
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    loop {
+        println!("\n{}", "=".repeat(50));
+        println!("🥨 BREZN - HAUPTMENÜ");
+        println!("{}", "=".repeat(50));
+        println!("1. 📰 Feed anzeigen");
+        println!("2. ✏️  Neuer Post");
+        println!("3. 🌐 Netzwerk");
+        println!("4. ⚙️  Konfiguration");
+        println!("0. 🚪 Beenden");
+        println!("{}", "=".repeat(50));
+        
+        let mut choice = String::new();
+        std::io::stdin().read_line(&mut choice).unwrap();
+        
+        match choice.trim() {
+            "1" => show_feed(&data),
+            "2" => show_new_post(&mut data, &mut current_pseudonym),
+            "3" => show_network(&data),
+            "4" => show_config(&mut data),
+            "0" => {
+                println!("👋 Auf Wiedersehen!");
+                break;
+            }
+            _ => println!("❌ Ungültige Auswahl!"),
+        }
+    }
 }
