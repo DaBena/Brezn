@@ -1,110 +1,168 @@
-# 🥨 Brezn - Dezentrale Feed-App
+# Brezn - Dezentrale Feed-App
 
-## Projektbeschreibung
+Eine komplett dezentrale, anonyme Feed-App wie Jodel/X mit I2P-Anonymisierung. Alle Netzwerk-Teilnehmer sehen alle Posts. Komplett dezentral, keine Server, Open Source für F-Droid.
 
-Brezn ist eine dezentrale Feed-App (ähnlich wie Jodel/X), die anonyme Beiträge in einem öffentlichen Feed ermöglicht. Das Projekt ist komplett dezentral, benötigt keine Server und ist als Open Source für F-Droid geplant.
+## 🥨 Features
 
-## 🚀 Lokale Ausführung
+- **Anonyme Posts**: Nutzer posten unter Pseudonymen
+- **Dezentrales Netzwerk**: P2P-Netzwerk ohne zentrale Server
+- **Tor-Integration**: SOCKS5 Proxy für Anonymisierung
+- **End-to-End Verschlüsselung**: NaCl Box für sichere Kommunikation
+- **Lokale Verschlüsselung**: AES-256-GCM für lokale Daten
+- **Multi-Plattform**: Linux, Windows, iOS, Android
 
-### Voraussetzungen
+## 🏗️ Architektur
 
-Das Projekt benötigt Rust und einen C++-Compiler. Auf Windows gibt es zwei Optionen:
+### Tech-Stack
+- **Backend**: Rust (2021 Edition)
+- **Frontend**: React Native + Capacitor
+- **Netzwerk**: Tor SOCKS5 Proxy
+- **Krypto**: ring + sodiumoxide
+- **DB**: rusqlite + SQLCipher
+- **Plattformen**: Linux, Windows, iOS, Android
 
-#### Option 1: Visual Studio Build Tools (Empfohlen)
-```bash
-# Installieren Sie Visual Studio Build Tools mit C++ Build Tools
-winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools"
-```
-
-#### Option 2: MinGW-w64
-```bash
-# Installieren Sie MSYS2 und MinGW-w64
-winget install MSYS2.MSYS2
-# Dann in MSYS2: pacman -S mingw-w64-x86_64-gcc
-```
-
-### Ausführung
-
-1. **Rust installieren** (falls noch nicht geschehen):
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-2. **Projekt kompilieren**:
-```bash
-cd brezn
-cargo build
-```
-
-3. **Anwendung ausführen**:
-```bash
-cargo run
-```
-
-## 🛠️ Alternative Ausführung
-
-Falls die Kompilierung auf Windows Probleme bereitet, können Sie:
-
-1. **WSL (Windows Subsystem for Linux)** verwenden
-2. **Linux-VM** nutzen
-3. **Docker** mit Rust-Image verwenden
-
-### Docker-Ausführung
-```bash
-docker run --rm -v ${PWD}:/app -w /app rust:latest cargo build
-```
-
-## 📱 Funktionen (Demo-Version)
-
-Die aktuelle Demo-Version bietet:
-
-- ✅ **Feed anzeigen**: Alle Posts chronologisch
-- ✅ **Posts erstellen**: Neue anonyme Beiträge
-- ✅ **Pseudonyme**: Wechselbare anonyme Handles
-- ✅ **Mute-Funktion**: Störende Poster stummschalten
-- ✅ **Netzwerk-Status**: Lokale Statistiken
-
-## 🔮 Geplante Features
-
-- 🌐 **I2P-Integration**: Anonyme Netzwerkverbindungen
-- 📱 **QR-Code-Scanning**: Netzwerkbeitritt per QR
-- 🔐 **Verschlüsselung**: Sichere Post-Speicherung
-- 📊 **P2P-Synchronisation**: Posts zwischen Peers
-- 🎨 **GUI**: Moderne Benutzeroberfläche mit egui
-
-## 🏗️ Projektstruktur
+### Komponenten
 
 ```
 brezn/
 ├── src/
-│   ├── main.rs              # Hauptanwendung
-│   └── types/
-│       └── feed_post.rs     # Datentypen
-├── Cargo.toml               # Dependencies
-└── README.md               # Diese Datei
+│   ├── lib.rs          # Hauptbibliothek mit FFI
+│   ├── types.rs        # Datenstrukturen
+│   ├── database.rs     # SQLite-Operationen
+│   ├── crypto.rs       # Verschlüsselung
+│   └── network.rs      # P2P-Netzwerk
+├── Cargo.toml          # Rust-Dependencies
+└── README.md
 ```
+
+## 🚀 Setup
+
+### Rust Backend
+
+```bash
+cd brezn
+cargo build
+cargo test
+```
+
+### React Native Frontend (Coming Soon)
+
+```bash
+# React Native App wird hier erstellt
+npx react-native init BreznApp
+cd BreznApp
+npm install @capacitor/core @capacitor/cli
+npx cap init
+```
+
+## 🔧 Entwicklung
+
+### Rust Backend
+
+Das Backend ist als Library konfiguriert und bietet FFI-Funktionen für React Native:
+
+```rust
+// FFI-Funktionen
+brezn_init() -> *mut BreznApp
+brezn_free(app: *mut BreznApp)
+brezn_add_post(app, content, pseudonym) -> i64
+brezn_get_posts_json(app, limit) -> *mut i8
+```
+
+### Datenstrukturen
+
+```rust
+struct Post {
+    id: Option<i64>,
+    content: String,
+    timestamp: u64,
+    pseudonym: String,
+    node_id: Option<String>,
+}
+
+struct Config {
+    auto_save: bool,
+    max_posts: usize,
+    default_pseudonym: String,
+    network_enabled: bool,
+    network_port: u16,
+    tor_enabled: bool,
+    tor_socks_port: u16,
+}
+```
+
+### Verschlüsselung
+
+- **Lokale Daten**: AES-256-GCM
+- **Netzwerk-Kommunikation**: NaCl Box (X25519 + ChaCha20-Poly1305)
+- **Hashing**: SHA-256
+
+### Netzwerk
+
+- **Protokoll**: P2P über TCP
+- **Anonymisierung**: Tor SOCKS5 Proxy
+- **Nachrichten**: JSON-basiert mit Längen-Präfix
+
+## 🔒 Sicherheit
+
+- **Anonymität**: Tor-Integration für IP-Anonymisierung
+- **Verschlüsselung**: End-to-End für alle Nachrichten
+- **Lokale Sicherheit**: Verschlüsselte SQLite-Datenbank
+- **Pseudonyme**: Keine echten Identitäten
+
+## 📱 Mobile App (Coming Soon)
+
+Die React Native App wird folgende Features haben:
+
+- **Feed-Ansicht**: Alle Posts chronologisch
+- **Post-Erstellung**: Anonyme Beiträge
+- **Einstellungen**: Tor, Pseudonym, Netzwerk
+- **Offline-Funktionalität**: Lokale Speicherung
+
+## 🛠️ Build
+
+### Rust Library
+
+```bash
+cargo build --release
+```
+
+### Mobile App
+
+```bash
+# Android
+npx cap build android
+
+# iOS
+npx cap build ios
+```
+
+## 📄 Lizenz
+
+Open Source - siehe LICENSE Datei.
+
+## 🤝 Beitragen
+
+1. Fork das Repository
+2. Erstelle einen Feature Branch
+3. Committe deine Änderungen
+4. Push zum Branch
+5. Erstelle einen Pull Request
 
 ## 🐛 Bekannte Probleme
 
-- **Linker-Fehler auf Windows**: Benötigt Visual Studio Build Tools
-- **GCC nicht gefunden**: MinGW-w64 muss installiert sein
-- **GUI-Dependencies**: eframe benötigt zusätzliche System-Dependencies
+- Tor-Integration noch in Entwicklung
+- P2P-Netzwerk Discovery fehlt
+- Mobile UI noch nicht implementiert
 
-## 💡 Lösungsansätze
+## 📋 Roadmap
 
-1. **Visual Studio Build Tools installieren**
-2. **WSL für Linux-Umgebung verwenden**
-3. **Docker für isolierte Entwicklungsumgebung nutzen**
-4. **Minimal-Version ohne GUI-Dependencies verwenden**
-
-## 📞 Support
-
-Bei Problemen:
-1. Prüfen Sie die Rust-Installation: `rustc --version`
-2. Prüfen Sie Cargo: `cargo --version`
-3. Installieren Sie die Build Tools
-4. Versuchen Sie WSL für Linux-Umgebung
-
----
-
-**Status**: Demo-Version funktional, GUI-Version benötigt Build Tools 
+- [x] Rust Backend mit SQLite
+- [x] Verschlüsselung (AES + NaCl)
+- [x] P2P-Netzwerk Grundlagen
+- [x] Tor-Integration
+- [ ] React Native Frontend
+- [ ] Android/iOS Builds
+- [ ] F-Droid Release
+- [ ] Netzwerk Discovery
+- [ ] Offline-Synchronisation 

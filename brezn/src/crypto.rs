@@ -1,0 +1,154 @@
+use ring::aead::{self, BoundKey, Nonce, UnboundKey};
+use ring::rand::{SecureRandom, SystemRandom};
+use sodiumoxide::crypto::box_;
+use anyhow::{Result, Context};
+
+pub struct CryptoManager {
+    rng: SystemRandom,
+}
+
+impl CryptoManager {
+    pub fn new() -> Self {
+        Self {
+            rng: SystemRandom::new(),
+        }
+    }
+    
+    // AES-256-GCM encryption for local data
+    pub fn encrypt_data(&self, data: &[u8], key: &[u8; 32]) -> Result<Vec<u8>> {
+        let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
+            .context("Failed to create encryption key")?;
+        
+        let nonce_bytes = self.generate_nonce();
+        let nonce = Nonce::assume_unique_for_key(nonce_bytes);
+        
+        let mut key = aead::OpeningKey::new(unbound_key, nonce);
+        let mut encrypted = data.to_vec();
+        
+        key.seal_in_place_append_tag(aead::Aad::empty(), &mut encrypted)
+            .context("Failed to encrypt data")?;
+        
+        // Prepend nonce to encrypted data
+        let mut result = nonce_bytes.to_vec();
+        result.extend(encrypted);
+        
+        Ok(result)
+    }
+    
+    pub fn decrypt_data(&self, encrypted_data: &[u8], key: &[u8; 32]) -> Result<Vec<u8>> {
+        if encrypted_data.len() < 12 {
+            return Err(anyhow::anyhow!("Invalid encrypted data length"));
+        }
+        
+        let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
+        let nonce = Nonce::try_assume_unique_for_key(nonce_bytes)
+            .context("Failed to create nonce")?;
+        
+        let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
+            .context("Failed to create decryption key")?;
+        
+        let mut key = aead::OpeningKey::new(unbound_key, nonce);
+        let mut decrypted = ciphertext.to_vec();
+        
+        key.open_in_place(aead::Aad::empty(), &mut decrypted)
+            .context("Failed to decrypt data")?;
+        
+        Ok(decrypted)
+    }
+    
+    // NaCl box encryption for network communication
+    pub fn generate_keypair(&self) -> Result<(box_::PublicKey, box_::SecretKey)> {
+        let (public_key, secret_key) = box_::gen_keypair();
+        Ok((public_key, secret_key))
+    }
+    
+    pub fn encrypt_message(&self, message: &[u8], recipient_pubkey: &box_::PublicKey, sender_secret_key: &box_::SecretKey) -> Result<Vec<u8>> {
+        let ephemeral_keypair = box_::gen_keypair();
+        let nonce = box_::gen_nonce();
+        
+        let encrypted = box_::seal(message, &nonce, recipient_pubkey, &ephemeral_keypair.1)
+            .context("Failed to encrypt message")?;
+        
+        // Combine ephemeral public key, nonce, and encrypted data
+        let mut result = ephemeral_keypair.0.0.to_vec();
+        result.extend(nonce.0.to_vec());
+        result.extend(encrypted);
+        
+        Ok(result)
+    }
+    
+    pub fn decrypt_message(&self, encrypted_data: &[u8], sender_pubkey: &box_::PublicKey, recipient_secret_key: &box_::SecretKey) -> Result<Vec<u8>> {
+        if encrypted_data.len() < box_::PUBLICKEYBYTES + box_::NONCEBYTES {
+            return Err(anyhow::anyhow!("Invalid encrypted data length"));
+        }
+        
+        let (ephemeral_pubkey_bytes, rest) = encrypted_data.split_at(box_::PUBLICKEYBYTES);
+        let (nonce_bytes, ciphertext) = rest.split_at(box_::NONCEBYTES);
+        
+        let ephemeral_pubkey = box_::PublicKey::from_slice(ephemeral_pubkey_bytes)
+            .context("Failed to parse ephemeral public key")?;
+        let nonce = box_::Nonce::from_slice(nonce_bytes)
+            .context("Failed to parse nonce")?;
+        
+        let decrypted = box_::open(ciphertext, &nonce, &ephemeral_pubkey, recipient_secret_key)
+            .context("Failed to decrypt message")?;
+        
+        Ok(decrypted)
+    }
+    
+    // Hash functions
+    pub fn hash_data(&self, data: &[u8]) -> Result<[u8; 32]> {
+        use ring::digest;
+        
+        let hash = digest::digest(&digest::SHA256, data);
+        let mut result = [0u8; 32];
+        result.copy_from_slice(hash.as_ref());
+        
+        Ok(result)
+    }
+    
+    // Generate random bytes
+    pub fn generate_random_bytes(&self, length: usize) -> Result<Vec<u8>> {
+        let mut bytes = vec![0u8; length];
+        self.rng.fill(&mut bytes)
+            .context("Failed to generate random bytes")?;
+        
+        Ok(bytes)
+    }
+    
+    fn generate_nonce(&self) -> [u8; 12] {
+        let mut nonce = [0u8; 12];
+        self.rng.fill(&mut nonce).unwrap();
+        nonce
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_encryption_decryption() {
+        let crypto = CryptoManager::new();
+        let key = [1u8; 32];
+        let data = b"Hello, World!";
+        
+        let encrypted = crypto.encrypt_data(data, &key).unwrap();
+        let decrypted = crypto.decrypt_data(&encrypted, &key).unwrap();
+        
+        assert_eq!(data, decrypted.as_slice());
+    }
+    
+    #[test]
+    fn test_nacl_encryption() {
+        let crypto = CryptoManager::new();
+        let (alice_pub, alice_sec) = crypto.generate_keypair().unwrap();
+        let (bob_pub, bob_sec) = crypto.generate_keypair().unwrap();
+        
+        let message = b"Secret message";
+        let encrypted = crypto.encrypt_message(message, &bob_pub, &alice_sec).unwrap();
+        let decrypted = crypto.decrypt_message(&encrypted, &alice_pub, &bob_sec).unwrap();
+        
+        assert_eq!(message, decrypted.as_slice());
+    }
+}
