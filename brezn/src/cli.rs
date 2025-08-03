@@ -29,6 +29,9 @@ impl CliInterface {
                 "posts" | "p" => self.show_posts(),
                 "post" => self.create_post(),
                 "config" | "c" => self.show_config(),
+                "network" | "n" => self.show_network_info(),
+                "qr" => self.generate_qr_code(),
+                "peers" => self.show_peers(),
                 "quit" | "q" | "exit" => break,
                 "" => continue,
                 _ => println!("❌ Unbekannter Befehl. Tippe 'help' für Hilfe."),
@@ -45,6 +48,9 @@ impl CliInterface {
         println!("  posts/p    - Alle Posts anzeigen");
         println!("  post       - Neuen Post erstellen");
         println!("  config/c   - Konfiguration anzeigen");
+        println!("  network/n  - Netzwerk-Informationen");
+        println!("  qr         - QR-Code für Netzwerkbeitritt generieren");
+        println!("  peers      - Verbundene Peers anzeigen");
         println!("  quit/q     - Beenden");
     }
     
@@ -114,5 +120,35 @@ impl CliInterface {
             }
             Err(e) => println!("❌ Fehler beim Laden der Konfiguration: {}", e),
         }
+    }
+    
+    fn show_network_info(&self) {
+        println!("\n🌐 Netzwerk-Informationen:");
+        println!("  Node ID: {}", self.app.get_node_id());
+        println!("  Tor aktiv: {}", self.app.is_tor_enabled());
+        
+        match self.app.get_config() {
+            Ok(config) => {
+                println!("  Netzwerk aktiv: {}", config.network_enabled);
+                println!("  Netzwerk-Port: {}", config.network_port);
+                println!("  Tor SOCKS-Port: {}", config.tor_socks_port);
+            }
+            Err(e) => println!("❌ Fehler beim Laden der Konfiguration: {}", e),
+        }
+    }
+    
+    fn generate_qr_code(&self) {
+        println!("\n📱 QR-Code für Netzwerkbeitritt:");
+        println!("  Node ID: {}", self.app.get_node_id());
+        
+        // In a real implementation, this would use the discovery module
+        println!("  QR-Code-Generierung wird implementiert...");
+        println!("  (Für MVP: Manuelle Peer-Konfiguration)");
+    }
+    
+    fn show_peers(&self) {
+        println!("\n👥 Verbundene Peers:");
+        println!("  (Peer-Management wird in Phase 2 implementiert)");
+        println!("  Aktuell: Lokaler Modus");
     }
 }

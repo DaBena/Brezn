@@ -66,9 +66,13 @@ impl DiscoveryManager {
         let qr_data = serde_json::to_string(&peer_data)
             .map_err(|e| BreznError::Serialization(e))?;
         
-        // In real implementation, use qrcode crate to generate actual QR code
-        // For now, return the data that would be encoded
-        Ok(qr_data)
+        // Generate actual QR code
+        let qr = qrcode::QrCode::new(qr_data.as_bytes())
+            .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
+        
+        // Convert to string representation (for CLI display)
+        let string = qr.to_string();
+        Ok(string)
     }
     
     pub fn parse_qr_code(&self, qr_data: &str) -> Result<PeerInfo> {

@@ -111,3 +111,64 @@ pub enum MessageType {
     Ping,
     Pong,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_post_creation() {
+        let post = Post::new(
+            "Test content".to_string(),
+            "TestUser".to_string(),
+            Some("test-node".to_string())
+        );
+        
+        assert_eq!(post.content, "Test content");
+        assert_eq!(post.pseudonym, "TestUser");
+        assert_eq!(post.node_id, Some("test-node".to_string()));
+        assert!(post.id.is_none());
+    }
+    
+    #[test]
+    fn test_post_time_formatting() {
+        let mut post = Post::new(
+            "Test".to_string(),
+            "User".to_string(),
+            None
+        );
+        
+        // Set timestamp to 1 hour ago
+        post.timestamp = (chrono::Utc::now().timestamp() - 3600) as u64;
+        
+        let formatted = post.get_formatted_time();
+        assert!(formatted.contains("vor 1 Stunde") || formatted.contains("vor 1 Stunden"));
+    }
+    
+    #[test]
+    fn test_config_defaults() {
+        let config = Config::default();
+        
+        assert_eq!(config.default_pseudonym, "AnonymBrezn42");
+        assert_eq!(config.max_posts, 100);
+        assert!(config.auto_save);
+        assert!(!config.network_enabled);
+        assert!(!config.tor_enabled);
+        assert_eq!(config.network_port, 8080);
+        assert_eq!(config.tor_socks_port, 9050);
+    }
+    
+    #[test]
+    fn test_tor_proxy() {
+        let mut proxy = TorProxy::new(9050);
+        
+        assert!(!proxy.is_enabled());
+        assert_eq!(proxy.get_socks_url(), "socks5://127.0.0.1:9050");
+        
+        proxy.enable();
+        assert!(proxy.is_enabled());
+        
+        proxy.disable();
+        assert!(!proxy.is_enabled());
+    }
+}

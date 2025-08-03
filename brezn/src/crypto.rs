@@ -38,17 +38,17 @@ impl CryptoManager {
     
     // AES-256-GCM encryption for local data
     pub fn encrypt_data(&self, data: &[u8], key: &[u8; 32]) -> Result<Vec<u8>> {
-        let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
-            .map_err(|_| anyhow::anyhow!("Failed to create encryption key"))?;
-        
         let nonce_bytes = self.generate_nonce();
         let nonce = Nonce::assume_unique_for_key(nonce_bytes);
         let nonce_sequence = SingleNonceSequence::new(nonce);
         
-        let mut key = aead::SealingKey::new(unbound_key, nonce_sequence);
+        let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
+            .map_err(|_| anyhow::anyhow!("Failed to create encryption key"))?;
+        
+        let mut sealing_key = aead::SealingKey::new(unbound_key, nonce_sequence);
         let mut encrypted = data.to_vec();
         
-        key.seal_in_place_append_tag(aead::Aad::empty(), &mut encrypted)
+        sealing_key.seal_in_place_append_tag(aead::Aad::empty(), &mut encrypted)
             .map_err(|_| anyhow::anyhow!("Failed to encrypt data"))?;
         
         // Prepend nonce to encrypted data
@@ -59,25 +59,24 @@ impl CryptoManager {
     }
     
     pub fn decrypt_data(&self, encrypted_data: &[u8], key: &[u8; 32]) -> Result<Vec<u8>> {
-        if encrypted_data.len() < 12 {
+        if encrypted_data.len() < 12 + 16 { // nonce + minimum encrypted data
             return Err(anyhow::anyhow!("Invalid encrypted data length"));
         }
         
         let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
-        let nonce = Nonce::try_assume_unique_for_key(nonce_bytes)
-            .map_err(|_| anyhow::anyhow!("Failed to create nonce"))?;
+        let nonce = Nonce::assume_unique_for_key(nonce_bytes.try_into().unwrap());
         let nonce_sequence = SingleNonceSequence::new(nonce);
         
         let unbound_key = UnboundKey::new(&aead::AES_256_GCM, key)
             .map_err(|_| anyhow::anyhow!("Failed to create decryption key"))?;
         
-        let mut key = aead::OpeningKey::new(unbound_key, nonce_sequence);
+        let mut opening_key = aead::OpeningKey::new(unbound_key, nonce_sequence);
         let mut decrypted = ciphertext.to_vec();
         
-        key.open_in_place(aead::Aad::empty(), &mut decrypted)
+        let decrypted_slice = opening_key.open_in_place(aead::Aad::empty(), &mut decrypted)
             .map_err(|_| anyhow::anyhow!("Failed to decrypt data"))?;
         
-        Ok(decrypted)
+        Ok(decrypted_slice.to_vec())
     }
     
     // NaCl box encryption for network communication

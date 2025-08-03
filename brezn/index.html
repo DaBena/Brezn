@@ -169,126 +169,75 @@
         <h1>🥨 Brezn - Dezentrale Feed-App</h1>
         
         <div class="tabs">
-            <div class="tab active" onclick="showTab('feed')">📰 Feed</div>
-            <div class="tab" onclick="showTab('new-post')">✏️ Neuer Post</div>
+            <div class="tab active" onclick="showTab('feed')">📝 Feed</div>
+            <div class="tab" onclick="showTab('post')">✏️ Post erstellen</div>
             <div class="tab" onclick="showTab('network')">🌐 Netzwerk</div>
-            <div class="tab" onclick="showTab('config')">⚙️ Konfiguration</div>
+            <div class="tab" onclick="showTab('settings')">⚙️ Einstellungen</div>
         </div>
         
         <!-- Feed Tab -->
         <div id="feed" class="content active">
+            <h2>📝 Feed</h2>
             <div id="posts-container">
-                <div class="post">
-                    <div class="post-header">
-                        <span class="pseudonym">AnonymBrezn42</span>
-                        <span class="timestamp">gerade eben</span>
-                    </div>
-                    <div class="post-content">
-                        Willkommen bei Brezn! 🥨
-                    </div>
-                </div>
-                
-                <div class="post">
-                    <div class="post-header">
-                        <span class="pseudonym">GeheimUser99</span>
-                        <span class="timestamp">vor 5min</span>
-                    </div>
-                    <div class="post-content">
-                        Das ist ein anonymer Post!
-                    </div>
-                </div>
+                <p>Lade Posts...</p>
             </div>
         </div>
         
-        <!-- New Post Tab -->
-        <div id="new-post" class="content">
+        <!-- Post Tab -->
+        <div id="post" class="content">
+            <h2>✏️ Neuen Post erstellen</h2>
             <div class="form-group">
-                <label for="pseudonym">Pseudonym:</label>
-                <input type="text" id="pseudonym" value="AnonymBrezn42" placeholder="Dein Pseudonym">
+                <label for="post-content">Inhalt:</label>
+                <textarea id="post-content" rows="4" placeholder="Was möchtest du teilen?"></textarea>
             </div>
-            
             <div class="form-group">
-                <label for="post-content">Post-Inhalt:</label>
-                <textarea id="post-content" rows="5" placeholder="Was möchtest du teilen?"></textarea>
+                <label for="post-pseudonym">Pseudonym:</label>
+                <input type="text" id="post-pseudonym" placeholder="AnonymBrezn">
             </div>
-            
-            <button onclick="createPost()">📝 Post erstellen</button>
+            <button onclick="createPost()" class="btn btn-primary">Post erstellen</button>
         </div>
         
         <!-- Network Tab -->
         <div id="network" class="content">
-            <div class="status">
-                <div class="status-item">
-                    <span>📊 Posts lokal:</span>
-                    <span>2</span>
-                </div>
-                <div class="status-item">
-                    <span>🔇 Stummgeschaltete Benutzer:</span>
-                    <span>0</span>
-                </div>
-                <div class="status-item">
-                    <span>🆔 Node-ID:</span>
-                    <span>brezn-1234567890-123456</span>
-                </div>
-                <div class="status-item">
-                    <span>🌐 Netzwerk:</span>
-                    <span>Inaktiv</span>
-                </div>
-                <div class="status-item">
-                    <span>🔌 Port:</span>
-                    <span>8080</span>
-                </div>
-                <div class="status-item">
-                    <span>🔒 Tor:</span>
-                    <span>Inaktiv</span>
+            <h2>🌐 Netzwerk</h2>
+            <div class="network-status">
+                <h3>Status</h3>
+                <div id="network-info">
+                    <p>Lade Netzwerk-Informationen...</p>
                 </div>
             </div>
-            
-            <button onclick="toggleNetwork()">🌐 Netzwerk starten</button>
-            <button onclick="toggleTor()">🔒 Tor aktivieren</button>
+            <div class="qr-section">
+                <h3>QR-Code für Netzwerkbeitritt</h3>
+                <div id="qr-container">
+                    <p>QR-Code wird generiert...</p>
+                </div>
+                <button onclick="generateQR()" class="btn btn-secondary">QR-Code generieren</button>
+            </div>
         </div>
         
-        <!-- Config Tab -->
-        <div id="config" class="content">
-            <div class="config-section">
-                <h3>Allgemeine Einstellungen</h3>
-                <div class="form-group">
-                    <label for="default-pseudonym">Standard-Pseudonym:</label>
-                    <input type="text" id="default-pseudonym" value="AnonymBrezn42">
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="auto-save" checked> Auto-Save aktivieren
-                    </label>
-                </div>
-                
-                <div class="form-group">
-                    <label for="max-posts">Max Posts:</label>
-                    <input type="number" id="max-posts" value="100" min="10" max="1000">
-                </div>
+        <!-- Settings Tab -->
+        <div id="settings" class="content">
+            <h2>⚙️ Einstellungen</h2>
+            <div class="form-group">
+                <label for="default-pseudonym">Standard-Pseudonym:</label>
+                <input type="text" id="default-pseudonym" placeholder="AnonymBrezn42">
             </div>
-            
-            <div class="config-section">
-                <h3>Netzwerk-Einstellungen</h3>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="network-enabled"> Netzwerk aktiviert
-                    </label>
-                </div>
-                
-                <div class="form-group">
-                    <label for="network-port">Netzwerk-Port:</label>
-                    <input type="number" id="network-port" value="8080" min="1024" max="65535">
-                </div>
-                
-                <div class="form-group">
-                    <label for="tor-port">Tor SOCKS5 Port:</label>
-                    <input type="number" id="tor-port" value="9050" min="1024" max="65535">
-                </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-save"> Auto-Save aktivieren
+                </label>
             </div>
-            
-            <button onclick="saveConfig()">💾 Konfiguration speichern</button>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="network-enabled"> Netzwerk aktivieren
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="tor-enabled"> Tor aktivieren
+                </label>
+            </div>
+            <button onclick="saveConfig()" class="btn btn-primary">Einstellungen speichern</button>
         </div>
     </div>
     
@@ -310,7 +259,7 @@
         }
         
         async function createPost() {
-            const pseudonym = document.getElementById('pseudonym').value;
+            const pseudonym = document.getElementById('post-pseudonym').value;
             const content = document.getElementById('post-content').value;
             
             if (!content.trim()) {
@@ -383,6 +332,84 @@
             }
         }
         
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const config = data.config;
+                    document.getElementById('default-pseudonym').value = config.default_pseudonym;
+                    document.getElementById('auto-save').checked = config.auto_save;
+                    document.getElementById('network-enabled').checked = config.network_enabled;
+                    document.getElementById('tor-enabled').checked = config.tor_enabled;
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Konfiguration:', error);
+            }
+        }
+        
+        async function loadNetworkStatus() {
+            try {
+                const response = await fetch('/api/network/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const network = data.network;
+                    const networkInfo = document.getElementById('network-info');
+                    
+                    networkInfo.innerHTML = `
+                        <div class="status-item">
+                            <span>🆔 Node ID:</span>
+                            <span>${network.node_id}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>🌐 Status:</span>
+                            <span>${network.status}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>🔌 Port:</span>
+                            <span>${network.port}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>🔒 Tor:</span>
+                            <span>${network.tor_enabled ? 'Aktiv' : 'Inaktiv'}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>👥 Peers:</span>
+                            <span>${network.peers_count}</span>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Netzwerk-Informationen:', error);
+            }
+        }
+        
+        async function generateQR() {
+            try {
+                const response = await fetch('/api/network/qr');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const qrContainer = document.getElementById('qr-container');
+                    qrContainer.innerHTML = `
+                        <div class="qr-info">
+                            <p><strong>Node ID:</strong> ${data.qr_data.node_id}</p>
+                            <p><strong>Adresse:</strong> ${data.qr_data.address}:${data.qr_data.port}</p>
+                            <p><strong>Zeitstempel:</strong> ${new Date(data.qr_data.timestamp * 1000).toLocaleString()}</p>
+                        </div>
+                        <div class="qr-note">
+                            <p>📱 Scanne diesen QR-Code mit einer anderen Brezn-App, um dem Netzwerk beizutreten.</p>
+                            <p><em>Hinweis: QR-Code-Generierung wird in Phase 2 vollständig implementiert.</em></p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fehler beim Generieren des QR-Codes:', error);
+            }
+        }
+        
         function toggleNetwork() {
             const networkStatus = document.querySelector('#network .status-item:nth-child(4) span:last-child');
             const button = event.target;
@@ -430,9 +457,11 @@
             alert('✅ Konfiguration gespeichert!');
         }
         
-        // Load posts when page loads
+        // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadPosts();
+            loadConfig();
+            loadNetworkStatus();
         });
     </script>
 </body>
