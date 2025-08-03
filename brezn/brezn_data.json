@@ -1,0 +1,20 @@
+{
+  "posts": [
+    {
+      "content": "test hallo",
+      "timestamp": 1754232494,
+      "pseudonym": "AnonymBrezn42"
+    },
+    {
+      "content": "Willkommen bei Brezn! 🥨",
+      "timestamp": 1754232483,
+      "pseudonym": "AnonymBrezn42"
+    },
+    {
+      "content": "Das ist ein anonymer Post!",
+      "timestamp": 1754232183,
+      "pseudonym": "GeheimUser99"
+    }
+  ],
+  "muted_users": []
+}
