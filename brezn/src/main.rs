@@ -1,78 +1,204 @@
-use std::io::{self, Write};
-use std::fs;
+use std::collections::HashSet;
+use rusqlite::{Connection, Result as SqliteResult};
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use std::net::{TcpListener, TcpStream};
-use std::thread;
-use std::time::Duration;
-use base64::{Engine as _, engine::general_purpose};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Post {
+    id: Option<i64>,
     content: String,
     timestamp: u64,
     pseudonym: String,
+    node_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Peer {
-    id: String,
-    address: String,
-    last_seen: u64,
-    posts_count: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-struct NetworkInfo {
-    node_id: String,
-    port: u16,
-    posts_count: usize,
-    timestamp: u64,
-}
-
-#[derive(Serialize, Deserialize)]
-enum NetworkMessage {
-    NewPost(Post),
-    RequestPosts,
-    PostsResponse(Vec<Post>),
-    PeerDiscovery,
-    PeerInfo(Peer),
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Config {
-    default_pseudonym: String,
     auto_save: bool,
     max_posts: usize,
-    theme: String,
-    language: String,
+    default_pseudonym: String,
     network_enabled: bool,
     network_port: u16,
-    discovery_port: u16,
+    tor_enabled: bool,
+    tor_socks_port: u16,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            default_pseudonym: "AnonymBrezn42".to_string(),
             auto_save: true,
-            max_posts: 1000,
-            theme: "default".to_string(),
-            language: "de".to_string(),
+            max_posts: 100,
+            default_pseudonym: "AnonymBrezn42".to_string(),
             network_enabled: false,
             network_port: 8080,
-            discovery_port: 8081,
+            tor_enabled: false,
+            tor_socks_port: 9050,
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
+struct TorProxy {
+    socks_port: u16,
+    enabled: bool,
+}
+
+impl TorProxy {
+    fn new(port: u16) -> Self {
+        Self {
+            socks_port: port,
+            enabled: false,
+        }
+    }
+    
+    fn enable(&mut self) {
+        self.enabled = true;
+        println!("🔒 Tor SOCKS5 Proxy aktiviert auf Port {}", self.socks_port);
+    }
+    
+    fn disable(&mut self) {
+        self.enabled = false;
+        println!("🔓 Tor SOCKS5 Proxy deaktiviert");
+    }
+    
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+    
+    fn get_socks_url(&self) -> String {
+        format!("socks5://127.0.0.1:{}", self.socks_port)
+    }
+}
+
+#[derive(Debug)]
+struct Database {
+    conn: Connection,
+}
+
+impl Database {
+    fn new() -> SqliteResult<Self> {
+        let conn = Connection::open("brezn.db")?;
+        
+        // Create tables
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                pseudonym TEXT NOT NULL,
+                node_id TEXT
+            )
+        ", [])?;
+        
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        ", [])?;
+        
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS muted_users (
+                pseudonym TEXT PRIMARY KEY
+            )
+        ", [])?;
+        
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS peers (
+                id TEXT PRIMARY KEY,
+                address TEXT NOT NULL,
+                last_seen INTEGER NOT NULL,
+                posts_count INTEGER NOT NULL
+            )
+        ", [])?;
+        
+        Ok(Self { conn })
+    }
+    
+    fn init_default_config(&self) -> SqliteResult<()> {
+        let config = Config::default();
+        let config_json = serde_json::to_string(&config).unwrap();
+        
+        self.conn.execute(
+            "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+            ["app_config", &config_json]
+        )?;
+        
+        Ok(())
+    }
+    
+    fn add_post(&self, post: &Post) -> SqliteResult<i64> {
+        self.conn.execute(
+            "INSERT INTO posts (content, timestamp, pseudonym, node_id) VALUES (?, ?, ?, ?)",
+            [&post.content, &post.timestamp.to_string(), &post.pseudonym, &post.node_id.as_deref().unwrap_or("")]
+        )?;
+        Ok(self.conn.last_insert_rowid())
+    }
+    
+    fn get_posts(&self, limit: usize) -> SqliteResult<Vec<Post>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, content, timestamp, pseudonym, node_id FROM posts ORDER BY timestamp DESC LIMIT ?"
+        )?;
+        
+        let post_iter = stmt.query_map([limit as i64], |row| {
+            Ok(Post {
+                id: Some(row.get(0)?),
+                content: row.get(1)?,
+                timestamp: row.get(2)?,
+                pseudonym: row.get(3)?,
+                node_id: Some(row.get(4)?),
+            })
+        })?;
+        
+        let mut posts = Vec::new();
+        for post in post_iter {
+            posts.push(post?);
+        }
+        Ok(posts)
+    }
+    
+    fn get_config(&self) -> SqliteResult<Config> {
+        let mut stmt = self.conn.prepare("SELECT value FROM config WHERE key = ?")?;
+        let config_json: String = stmt.query_row(["app_config"], |row| row.get(0))?;
+        Ok(serde_json::from_str(&config_json).unwrap_or_default())
+    }
+    
+    fn update_config(&self, config: &Config) -> SqliteResult<()> {
+        let config_json = serde_json::to_string(config).unwrap();
+        self.conn.execute(
+            "UPDATE config SET value = ? WHERE key = ?",
+            [&config_json, "app_config"]
+        )?;
+        Ok(())
+    }
+    
+    fn add_muted_user(&self, pseudonym: &str) -> SqliteResult<()> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO muted_users (pseudonym) VALUES (?)",
+            [pseudonym]
+        )?;
+        Ok(())
+    }
+    
+    fn get_muted_users(&self) -> SqliteResult<Vec<String>> {
+        let mut stmt = self.conn.prepare("SELECT pseudonym FROM muted_users")?;
+        let user_iter = stmt.query_map([], |row| row.get(0))?;
+        
+        let mut users = Vec::new();
+        for user in user_iter {
+            users.push(user?);
+        }
+        Ok(users)
+    }
+}
+
+#[derive(Debug)]
 struct BreznData {
-    posts: Vec<Post>,
-    muted_users: std::collections::HashSet<String>,
+    db: Database,
     config: Config,
-    peers: HashMap<String, Peer>,
     node_id: String,
+    tor_proxy: TorProxy,
 }
 
 impl BreznData {
@@ -85,554 +211,313 @@ impl BreznData {
         format!("brezn-{:x}-{:06}", timestamp, random_part)
     }
 
-    fn new() -> Self {
-        Self {
-            posts: vec![
+    fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let db = Database::new()?;
+        db.init_default_config()?;
+        let config = db.get_config()?;
+        let node_id = Self::generate_node_id();
+        let tor_proxy = TorProxy::new(config.tor_socks_port);
+        
+        // Add sample posts if database is empty
+        let posts = db.get_posts(10)?;
+        if posts.is_empty() {
+            let sample_posts = vec![
                 Post {
+                    id: None,
                     content: "Willkommen bei Brezn! 🥨".to_string(),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
                         .as_secs(),
                     pseudonym: "AnonymBrezn42".to_string(),
+                    node_id: Some(node_id.clone()),
                 },
                 Post {
+                    id: None,
                     content: "Das ist ein anonymer Post!".to_string(),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
                         .as_secs() - 300,
                     pseudonym: "GeheimUser99".to_string(),
+                    node_id: Some(node_id.clone()),
                 },
-            ],
-            muted_users: std::collections::HashSet::new(),
-            config: Config::default(),
-            peers: HashMap::new(),
-            node_id: Self::generate_node_id(),
-        }
-    }
-
-    fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let data = serde_json::to_string_pretty(self)?;
-        fs::write("brezn_data.json", data)?;
-        Ok(())
-    }
-
-    fn load() -> Result<Self, Box<dyn std::error::Error>> {
-        if let Ok(data) = fs::read_to_string("brezn_data.json") {
-            let mut loaded_data: Self = serde_json::from_str(&data)?;
-            // Stelle sicher, dass node_id gesetzt ist
-            if loaded_data.node_id.is_empty() {
-                loaded_data.node_id = Self::generate_node_id();
+            ];
+            
+            for post in sample_posts {
+                db.add_post(&post)?;
             }
-            Ok(loaded_data)
-        } else {
-            Ok(Self::new())
         }
+        
+        Ok(Self { db, config, node_id, tor_proxy })
     }
 
-    fn add_post(&mut self, content: String, pseudonym: String) {
+    fn add_post(&mut self, content: String, pseudonym: String) -> Result<(), Box<dyn std::error::Error>> {
         let post = Post {
+            id: None,
             content,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
             pseudonym,
+            node_id: Some(self.node_id.clone()),
         };
-        self.posts.insert(0, post);
         
-        // Begrenze die Anzahl der Posts
-        if self.posts.len() > self.config.max_posts {
-            self.posts.truncate(self.config.max_posts);
-        }
-    }
-
-    fn display_feed(&self) {
-        println!("\n🥨 Brezn Feed");
-        println!("{}", "=".repeat(50));
+        self.db.add_post(&post)?;
         
-        for (i, post) in self.posts.iter().enumerate() {
-            if !self.muted_users.contains(&post.pseudonym) {
-                let current_time = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let time_diff = current_time - post.timestamp;
-                
-                let time_str = if time_diff < 60 {
-                    "gerade eben".to_string()
-                } else if time_diff < 3600 {
-                    format!("vor {}min", time_diff / 60)
-                } else if time_diff < 86400 {
-                    format!("vor {}h", time_diff / 3600)
-                } else {
-                    format!("vor {}d", time_diff / 86400)
-                };
-
-                println!("👤 {} • {}", post.pseudonym, time_str);
-                println!("📝 {}", post.content);
-                println!("🔗 ID: {}", i + 1);
-                println!("{}", "-".repeat(30));
-            }
-        }
-    }
-
-    fn generate_network_info(&self) -> NetworkInfo {
-        NetworkInfo {
-            node_id: self.node_id.clone(),
-            port: self.config.network_port,
-            posts_count: self.posts.len(),
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        }
-    }
-
-    fn generate_qr_code(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let network_info = self.generate_network_info();
-        let json_data = serde_json::to_string(&network_info)?;
-        let encoded_data = general_purpose::STANDARD.encode(json_data.as_bytes());
-        
-        Ok(encoded_data)
-    }
-
-    fn display_qr_code(&self) {
-        match self.generate_qr_code() {
-            Ok(encoded_data) => {
-                println!("\n📱 QR-Code für Netzwerkbeitritt:");
-                println!("{}", "=".repeat(50));
-                println!("🆔 Node-ID: {}", self.node_id);
-                println!("🔌 Port: {}", self.config.network_port);
-                println!("📊 Posts: {}", self.posts.len());
-                println!("\n📋 Encoded Network-Info:");
-                println!("{}", "-".repeat(30));
-                println!("{}", encoded_data);
-                println!("{}", "-".repeat(30));
-                println!("💡 Kopiere diese Daten in eine andere Brezn-Instanz zum Beitritt");
-            }
-            Err(e) => {
-                println!("❌ Fehler beim Generieren des QR-Codes: {}", e);
-            }
-        }
-    }
-
-    fn scan_qr_code(&mut self) {
-        println!("\n📱 QR-Code scannen:");
-        println!("{}", "=".repeat(50));
-        println!("Gib die encoded Network-Info ein:");
-        print!("> ");
-        io::stdout().flush().unwrap();
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        let encoded_data = input.trim();
-        
-        if encoded_data.is_empty() {
-            println!("❌ Keine Daten eingegeben!");
-            return;
+        // Check if we need to limit posts
+        let posts = self.db.get_posts(self.config.max_posts + 1)?;
+        if posts.len() > self.config.max_posts {
+            // TODO: Implement post cleanup
         }
         
-        // Decode Base64
-        match general_purpose::STANDARD.decode(encoded_data) {
-            Ok(decoded_bytes) => {
-                match String::from_utf8(decoded_bytes) {
-                    Ok(json_string) => {
-                        match serde_json::from_str::<NetworkInfo>(&json_string) {
-                            Ok(network_info) => {
-                                println!("✅ QR-Code erfolgreich gescannt!");
-                                println!("🆔 Node-ID: {}", network_info.node_id);
-                                println!("🔌 Port: {}", network_info.port);
-                                println!("📊 Posts: {}", network_info.posts_count);
-                                
-                                // Füge Peer hinzu
-                                let peer = Peer {
-                                    id: network_info.node_id,
-                                    address: format!("127.0.0.1:{}", network_info.port),
-                                    last_seen: network_info.timestamp,
-                                    posts_count: network_info.posts_count,
-                                };
-                                
-                                self.peers.insert(peer.id.clone(), peer);
-                                println!("✅ Peer erfolgreich hinzugefügt!");
-                                
-                                // Speichere nach Peer-Hinzufügung
-                                if self.config.auto_save {
-                                    if let Err(e) = self.save() {
-                                        println!("⚠️  Fehler beim Speichern: {}", e);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                println!("❌ Fehler beim Parsen der Network-Info: {}", e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        println!("❌ Fehler beim Decodieren der Daten: {}", e);
-                    }
+        Ok(())
+    }
+    
+    fn get_posts(&self) -> Result<Vec<Post>, Box<dyn std::error::Error>> {
+        Ok(self.db.get_posts(self.config.max_posts)?)
+    }
+    
+    fn get_muted_users(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        Ok(self.db.get_muted_users()?)
+    }
+    
+    fn add_muted_user(&self, pseudonym: &str) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(self.db.add_muted_user(pseudonym)?)
+    }
+    
+    fn update_config(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(self.db.update_config(&self.config)?)
+    }
+    
+    fn enable_tor(&mut self) {
+        self.tor_proxy.enable();
+        self.config.tor_enabled = true;
+        println!("🔒 Tor-Netzwerk aktiviert");
+    }
+    
+    fn disable_tor(&mut self) {
+        self.tor_proxy.disable();
+        self.config.tor_enabled = false;
+        println!("🔓 Tor-Netzwerk deaktiviert");
+    }
+    
+    fn is_tor_enabled(&self) -> bool {
+        self.tor_proxy.is_enabled()
+    }
+}
+
+fn format_time_diff(timestamp: u64) -> String {
+    let current_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let time_diff = current_time - timestamp;
+    if time_diff < 60 {
+        "gerade eben".to_string()
+    } else if time_diff < 3600 {
+        format!("vor {}min", time_diff / 60)
+    } else if time_diff < 86400 {
+        format!("vor {}h", time_diff / 3600)
+    } else {
+        format!("vor {}d", time_diff / 86400)
+    }
+}
+
+fn show_feed(data: &BreznData) {
+    println!("{}", "=".repeat(50));
+    println!("📰 FEED");
+    println!("{}", "=".repeat(50));
+    
+    match data.get_posts() {
+        Ok(posts) => {
+            let muted_users: HashSet<String> = data.get_muted_users().unwrap_or_default().into_iter().collect();
+            
+            for (i, post) in posts.iter().enumerate() {
+                if !muted_users.contains(&post.pseudonym) {
+                    let time_str = format_time_diff(post.timestamp);
+                    println!("👤 {} • {}", post.pseudonym, time_str);
+                    println!("📝 {}", post.content);
+                    println!("🔗 ID: {}", i + 1);
+                    println!("{}", "-".repeat(30));
                 }
             }
-            Err(e) => {
-                println!("❌ Fehler beim Base64-Decoding: {}", e);
-            }
         }
+        Err(e) => eprintln!("Fehler beim Laden der Posts: {}", e),
     }
+}
 
-    fn show_network_status(&self) {
-        println!("\n📶 Netzwerk-Status:");
-        println!("{}", "=".repeat(50));
-        println!("📊 {} Posts lokal", self.posts.len());
-        println!("🔇 {} stummgeschaltete Benutzer", self.muted_users.len());
-        println!("🆔 Node-ID: {}", self.node_id);
-        println!("🌐 Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
-        println!("🔌 Port: {}", self.config.network_port);
-        println!("🔍 Discovery Port: {}", self.config.discovery_port);
-        println!("👥 Bekannte Peers: {}", self.peers.len());
-        
-        if !self.peers.is_empty() {
-            println!("\n📋 Bekannte Peers:");
-            for (_id, peer) in &self.peers {
-                let last_seen = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() - peer.last_seen;
-                let time_str = if last_seen < 60 {
-                    "gerade eben".to_string()
-                } else if last_seen < 3600 {
-                    format!("vor {}min", last_seen / 60)
-                } else {
-                    format!("vor {}h", last_seen / 3600)
-                };
-                println!("  • {} ({}) - {} Posts - {}", 
-                    peer.id, peer.address, peer.posts_count, time_str);
-            }
-        }
-        
-        println!("💾 Persistenz: Aktiv (brezn_data.json)");
-        println!("⚙️  Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
+fn show_new_post(data: &mut BreznData, current_pseudonym: &mut String) {
+    println!("{}", "=".repeat(50));
+    println!("✏️  NEUER POST");
+    println!("{}", "=".repeat(50));
+    
+    println!("Aktuelles Pseudonym: {}", current_pseudonym);
+    println!("Drücke Enter für neues Pseudonym oder gib dein Pseudonym ein:");
+    
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let input = input.trim();
+    
+    if !input.is_empty() {
+        *current_pseudonym = input.to_string();
+    } else {
+        let random_num = (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() % 9999) as u32;
+        *current_pseudonym = format!("AnonymBrezn{}", random_num);
     }
-
-    fn start_network_server(&self) {
-        if !self.config.network_enabled {
-            println!("❌ Netzwerk ist deaktiviert!");
-            return;
-        }
-
-        let port = self.config.network_port;
-        let node_id = self.node_id.clone();
-        
-        thread::spawn(move || {
-            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
-                println!("🌐 Netzwerk-Server gestartet auf Port {}", port);
-                println!("🆔 Node-ID: {}", node_id);
-                
-                for stream in listener.incoming() {
-                    match stream {
-                        Ok(stream) => {
-                            println!("📡 Neue Verbindung von: {}", 
-                                stream.peer_addr().map_or("Unbekannt".to_string(), |addr| addr.to_string()));
-                            // Hier würde die Nachrichtenverarbeitung stattfinden
-                            thread::sleep(Duration::from_millis(100));
-                        }
-                        Err(e) => {
-                            println!("❌ Verbindungsfehler: {}", e);
-                        }
-                    }
-                }
-            } else {
-                println!("❌ Fehler beim Starten des Netzwerk-Servers auf Port {}", port);
-            }
-        });
-    }
-
-    fn discover_peers(&mut self) {
-        if !self.config.network_enabled {
-            println!("❌ Netzwerk ist deaktiviert!");
-            return;
-        }
-
-        println!("🔍 Suche nach anderen Brezn-Nodes...");
-        
-        // Simuliere Peer-Discovery
-        let local_port = self.config.network_port;
-        
-        thread::spawn(move || {
-            // Versuche Verbindung zu anderen Nodes
-            for port in 8080..8090 {
-                if port != local_port {
-                    if let Ok(stream) = TcpStream::connect(format!("127.0.0.1:{}", port)) {
-                        println!("✅ Node gefunden auf Port {}", port);
-                        // Hier würde Peer-Information ausgetauscht
-                        drop(stream);
-                    }
-                }
-            }
-        });
-    }
-
-    fn show_config(&self) {
-        println!("\n⚙️  Konfiguration:");
-        println!("{}", "=".repeat(50));
-        println!("👤 Standard-Pseudonym: {}", self.config.default_pseudonym);
-        println!("💾 Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
-        println!("📊 Max Posts: {}", self.config.max_posts);
-        println!("🎨 Theme: {}", self.config.theme);
-        println!("🌐 Sprache: {}", self.config.language);
-        println!("🌐 Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
-        println!("🔌 Netzwerk-Port: {}", self.config.network_port);
-        println!("🔍 Discovery-Port: {}", self.config.discovery_port);
-        println!("📁 Daten-Datei: brezn_data.json");
-    }
-
-    fn edit_config(&mut self) {
-        println!("\n⚙️  Konfiguration bearbeiten:");
-        println!("{}", "=".repeat(50));
-        println!("1. Standard-Pseudonym ändern");
-        println!("2. Auto-Save umschalten");
-        println!("3. Max Posts ändern");
-        println!("4. Theme ändern");
-        println!("5. Sprache ändern");
-        println!("6. Netzwerk aktivieren/deaktivieren");
-        println!("7. Netzwerk-Port ändern");
-        println!("8. Zurück");
-        
-        print!("Wähle eine Option (1-8): ");
-        io::stdout().flush().unwrap();
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        let choice = input.trim();
-
-        match choice {
-            "1" => {
-                print!("Neues Standard-Pseudonym: ");
-                io::stdout().flush().unwrap();
-                let mut new_pseudonym = String::new();
-                io::stdin().read_line(&mut new_pseudonym).unwrap();
-                let new_pseudonym = new_pseudonym.trim();
-                
-                if !new_pseudonym.is_empty() {
-                    self.config.default_pseudonym = new_pseudonym.to_string();
-                    println!("✅ Standard-Pseudonym geändert!");
-                } else {
-                    println!("❌ Pseudonym kann nicht leer sein!");
-                }
-            }
-            "2" => {
-                self.config.auto_save = !self.config.auto_save;
-                println!("✅ Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
-            }
-            "3" => {
-                print!("Neue Max Posts Anzahl: ");
-                io::stdout().flush().unwrap();
-                let mut max_posts = String::new();
-                io::stdin().read_line(&mut max_posts).unwrap();
-                
-                if let Ok(max) = max_posts.trim().parse::<usize>() {
-                    self.config.max_posts = max;
-                    println!("✅ Max Posts auf {} gesetzt!", max);
-                } else {
-                    println!("❌ Ungültige Zahl!");
-                }
-            }
-            "4" => {
-                println!("Verfügbare Themes: default, dark, light");
-                print!("Neues Theme: ");
-                io::stdout().flush().unwrap();
-                let mut theme = String::new();
-                io::stdin().read_line(&mut theme).unwrap();
-                let theme = theme.trim();
-                
-                if !theme.is_empty() {
-                    self.config.theme = theme.to_string();
-                    println!("✅ Theme geändert!");
-                } else {
-                    println!("❌ Theme kann nicht leer sein!");
-                }
-            }
-            "5" => {
-                println!("Verfügbare Sprachen: de, en");
-                print!("Neue Sprache: ");
-                io::stdout().flush().unwrap();
-                let mut language = String::new();
-                io::stdin().read_line(&mut language).unwrap();
-                let language = language.trim();
-                
-                if !language.is_empty() {
-                    self.config.language = language.to_string();
-                    println!("✅ Sprache geändert!");
-                } else {
-                    println!("❌ Sprache kann nicht leer sein!");
-                }
-            }
-            "6" => {
-                self.config.network_enabled = !self.config.network_enabled;
-                println!("✅ Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
-            }
-            "7" => {
-                print!("Neuer Netzwerk-Port: ");
-                io::stdout().flush().unwrap();
-                let mut port = String::new();
-                io::stdin().read_line(&mut port).unwrap();
-                
-                if let Ok(new_port) = port.trim().parse::<u16>() {
-                    self.config.network_port = new_port;
-                    println!("✅ Netzwerk-Port auf {} gesetzt!", new_port);
-                } else {
-                    println!("❌ Ungültiger Port!");
-                }
-            }
-            "8" => {
-                println!("Zurück zum Hauptmenü");
-            }
-            _ => {
-                println!("❌ Ungültige Option!");
-            }
+    
+    println!("Gib deinen Post ein:");
+    let mut content = String::new();
+    std::io::stdin().read_line(&mut content).unwrap();
+    let content = content.trim().to_string();
+    
+    if !content.is_empty() {
+        if let Err(e) = data.add_post(content, current_pseudonym.clone()) {
+            eprintln!("Fehler beim Erstellen des Posts: {}", e);
+        } else {
+            println!("✅ Post erstellt!");
         }
     }
 }
 
-fn main() {
-    println!("🥨 Willkommen bei Brezn!");
-    println!("Eine dezentrale Feed-App (Demo-Version)");
+fn show_network(data: &BreznData) {
     println!("{}", "=".repeat(50));
-
-    // Daten laden oder neu erstellen
-    let mut data = match BreznData::load() {
-        Ok(data) => {
-            println!("📂 Daten erfolgreich geladen!");
-            data
+    println!("🌐 NETZWERK");
+    println!("{}", "=".repeat(50));
+    
+    match data.get_posts() {
+        Ok(posts) => {
+            println!("📊 {} Posts lokal", posts.len());
         }
+        Err(_) => {
+            println!("📊 Posts konnten nicht geladen werden");
+        }
+    }
+    
+    match data.get_muted_users() {
+        Ok(muted_users) => {
+            println!("🔇 {} stummgeschaltete Benutzer", muted_users.len());
+        }
+        Err(_) => {
+            println!("🔇 Stummgeschaltete Benutzer konnten nicht geladen werden");
+        }
+    }
+    
+    println!("🆔 Node-ID: {}", data.node_id);
+    println!("🌐 Netzwerk: {}", 
+        if data.config.network_enabled { "Aktiv" } else { "Inaktiv" });
+    println!("🔌 Port: {}", data.config.network_port);
+    println!("🔒 Tor: {}", 
+        if data.is_tor_enabled() { "Aktiv" } else { "Inaktiv" });
+    if data.is_tor_enabled() {
+        println!("🔌 Tor SOCKS5: {}", data.tor_proxy.get_socks_url());
+    }
+}
+
+fn show_config(data: &mut BreznData) {
+    println!("{}", "=".repeat(50));
+    println!("⚙️  KONFIGURATION");
+    println!("{}", "=".repeat(50));
+    
+    println!("1. Standard-Pseudonym ändern (aktuell: {})", data.config.default_pseudonym);
+    println!("2. Auto-Save {} (aktuell: {})", 
+        if data.config.auto_save { "deaktivieren" } else { "aktivieren" },
+        if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
+    println!("3. Max Posts ändern (aktuell: {})", data.config.max_posts);
+    println!("4. Netzwerk-Einstellungen");
+    println!("5. Tor-Einstellungen");
+    println!("6. Speichern");
+    println!("0. Zurück");
+    
+    let mut choice = String::new();
+    std::io::stdin().read_line(&mut choice).unwrap();
+    
+    match choice.trim() {
+        "1" => {
+            println!("Neues Standard-Pseudonym:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            data.config.default_pseudonym = input.trim().to_string();
+        }
+        "2" => {
+            data.config.auto_save = !data.config.auto_save;
+            println!("Auto-Save: {}", if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
+        }
+        "3" => {
+            println!("Neue Max Posts Anzahl:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            if let Ok(num) = input.trim().parse::<usize>() {
+                data.config.max_posts = num;
+            }
+        }
+        "4" => {
+            println!("Netzwerk aktiviert: {}", data.config.network_enabled);
+            data.config.network_enabled = !data.config.network_enabled;
+            println!("Netzwerk aktiviert: {}", data.config.network_enabled);
+            println!("Netzwerk-Port: {}", data.config.network_port);
+        }
+        "5" => {
+            println!("Tor aktiviert: {}", data.is_tor_enabled());
+            if data.is_tor_enabled() {
+                data.disable_tor();
+            } else {
+                data.enable_tor();
+            }
+            println!("Tor SOCKS5 Port: {}", data.config.tor_socks_port);
+        }
+        "6" => {
+            if let Err(e) = data.update_config() {
+                eprintln!("Fehler beim Speichern: {}", e);
+            } else {
+                println!("✅ Konfiguration gespeichert!");
+            }
+        }
+        _ => {}
+    }
+}
+
+fn main() {
+    println!("🥨 Willkommen bei Brezn - Dezentrale Feed-App!");
+    
+    let mut data = match BreznData::new() {
+        Ok(data) => data,
         Err(e) => {
-            println!("⚠️  Fehler beim Laden der Daten: {}. Erstelle neue Daten.", e);
-            BreznData::new()
+            eprintln!("Fehler beim Initialisieren der Datenbank: {}", e);
+            return;
         }
     };
-
+    
     let mut current_pseudonym = data.config.default_pseudonym.clone();
     
     loop {
-        println!("\n📋 Menü:");
-        println!("1. Feed anzeigen");
-        println!("2. Neuen Post erstellen");
-        println!("3. Neues Pseudonym generieren");
-        println!("4. Benutzer stummschalten");
-        println!("5. Netzwerk-Status");
-        println!("6. Netzwerk-Server starten");
-        println!("7. Peers suchen");
-        println!("8. QR-Code generieren");
-        println!("9. QR-Code scannen");
-        println!("10. Konfiguration anzeigen");
-        println!("11. Konfiguration bearbeiten");
-        println!("12. Beenden");
-        println!("Aktuelles Pseudonym: {}", current_pseudonym);
-        print!("Wähle eine Option (1-12): ");
-        io::stdout().flush().unwrap();
+        println!("\n{}", "=".repeat(50));
+        println!("🥨 BREZN - HAUPTMENÜ");
+        println!("{}", "=".repeat(50));
+        println!("1. 📰 Feed anzeigen");
+        println!("2. ✏️  Neuer Post");
+        println!("3. 🌐 Netzwerk");
+        println!("4. ⚙️  Konfiguration");
+        println!("0. 🚪 Beenden");
+        println!("{}", "=".repeat(50));
         
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        let choice = input.trim();
-
-        match choice {
-            "1" => {
-                data.display_feed();
-            }
-            "2" => {
-                print!("Gib deinen Post ein: ");
-                io::stdout().flush().unwrap();
-                let mut content = String::new();
-                io::stdin().read_line(&mut content).unwrap();
-                let content = content.trim().to_string();
-                
-                if !content.is_empty() {
-                    data.add_post(content, current_pseudonym.clone());
-                    println!("✅ Post erfolgreich erstellt!");
-                    
-                    // Automatisch speichern nach neuem Post (wenn aktiviert)
-                    if data.config.auto_save {
-                        if let Err(e) = data.save() {
-                            println!("⚠️  Fehler beim Speichern: {}", e);
-                        }
-                    }
-                } else {
-                    println!("❌ Post kann nicht leer sein!");
-                }
-            }
-            "3" => {
-                let random_num = (std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos() % 9999) as u32;
-                current_pseudonym = format!("AnonymBrezn{}", random_num);
-                println!("🎲 Neues Pseudonym: {}", current_pseudonym);
-            }
-            "4" => {
-                print!("Pseudonym zum Stummschalten: ");
-                io::stdout().flush().unwrap();
-                let mut pseudonym_to_mute = String::new();
-                io::stdin().read_line(&mut pseudonym_to_mute).unwrap();
-                let pseudonym_to_mute = pseudonym_to_mute.trim();
-                
-                if !pseudonym_to_mute.is_empty() {
-                    data.muted_users.insert(pseudonym_to_mute.to_string());
-                    println!("🔇 {} wurde stummgeschaltet.", pseudonym_to_mute);
-                    
-                    // Automatisch speichern nach Mute (wenn aktiviert)
-                    if data.config.auto_save {
-                        if let Err(e) = data.save() {
-                            println!("⚠️  Fehler beim Speichern: {}", e);
-                        }
-                    }
-                } else {
-                    println!("❌ Pseudonym kann nicht leer sein!");
-                }
-            }
-            "5" => {
-                data.show_network_status();
-            }
-            "6" => {
-                data.start_network_server();
-                println!("🌐 Netzwerk-Server wird gestartet...");
-                println!("💡 Tipp: Aktiviere das Netzwerk in der Konfiguration für volle Funktionalität");
-            }
-            "7" => {
-                data.discover_peers();
-                println!("🔍 Peer-Discovery gestartet...");
-                println!("💡 Tipp: Starte mehrere Brezn-Instanzen auf verschiedenen Ports");
-            }
-            "8" => {
-                data.display_qr_code();
-            }
-            "9" => {
-                data.scan_qr_code();
-            }
-            "10" => {
-                data.show_config();
-            }
-            "11" => {
-                data.edit_config();
-                // Nach Konfigurationsänderungen speichern
-                if let Err(e) = data.save() {
-                    println!("⚠️  Fehler beim Speichern: {}", e);
-                } else {
-                    println!("✅ Konfiguration gespeichert!");
-                }
-            }
-            "12" => {
-                println!("💾 Speichere Daten...");
-                if let Err(e) = data.save() {
-                    println!("⚠️  Fehler beim Speichern: {}", e);
-                } else {
-                    println!("✅ Daten erfolgreich gespeichert!");
-                }
+        let mut choice = String::new();
+        std::io::stdin().read_line(&mut choice).unwrap();
+        
+        match choice.trim() {
+            "1" => show_feed(&data),
+            "2" => show_new_post(&mut data, &mut current_pseudonym),
+            "3" => show_network(&data),
+            "4" => show_config(&mut data),
+            "0" => {
                 println!("👋 Auf Wiedersehen!");
                 break;
             }
-            _ => {
-                println!("❌ Ungültige Option!");
-            }
+            _ => println!("❌ Ungültige Auswahl!"),
         }
     }
 }
