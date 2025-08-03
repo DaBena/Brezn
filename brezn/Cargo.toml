@@ -1,0 +1,25 @@
+[package]
+name = "brezn"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.24"
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.29", features = ["bundled"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+anyhow = "1.0"
+log = "0.4"
+env_logger = "0.10"
+rand = "0.8"
+base64 = "0.21"
+qrcode = "0.14"
+image = "0.24"
+ring = "0.17"
+sodiumoxide = "0.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# I2P-related dependencies (simplified for now)
+# Note: Full I2P implementation would require more complex setup
