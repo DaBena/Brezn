@@ -51,10 +51,11 @@ node_modules/
 .env.local
 .env.*.local
 
-# Tauri specific
-src-tauri/target/
+# Capacitor specific
 dist/
 dist-ssr/
+android/
+ios/
 
 # Rust analyzer
 .rust-analyzer/
