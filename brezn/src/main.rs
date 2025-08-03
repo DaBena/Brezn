@@ -10,9 +10,31 @@ struct Post {
 }
 
 #[derive(Serialize, Deserialize)]
+struct Config {
+    default_pseudonym: String,
+    auto_save: bool,
+    max_posts: usize,
+    theme: String,
+    language: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            default_pseudonym: "AnonymBrezn42".to_string(),
+            auto_save: true,
+            max_posts: 1000,
+            theme: "default".to_string(),
+            language: "de".to_string(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 struct BreznData {
     posts: Vec<Post>,
     muted_users: std::collections::HashSet<String>,
+    config: Config,
 }
 
 impl BreznData {
@@ -37,6 +59,7 @@ impl BreznData {
                 },
             ],
             muted_users: std::collections::HashSet::new(),
+            config: Config::default(),
         }
     }
 
@@ -64,6 +87,11 @@ impl BreznData {
             pseudonym,
         };
         self.posts.insert(0, post);
+        
+        // Begrenze die Anzahl der Posts
+        if self.posts.len() > self.config.max_posts {
+            self.posts.truncate(self.config.max_posts);
+        }
     }
 
     fn display_feed(&self) {
@@ -95,6 +123,105 @@ impl BreznData {
             }
         }
     }
+
+    fn show_config(&self) {
+        println!("\n⚙️  Konfiguration:");
+        println!("{}", "=".repeat(50));
+        println!("👤 Standard-Pseudonym: {}", self.config.default_pseudonym);
+        println!("💾 Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
+        println!("📊 Max Posts: {}", self.config.max_posts);
+        println!("🎨 Theme: {}", self.config.theme);
+        println!("🌐 Sprache: {}", self.config.language);
+        println!("📁 Daten-Datei: brezn_data.json");
+    }
+
+    fn edit_config(&mut self) {
+        println!("\n⚙️  Konfiguration bearbeiten:");
+        println!("{}", "=".repeat(50));
+        println!("1. Standard-Pseudonym ändern");
+        println!("2. Auto-Save umschalten");
+        println!("3. Max Posts ändern");
+        println!("4. Theme ändern");
+        println!("5. Sprache ändern");
+        println!("6. Zurück");
+        
+        print!("Wähle eine Option (1-6): ");
+        io::stdout().flush().unwrap();
+        
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let choice = input.trim();
+
+        match choice {
+            "1" => {
+                print!("Neues Standard-Pseudonym: ");
+                io::stdout().flush().unwrap();
+                let mut new_pseudonym = String::new();
+                io::stdin().read_line(&mut new_pseudonym).unwrap();
+                let new_pseudonym = new_pseudonym.trim();
+                
+                if !new_pseudonym.is_empty() {
+                    self.config.default_pseudonym = new_pseudonym.to_string();
+                    println!("✅ Standard-Pseudonym geändert!");
+                } else {
+                    println!("❌ Pseudonym kann nicht leer sein!");
+                }
+            }
+            "2" => {
+                self.config.auto_save = !self.config.auto_save;
+                println!("✅ Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
+            }
+            "3" => {
+                print!("Neue Max Posts Anzahl: ");
+                io::stdout().flush().unwrap();
+                let mut max_posts = String::new();
+                io::stdin().read_line(&mut max_posts).unwrap();
+                
+                if let Ok(max) = max_posts.trim().parse::<usize>() {
+                    self.config.max_posts = max;
+                    println!("✅ Max Posts auf {} gesetzt!", max);
+                } else {
+                    println!("❌ Ungültige Zahl!");
+                }
+            }
+            "4" => {
+                println!("Verfügbare Themes: default, dark, light");
+                print!("Neues Theme: ");
+                io::stdout().flush().unwrap();
+                let mut theme = String::new();
+                io::stdin().read_line(&mut theme).unwrap();
+                let theme = theme.trim();
+                
+                if !theme.is_empty() {
+                    self.config.theme = theme.to_string();
+                    println!("✅ Theme geändert!");
+                } else {
+                    println!("❌ Theme kann nicht leer sein!");
+                }
+            }
+            "5" => {
+                println!("Verfügbare Sprachen: de, en");
+                print!("Neue Sprache: ");
+                io::stdout().flush().unwrap();
+                let mut language = String::new();
+                io::stdin().read_line(&mut language).unwrap();
+                let language = language.trim();
+                
+                if !language.is_empty() {
+                    self.config.language = language.to_string();
+                    println!("✅ Sprache geändert!");
+                } else {
+                    println!("❌ Sprache kann nicht leer sein!");
+                }
+            }
+            "6" => {
+                println!("Zurück zum Hauptmenü");
+            }
+            _ => {
+                println!("❌ Ungültige Option!");
+            }
+        }
+    }
 }
 
 fn main() {
@@ -114,7 +241,7 @@ fn main() {
         }
     };
 
-    let mut current_pseudonym = "AnonymBrezn42".to_string();
+    let mut current_pseudonym = data.config.default_pseudonym.clone();
     
     loop {
         println!("\n📋 Menü:");
@@ -123,9 +250,11 @@ fn main() {
         println!("3. Neues Pseudonym generieren");
         println!("4. Benutzer stummschalten");
         println!("5. Netzwerk-Status");
-        println!("6. Beenden");
+        println!("6. Konfiguration anzeigen");
+        println!("7. Konfiguration bearbeiten");
+        println!("8. Beenden");
         println!("Aktuelles Pseudonym: {}", current_pseudonym);
-        print!("Wähle eine Option (1-6): ");
+        print!("Wähle eine Option (1-8): ");
         io::stdout().flush().unwrap();
         
         let mut input = String::new();
@@ -147,9 +276,11 @@ fn main() {
                     data.add_post(content, current_pseudonym.clone());
                     println!("✅ Post erfolgreich erstellt!");
                     
-                    // Automatisch speichern nach neuem Post
-                    if let Err(e) = data.save() {
-                        println!("⚠️  Fehler beim Speichern: {}", e);
+                    // Automatisch speichern nach neuem Post (wenn aktiviert)
+                    if data.config.auto_save {
+                        if let Err(e) = data.save() {
+                            println!("⚠️  Fehler beim Speichern: {}", e);
+                        }
                     }
                 } else {
                     println!("❌ Post kann nicht leer sein!");
@@ -174,9 +305,11 @@ fn main() {
                     data.muted_users.insert(pseudonym_to_mute.to_string());
                     println!("🔇 {} wurde stummgeschaltet.", pseudonym_to_mute);
                     
-                    // Automatisch speichern nach Mute
-                    if let Err(e) = data.save() {
-                        println!("⚠️  Fehler beim Speichern: {}", e);
+                    // Automatisch speichern nach Mute (wenn aktiviert)
+                    if data.config.auto_save {
+                        if let Err(e) = data.save() {
+                            println!("⚠️  Fehler beim Speichern: {}", e);
+                        }
                     }
                 } else {
                     println!("❌ Pseudonym kann nicht leer sein!");
@@ -189,8 +322,21 @@ fn main() {
                 println!("🌐 I2P-Netzwerk: Nicht verfügbar (Demo-Modus)");
                 println!("📱 QR-Code-Scanning: Nicht verfügbar (Demo-Modus)");
                 println!("💾 Persistenz: Aktiv (brezn_data.json)");
+                println!("⚙️  Auto-Save: {}", if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
             }
             "6" => {
+                data.show_config();
+            }
+            "7" => {
+                data.edit_config();
+                // Nach Konfigurationsänderungen speichern
+                if let Err(e) = data.save() {
+                    println!("⚠️  Fehler beim Speichern: {}", e);
+                } else {
+                    println!("✅ Konfiguration gespeichert!");
+                }
+            }
+            "8" => {
                 println!("💾 Speichere Daten...");
                 if let Err(e) = data.save() {
                     println!("⚠️  Fehler beim Speichern: {}", e);

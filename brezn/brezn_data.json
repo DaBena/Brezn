@@ -1,20 +1,27 @@
 {
   "posts": [
     {
-      "content": "test hallo",
-      "timestamp": 1754232494,
+      "content": "asdf",
+      "timestamp": 1754232757,
       "pseudonym": "AnonymBrezn42"
     },
     {
       "content": "Willkommen bei Brezn! 🥨",
-      "timestamp": 1754232483,
+      "timestamp": 1754232748,
       "pseudonym": "AnonymBrezn42"
     },
     {
       "content": "Das ist ein anonymer Post!",
-      "timestamp": 1754232183,
+      "timestamp": 1754232448,
       "pseudonym": "GeheimUser99"
     }
   ],
-  "muted_users": []
+  "muted_users": [],
+  "config": {
+    "default_pseudonym": "AnonymBrezn42",
+    "auto_save": true,
+    "max_posts": 1000,
+    "theme": "default",
+    "language": "de"
+  }
 }
