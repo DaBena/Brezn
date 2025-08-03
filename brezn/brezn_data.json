@@ -1,18 +1,13 @@
 {
   "posts": [
     {
-      "content": "asdf",
-      "timestamp": 1754232757,
-      "pseudonym": "AnonymBrezn42"
-    },
-    {
       "content": "Willkommen bei Brezn! 🥨",
-      "timestamp": 1754232748,
+      "timestamp": 1754233108,
       "pseudonym": "AnonymBrezn42"
     },
     {
       "content": "Das ist ein anonymer Post!",
-      "timestamp": 1754232448,
+      "timestamp": 1754232808,
       "pseudonym": "GeheimUser99"
     }
   ],
@@ -22,6 +17,11 @@
     "auto_save": true,
     "max_posts": 1000,
     "theme": "default",
-    "language": "de"
-  }
+    "language": "de",
+    "network_enabled": false,
+    "network_port": 8080,
+    "discovery_port": 8081
+  },
+  "peers": {},
+  "node_id": "brezn-185849b7c79504dc-945871"
 }

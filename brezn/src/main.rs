@@ -1,12 +1,33 @@
 use std::io::{self, Write};
 use std::fs;
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
+use std::net::{TcpListener, TcpStream};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Post {
     content: String,
     timestamp: u64,
     pseudonym: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Peer {
+    id: String,
+    address: String,
+    last_seen: u64,
+    posts_count: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+enum NetworkMessage {
+    NewPost(Post),
+    RequestPosts,
+    PostsResponse(Vec<Post>),
+    PeerDiscovery,
+    PeerInfo(Peer),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,6 +37,9 @@ struct Config {
     max_posts: usize,
     theme: String,
     language: String,
+    network_enabled: bool,
+    network_port: u16,
+    discovery_port: u16,
 }
 
 impl Default for Config {
@@ -26,6 +50,9 @@ impl Default for Config {
             max_posts: 1000,
             theme: "default".to_string(),
             language: "de".to_string(),
+            network_enabled: false,
+            network_port: 8080,
+            discovery_port: 8081,
         }
     }
 }
@@ -35,9 +62,20 @@ struct BreznData {
     posts: Vec<Post>,
     muted_users: std::collections::HashSet<String>,
     config: Config,
+    peers: HashMap<String, Peer>,
+    node_id: String,
 }
 
 impl BreznData {
+    fn generate_node_id() -> String {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let random_part = (timestamp % 999999) as u32;
+        format!("brezn-{:x}-{:06}", timestamp, random_part)
+    }
+
     fn new() -> Self {
         Self {
             posts: vec![
@@ -60,6 +98,8 @@ impl BreznData {
             ],
             muted_users: std::collections::HashSet::new(),
             config: Config::default(),
+            peers: HashMap::new(),
+            node_id: Self::generate_node_id(),
         }
     }
 
@@ -71,7 +111,12 @@ impl BreznData {
 
     fn load() -> Result<Self, Box<dyn std::error::Error>> {
         if let Ok(data) = fs::read_to_string("brezn_data.json") {
-            Ok(serde_json::from_str(&data)?)
+            let mut loaded_data: Self = serde_json::from_str(&data)?;
+            // Stelle sicher, dass node_id gesetzt ist
+            if loaded_data.node_id.is_empty() {
+                loaded_data.node_id = Self::generate_node_id();
+            }
+            Ok(loaded_data)
         } else {
             Ok(Self::new())
         }
@@ -124,6 +169,98 @@ impl BreznData {
         }
     }
 
+    fn show_network_status(&self) {
+        println!("\n📶 Netzwerk-Status:");
+        println!("{}", "=".repeat(50));
+        println!("📊 {} Posts lokal", self.posts.len());
+        println!("🔇 {} stummgeschaltete Benutzer", self.muted_users.len());
+        println!("🆔 Node-ID: {}", self.node_id);
+        println!("🌐 Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
+        println!("🔌 Port: {}", self.config.network_port);
+        println!("🔍 Discovery Port: {}", self.config.discovery_port);
+        println!("👥 Bekannte Peers: {}", self.peers.len());
+        
+        if !self.peers.is_empty() {
+            println!("\n📋 Bekannte Peers:");
+            for (_id, peer) in &self.peers {
+                let last_seen = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs() - peer.last_seen;
+                let time_str = if last_seen < 60 {
+                    "gerade eben".to_string()
+                } else if last_seen < 3600 {
+                    format!("vor {}min", last_seen / 60)
+                } else {
+                    format!("vor {}h", last_seen / 3600)
+                };
+                println!("  • {} ({}) - {} Posts - {}", 
+                    peer.id, peer.address, peer.posts_count, time_str);
+            }
+        }
+        
+        println!("💾 Persistenz: Aktiv (brezn_data.json)");
+        println!("⚙️  Auto-Save: {}", if self.config.auto_save { "Aktiv" } else { "Inaktiv" });
+    }
+
+    fn start_network_server(&self) {
+        if !self.config.network_enabled {
+            println!("❌ Netzwerk ist deaktiviert!");
+            return;
+        }
+
+        let port = self.config.network_port;
+        let node_id = self.node_id.clone();
+        
+        thread::spawn(move || {
+            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
+                println!("🌐 Netzwerk-Server gestartet auf Port {}", port);
+                println!("🆔 Node-ID: {}", node_id);
+                
+                for stream in listener.incoming() {
+                    match stream {
+                        Ok(stream) => {
+                            println!("📡 Neue Verbindung von: {}", 
+                                stream.peer_addr().map_or("Unbekannt".to_string(), |addr| addr.to_string()));
+                            // Hier würde die Nachrichtenverarbeitung stattfinden
+                            thread::sleep(Duration::from_millis(100));
+                        }
+                        Err(e) => {
+                            println!("❌ Verbindungsfehler: {}", e);
+                        }
+                    }
+                }
+            } else {
+                println!("❌ Fehler beim Starten des Netzwerk-Servers auf Port {}", port);
+            }
+        });
+    }
+
+    fn discover_peers(&mut self) {
+        if !self.config.network_enabled {
+            println!("❌ Netzwerk ist deaktiviert!");
+            return;
+        }
+
+        println!("🔍 Suche nach anderen Brezn-Nodes...");
+        
+        // Simuliere Peer-Discovery
+        let local_port = self.config.network_port;
+        
+        thread::spawn(move || {
+            // Versuche Verbindung zu anderen Nodes
+            for port in 8080..8090 {
+                if port != local_port {
+                    if let Ok(stream) = TcpStream::connect(format!("127.0.0.1:{}", port)) {
+                        println!("✅ Node gefunden auf Port {}", port);
+                        // Hier würde Peer-Information ausgetauscht
+                        drop(stream);
+                    }
+                }
+            }
+        });
+    }
+
     fn show_config(&self) {
         println!("\n⚙️  Konfiguration:");
         println!("{}", "=".repeat(50));
@@ -132,6 +269,9 @@ impl BreznData {
         println!("📊 Max Posts: {}", self.config.max_posts);
         println!("🎨 Theme: {}", self.config.theme);
         println!("🌐 Sprache: {}", self.config.language);
+        println!("🌐 Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
+        println!("🔌 Netzwerk-Port: {}", self.config.network_port);
+        println!("🔍 Discovery-Port: {}", self.config.discovery_port);
         println!("📁 Daten-Datei: brezn_data.json");
     }
 
@@ -143,9 +283,11 @@ impl BreznData {
         println!("3. Max Posts ändern");
         println!("4. Theme ändern");
         println!("5. Sprache ändern");
-        println!("6. Zurück");
+        println!("6. Netzwerk aktivieren/deaktivieren");
+        println!("7. Netzwerk-Port ändern");
+        println!("8. Zurück");
         
-        print!("Wähle eine Option (1-6): ");
+        print!("Wähle eine Option (1-8): ");
         io::stdout().flush().unwrap();
         
         let mut input = String::new();
@@ -215,6 +357,23 @@ impl BreznData {
                 }
             }
             "6" => {
+                self.config.network_enabled = !self.config.network_enabled;
+                println!("✅ Netzwerk: {}", if self.config.network_enabled { "Aktiv" } else { "Inaktiv" });
+            }
+            "7" => {
+                print!("Neuer Netzwerk-Port: ");
+                io::stdout().flush().unwrap();
+                let mut port = String::new();
+                io::stdin().read_line(&mut port).unwrap();
+                
+                if let Ok(new_port) = port.trim().parse::<u16>() {
+                    self.config.network_port = new_port;
+                    println!("✅ Netzwerk-Port auf {} gesetzt!", new_port);
+                } else {
+                    println!("❌ Ungültiger Port!");
+                }
+            }
+            "8" => {
                 println!("Zurück zum Hauptmenü");
             }
             _ => {
@@ -250,11 +409,13 @@ fn main() {
         println!("3. Neues Pseudonym generieren");
         println!("4. Benutzer stummschalten");
         println!("5. Netzwerk-Status");
-        println!("6. Konfiguration anzeigen");
-        println!("7. Konfiguration bearbeiten");
-        println!("8. Beenden");
+        println!("6. Netzwerk-Server starten");
+        println!("7. Peers suchen");
+        println!("8. Konfiguration anzeigen");
+        println!("9. Konfiguration bearbeiten");
+        println!("10. Beenden");
         println!("Aktuelles Pseudonym: {}", current_pseudonym);
-        print!("Wähle eine Option (1-8): ");
+        print!("Wähle eine Option (1-10): ");
         io::stdout().flush().unwrap();
         
         let mut input = String::new();
@@ -316,18 +477,22 @@ fn main() {
                 }
             }
             "5" => {
-                println!("\n📶 Netzwerk-Status:");
-                println!("📊 {} Posts lokal", data.posts.len());
-                println!("🔇 {} stummgeschaltete Benutzer", data.muted_users.len());
-                println!("🌐 I2P-Netzwerk: Nicht verfügbar (Demo-Modus)");
-                println!("📱 QR-Code-Scanning: Nicht verfügbar (Demo-Modus)");
-                println!("💾 Persistenz: Aktiv (brezn_data.json)");
-                println!("⚙️  Auto-Save: {}", if data.config.auto_save { "Aktiv" } else { "Inaktiv" });
+                data.show_network_status();
             }
             "6" => {
-                data.show_config();
+                data.start_network_server();
+                println!("🌐 Netzwerk-Server wird gestartet...");
+                println!("💡 Tipp: Aktiviere das Netzwerk in der Konfiguration für volle Funktionalität");
             }
             "7" => {
+                data.discover_peers();
+                println!("🔍 Peer-Discovery gestartet...");
+                println!("💡 Tipp: Starte mehrere Brezn-Instanzen auf verschiedenen Ports");
+            }
+            "8" => {
+                data.show_config();
+            }
+            "9" => {
                 data.edit_config();
                 // Nach Konfigurationsänderungen speichern
                 if let Err(e) = data.save() {
@@ -336,7 +501,7 @@ fn main() {
                     println!("✅ Konfiguration gespeichert!");
                 }
             }
-            "8" => {
+            "10" => {
                 println!("💾 Speichere Daten...");
                 if let Err(e) = data.save() {
                     println!("⚠️  Fehler beim Speichern: {}", e);
