@@ -159,11 +159,6 @@ impl DiscoveryManager {
     }
     
     async fn broadcast_presence(&self) -> Result<()> {
-        // let socket = self.discovery_socket.as_ref() // This line is removed
-        //     .ok_or_else(|| BreznError::Network(std::io::Error::new( // This line is removed
-        //         std::io::ErrorKind::Other, "Discovery socket not initialized" // This line is removed
-        //     )))?; // This line is removed
-        
         let message = DiscoveryMessage {
             message_type: "announce".to_string(),
             node_id: self.node_id.clone(),
@@ -174,19 +169,33 @@ impl DiscoveryManager {
             capabilities: vec!["posts".to_string(), "config".to_string()],
         };
         
-        let _message_bytes = serde_json::to_vec(&message)
+        let message_bytes = serde_json::to_vec(&message)
             .map_err(|e| BreznError::Serialization(e))?;
         
-        let _broadcast_addr: SocketAddr = self.config.broadcast_address.parse()
+        // Create a socket for broadcasting
+        let broadcast_socket = UdpSocket::bind("0.0.0.0:0")
+            .await
+            .map_err(|e| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, format!("Failed to create broadcast socket: {}", e)
+            )))?;
+        
+        broadcast_socket.set_broadcast(true)
+            .map_err(|e| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, format!("Failed to set broadcast: {}", e)
+            )))?;
+        
+        // Send broadcast message
+        let broadcast_addr = self.config.broadcast_address.parse::<SocketAddr>()
             .map_err(|e| BreznError::Network(std::io::Error::new(
                 std::io::ErrorKind::Other, format!("Invalid broadcast address: {}", e)
             )))?;
         
-        // let socket.send_to(&message_bytes, broadcast_addr).await // This line is removed
-        //     .map_err(|e| BreznError::Network(std::io::Error::new( // This line is removed
-        //         std::io::ErrorKind::Other, format!("Failed to broadcast: {}", e) // This line is removed
-        //     )))?; // This line is removed
+        broadcast_socket.send_to(&message_bytes, broadcast_addr).await
+            .map_err(|e| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, format!("Failed to broadcast: {}", e)
+            )))?;
         
+        println!("📡 Broadcast sent to {}", broadcast_addr);
         Ok(())
     }
     
@@ -204,7 +213,7 @@ impl DiscoveryManager {
             .map_err(|e| BreznError::Serialization(e))?;
         
         // Generate actual QR code
-        let _qr = qrcode::QrCode::new(qr_data.as_bytes())
+        let qr = qrcode::QrCode::new(qr_data.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
         // Convert to string representation (for CLI display)
@@ -226,13 +235,13 @@ impl DiscoveryManager {
             .map_err(|e| BreznError::Serialization(e))?;
         
         // Generate QR code
-        let _qr = qrcode::QrCode::new(qr_data.as_bytes())
+        let qr = qrcode::QrCode::new(qr_data.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
-        // Create a simple image representation
+        // Convert QR code to image using a simple approach
         let qr_string = format!("QR Code for node: {}", self.node_id);
         let lines: Vec<&str> = qr_string.lines().collect();
-        let width = lines[0].len();
+        let width = lines.iter().map(|line| line.len()).max().unwrap_or(0);
         let height = lines.len();
         
         // Create a simple black and white image
@@ -248,11 +257,11 @@ impl DiscoveryManager {
         }
         
         // Create image buffer
-        let image_buffer = image::RgbaImage::from_raw(width as u32, height as u32, image_data)
-            .ok_or_else(|| BreznError::InvalidInput("Failed to create image buffer".to_string()))?;
+        let qr_image = image::RgbaImage::from_raw(width as u32, height as u32, image_data)
+            .ok_or_else(|| BreznError::InvalidInput("Failed to create QR image buffer".to_string()))?;
         
         // Resize image
-        let resized = image::imageops::resize(&image_buffer, size, size, image::imageops::FilterType::Nearest);
+        let resized = image::imageops::resize(&qr_image, size, size, image::imageops::FilterType::Nearest);
         
         // Convert to PNG bytes
         let mut png_bytes = Vec::new();
