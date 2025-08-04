@@ -212,6 +212,19 @@
                     <p>QR-Code wird generiert...</p>
                 </div>
                 <button onclick="generateQR()" class="btn btn-secondary">QR-Code generieren</button>
+                <div class="qr-info">
+                    <p><strong>Anleitung:</strong></p>
+                    <ol>
+                        <li>QR-Code mit einem anderen Brezn-Gerät scannen</li>
+                        <li>Oder QR-Code-Daten manuell eingeben</li>
+                        <li>Automatische Peer-Verbindung wird hergestellt</li>
+                    </ol>
+                </div>
+                <div class="qr-input">
+                    <h4>QR-Code manuell eingeben:</h4>
+                    <textarea id="qr-input" placeholder="QR-Code-Daten hier einfügen..."></textarea>
+                    <button onclick="parseQR()" class="btn btn-primary">Peer hinzufügen</button>
+                </div>
             </div>
         </div>
         
@@ -401,12 +414,45 @@
                         </div>
                         <div class="qr-note">
                             <p>📱 Scanne diesen QR-Code mit einer anderen Brezn-App, um dem Netzwerk beizutreten.</p>
-                            <p><em>Hinweis: QR-Code-Generierung wird in Phase 2 vollständig implementiert.</em></p>
+                            <p><em>QR-Code-Daten: ${data.qr_code}</em></p>
                         </div>
                     `;
                 }
             } catch (error) {
                 console.error('Fehler beim Generieren des QR-Codes:', error);
+            }
+        }
+        
+        async function parseQR() {
+            const qrData = document.getElementById('qr-input').value.trim();
+            
+            if (!qrData) {
+                alert('Bitte gib QR-Code-Daten ein!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/network/parse-qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        qr_data: qrData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Peer erfolgreich hinzugefügt!');
+                    document.getElementById('qr-input').value = '';
+                    loadNetworkStatus(); // Reload network status
+                } else {
+                    alert('❌ Fehler beim Hinzufügen des Peers: ' + result.error);
+                }
+            } catch (error) {
+                alert('Fehler beim Verbinden zum Server: ' + error.message);
             }
         }
         

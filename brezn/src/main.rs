@@ -46,6 +46,7 @@ async fn main() -> Result<()> {
             .route("/api/tor/toggle", web::post().to(toggle_tor_handler))
             .route("/api/network/status", web::get().to(network_status_handler))
             .route("/api/network/qr", web::get().to(qr_code_handler))
+            .route("/api/network/parse-qr", web::post().to(parse_qr_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -230,6 +231,36 @@ async fn qr_code_handler(
                 "error": e.to_string()
             });
             HttpResponse::InternalServerError()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
+    }
+}
+
+async fn parse_qr_handler(
+    app: web::Data<Arc<BreznApp>>,
+    qr_data: web::Json<serde_json::Value>,
+) -> HttpResponse {
+    let qr_string = qr_data["qr_data"].as_str().unwrap_or("");
+    
+    match app.parse_qr_code(qr_string) {
+        Ok(_) => {
+            let response = json!({
+                "success": true,
+                "message": "Peer erfolgreich hinzugefügt"
+            });
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
+        Err(e) => {
+            let response = json!({
+                "success": false,
+                "error": e.to_string()
+            });
+            HttpResponse::BadRequest()
                 .content_type("application/json")
                 .append_header(("access-control-allow-origin", "*"))
                 .json(response)

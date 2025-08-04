@@ -107,7 +107,7 @@ async fn test_peer_discovery() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "discovery_test".to_string(),
         network_enabled: true,
-        network_port: 8890,
+        network_port: 8895,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -129,6 +129,10 @@ async fn test_peer_discovery() -> Result<()> {
     assert!(!qr_code.is_empty(), "QR code should not be empty");
     assert!(qr_code.contains("node_id"), "QR code should contain node_id");
     
+    // Test QR code parsing
+    let result = app.parse_qr_code(&qr_code);
+    assert!(result.is_ok(), "QR code parsing should succeed");
+    
     println!("✅ Peer Discovery test passed!");
     Ok(())
 }
@@ -143,7 +147,7 @@ async fn test_post_synchronization() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "sync_user1".to_string(),
         network_enabled: true,
-        network_port: 8891,
+        network_port: 8896,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -153,7 +157,7 @@ async fn test_post_synchronization() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "sync_user2".to_string(),
         network_enabled: true,
-        network_port: 8892,
+        network_port: 8897,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -225,7 +229,7 @@ async fn test_tor_integration() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "tor_test".to_string(),
         network_enabled: true,
-        network_port: 8893,
+        network_port: 8898,
         tor_enabled: true,
         tor_socks_port: 9050,
     };
@@ -264,7 +268,7 @@ async fn test_network_message_handling() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "message_test".to_string(),
         network_enabled: true,
-        network_port: 8894,
+        network_port: 8900,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -302,7 +306,7 @@ async fn test_network_error_handling() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "error_test".to_string(),
         network_enabled: true,
-        network_port: 8895,
+        network_port: 8901,
         tor_enabled: false,
         tor_socks_port: 9050,
     };

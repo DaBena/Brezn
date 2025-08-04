@@ -52,9 +52,14 @@ impl TorManager {
             return Err(BreznError::Tor("Tor is not enabled in config".to_string()));
         }
         
-        // Test Tor connection
-        let _test_stream = TokioTcpStream::connect(format!("127.0.0.1:{}", self.config.socks_port))
-            .await
+        println!("🔒 Testing Tor SOCKS5 connection...");
+        
+        // Test Tor connection with timeout
+        let test_stream = tokio::time::timeout(
+            self.config.connection_timeout,
+            TokioTcpStream::connect(format!("127.0.0.1:{}", self.config.socks_port))
+        ).await
+            .map_err(|_| BreznError::Tor("Tor connection timeout".to_string()))?
             .map_err(|e| BreznError::Tor(format!("Failed to connect to Tor SOCKS5: {}", e)))?;
         
         self.socks_proxy = Some(Socks5Proxy {
@@ -64,6 +69,12 @@ impl TorManager {
         
         // Test SOCKS5 handshake
         self.test_socks5_handshake().await?;
+        
+        // Test external IP through Tor
+        match self.get_external_ip().await {
+            Ok(ip) => println!("🌐 Tor external IP: {}", ip),
+            Err(e) => println!("⚠️  Could not get Tor external IP: {}", e),
+        }
         
         println!("🔒 Tor SOCKS5 Proxy aktiviert auf Port {}", self.config.socks_port);
         Ok(())
