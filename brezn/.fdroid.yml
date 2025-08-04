@@ -1,0 +1,73 @@
+Categories:
+  - Social
+  - Internet
+  - Privacy
+
+License: GPL-3.0
+
+WebSite: https://github.com/DaBena/Brezn
+SourceCode: https://github.com/DaBena/Brezn
+IssueTracker: https://github.com/DaBena/Brezn/issues
+
+Repo: https://github.com/DaBena/Brezn
+RepoType: git
+
+Builds:
+  - versionName: "0.1.0"
+    versionCode: 1
+    commit: v0.1.0
+    subdir: mobile
+    gradle:
+      - yes
+    output: app-release.apk
+    srclibs:
+      - brezn@0.1.0
+    build:
+      - cd android
+      - ./gradlew assembleRelease
+    ndk: r25b
+    sdk: "33"
+    preassemble:
+      - cd ..
+      - cargo build --target aarch64-linux-android --release
+      - cargo build --target armv7-linux-androideabi --release
+      - cargo build --target i686-linux-android --release
+      - cargo build --target x86_64-linux-android --release
+      - cp target/aarch64-linux-android/release/libbrezn.so mobile/android/app/src/main/jniLibs/arm64-v8a/
+      - cp target/armv7-linux-androideabi/release/libbrezn.so mobile/android/app/src/main/jniLibs/armeabi-v7a/
+      - cp target/i686-linux-android/release/libbrezn.so mobile/android/app/src/main/jniLibs/x86/
+      - cp target/x86_64-linux-android/release/libbrezn.so mobile/android/app/src/main/jniLibs/x86_64/
+
+AutoName: Brezn
+Summary: Dezentrale anonyme Feed-App
+Description: |
+  Brezn ist eine dezentrale Feed-App wie Jodel/X, 
+  die komplett anonym über das Tor-Netzwerk läuft.
+  
+  Features:
+  - Anonyme Posts ohne zentrale Server
+  - Tor-Anonymisierung für Rechtssicherheit
+  - QR-Code-Netzwerkbeitritt
+  - P2P-Netzwerk ohne zentrale Infrastruktur
+  - Lokale Datenbank für Offline-Nutzung
+  - Pseudonyme für Anonymität
+  - Dezentrale Post-Synchronisation
+
+  Die App nutzt das Tor-Netzwerk für Anonymisierung
+  und ein P2P-Netzwerk für die dezentrale Kommunikation.
+  Alle Posts werden lokal gespeichert und mit anderen
+  Peers im Netzwerk synchronisiert.
+
+  Keine zentralen Server, keine Nutzerdaten, 
+  vollständige Anonymität und Privatsphäre.
+
+Maintainer: Brezn Team
+MaintainerName: Brezn Development Team
+MaintainerEmail: contact@brezn.dev
+
+RequiresRoot: No
+
+AntiFeatures:
+  - NonFreeNet
+  - Tracking
+  - Ads
