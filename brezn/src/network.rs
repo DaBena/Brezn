@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::types::{NetworkMessage, Post, Config};
 use crate::crypto::CryptoManager;
+use crate::database::Database;
 use crate::tor::TorManager;
 use sodiumoxide::crypto::box_;
 
@@ -300,17 +301,24 @@ impl Clone for NetworkManager {
 // Default message handler implementation
 pub struct DefaultMessageHandler {
     pub node_id: String,
+    pub database: Arc<Mutex<Database>>,
 }
 
 impl DefaultMessageHandler {
-    pub fn new(node_id: String) -> Self {
-        Self { node_id }
+    pub fn new(node_id: String, database: Arc<Mutex<Database>>) -> Self {
+        Self { node_id, database }
     }
 }
 
 impl MessageHandler for DefaultMessageHandler {
     fn handle_post(&self, post: &Post) -> Result<()> {
         println!("📨 Neuer Post von {}: {}", post.pseudonym, post.content);
+        
+        // Save post to database
+        let mut db = self.database.lock().unwrap();
+        db.add_post(&post.clone())?;
+        
+        println!("💾 Post in Datenbank gespeichert");
         Ok(())
     }
     

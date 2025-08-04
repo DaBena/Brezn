@@ -138,7 +138,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Post, Config};
+    use crate::types::Post;
     
     #[test]
     fn test_database_creation() {

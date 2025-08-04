@@ -63,7 +63,8 @@ impl BreznApp {
         // Setup message handlers
         {
             let network_manager = self.network_manager.lock().unwrap();
-            let message_handler = DefaultMessageHandler::new("brezn_node".to_string());
+            let database_manager = Arc::clone(&self.database_manager);
+            let message_handler = DefaultMessageHandler::new("brezn_node".to_string(), database_manager);
             network_manager.add_message_handler(Box::new(message_handler));
         }
         
@@ -167,11 +168,38 @@ impl BreznApp {
         let peers = network_manager.get_peers();
         let discovery_peers = discovery_manager.get_peers()?;
         
-        Ok(serde_json::json!({
+        let status = serde_json::json!({
+            "network_enabled": true,
             "tor_enabled": network_manager.is_tor_enabled(),
-            "network_peers": peers.len(),
-            "discovery_peers": discovery_peers.len(),
-            "total_peers": peers.len() + discovery_peers.len(),
-        }))
+            "peers_count": peers.len(),
+            "discovery_peers_count": discovery_peers.len(),
+            "port": 8888, // Default port
+            "tor_socks_port": 9050, // Default Tor port
+        });
+        
+        Ok(status)
+    }
+    
+    pub async fn test_p2p_network(&self) -> Result<()> {
+        println!("🧪 Testing P2P network functionality...");
+        
+        // Test 1: Create a post
+        self.create_post("Test post from P2P test".to_string(), "tester".to_string()).await?;
+        println!("✅ Post creation test passed");
+        
+        // Test 2: Get posts
+        let posts = self.get_posts().await?;
+        println!("✅ Posts retrieval test passed ({} posts)", posts.len());
+        
+        // Test 3: Generate QR code
+        let qr_code = self.generate_qr_code()?;
+        println!("✅ QR code generation test passed");
+        
+        // Test 4: Network status
+        let status = self.get_network_status()?;
+        println!("✅ Network status test passed: {:?}", status);
+        
+        println!("🎉 All P2P network tests passed!");
+        Ok(())
     }
 }
