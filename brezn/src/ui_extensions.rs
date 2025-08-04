@@ -1,6 +1,6 @@
-use crate::error::Result;
-use crate::discovery::{DiscoveryManager, PeerInfo};
+use crate::discovery::DiscoveryManager;
 use crate::tor::TorManager;
+use crate::error::Result;
 use serde_json::json;
 
 pub struct UIExtensions {
@@ -74,8 +74,8 @@ impl UIExtensions {
         self.discovery.remove_peer(node_id)
     }
     
-    pub fn test_tor_connection(&self) -> Result<serde_json::Value> {
-        match self.tor_manager.test_connection() {
+    pub async fn test_tor_connection(&self) -> Result<serde_json::Value> {
+        match self.tor_manager.test_connection().await {
             Ok(_) => Ok(json!({
                 "success": true,
                 "message": "Tor connection successful",

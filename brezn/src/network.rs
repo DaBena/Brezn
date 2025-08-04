@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::types::{NetworkMessage, Post, Config};
 use crate::crypto::CryptoManager;
+use crate::tor::TorManager;
 use sodiumoxide::crypto::box_;
 
 pub struct NetworkManager {
@@ -15,6 +16,7 @@ pub struct NetworkManager {
     crypto: CryptoManager,
     peers: Arc<Mutex<HashMap<String, PeerInfo>>>,
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
+    tor_manager: Option<TorManager>,
 }
 
 #[derive(Debug, Clone)]
@@ -22,7 +24,9 @@ pub struct PeerInfo {
     pub node_id: String,
     pub public_key: box_::PublicKey,
     pub address: String,
+    pub port: u16,
     pub last_seen: u64,
+    pub is_tor_peer: bool,
 }
 
 pub trait MessageHandler: Send + Sync {
@@ -41,16 +45,28 @@ impl NetworkManager {
             crypto: CryptoManager::new(),
             peers: Arc::new(Mutex::new(HashMap::new())),
             message_handlers: Arc::new(Mutex::new(Vec::new())),
+            tor_manager: None,
         }
     }
     
-    pub fn enable_tor(&mut self) {
+    pub async fn enable_tor(&mut self) -> Result<()> {
+        let mut tor_config = crate::tor::TorConfig::default();
+        tor_config.socks_port = self.tor_socks_port;
+        tor_config.enabled = true;
+        
+        let mut tor_manager = TorManager::new(tor_config);
+        tor_manager.enable().await?;
+        
+        self.tor_manager = Some(tor_manager);
         self.tor_enabled = true;
+        
         println!("🔒 Tor SOCKS5 Proxy aktiviert auf Port {}", self.tor_socks_port);
+        Ok(())
     }
     
     pub fn disable_tor(&mut self) {
         self.tor_enabled = false;
+        self.tor_manager = None;
         println!("🔓 Tor SOCKS5 Proxy deaktiviert");
     }
     
@@ -72,7 +88,8 @@ impl NetworkManager {
         
         loop {
             match listener.accept().await {
-                Ok((socket, _addr)) => {
+                Ok((socket, addr)) => {
+                    println!("📡 Neue Verbindung von: {}", addr);
                     let network_manager = Arc::new(Mutex::new(self.clone()));
                     tokio::spawn(async move {
                         if let Err(e) = Self::handle_connection(socket, network_manager).await {
@@ -202,27 +219,40 @@ impl NetworkManager {
     }
     
     async fn send_message_to_peer(&self, message: &NetworkMessage, peer: &PeerInfo) -> Result<()> {
-        let mut stream = TcpStream::connect(&peer.address).await
-            .context("Failed to connect to peer")?;
+        let stream = if peer.is_tor_peer && self.tor_enabled {
+            // Use Tor connection
+            if let Some(ref tor_manager) = self.tor_manager {
+                tor_manager.connect_through_tor(&peer.address, peer.port).await?
+            } else {
+                return Err(anyhow::anyhow!("Tor not available"));
+            }
+        } else {
+            // Direct connection
+            TcpStream::connect(format!("{}:{}", peer.address, peer.port)).await
+                .context("Failed to connect to peer")?
+        };
         
         let message_json = serde_json::to_string(message)?;
         let message_bytes = message_json.as_bytes();
         let length = message_bytes.len() as u32;
         
         // Send length + message
+        let mut stream = stream;
         stream.write_all(&length.to_be_bytes()).await?;
         stream.write_all(message_bytes).await?;
         
         Ok(())
     }
     
-    pub fn add_peer(&self, node_id: String, public_key: box_::PublicKey, address: String) {
+    pub fn add_peer(&self, node_id: String, public_key: box_::PublicKey, address: String, port: u16, is_tor_peer: bool) {
         let mut peers = self.peers.lock().unwrap();
         peers.insert(node_id.clone(), PeerInfo {
             node_id,
             public_key,
             address,
+            port,
             last_seen: chrono::Utc::now().timestamp() as u64,
+            is_tor_peer,
         });
     }
     
@@ -235,8 +265,22 @@ impl NetworkManager {
         let peers = self.peers.lock().unwrap();
         peers.values().cloned().collect()
     }
-
-
+    
+    pub async fn test_tor_connection(&self) -> Result<()> {
+        if let Some(ref tor_manager) = self.tor_manager {
+            tor_manager.test_connection().await.map_err(|e| anyhow::anyhow!("Tor test failed: {}", e))
+        } else {
+            Err(anyhow::anyhow!("Tor not enabled"))
+        }
+    }
+    
+    pub async fn get_external_ip(&self) -> Result<String> {
+        if let Some(ref tor_manager) = self.tor_manager {
+            tor_manager.get_external_ip().await.map_err(|e| anyhow::anyhow!("Tor IP failed: {}", e))
+        } else {
+            Err(anyhow::anyhow!("Tor not enabled"))
+        }
+    }
 }
 
 impl Clone for NetworkManager {
@@ -248,6 +292,7 @@ impl Clone for NetworkManager {
             crypto: CryptoManager::new(),
             peers: Arc::clone(&self.peers),
             message_handlers: Arc::clone(&self.message_handlers),
+            tor_manager: self.tor_manager.clone(),
         }
     }
 }

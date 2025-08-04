@@ -1,194 +1,177 @@
-use std::sync::{Arc, Mutex};
-use anyhow::{Result, Context};
-use chrono::Utc;
-use uuid::Uuid;
-
-pub mod types;
 pub mod crypto;
-pub mod network;
 pub mod database;
-pub mod cli;
+pub mod discovery;
+pub mod error;
+pub mod network;
+pub mod tor;
+pub mod types;
+pub mod ui_extensions;
 
-use types::{Post, Config, TorProxy};
-use database::Database;
+use crate::error::{Result, BreznError};
+use crate::network::{NetworkManager, DefaultMessageHandler};
+use crate::discovery::{DiscoveryManager, DiscoveryConfig};
+use crate::database::Database;
+use crate::crypto::CryptoManager;
+use crate::types::{Config, Post};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
 pub struct BreznApp {
-    db: Arc<Mutex<Database>>,
-    config: Arc<Mutex<Config>>,
-    node_id: String,
-    tor_proxy: Arc<Mutex<TorProxy>>,
+    pub network_manager: Arc<Mutex<NetworkManager>>,
+    pub discovery_manager: Arc<Mutex<DiscoveryManager>>,
+    pub database_manager: Arc<Mutex<Database>>,
+    pub crypto_manager: Arc<Mutex<CryptoManager>>,
+    pub config: Arc<Mutex<Config>>,
 }
 
 impl BreznApp {
-    pub fn new() -> Result<Self> {
-        let db = Database::new()
-            .context("Failed to initialize database")?;
+    pub fn new(config: Config) -> Result<Self> {
+        let crypto_manager = Arc::new(Mutex::new(CryptoManager::new()));
+        let database_manager = Arc::new(Mutex::new(Database::new()?));
+        let network_manager = Arc::new(Mutex::new(NetworkManager::new(
+            config.network_port,
+            config.tor_socks_port
+        )));
         
-        let config = db.get_config()
-            .context("Failed to load configuration")?;
+        let discovery_config = DiscoveryConfig::default();
+        let discovery_manager = Arc::new(Mutex::new(DiscoveryManager::new(
+            discovery_config,
+            uuid::Uuid::new_v4().to_string(),
+            "public_key_placeholder".to_string(),
+            config.network_port,
+        )));
         
-        let node_id = Self::generate_node_id();
-        let tor_proxy = TorProxy::new(config.tor_socks_port);
+        let config = Arc::new(Mutex::new(config));
         
         Ok(Self {
-            db: Arc::new(Mutex::new(db)),
-            config: Arc::new(Mutex::new(config)),
-            node_id,
-            tor_proxy: Arc::new(Mutex::new(tor_proxy)),
+            network_manager,
+            discovery_manager,
+            database_manager,
+            crypto_manager,
+            config,
         })
     }
     
-    fn generate_node_id() -> String {
-        Uuid::new_v4().to_string()
+    pub async fn start(&self) -> Result<()> {
+        println!("🚀 Brezn App wird gestartet...");
+        
+        // Initialize database
+        {
+            let _db = self.database_manager.lock().unwrap();
+            // Database is already initialized in new()
+        }
+        
+        // Setup message handlers
+        {
+            let network_manager = self.network_manager.lock().unwrap();
+            let message_handler = DefaultMessageHandler::new("brezn_node".to_string());
+            network_manager.add_message_handler(Box::new(message_handler));
+        }
+        
+        // Start discovery in background
+        let discovery_manager = Arc::clone(&self.discovery_manager);
+        tokio::spawn(async move {
+            let mut discovery = {
+                let discovery = discovery_manager.lock().unwrap();
+                discovery.clone()
+            };
+            if let Err(e) = discovery.start_discovery().await {
+                eprintln!("Discovery error: {}", e);
+            }
+        });
+        
+        // Start network server in background
+        let network_manager = Arc::clone(&self.network_manager);
+        tokio::spawn(async move {
+            let network = {
+                let network = network_manager.lock().unwrap();
+                network.clone()
+            };
+            if let Err(e) = network.start_server().await {
+                eprintln!("Network error: {}", e);
+            }
+        });
+        
+        println!("✅ Brezn App gestartet");
+        Ok(())
     }
     
-    // Post management
-    pub fn add_post(&self, content: String, pseudonym: String) -> Result<i64> {
+    pub async fn enable_tor(&self) -> Result<()> {
+        let mut network_manager = self.network_manager.lock().unwrap();
+        network_manager.enable_tor().await.map_err(|e| BreznError::Network(std::io::Error::new(
+            std::io::ErrorKind::Other, e.to_string()
+        )))?;
+        Ok(())
+    }
+    
+    pub async fn create_post(&self, content: String, pseudonym: String) -> Result<()> {
         let post = Post {
             id: None,
             content,
-            timestamp: Utc::now().timestamp() as u64,
+            timestamp: chrono::Utc::now().timestamp() as u64,
             pseudonym,
-            node_id: Some(self.node_id.clone()),
+            node_id: Some("local".to_string()),
         };
         
-        let db = self.db.lock().unwrap();
-        db.add_post(&post)
-            .context("Failed to add post")
-    }
-    
-    pub fn get_posts(&self, limit: usize) -> Result<Vec<Post>> {
-        let db = self.db.lock().unwrap();
-        db.get_posts(limit)
-            .context("Failed to get posts")
-    }
-    
-    // Configuration management
-    pub fn get_config(&self) -> Result<Config> {
-        let config = self.config.lock().unwrap();
-        Ok(config.clone())
-    }
-    
-    pub fn update_config(&self, new_config: Config) -> Result<()> {
-        let db = self.db.lock().unwrap();
-        db.update_config(&new_config)
-            .context("Failed to update configuration")?;
+        // Save to database
+        {
+            let db = self.database_manager.lock().unwrap();
+            db.add_post(&post)?;
+        }
         
-        let mut config = self.config.lock().unwrap();
-        *config = new_config;
+        // Broadcast to network
+        {
+            let network_manager = self.network_manager.lock().unwrap();
+            network_manager.broadcast_post(&post).await.map_err(|e| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, e.to_string()
+            )))?;
+        }
         
+        println!("📝 Post erstellt und an Netzwerk gesendet");
         Ok(())
     }
     
-    // Tor proxy management
-    pub fn enable_tor(&self) -> Result<()> {
-        let mut tor = self.tor_proxy.lock().unwrap();
-        tor.enable();
-        Ok(())
+    pub async fn get_posts(&self) -> Result<Vec<Post>> {
+        let db = self.database_manager.lock().unwrap();
+        db.get_posts(1000).map_err(|e| BreznError::Database(e))
     }
     
-    pub fn disable_tor(&self) -> Result<()> {
-        let mut tor = self.tor_proxy.lock().unwrap();
-        tor.disable();
-        Ok(())
+    pub fn generate_qr_code(&self) -> Result<String> {
+        let discovery_manager = self.discovery_manager.lock().unwrap();
+        discovery_manager.generate_qr_code()
     }
     
-    pub fn is_tor_enabled(&self) -> bool {
-        let tor = self.tor_proxy.lock().unwrap();
-        tor.is_enabled()
-    }
-    
-    // User management
-    pub fn add_muted_user(&self, pseudonym: &str) -> Result<()> {
-        let db = self.db.lock().unwrap();
-        db.add_muted_user(pseudonym)
-            .context("Failed to add muted user")
-    }
-    
-    pub fn get_muted_users(&self) -> Result<Vec<String>> {
-        let db = self.db.lock().unwrap();
-        db.get_muted_users()
-            .context("Failed to get muted users")
-    }
-    
-    // Network operations
-    pub fn get_node_id(&self) -> &str {
-        &self.node_id
-    }
-}
-
-// FFI functions for React Native
-#[no_mangle]
-pub extern "C" fn brezn_init() -> *mut BreznApp {
-    match BreznApp::new() {
-        Ok(app) => Box::into_raw(Box::new(app)),
-        Err(_) => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_free(app: *mut BreznApp) {
-    if !app.is_null() {
-        unsafe {
-            let _ = Box::from_raw(app);
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_add_post(
-    app: *mut BreznApp,
-    content: *const i8,
-    pseudonym: *const i8,
-) -> i64 {
-    if app.is_null() || content.is_null() || pseudonym.is_null() {
-        return -1;
-    }
-    
-    unsafe {
-        let app = &*app;
-        let content = std::ffi::CStr::from_ptr(content).to_string_lossy().to_string();
-        let pseudonym = std::ffi::CStr::from_ptr(pseudonym).to_string_lossy().to_string();
+    pub fn parse_qr_code(&self, qr_data: &str) -> Result<()> {
+        let discovery_manager = self.discovery_manager.lock().unwrap();
+        let peer_info = discovery_manager.parse_qr_code(qr_data)?;
         
-        match app.add_post(content, pseudonym) {
-            Ok(id) => id,
-            Err(_) => -1,
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_get_posts_json(
-    app: *mut BreznApp,
-    limit: usize,
-) -> *mut i8 {
-    if app.is_null() {
-        return std::ptr::null_mut();
+        // Add peer to network
+        let network_manager = self.network_manager.lock().unwrap();
+        network_manager.add_peer(
+            peer_info.node_id.clone(),
+            sodiumoxide::crypto::box_::PublicKey::from_slice(
+                peer_info.public_key.as_bytes()
+            ).unwrap_or_else(|| sodiumoxide::crypto::box_::PublicKey::from_slice(&[0u8; 32]).unwrap()),
+            peer_info.address,
+            peer_info.port,
+            false, // Not a Tor peer for now
+        );
+        
+        println!("➕ Peer aus QR-Code hinzugefügt: {}", peer_info.node_id);
+        Ok(())
     }
     
-    unsafe {
-        let app = &*app;
-        match app.get_posts(limit) {
-            Ok(posts) => {
-                match serde_json::to_string(&posts) {
-                    Ok(json) => {
-                        let c_string = std::ffi::CString::new(json).unwrap();
-                        c_string.into_raw()
-                    }
-                    Err(_) => std::ptr::null_mut(),
-                }
-            }
-            Err(_) => std::ptr::null_mut(),
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_free_string(s: *mut i8) {
-    if !s.is_null() {
-        unsafe {
-            let _ = std::ffi::CString::from_raw(s);
-        }
+    pub fn get_network_status(&self) -> Result<serde_json::Value> {
+        let network_manager = self.network_manager.lock().unwrap();
+        let discovery_manager = self.discovery_manager.lock().unwrap();
+        
+        let peers = network_manager.get_peers();
+        let discovery_peers = discovery_manager.get_peers()?;
+        
+        Ok(serde_json::json!({
+            "tor_enabled": network_manager.is_tor_enabled(),
+            "network_peers": peers.len(),
+            "discovery_peers": discovery_peers.len(),
+            "total_peers": peers.len() + discovery_peers.len(),
+        }))
     }
 }

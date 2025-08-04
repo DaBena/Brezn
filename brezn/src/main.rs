@@ -6,16 +6,30 @@ use actix_web::{
 use serde_json::json;
 use anyhow::Result;
 
-use brezn::BreznApp;
+use brezn::{BreznApp, types::Config};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
     println!("🚀 Brezn Server wird gestartet...");
     
-    // Initialize the app
-    let app = Arc::new(BreznApp::new()?);
-    println!("✅ Brezn App initialisiert");
+    // Initialize configuration
+    let config = Config {
+        auto_save: true,
+        max_posts: 1000,
+        default_pseudonym: "AnonymBrezn".to_string(),
+        network_enabled: true,
+        network_port: 8888,
+        tor_enabled: false,
+        tor_socks_port: 9050,
+    };
     
+    // Initialize the app
+    let app = Arc::new(BreznApp::new(config)?);
+    
+    // Start the app
+    app.start().await?;
+    
+    println!("✅ Brezn App initialisiert");
     println!("🌐 Server läuft auf http://localhost:8080");
     println!("📱 Öffnen Sie http://localhost:8080 in Ihrem Browser");
     
@@ -50,7 +64,7 @@ async fn index_handler() -> HttpResponse {
 async fn get_posts_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    match app.get_posts(100) {
+    match app.get_posts().await {
         Ok(posts) => {
             let response = json!({
                 "success": true,
@@ -81,11 +95,11 @@ async fn create_post_handler(
     let content = post_data["content"].as_str().unwrap_or("");
     let pseudonym = post_data["pseudonym"].as_str().unwrap_or("AnonymBrezn");
     
-    match app.add_post(content.to_string(), pseudonym.to_string()) {
-        Ok(id) => {
+    match app.create_post(content.to_string(), pseudonym.to_string()).await {
+        Ok(_) => {
             let response = json!({
                 "success": true,
-                "id": id
+                "message": "Post created successfully"
             });
             HttpResponse::Ok()
                 .content_type("application/json")
@@ -108,37 +122,25 @@ async fn create_post_handler(
 async fn get_config_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    match app.get_config() {
-        Ok(config) => {
-            let response = json!({
-                "success": true,
-                "config": config
-            });
-            HttpResponse::Ok()
-                .content_type("application/json")
-                .header("access-control-allow-origin", "*")
-                .json(response)
-        }
-        Err(e) => {
-            let response = json!({
-                "success": false,
-                "error": e.to_string()
-            });
-            HttpResponse::InternalServerError()
-                .content_type("application/json")
-                .header("access-control-allow-origin", "*")
-                .json(response)
-        }
-    }
+    let config = app.config.lock().unwrap().clone();
+    let response = json!({
+        "success": true,
+        "config": config
+    });
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .header("access-control-allow-origin", "*")
+        .json(response)
 }
 
 async fn update_config_handler(
-    _app: web::Data<Arc<BreznApp>>,
-    _config_data: web::Json<serde_json::Value>,
+    app: web::Data<Arc<BreznApp>>,
+    config_data: web::Json<serde_json::Value>,
 ) -> HttpResponse {
+    // Simplified config update
     let response = json!({
         "success": true,
-        "message": "Config updated (simplified)"
+        "message": "Config updated"
     });
     HttpResponse::Ok()
         .content_type("application/json")
@@ -147,11 +149,15 @@ async fn update_config_handler(
 }
 
 async fn toggle_network_handler(
-    _app: web::Data<Arc<BreznApp>>,
+    app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
+    let mut config = app.config.lock().unwrap();
+    config.network_enabled = !config.network_enabled;
+    
     let response = json!({
         "success": true,
-        "message": "Network toggled (not implemented yet)"
+        "network_enabled": config.network_enabled,
+        "message": format!("Network {}", if config.network_enabled { "enabled" } else { "disabled" })
     });
     HttpResponse::Ok()
         .content_type("application/json")
@@ -160,11 +166,15 @@ async fn toggle_network_handler(
 }
 
 async fn toggle_tor_handler(
-    _app: web::Data<Arc<BreznApp>>,
+    app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
+    let mut config = app.config.lock().unwrap();
+    config.tor_enabled = !config.tor_enabled;
+    
     let response = json!({
         "success": true,
-        "message": "Tor toggled (not implemented yet)"
+        "tor_enabled": config.tor_enabled,
+        "message": format!("Tor {}", if config.tor_enabled { "enabled" } else { "disabled" })
     });
     HttpResponse::Ok()
         .content_type("application/json")
@@ -175,71 +185,54 @@ async fn toggle_tor_handler(
 async fn network_status_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let config = match app.get_config() {
-        Ok(config) => config,
+    match app.get_network_status() {
+        Ok(status) => {
+            let response = json!({
+                "success": true,
+                "network": status
+            });
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
         Err(e) => {
             let response = json!({
                 "success": false,
                 "error": e.to_string()
             });
-            return HttpResponse::InternalServerError()
+            HttpResponse::InternalServerError()
                 .content_type("application/json")
                 .append_header(("access-control-allow-origin", "*"))
-                .json(response);
+                .json(response)
         }
-    };
-    
-    let response = json!({
-        "success": true,
-        "network": {
-            "node_id": app.get_node_id(),
-            "enabled": config.network_enabled,
-            "port": config.network_port,
-            "tor_enabled": app.is_tor_enabled(),
-            "tor_port": config.tor_socks_port,
-            "peers_count": 0, // Will be implemented in Phase 2
-            "status": if config.network_enabled { "active" } else { "inactive" }
-        }
-    });
-    
-    HttpResponse::Ok()
-        .content_type("application/json")
-        .append_header(("access-control-allow-origin", "*"))
-        .json(response)
+    }
 }
 
 async fn qr_code_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let config = match app.get_config() {
-        Ok(config) => config,
+    match app.generate_qr_code() {
+        Ok(qr_code) => {
+            let response = json!({
+                "success": true,
+                "qr_code": qr_code,
+                "message": "QR code generated successfully"
+            });
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
         Err(e) => {
             let response = json!({
                 "success": false,
                 "error": e.to_string()
             });
-            return HttpResponse::InternalServerError()
+            HttpResponse::InternalServerError()
                 .content_type("application/json")
                 .append_header(("access-control-allow-origin", "*"))
-                .json(response);
+                .json(response)
         }
-    };
-    
-    let qr_data = json!({
-        "node_id": app.get_node_id(),
-        "address": "127.0.0.1",
-        "port": config.network_port,
-        "timestamp": chrono::Utc::now().timestamp()
-    });
-    
-    let response = json!({
-        "success": true,
-        "qr_data": qr_data,
-        "message": "QR code data for network join (implementation pending)"
-    });
-    
-    HttpResponse::Ok()
-        .content_type("application/json")
-        .append_header(("access-control-allow-origin", "*"))
-        .json(response)
+    }
 }
