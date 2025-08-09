@@ -50,6 +50,36 @@ jobs:
         run: |
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/25.1.8937393"
+
+          # Configure NDK toolchain and cross-compilers for Cargo/cc
+          export NDK_TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          export PATH="$NDK_TOOLCHAIN/bin:$PATH"
+          export PKG_CONFIG_ALLOW_CROSS=1
+
+          export CC_aarch64_linux_android="$NDK_TOOLCHAIN/bin/aarch64-linux-android34-clang"
+          export CC_armv7_linux_androideabi="$NDK_TOOLCHAIN/bin/armv7a-linux-androideabi34-clang"
+          export CC_i686_linux_android="$NDK_TOOLCHAIN/bin/i686-linux-android34-clang"
+          export CC_x86_64_linux_android="$NDK_TOOLCHAIN/bin/x86_64-linux-android34-clang"
+
+          export AR_aarch64_linux_android="$NDK_TOOLCHAIN/bin/llvm-ar"
+          export AR_armv7_linux_androideabi="$NDK_TOOLCHAIN/bin/llvm-ar"
+          export AR_i686_linux_android="$NDK_TOOLCHAIN/bin/llvm-ar"
+          export AR_x86_64_linux_android="$NDK_TOOLCHAIN/bin/llvm-ar"
+
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CC_aarch64_linux_android"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$CC_armv7_linux_androideabi"
+          export CARGO_TARGET_I686_LINUX_ANDROID_LINKER="$CC_i686_linux_android"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$CC_x86_64_linux_android"
+
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_AR="$AR_aarch64_linux_android"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_AR="$AR_armv7_linux_androideabi"
+          export CARGO_TARGET_I686_LINUX_ANDROID_AR="$AR_i686_linux_android"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_AR="$AR_x86_64_linux_android"
+
+          export RUST_BACKTRACE=1
+          rustc --version
+          cargo --version
+
           cd brezn
           cargo build --target aarch64-linux-android --release
           cargo build --target armv7-linux-androideabi --release
