@@ -1,0 +1,62 @@
+name: Build iOS Archive
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust iOS targets
+        run: |
+          rustup target add aarch64-apple-ios x86_64-apple-ios
+
+      - name: Install mobile dependencies
+        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        run: |
+          cd brezn/mobile
+          npm ci
+
+      - name: Install Pods
+        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        run: |
+          cd brezn/mobile/ios
+          pod install --repo-update
+
+      - name: Build iOS archive
+        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        run: |
+          cd brezn/mobile/ios
+          xcodebuild -workspace Brezn.xcworkspace \
+            -scheme Brezn \
+            -configuration Release \
+            -archivePath build/Brezn.xcarchive \
+            -destination "generic/platform=iOS" \
+            archive
+
+      - name: Upload iOS archive artifact
+        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: brezn-ios-archive
+          path: brezn/mobile/ios/build/Brezn.xcarchive
+
+      - name: Skip - iOS project not present
+        if: ${{ hashFiles('brezn/mobile/ios/**') == '' }}
+        run: |
+          echo "iOS project not found at brezn/mobile/ios. Commit the React Native iOS project and signing configuration to build IPAs." 
+          exit 0
