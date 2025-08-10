@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This pre-push hook blocks pushes that expose private emails
+# Allowed: emails containing 'noreply' or ending with 'placeholder.com'
+
+# Read refs from stdin
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # New branch/tag push
+  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    continue
+  fi
+  # Determine range to scan
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  # Scan author/committer emails and commit body (including trailers)
+  if git log --format='%ae%n%ce%n%B' "$range" \
+    | grep -Eio '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}' \
+    | grep -Evi 'noreply|placeholder\.com'; then
+    echo '❌ Push blockiert: Private E-Mail in Autor/Committer oder Commit-Trailern gefunden.'
+    echo 'Bitte nur noreply- oder placeholder.com-Adressen verwenden.'
+    exit 1
+  fi
+
+done
+
+exit 0
