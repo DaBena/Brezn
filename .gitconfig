@@ -1,0 +1,27 @@
+[user]
+    name = Brezn Developer
+    email = brezn-dev@noreply.github.com
+
+[commit]
+    template = .gitmessage
+
+[core]
+    editor = code --wait
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true
+
+[push]
+    default = simple
+
+[alias]
+    st = status
+    co = checkout
+    br = branch
+    ci = commit
+    unstage = reset HEAD --
+    last = log -1 HEAD
+    visual = !gitk

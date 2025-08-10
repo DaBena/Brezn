@@ -1,0 +1,42 @@
+# Node / React Native
+node_modules/
+jspm_packages/
+.npm
+.node_repl_history
+*.tgz
+.yarn-integrity
+.env
+
+# Android
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+
+# iOS
+ios/build/
+ios/Pods/
+ios/DerivedData/
+*.xcworkspace
+!default.xcworkspace
+
+# React Native
+react-native.config.js
+
+# Metro
+.metro-health-check*
+
+# Flipper
+ios/Pods/Flipper*
+
+# Bundle artifacts
+*.jsbundle
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Temporary files
+*.tmp
+*.temp

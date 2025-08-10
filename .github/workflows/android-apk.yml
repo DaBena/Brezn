@@ -1,0 +1,130 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
+          yes | sdkmanager --licenses
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust Android targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            brezn/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('brezn/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config cmake ninja-build \
+            autoconf automake libtool m4 \
+            clang lld nasm
+
+      - name: Build Rust libraries for Android
+        run: |
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/25.1.8937393"
+
+          # Configure NDK toolchain and cross-compilers for Cargo/cc
+          export NDK_TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          export PATH="$NDK_TOOLCHAIN/bin:$PATH"
+          export PKG_CONFIG_ALLOW_CROSS=1
+
+          export CC_aarch64_linux_android="$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang"
+          export CC_armv7_linux_androideabi="$NDK_TOOLCHAIN/bin/armv7a-linux-androideabi21-clang"
+          export CC_x86_64_linux_android="$NDK_TOOLCHAIN/bin/x86_64-linux-android21-clang"
+
+          export AR_aarch64_linux_android="$NDK_TOOLCHAIN/bin/llvm-ar"
+          export AR_armv7_linux_androideabi="$NDK_TOOLCHAIN/bin/llvm-ar"
+          export AR_x86_64_linux_android="$NDK_TOOLCHAIN/bin/llvm-ar"
+
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CC_aarch64_linux_android"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$CC_armv7_linux_androideabi"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$CC_x86_64_linux_android"
+
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_AR="$AR_aarch64_linux_android"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_AR="$AR_armv7_linux_androideabi"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_AR="$AR_x86_64_linux_android"
+
+          export RUST_BACKTRACE=1
+          rustc --version
+          cargo --version
+
+          cd brezn
+          cargo build -vv --target aarch64-linux-android --release --lib
+          cargo build -vv --target armv7-linux-androideabi --release --lib
+          cargo build -vv --target x86_64-linux-android --release --lib
+
+      - name: Prepare jniLibs (if Android project exists)
+        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        run: |
+          mkdir -p brezn/mobile/android/app/src/main/jniLibs/arm64-v8a
+          mkdir -p brezn/mobile/android/app/src/main/jniLibs/armeabi-v7a
+          mkdir -p brezn/mobile/android/app/src/main/jniLibs/x86
+          mkdir -p brezn/mobile/android/app/src/main/jniLibs/x86_64
+          cp brezn/target/aarch64-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/arm64-v8a/ || true
+          cp brezn/target/armv7-linux-androideabi/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/armeabi-v7a/ || true
+          cp brezn/target/i686-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/x86/ || true
+          cp brezn/target/x86_64-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/x86_64/ || true
+
+      - name: Install mobile dependencies
+        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        run: |
+          cd brezn/mobile
+          npm ci
+
+      - name: Build Android APK (Release, unsigned)
+        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        run: |
+          cd brezn/mobile/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: brezn-android-apk
+          path: brezn/mobile/android/app/build/outputs/apk/release/*.apk
+
+      - name: Skip - Android project not present
+        if: ${{ hashFiles('brezn/mobile/android/gradlew') == '' }}
+        run: |
+          echo "Android project not found at brezn/mobile/android. Commit the React Native Android project to build APKs." 
+          exit 0

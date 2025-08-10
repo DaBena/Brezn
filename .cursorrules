@@ -1,0 +1,101 @@
+# 🚨 CRITICAL: Email Protection Rules - Brezn Project
+# Diese Regeln verhindern, dass Cursor private E-Mail-Adressen veröffentlicht
+
+## 🔒 MANDATORY FOR ALL AGENTS (Local + Online):
+
+### 🚨 ABSOLUTE PROHIBITIONS:
+- **NEVER** add private email addresses to commits, PRs, or code
+- **NEVER** use Co-authored-by lines with real email addresses
+- **NEVER** push directly to main/develop branches
+- **NEVER** bypass pull request requirements
+
+### 📝 COMMIT RULES:
+- Use ONLY: `brezn-dev@noreply.github.com` for user.email
+- Use ONLY: `Brezn Developer` for user.name
+- **NEVER** add Co-authored-by lines with private emails
+- **NEVER** include email addresses in commit messages
+
+### 🔄 WORKFLOW RULES:
+- **ALWAYS** create feature branches for changes
+- **ALWAYS** submit changes via Pull Requests
+- **NEVER** push directly to protected branches
+- **ALWAYS** wait for human review and approval
+
+## 🚀 FOR LOCAL AGENTS ONLY:
+# BEVOR Sie irgendwelche Änderungen machen, führen Sie IMMER aus:
+
+# Windows (PowerShell):
+# .\scripts\setup_git_protection.ps1
+
+# Linux/Mac:
+# chmod +x scripts/setup_git_protection.sh
+# ./scripts/setup_git_protection.sh
+
+## 🔒 FOR ONLINE AGENTS (GitHub/GitLab):
+
+### 🚨 CRITICAL: You CANNOT bypass these protections!
+- **Branch Protection Rules** are active on main/develop
+- **Email Protection GitHub Action** runs on every PR
+- **Direct pushes to main are BLOCKED**
+- **All changes require Pull Request approval**
+
+### 📋 REQUIRED WORKFLOW:
+1. **Fork** the repository or create a **feature branch**
+2. **Make changes** in your branch
+3. **Create Pull Request** with your changes
+4. **Wait for Email Protection check** to pass
+5. **Wait for human reviewer** to approve
+6. **NEVER** try to bypass these protections
+
+### ⚠️ WHAT HAPPENS IF YOU VIOLATE:
+- **Email Protection Action** will BLOCK your PR
+- **Human reviewers** will REJECT your PR
+- **Repository administrators** will be notified
+- **Your access** may be restricted
+
+## 🎯 SAFE EMAIL PATTERNS:
+✅ **ALLOWED:**
+- `brezn-dev@noreply.github.com`
+- `user@placeholder.com` (in code examples)
+- `test@example.com` (in tests)
+- Generic usernames without email domains
+
+❌ **BLOCKED:**
+- `yourname@gmail.com`
+- `realuser@web.de`
+- `personal@gmx.com`
+- `user@t-online.de`
+- `test@freenet.de`
+- `admin@arcor.de`
+- `info@1und1.de`
+- `support@vodafone.de`
+- `help@telekom.de`
+- `contact@t-mobile.de`
+- `service@o2.de`
+- `support@eplus.de`
+- `user@aol.com`
+- `test@icloud.com`
+- `admin@me.com`
+- `info@mac.com`
+- `user@protonmail.com`
+- `test@tutanota.de`
+- `admin@posteo.de`
+- `info@mailbox.org`
+- Any real email addresses from major providers
+
+## 🔧 TECHNICAL IMPLEMENTATION:
+- **GitHub Actions** automatically check all commits
+- **Branch Protection** prevents direct pushes
+- **Pre-commit hooks** run locally
+- **Post-receive hooks** run on server
+
+## ⚠️ FINAL WARNING:
+# If you ignore these rules, you WILL leak private email addresses!
+# This is a data protection violation that cannot be undone!
+# The repository has MULTIPLE layers of protection that you cannot bypass!
+
+## 🆘 NEED HELP?
+- Read the GitHub Action logs for specific errors
+- Check branch protection rules in repository settings
+- Contact repository administrators for access issues
+- Follow the exact workflow described above

@@ -1,0 +1,24 @@
+# Brezn Project Commit Message Template
+# WICHTIG: Keine privaten E-Mail-Adressen veröffentlichen!
+
+# Kurze Beschreibung der Änderung (max. 50 Zeichen)
+# 
+
+# Detaillierte Beschreibung (max. 72 Zeichen pro Zeile)
+# 
+
+# Welche Probleme löst diese Änderung?
+# 
+
+# Welche Tests wurden durchgeführt?
+# 
+
+# Checkliste vor dem Commit:
+# [ ] Code kompiliert ohne Fehler
+# [ ] Alle Tests bestehen
+# [ ] Keine privaten E-Mail-Adressen im Code
+# [ ] Keine Co-Authors mit E-Mail-Adressen
+# [ ] Dokumentation aktualisiert (falls nötig)
+
+# Referenzen (Issues, PRs, etc.)
+# 

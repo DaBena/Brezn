@@ -1,0 +1,32 @@
+# Rust build artifacts
+target/
+**/*.so
+**/*.a
+**/*.dylib
+**/*.dll
+
+# Cargo
+# Cargo.lock (tracked)
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+*.tmp
+*.temp

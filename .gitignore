@@ -1,0 +1,74 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Cargo
+# Cargo.lock (tracked)
+
+# Binaries
+*.exe
+*.pdb
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*~
+*.tmp
+*.temp
+*.log
+
+# Build artifacts
+**/*.rs.bk
+
+# Database files (for this specific project)
+*.db
+*.sqlite
+*.sqlite3
+
+# Node modules (if using any JS tooling)
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Capacitor specific
+dist/
+dist-ssr/
+android/
+ios/
+
+# Rust analyzer
+.rust-analyzer/
+
+# Cursor Agent Protection - Prevent email leaks
+*.email
+*.mail
+*@*.com
+*@*.de
+*@*.org
+*@*.net
+*@*.io
+
+# Personal configuration files that might contain emails
+.personal*
+*personal*

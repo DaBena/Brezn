@@ -1,0 +1,2 @@
+# Test-Datei für Email Protection Action - Runde 2
+# Diese Datei soll die Action triggern

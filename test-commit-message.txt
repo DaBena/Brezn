@@ -1,0 +1,2 @@
+# Test-Datei für Commit-Message Email Protection
+# Diese Datei kann private E-Mails enthalten
