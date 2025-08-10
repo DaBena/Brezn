@@ -5,8 +5,7 @@
 **NIEMALS meine private E-Mail-Adresse als Co-Autor in Git-Commits veröffentlichen!**
 
 ### Verboten:
-- `Co-authored-by: Name <ihre-echte-email@gmail.com>`
-- `Co-authored-by: Name <ihre-echte-email@web.de>`
+- `Co-authored-by: Name <ihre-echte-email@example.com>`
 - Jede andere private E-Mail-Adresse
 
 ### Erlaubt:

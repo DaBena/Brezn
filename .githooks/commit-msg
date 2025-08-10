@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This commit-msg hook blocks commits that expose private emails in the commit message
+# Allowed: emails containing 'noreply' or ending with 'placeholder.com'
+
+COMMIT_MSG_FILE="$1"
+
+if [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "❌ Commit blockiert: Commit-Nachrichtendatei nicht gefunden."
+  exit 1
+fi
+
+if grep -Eio '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}' "$COMMIT_MSG_FILE" \
+  | grep -Evi 'noreply|placeholder\.com'; then
+  echo '❌ Commit blockiert: Private E-Mail in Commit-Nachricht (inkl. Trailern) gefunden.'
+  echo 'Bitte nur noreply- oder placeholder.com-Adressen verwenden.'
+  exit 1
+fi
+
+exit 0
