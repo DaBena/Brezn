@@ -1,14 +1,16 @@
 use brezn::{BreznApp, types::Config};
+use rand::{thread_rng, Rng};
 
 #[tokio::test]
 async fn test_p2p_network_integration() {
     // Create test configuration
+    let port: u16 = thread_rng().gen_range(10_000..20_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "test_user".to_string(),
         network_enabled: true,
-        network_port: 8889, // Different port for testing
+        network_port: port, // Randomized port for testing
         tor_enabled: false, // Disable Tor for testing
         tor_socks_port: 9050,
     };
@@ -20,7 +22,7 @@ async fn test_p2p_network_integration() {
     app.start().await.expect("Failed to start Brezn app");
     
     // Wait a bit for services to start
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
     
     // Run P2P network tests
     app.test_p2p_network().await.expect("P2P network test failed");
@@ -30,12 +32,13 @@ async fn test_p2p_network_integration() {
 
 #[tokio::test]
 async fn test_post_creation_and_retrieval() {
+    let port: u16 = thread_rng().gen_range(20_001..30_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "test_user".to_string(),
         network_enabled: true,
-        network_port: 8890, // Different port
+        network_port: port, // Randomized port
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -44,7 +47,7 @@ async fn test_post_creation_and_retrieval() {
     app.start().await.expect("Failed to start Brezn app");
     
     // Wait for startup
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
     
     // Create multiple posts
     app.create_post("First test post".to_string(), "user1".to_string()).await.expect("Failed to create post 1");
@@ -68,12 +71,13 @@ async fn test_post_creation_and_retrieval() {
 
 #[tokio::test]
 async fn test_qr_code_generation() {
+    let port: u16 = thread_rng().gen_range(30_001..40_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "test_user".to_string(),
         network_enabled: true,
-        network_port: 8891, // Different port
+        network_port: port, // Randomized port
         tor_enabled: false,
         tor_socks_port: 9050,
     };
