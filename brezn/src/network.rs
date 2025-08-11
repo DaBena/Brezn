@@ -158,30 +158,52 @@ impl NetworkManager {
     }
     
     async fn handle_message(&self, message: &NetworkMessage) -> Result<()> {
-        let handlers = self.message_handlers.lock().unwrap();
-        
-        for handler in handlers.iter() {
-            match message.message_type.as_str() {
-                "post" => {
-                    if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
-                        handler.handle_post(&post)?;
+        // Phase 1: notify handlers synchronously (no await while holding lock)
+        {
+            let handlers = self.message_handlers.lock().unwrap();
+            for handler in handlers.iter() {
+                match message.message_type.as_str() {
+                    "post" => {
+                        if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
+                            handler.handle_post(&post)?;
+                        }
                     }
-                }
-                "config" => {
-                    if let Ok(config) = serde_json::from_value::<Config>(message.payload.clone()) {
-                        handler.handle_config(&config)?;
+                    "config" => {
+                        if let Ok(config) = serde_json::from_value::<Config>(message.payload.clone()) {
+                            handler.handle_config(&config)?;
+                        }
                     }
-                }
-                "ping" => {
-                    handler.handle_ping(&message.node_id)?;
-                }
-                "pong" => {
-                    handler.handle_pong(&message.node_id)?;
-                }
-                _ => {
-                    eprintln!("Unknown message type: {}", message.message_type);
+                    "ping" => {
+                        handler.handle_ping(&message.node_id)?;
+                    }
+                    "pong" => {
+                        handler.handle_pong(&message.node_id)?;
+                    }
+                    _ => {
+                        eprintln!("Unknown message type: {}", message.message_type);
+                    }
                 }
             }
+        }
+        
+        // Phase 2: perform network side-effects without holding any locks
+        match message.message_type.as_str() {
+            "ping" => {
+                let pong = NetworkMessage { message_type: "pong".into(), payload: serde_json::json!({}), timestamp: chrono::Utc::now().timestamp() as u64, node_id: "local".into() };
+                let maybe_peer = {
+                    let peers_guard = self.peers.lock().unwrap();
+                    peers_guard.get(&message.node_id).cloned()
+                };
+                if let Some(peer) = maybe_peer {
+                    let _ = self.send_message_to_peer(&pong, &peer).await;
+                }
+            }
+            "pong" => {
+                if let Some(peer) = self.peers.lock().unwrap().get_mut(&message.node_id) {
+                    peer.last_seen = chrono::Utc::now().timestamp() as u64;
+                }
+            }
+            _ => {}
         }
         
         Ok(())

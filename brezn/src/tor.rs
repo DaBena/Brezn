@@ -142,40 +142,74 @@ impl TorManager {
             .await
             .map_err(|e| BreznError::Tor(format!("SOCKS5 connection failed: {}", e)))?;
         
-        // SOCKS5 handshake
-        let handshake = [0x05, 0x01, 0x00]; // SOCKS5, 1 method, no auth
+        // SOCKS5 handshake: no authentication
+        let handshake = [0x05, 0x01, 0x00];
         stream.write_all(&handshake).await
             .map_err(|e| BreznError::Tor(format!("SOCKS5 handshake failed: {}", e)))?;
         
         let mut response = [0u8; 2];
         stream.read_exact(&mut response).await
             .map_err(|e| BreznError::Tor(format!("SOCKS5 response failed: {}", e)))?;
-        
         if response[0] != 0x05 || response[1] != 0x00 {
             return Err(BreznError::Tor("SOCKS5 handshake failed".to_string()));
         }
         
-        // SOCKS5 connect request
-        let mut connect_request = vec![
-            0x05, // SOCKS5
-            0x01, // CONNECT
-            0x00, // Reserved
-            0x01, // IPv4 address
-        ];
-        
-        // Add target IP (for now, we'll use a placeholder - in real implementation, resolve hostname)
-        connect_request.extend_from_slice(&[127, 0, 0, 1]); // Placeholder IP
+        // Build CONNECT request supporting IPv4 literal or domain name
+        let mut connect_request: Vec<u8> = vec![0x05, 0x01, 0x00]; // VER=5, CMD=CONNECT, RSV=0
+        if let Ok(ipv4) = target_host.parse::<std::net::Ipv4Addr>() {
+            // ATYP = IPv4
+            connect_request.push(0x01);
+            connect_request.extend_from_slice(&ipv4.octets());
+        } else {
+            // ATYP = DOMAIN
+            connect_request.push(0x03);
+            let host_bytes = target_host.as_bytes();
+            if host_bytes.len() > 255 {
+                return Err(BreznError::Tor("Hostname too long for SOCKS5".to_string()));
+            }
+            connect_request.push(host_bytes.len() as u8);
+            connect_request.extend_from_slice(host_bytes);
+        }
         connect_request.extend_from_slice(&target_port.to_be_bytes());
         
         stream.write_all(&connect_request).await
             .map_err(|e| BreznError::Tor(format!("SOCKS5 connect request failed: {}", e)))?;
         
-        let mut connect_response = [0u8; 10];
-        stream.read_exact(&mut connect_response).await
-            .map_err(|e| BreznError::Tor(format!("SOCKS5 connect response failed: {}", e)))?;
-        
-        if connect_response[1] != 0x00 {
-            return Err(BreznError::Tor("SOCKS5 connect failed".to_string()));
+        // Parse CONNECT reply: VER, REP, RSV, ATYP, BND.ADDR, BND.PORT
+        let mut head = [0u8; 4];
+        stream.read_exact(&mut head).await
+            .map_err(|e| BreznError::Tor(format!("SOCKS5 connect response header failed: {}", e)))?;
+        if head[0] != 0x05 {
+            return Err(BreznError::Tor("Invalid SOCKS5 version in reply".to_string()));
+        }
+        if head[1] != 0x00 {
+            return Err(BreznError::Tor(format!("SOCKS5 connect failed (REP={:#04x})", head[1])));
+        }
+        let atyp = head[3];
+        match atyp {
+            0x01 => {
+                // IPv4 addr (4) + port (2)
+                let mut buf = [0u8; 6];
+                stream.read_exact(&mut buf).await
+                    .map_err(|e| BreznError::Tor(format!("SOCKS5 IPv4 bind read failed: {}", e)))?;
+            }
+            0x03 => {
+                // DOMAIN: 1 len + addr + port (2)
+                let mut len_buf = [0u8; 1];
+                stream.read_exact(&mut len_buf).await
+                    .map_err(|e| BreznError::Tor(format!("SOCKS5 domain length read failed: {}", e)))?;
+                let len = len_buf[0] as usize;
+                let mut domain_buf = vec![0u8; len + 2];
+                stream.read_exact(&mut domain_buf).await
+                    .map_err(|e| BreznError::Tor(format!("SOCKS5 domain bind read failed: {}", e)))?;
+            }
+            0x04 => {
+                // IPv6 addr (16) + port (2)
+                let mut buf = [0u8; 18];
+                stream.read_exact(&mut buf).await
+                    .map_err(|e| BreznError::Tor(format!("SOCKS5 IPv6 bind read failed: {}", e)))?;
+            }
+            _ => return Err(BreznError::Tor("Unknown ATYP in SOCKS5 reply".to_string())),
         }
         
         println!("🔒 Tor connection established to {}:{}", target_host, target_port);

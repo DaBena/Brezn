@@ -66,6 +66,18 @@ impl Database {
         Ok(self.conn.last_insert_rowid())
     }
     
+    pub fn post_exists(&self, post: &Post) -> SqliteResult<bool> {
+        let node_id_opt: Option<&str> = post.node_id.as_deref();
+        let mut stmt = self.conn.prepare(
+            "SELECT EXISTS(SELECT 1 FROM posts WHERE content = ? AND timestamp = ? AND pseudonym = ? AND (node_id IS ? OR node_id = ?))"
+        )?;
+        let exists: i64 = stmt.query_row(
+            (&post.content, &(post.timestamp as i64), &post.pseudonym, &node_id_opt, &node_id_opt),
+            |row| row.get(0)
+        )?;
+        Ok(exists != 0)
+    }
+    
     pub fn get_posts(&self, limit: usize) -> SqliteResult<Vec<Post>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, content, timestamp, pseudonym, node_id FROM posts ORDER BY timestamp DESC LIMIT ?"
