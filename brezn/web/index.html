@@ -374,11 +374,11 @@
                     networkInfo.innerHTML = `
                         <div class="status-item">
                             <span>🆔 Node ID:</span>
-                            <span>${network.node_id}</span>
+                            <span>${network.node_id || 'local'}</span>
                         </div>
                         <div class="status-item">
                             <span>🌐 Status:</span>
-                            <span>${network.status}</span>
+                            <span>${network.status || 'Aktiv'}</span>
                         </div>
                         <div class="status-item">
                             <span>🔌 Port:</span>
@@ -391,6 +391,18 @@
                         <div class="status-item">
                             <span>👥 Peers:</span>
                             <span>${network.peers_count}</span>
+                        </div>
+                        <div class="status">
+                            <div><strong>Verb. Peers</strong></div>
+                            <ul>
+                                ${(network.peers || []).map(p => `<li>${p.node_id} - ${p.address}:${p.port} (${p.is_tor_peer ? 'Tor' : 'Direct'})</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="status">
+                            <div><strong>Discovery Peers</strong></div>
+                            <ul>
+                                ${(network.discovery_peers || []).map(p => `<li>${p.node_id} - ${p.address}:${p.port}</li>`).join('')}
+                            </ul>
                         </div>
                     `;
                 }

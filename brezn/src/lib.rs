@@ -124,6 +124,7 @@ impl BreznApp {
                         // request recent posts from that peer (fire-and-forget)
                         let node_id_to_request = dp.node_id.clone();
                         let nm_clone = nm.clone();
+                        // run in background but avoid non-Send future by scoping locks inside API
                         tokio::spawn(async move {
                             let _ = nm_clone.request_posts_from_peer(&node_id_to_request).await;
                         });

@@ -18,6 +18,7 @@ pub struct NetworkManager {
     peers: Arc<Mutex<HashMap<String, PeerInfo>>>,
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
     tor_manager: Option<TorManager>,
+    request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +49,7 @@ impl NetworkManager {
             peers: Arc::new(Mutex::new(HashMap::new())),
             message_handlers: Arc::new(Mutex::new(Vec::new())),
             tor_manager: None,
+            request_cooldowns: Arc::new(Mutex::new(HashMap::new())),
         }
     }
     
@@ -341,6 +343,17 @@ impl NetworkManager {
     }
 
     pub async fn request_posts_from_peer(&self, node_id: &str) -> Result<()> {
+        // rate limit to one request per peer per 30 seconds
+        {
+            let now = chrono::Utc::now().timestamp() as u64;
+            let mut cd = self.request_cooldowns.lock().unwrap();
+            if let Some(last) = cd.get(node_id).copied() {
+                if now.saturating_sub(last) < 30 {
+                    return Ok(());
+                }
+            }
+            cd.insert(node_id.to_string(), now);
+        }
         let maybe_peer = {
             let peers = self.peers.lock().unwrap();
             peers.get(node_id).cloned()
@@ -368,6 +381,7 @@ impl Clone for NetworkManager {
             peers: Arc::clone(&self.peers),
             message_handlers: Arc::clone(&self.message_handlers),
             tor_manager: self.tor_manager.clone(),
+            request_cooldowns: Arc::clone(&self.request_cooldowns),
         }
     }
 }
@@ -388,9 +402,11 @@ impl MessageHandler for DefaultMessageHandler {
     fn handle_post(&self, post: &Post) -> Result<()> {
         println!("📨 Neuer Post von {}: {}", post.pseudonym, post.content);
         
-        // Save post to database
+        // Save post to database if not duplicate
         let db = self.database.lock().unwrap();
-        db.add_post(&post.clone())?;
+        if !db.post_exists(&post.clone()).unwrap_or(false) {
+            db.add_post(&post.clone())?;
+        }
         
         println!("💾 Post in Datenbank gespeichert");
         Ok(())

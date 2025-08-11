@@ -160,6 +160,10 @@ impl TorManager {
             // ATYP = IPv4
             connect_request.push(0x01);
             connect_request.extend_from_slice(&ipv4.octets());
+        } else if let Ok(ipv6) = target_host.parse::<std::net::Ipv6Addr>() {
+            // ATYP = IPv6
+            connect_request.push(0x04);
+            connect_request.extend_from_slice(&ipv6.octets());
         } else {
             // ATYP = DOMAIN
             connect_request.push(0x03);
