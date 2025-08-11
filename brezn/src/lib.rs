@@ -121,6 +121,12 @@ impl BreznApp {
                         };
                         let mut nm = network_manager.lock().unwrap();
                         nm.add_peer(dp.node_id.clone(), public_key, dp.address.clone(), dp.port, false);
+                        // request recent posts from that peer (fire-and-forget)
+                        let node_id_to_request = dp.node_id.clone();
+                        let nm_clone = nm.clone();
+                        tokio::spawn(async move {
+                            let _ = nm_clone.request_posts_from_peer(&node_id_to_request).await;
+                        });
                     }
                 }
             });

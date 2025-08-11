@@ -35,6 +35,7 @@ pub trait MessageHandler: Send + Sync {
     fn handle_config(&self, config: &Config) -> Result<()>;
     fn handle_ping(&self, node_id: &str) -> Result<()>;
     fn handle_pong(&self, node_id: &str) -> Result<()>;
+    fn get_recent_posts(&self, _limit: usize) -> Result<Vec<Post>> { Ok(Vec::new()) }
 }
 
 impl NetworkManager {
@@ -180,7 +181,10 @@ impl NetworkManager {
                         handler.handle_pong(&message.node_id)?;
                     }
                     _ => {
-                        eprintln!("Unknown message type: {}", message.message_type);
+                        // request_posts handled in Phase 2 below
+                        if message.message_type.as_str() != "request_posts" {
+                            eprintln!("Unknown message type: {}", message.message_type);
+                        }
                     }
                 }
             }
@@ -201,6 +205,35 @@ impl NetworkManager {
             "pong" => {
                 if let Some(peer) = self.peers.lock().unwrap().get_mut(&message.node_id) {
                     peer.last_seen = chrono::Utc::now().timestamp() as u64;
+                }
+            }
+            "request_posts" => {
+                // gather recent posts from first handler that returns non-empty
+                let posts_to_send: Vec<Post> = {
+                    let handlers = self.message_handlers.lock().unwrap();
+                    let mut aggregated: Vec<Post> = Vec::new();
+                    for handler in handlers.iter() {
+                        if let Ok(mut posts) = handler.get_recent_posts(100) {
+                            if !posts.is_empty() {
+                                aggregated.append(&mut posts);
+                                break;
+                            }
+                        }
+                    }
+                    aggregated
+                };
+                if !posts_to_send.is_empty() {
+                    // resolve peer outside of await to avoid holding locks across await
+                    let maybe_peer = {
+                        let peers_guard = self.peers.lock().unwrap();
+                        peers_guard.get(&message.node_id).cloned()
+                    };
+                    if let Some(peer) = maybe_peer {
+                        for post in posts_to_send.iter() {
+                            let msg = NetworkMessage { message_type: "post".into(), payload: serde_json::to_value(post)?, timestamp: chrono::Utc::now().timestamp() as u64, node_id: "local".into() };
+                            let _ = self.send_message_to_peer(&msg, &peer).await;
+                        }
+                    }
                 }
             }
             _ => {}
@@ -306,6 +339,23 @@ impl NetworkManager {
             Err(anyhow::anyhow!("Tor not enabled"))
         }
     }
+
+    pub async fn request_posts_from_peer(&self, node_id: &str) -> Result<()> {
+        let maybe_peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        if let Some(peer) = maybe_peer {
+            let message = NetworkMessage {
+                message_type: "request_posts".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: "local".to_string(),
+            };
+            self.send_message_to_peer(&message, &peer).await?;
+        }
+        Ok(())
+    }
 }
 
 impl Clone for NetworkManager {
@@ -360,6 +410,12 @@ impl MessageHandler for DefaultMessageHandler {
         println!("🏓 Pong von Node: {}", node_id);
         Ok(())
     }
+
+    fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
+        let db = self.database.lock().unwrap();
+        let posts = db.get_posts(limit)?;
+        Ok(posts)
+    }
 }
 
 #[cfg(test)]
@@ -402,6 +458,9 @@ mod tests {
         fn handle_pong(&self, node_id: &str) -> anyhow::Result<()> {
             self.handled_pongs.lock().unwrap().push(node_id.to_string());
             Ok(())
+        }
+        fn get_recent_posts(&self, _limit: usize) -> anyhow::Result<Vec<Post>> {
+            Ok(vec![Post { id: None, content: "x".into(), timestamp: 1, pseudonym: "p".into(), node_id: Some("n".into()) }])
         }
     }
 
