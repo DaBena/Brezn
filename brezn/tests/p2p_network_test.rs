@@ -2,6 +2,7 @@ use brezn::{BreznApp, types::Config};
 use tokio::time::{Duration, sleep};
 use std::sync::Arc;
 use anyhow::Result;
+use rand::{thread_rng, Rng};
 
 /// Test P2P Network between two instances
 #[tokio::test]
@@ -9,12 +10,13 @@ async fn test_p2p_network_between_instances() -> Result<()> {
     println!("🧪 Testing P2P Network between two instances...");
     
     // Create two different configurations
+    let base: u16 = thread_rng().gen_range(20_000..40_000);
     let config1 = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "node1_user".to_string(),
         network_enabled: true,
-        network_port: 8888,
+        network_port: base,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -24,7 +26,7 @@ async fn test_p2p_network_between_instances() -> Result<()> {
         max_posts: 1000,
         default_pseudonym: "node2_user".to_string(),
         network_enabled: true,
-        network_port: 8889, // Different port
+        network_port: base + 1, // Different port
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -40,7 +42,7 @@ async fn test_p2p_network_between_instances() -> Result<()> {
     println!("✅ Both apps started successfully");
     
     // Wait for services to initialize
-    sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(200)).await;
     
     // Test 1: Generate QR codes for both nodes
     let qr1 = app1.generate_qr_code()?;
@@ -63,7 +65,7 @@ async fn test_p2p_network_between_instances() -> Result<()> {
     println!("✅ Posts created on both nodes");
     
     // Wait for network propagation
-    sleep(Duration::from_millis(1000)).await;
+    sleep(Duration::from_millis(500)).await;
     
     // Test 4: Check if posts are synchronized
     let posts1 = app1.get_posts().await?;
@@ -224,12 +226,13 @@ async fn test_post_synchronization() -> Result<()> {
 async fn test_tor_integration() -> Result<()> {
     println!("🧪 Testing Tor Integration...");
     
+    let base: u16 = thread_rng().gen_range(40_001..60_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "tor_test".to_string(),
         network_enabled: true,
-        network_port: 8898,
+        network_port: base,
         tor_enabled: true,
         tor_socks_port: 9050,
     };
@@ -238,12 +241,12 @@ async fn test_tor_integration() -> Result<()> {
     app.start().await?;
     
     // Try to enable Tor, skip test if Tor is unavailable
-    if let Err(e) = app.enable_tor().await {
-        println!("⚠️  Skipping Tor test: {}", e);
+    if let Err(_e) = app.enable_tor().await {
+        println!("⚠️  Skipping Tor test: {}", _e);
         return Ok(());
     }
     
-    sleep(Duration::from_millis(1000)).await;
+    sleep(Duration::from_millis(300)).await;
     
     // Test Tor status
     let status = app.get_network_status()?;
@@ -266,12 +269,13 @@ async fn test_tor_integration() -> Result<()> {
 async fn test_network_message_handling() -> Result<()> {
     println!("🧪 Testing Network Message Handling...");
     
+    let base: u16 = thread_rng().gen_range(60_00..65_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "message_test".to_string(),
         network_enabled: true,
-        network_port: 8900,
+        network_port: base,
         tor_enabled: false,
         tor_socks_port: 9050,
     };
@@ -304,12 +308,13 @@ async fn test_network_message_handling() -> Result<()> {
 async fn test_network_error_handling() -> Result<()> {
     println!("🧪 Testing Network Error Handling...");
     
+    let base: u16 = thread_rng().gen_range(50_000..65_000);
     let config = Config {
         auto_save: true,
         max_posts: 1000,
         default_pseudonym: "error_test".to_string(),
         network_enabled: true,
-        network_port: 8901,
+        network_port: base,
         tor_enabled: false,
         tor_socks_port: 9050,
     };

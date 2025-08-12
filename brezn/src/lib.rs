@@ -92,6 +92,47 @@ impl BreznApp {
             }
         });
         
+        // Reconcile discovery peers into network manager periodically
+        {
+            let discovery_manager = Arc::clone(&self.discovery_manager);
+            let network_manager = Arc::clone(&self.network_manager);
+            tokio::spawn(async move {
+                use tokio::time::{sleep, Duration};
+                loop {
+                    sleep(Duration::from_secs(10)).await;
+                    // Fetch snapshot of discovery peers and network peers
+                    let discovery_peers = {
+                        let dm = discovery_manager.lock().unwrap();
+                        dm.get_peers().unwrap_or_default()
+                    };
+                    let existing_node_ids: std::collections::HashSet<String> = {
+                        let nm = network_manager.lock().unwrap();
+                        nm.get_peers().into_iter().map(|p| p.node_id).collect()
+                    };
+                    // Add missing discovery peers to network manager
+                    for dp in discovery_peers.into_iter() {
+                        if existing_node_ids.contains(&dp.node_id) { continue; }
+                        let public_key = match sodiumoxide::crypto::box_::PublicKey::from_slice(dp.public_key.as_bytes()) {
+                            Some(pk) => pk,
+                            None => {
+                                let (pk, _sk) = sodiumoxide::crypto::box_::gen_keypair();
+                                pk
+                            }
+                        };
+                        let mut nm = network_manager.lock().unwrap();
+                        nm.add_peer(dp.node_id.clone(), public_key, dp.address.clone(), dp.port, false);
+                        // request recent posts from that peer (fire-and-forget)
+                        let node_id_to_request = dp.node_id.clone();
+                        let nm_clone = nm.clone();
+                        // run in background but avoid non-Send future by scoping locks inside API
+                        tokio::spawn(async move {
+                            let _ = nm_clone.request_posts_from_peer(&node_id_to_request).await;
+                        });
+                    }
+                }
+            });
+        }
+        
         println!("✅ Brezn App gestartet");
         Ok(())
     }
@@ -118,10 +159,12 @@ impl BreznApp {
             node_id: Some("local".to_string()),
         };
         
-        // Save to database
+        // Save to database (avoid duplicates)
         {
             let db = self.database_manager.lock().unwrap();
-            db.add_post(&post)?;
+            if !db.post_exists(&post)? {
+                db.add_post(&post)?;
+            }
         }
         
         // Broadcast to network
@@ -181,11 +224,28 @@ impl BreznApp {
         let peers = network_manager.get_peers();
         let discovery_peers = discovery_manager.get_peers()?;
         
+        let peers_json: Vec<serde_json::Value> = peers.iter().map(|p| serde_json::json!({
+            "node_id": p.node_id,
+            "address": p.address,
+            "port": p.port,
+            "last_seen": p.last_seen,
+            "is_tor_peer": p.is_tor_peer,
+        })).collect();
+        let discovery_json: Vec<serde_json::Value> = discovery_peers.iter().map(|p| serde_json::json!({
+            "node_id": p.node_id,
+            "address": p.address,
+            "port": p.port,
+            "last_seen": p.last_seen,
+            "capabilities": p.capabilities,
+        })).collect();
+        
         let status = serde_json::json!({
             "network_enabled": true,
             "tor_enabled": network_manager.is_tor_enabled(),
             "peers_count": peers.len(),
             "discovery_peers_count": discovery_peers.len(),
+            "peers": peers_json,
+            "discovery_peers": discovery_json,
             "port": cfg.network_port,
             "tor_socks_port": cfg.tor_socks_port,
         });

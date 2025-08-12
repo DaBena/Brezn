@@ -18,6 +18,7 @@ pub struct NetworkManager {
     peers: Arc<Mutex<HashMap<String, PeerInfo>>>,
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
     tor_manager: Option<TorManager>,
+    request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +36,7 @@ pub trait MessageHandler: Send + Sync {
     fn handle_config(&self, config: &Config) -> Result<()>;
     fn handle_ping(&self, node_id: &str) -> Result<()>;
     fn handle_pong(&self, node_id: &str) -> Result<()>;
+    fn get_recent_posts(&self, _limit: usize) -> Result<Vec<Post>> { Ok(Vec::new()) }
 }
 
 impl NetworkManager {
@@ -47,6 +49,7 @@ impl NetworkManager {
             peers: Arc::new(Mutex::new(HashMap::new())),
             message_handlers: Arc::new(Mutex::new(Vec::new())),
             tor_manager: None,
+            request_cooldowns: Arc::new(Mutex::new(HashMap::new())),
         }
     }
     
@@ -158,30 +161,84 @@ impl NetworkManager {
     }
     
     async fn handle_message(&self, message: &NetworkMessage) -> Result<()> {
-        let handlers = self.message_handlers.lock().unwrap();
-        
-        for handler in handlers.iter() {
-            match message.message_type.as_str() {
-                "post" => {
-                    if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
-                        handler.handle_post(&post)?;
+        // Phase 1: notify handlers synchronously (no await while holding lock)
+        {
+            let handlers = self.message_handlers.lock().unwrap();
+            for handler in handlers.iter() {
+                match message.message_type.as_str() {
+                    "post" => {
+                        if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
+                            handler.handle_post(&post)?;
+                        }
                     }
-                }
-                "config" => {
-                    if let Ok(config) = serde_json::from_value::<Config>(message.payload.clone()) {
-                        handler.handle_config(&config)?;
+                    "config" => {
+                        if let Ok(config) = serde_json::from_value::<Config>(message.payload.clone()) {
+                            handler.handle_config(&config)?;
+                        }
                     }
-                }
-                "ping" => {
-                    handler.handle_ping(&message.node_id)?;
-                }
-                "pong" => {
-                    handler.handle_pong(&message.node_id)?;
-                }
-                _ => {
-                    eprintln!("Unknown message type: {}", message.message_type);
+                    "ping" => {
+                        handler.handle_ping(&message.node_id)?;
+                    }
+                    "pong" => {
+                        handler.handle_pong(&message.node_id)?;
+                    }
+                    _ => {
+                        // request_posts handled in Phase 2 below
+                        if message.message_type.as_str() != "request_posts" {
+                            eprintln!("Unknown message type: {}", message.message_type);
+                        }
+                    }
                 }
             }
+        }
+        
+        // Phase 2: perform network side-effects without holding any locks
+        match message.message_type.as_str() {
+            "ping" => {
+                let pong = NetworkMessage { message_type: "pong".into(), payload: serde_json::json!({}), timestamp: chrono::Utc::now().timestamp() as u64, node_id: "local".into() };
+                let maybe_peer = {
+                    let peers_guard = self.peers.lock().unwrap();
+                    peers_guard.get(&message.node_id).cloned()
+                };
+                if let Some(peer) = maybe_peer {
+                    let _ = self.send_message_to_peer(&pong, &peer).await;
+                }
+            }
+            "pong" => {
+                if let Some(peer) = self.peers.lock().unwrap().get_mut(&message.node_id) {
+                    peer.last_seen = chrono::Utc::now().timestamp() as u64;
+                }
+            }
+            "request_posts" => {
+                // gather recent posts from first handler that returns non-empty
+                let posts_to_send: Vec<Post> = {
+                    let handlers = self.message_handlers.lock().unwrap();
+                    let mut aggregated: Vec<Post> = Vec::new();
+                    for handler in handlers.iter() {
+                        if let Ok(mut posts) = handler.get_recent_posts(100) {
+                            if !posts.is_empty() {
+                                aggregated.append(&mut posts);
+                                break;
+                            }
+                        }
+                    }
+                    aggregated
+                };
+                if !posts_to_send.is_empty() {
+                    // resolve peer outside of await to avoid holding locks across await
+                    let maybe_peer = {
+                        let peers_guard = self.peers.lock().unwrap();
+                        peers_guard.get(&message.node_id).cloned()
+                    };
+                    if let Some(peer) = maybe_peer {
+                        for post in posts_to_send.iter() {
+                            let msg = NetworkMessage { message_type: "post".into(), payload: serde_json::to_value(post)?, timestamp: chrono::Utc::now().timestamp() as u64, node_id: "local".into() };
+                            let _ = self.send_message_to_peer(&msg, &peer).await;
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
         
         Ok(())
@@ -284,6 +341,34 @@ impl NetworkManager {
             Err(anyhow::anyhow!("Tor not enabled"))
         }
     }
+
+    pub async fn request_posts_from_peer(&self, node_id: &str) -> Result<()> {
+        // rate limit to one request per peer per 30 seconds
+        {
+            let now = chrono::Utc::now().timestamp() as u64;
+            let mut cd = self.request_cooldowns.lock().unwrap();
+            if let Some(last) = cd.get(node_id).copied() {
+                if now.saturating_sub(last) < 30 {
+                    return Ok(());
+                }
+            }
+            cd.insert(node_id.to_string(), now);
+        }
+        let maybe_peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        if let Some(peer) = maybe_peer {
+            let message = NetworkMessage {
+                message_type: "request_posts".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: "local".to_string(),
+            };
+            self.send_message_to_peer(&message, &peer).await?;
+        }
+        Ok(())
+    }
 }
 
 impl Clone for NetworkManager {
@@ -296,6 +381,7 @@ impl Clone for NetworkManager {
             peers: Arc::clone(&self.peers),
             message_handlers: Arc::clone(&self.message_handlers),
             tor_manager: self.tor_manager.clone(),
+            request_cooldowns: Arc::clone(&self.request_cooldowns),
         }
     }
 }
@@ -316,9 +402,11 @@ impl MessageHandler for DefaultMessageHandler {
     fn handle_post(&self, post: &Post) -> Result<()> {
         println!("📨 Neuer Post von {}: {}", post.pseudonym, post.content);
         
-        // Save post to database
+        // Save post to database if not duplicate
         let db = self.database.lock().unwrap();
-        db.add_post(&post.clone())?;
+        if !db.post_exists(&post.clone()).unwrap_or(false) {
+            db.add_post(&post.clone())?;
+        }
         
         println!("💾 Post in Datenbank gespeichert");
         Ok(())
@@ -337,6 +425,12 @@ impl MessageHandler for DefaultMessageHandler {
     fn handle_pong(&self, node_id: &str) -> Result<()> {
         println!("🏓 Pong von Node: {}", node_id);
         Ok(())
+    }
+
+    fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
+        let db = self.database.lock().unwrap();
+        let posts = db.get_posts(limit)?;
+        Ok(posts)
     }
 }
 
@@ -380,6 +474,9 @@ mod tests {
         fn handle_pong(&self, node_id: &str) -> anyhow::Result<()> {
             self.handled_pongs.lock().unwrap().push(node_id.to_string());
             Ok(())
+        }
+        fn get_recent_posts(&self, _limit: usize) -> anyhow::Result<Vec<Post>> {
+            Ok(vec![Post { id: None, content: "x".into(), timestamp: 1, pseudonym: "p".into(), node_id: Some("n".into()) }])
         }
     }
 

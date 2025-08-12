@@ -213,26 +213,24 @@ impl DiscoveryManager {
             "capabilities": vec!["posts", "config"],
         });
         
-        let _qr_data = serde_json::to_string(&peer_data)
+        let qr_data = serde_json::to_string(&peer_data)
             .map_err(|e| BreznError::Serialization(e))?;
         
-        // For now, create a simple placeholder image
-        // In a real implementation, this would generate an actual QR code image
-        let mut image_data = Vec::new();
-        for _ in 0..size {
-            for _ in 0..size {
-                // Create a simple pattern
-                image_data.extend_from_slice(&[100, 100, 100, 255]); // Gray
-            }
-        }
+        // Generate QR code matrix
+        let code = qrcode::QrCode::new(qr_data.as_bytes())
+            .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
-        // Create image buffer
-        let qr_image = image::RgbaImage::from_raw(size, size, image_data)
-            .ok_or_else(|| BreznError::InvalidInput("Failed to create QR image buffer".to_string()))?;
+        // Render to grayscale image (Luma<u8>) with requested minimum dimensions
+        let image_luma = code
+            .render::<image::Luma<u8>>()
+            .min_dimensions(size, size)
+            .build();
         
-        // Convert to PNG bytes
-        let mut png_bytes = Vec::new();
-        qr_image.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
+        // Encode as PNG
+        let dyn_img = image::DynamicImage::ImageLuma8(image_luma);
+        let mut png_bytes: Vec<u8> = Vec::new();
+        dyn_img
+            .write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
             .map_err(|e| BreznError::InvalidInput(format!("PNG encoding failed: {}", e)))?;
         
         Ok(png_bytes)

@@ -1,6 +1,7 @@
 use rusqlite::{Connection, Result as SqliteResult};
 use serde_json;
 use crate::types::{Post, Config};
+use ring::digest::{digest, SHA256};
 
 #[derive(Debug)]
 pub struct Database {
@@ -28,10 +29,20 @@ impl Database {
                 content TEXT NOT NULL,
                 timestamp INTEGER NOT NULL,
                 pseudonym TEXT NOT NULL,
-                node_id TEXT
+                node_id TEXT,
+                hash TEXT
             )
         ", [])?;
         
+        // Best-effort: ensure hash column exists (older DBs)
+        let _ = conn.execute("ALTER TABLE posts ADD COLUMN hash TEXT", []);
+
+        // Unique index on hash for conflict avoidance (multiple NULL allowed)
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_hash ON posts(hash)",
+            [],
+        )?;
+
         conn.execute("
             CREATE TABLE IF NOT EXISTS config (
                 key TEXT PRIMARY KEY,
@@ -56,14 +67,29 @@ impl Database {
         self.update_config(&config)
     }
     
+    fn compute_post_hash(&self, post: &Post) -> String {
+        let node_id_part = post.node_id.clone().unwrap_or_default();
+        let data = format!("{}|{}|{}|{}", post.content, post.timestamp, post.pseudonym, node_id_part);
+        let h = digest(&SHA256, data.as_bytes());
+        hex::encode(h)
+    }
+    
     pub fn add_post(&self, post: &Post) -> SqliteResult<i64> {
         let node_id_opt: Option<&str> = post.node_id.as_deref();
+        let hash = self.compute_post_hash(post);
         self.conn.execute(
-            "INSERT INTO posts (content, timestamp, pseudonym, node_id) VALUES (?, ?, ?, ?)",
-            (&post.content, &(post.timestamp as i64), &post.pseudonym, &node_id_opt)
+            "INSERT INTO posts (content, timestamp, pseudonym, node_id, hash) VALUES (?, ?, ?, ?, ?)",
+            (&post.content, &(post.timestamp as i64), &post.pseudonym, &node_id_opt, &hash)
         )?;
         
         Ok(self.conn.last_insert_rowid())
+    }
+    
+    pub fn post_exists(&self, post: &Post) -> SqliteResult<bool> {
+        let hash = self.compute_post_hash(post);
+        let mut stmt = self.conn.prepare("SELECT EXISTS(SELECT 1 FROM posts WHERE hash = ?)")?;
+        let exists: i64 = stmt.query_row([hash], |row| row.get(0))?;
+        Ok(exists != 0)
     }
     
     pub fn get_posts(&self, limit: usize) -> SqliteResult<Vec<Post>> {

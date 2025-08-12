@@ -374,11 +374,11 @@
                     networkInfo.innerHTML = `
                         <div class="status-item">
                             <span>🆔 Node ID:</span>
-                            <span>${network.node_id}</span>
+                            <span>${network.node_id || 'local'}</span>
                         </div>
                         <div class="status-item">
                             <span>🌐 Status:</span>
-                            <span>${network.status}</span>
+                            <span>${network.status || 'Aktiv'}</span>
                         </div>
                         <div class="status-item">
                             <span>🔌 Port:</span>
@@ -391,6 +391,22 @@
                         <div class="status-item">
                             <span>👥 Peers:</span>
                             <span>${network.peers_count}</span>
+                        </div>
+                        <div class="status">
+                            <div><strong>Verb. Peers</strong></div>
+                            <ul>
+                                ${(network.peers || []).map(p => `<li>
+                                    <span>${p.node_id} - ${p.address}:${p.port} (${p.is_tor_peer ? 'Tor' : 'Direct'})</span>
+                                    <button onclick="requestPosts('${p.node_id}', this)" style="margin-left:8px;">Posts anfordern</button>
+                                    <span class="sync-indicator" style="display:none;margin-left:6px;">⏳ Synchronisiere...</span>
+                                </li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="status">
+                            <div><strong>Discovery Peers</strong></div>
+                            <ul>
+                                ${(network.discovery_peers || []).map(p => `<li>${p.node_id} - ${p.address}:${p.port}</li>`).join('')}
+                            </ul>
                         </div>
                     `;
                 }
@@ -453,6 +469,32 @@
                 }
             } catch (error) {
                 alert('Fehler beim Verbinden zum Server: ' + error.message);
+            }
+        }
+        
+        async function requestPosts(nodeId, buttonEl) {
+            const li = buttonEl.closest('li');
+            const indicator = li.querySelector('.sync-indicator');
+            try {
+                buttonEl.disabled = true;
+                indicator.style.display = 'inline';
+                const resp = await fetch('/api/network/request-posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: nodeId })
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+                }
+                // nach kurzer Zeit Status neu laden
+                setTimeout(loadNetworkStatus, 300);
+                setTimeout(loadPosts, 300);
+            } catch (e) {
+                alert('Fehler beim Anfordern: ' + e.message);
+            } finally {
+                indicator.style.display = 'none';
+                buttonEl.disabled = false;
             }
         }
         

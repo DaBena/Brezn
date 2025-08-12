@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
             .route("/api/network/status", web::get().to(network_status_handler))
             .route("/api/network/qr", web::get().to(qr_code_handler))
             .route("/api/network/parse-qr", web::post().to(parse_qr_handler))
+            .route("/api/network/request-posts", web::post().to(request_posts_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -227,6 +228,48 @@ async fn network_status_handler(
                 .json(response)
         }
     }
+}
+
+async fn request_posts_handler(
+    app: web::Data<Arc<BreznApp>>,
+    body: web::Json<serde_json::Value>,
+) -> HttpResponse {
+    let node_id = match body.get("node_id").and_then(|v| v.as_str()) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => {
+            let response = json!({
+                "success": false,
+                "error": "Missing or invalid node_id"
+            });
+            return HttpResponse::BadRequest()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response);
+        }
+    };
+
+    // Clone manager to avoid holding lock across await
+    let nm_clone = {
+        let nm = app.network_manager.lock().unwrap();
+        nm.clone()
+    };
+
+    let result = nm_clone.request_posts_from_peer(&node_id).await;
+    let response = match result {
+        Ok(_) => json!({
+            "success": true,
+            "message": format!("Requested posts from {}", node_id)
+        }),
+        Err(e) => json!({
+            "success": false,
+            "error": e.to_string()
+        }),
+    };
+
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .append_header(("access-control-allow-origin", "*"))
+        .json(response)
 }
 
 async fn qr_code_handler(
