@@ -21,6 +21,12 @@ async fn main() -> Result<()> {
         network_port: 8888,
         tor_enabled: false,
         tor_socks_port: 9050,
+        discovery_enabled: true,
+        discovery_port: 8888,
+        sync_interval: 30,
+        max_peers: 50,
+        heartbeat_interval: 60,
+        post_validation: PostValidationConfig::default(),
     };
     
     // Initialize the app
@@ -48,6 +54,7 @@ async fn main() -> Result<()> {
             .route("/api/network/qr", web::get().to(qr_code_handler))
             .route("/api/network/parse-qr", web::post().to(parse_qr_handler))
             .route("/api/network/request-posts", web::post().to(request_posts_handler))
+            .route("/api/network/sync-all", web::post().to(sync_all_peers_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -97,11 +104,62 @@ async fn create_post_handler(
     let content = post_data["content"].as_str().unwrap_or("");
     let pseudonym = post_data["pseudonym"].as_str().unwrap_or("AnonymBrezn");
     
+    // Validate post data
+    let config = app.config.lock().unwrap();
+    let validation = &config.post_validation;
+    
+    // Check content length
+    if content.len() < validation.min_content_length {
+        let response = json!({
+            "success": false,
+            "error": format!("Post-Inhalt zu kurz (Minimum: {} Zeichen)", validation.min_content_length)
+        });
+        return HttpResponse::BadRequest()
+            .content_type("application/json")
+            .append_header(("access-control-allow-origin", "*"))
+            .json(response);
+    }
+    
+    if content.len() > validation.max_content_length {
+        let response = json!({
+            "success": false,
+            "error": format!("Post-Inhalt zu lang (Maximum: {} Zeichen)", validation.max_content_length)
+        });
+        return HttpResponse::BadRequest()
+            .content_type("application/json")
+            .append_header(("access-control-allow-origin", "*"))
+            .json(response);
+    }
+    
+    // Check pseudonym length
+    if pseudonym.len() > validation.max_pseudonym_length {
+        let response = json!({
+            "success": false,
+            "error": format!("Pseudonym zu lang (Maximum: {} Zeichen)", validation.max_pseudonym_length)
+        });
+        return HttpResponse::BadRequest()
+            .content_type("application/json")
+            .append_header(("access-control-allow-origin", "*"))
+            .json(response);
+    }
+    
+    // Check for empty content if not allowed
+    if !validation.allow_empty_content && content.trim().is_empty() {
+        let response = json!({
+            "success": false,
+            "error": "Post-Inhalt darf nicht leer sein"
+        });
+        return HttpResponse::BadRequest()
+            .content_type("application/json")
+            .append_header(("access-control-allow-origin", "*"))
+            .json(response);
+    }
+    
     match app.create_post(content.to_string(), pseudonym.to_string()).await {
         Ok(_) => {
             let response = json!({
                 "success": true,
-                "message": "Post created successfully"
+                "message": "Post erfolgreich erstellt"
             });
             HttpResponse::Ok()
                 .content_type("application/json")
@@ -136,18 +194,35 @@ async fn get_config_handler(
 }
 
 async fn update_config_handler(
-    _app: web::Data<Arc<BreznApp>>,
-    _config_data: web::Json<serde_json::Value>,
+    app: web::Data<Arc<BreznApp>>,
+    config_data: web::Json<serde_json::Value>,
 ) -> HttpResponse {
-    // Simplified config update
-    let response = json!({
-        "success": true,
-        "message": "Config updated"
-    });
-    HttpResponse::Ok()
-        .content_type("application/json")
-        .append_header(("access-control-allow-origin", "*"))
-        .json(response)
+    let mut config = app.config.lock().unwrap();
+    
+    match config.update(&config_data) {
+        Ok(_) => {
+            let response = json!({
+                "success": true,
+                "message": "Konfiguration erfolgreich aktualisiert",
+                "config": config.clone()
+            });
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
+        Err(validation_errors) => {
+            let response = json!({
+                "success": false,
+                "error": "Konfigurationsvalidierung fehlgeschlagen",
+                "validation_errors": validation_errors
+            });
+            HttpResponse::BadRequest()
+                .content_type("application/json")
+                .append_header(("access-control-allow-origin", "*"))
+                .json(response)
+        }
+    }
 }
 
 async fn toggle_network_handler(
@@ -208,14 +283,40 @@ async fn network_status_handler(
 ) -> HttpResponse {
     match app.get_network_status() {
         Ok(status) => {
-            let response = json!({
+            // Add additional network health information
+            let network_health = {
+                let config = app.config.lock().unwrap();
+                let peer_count = status["peers_count"].as_u64().unwrap_or(0) as usize;
+                let max_peers = config.max_peers;
+                let health_score = if peer_count == 0 {
+                    0
+                } else if peer_count >= max_peers {
+                    100
+                } else {
+                    (peer_count * 100) / max_peers
+                };
+                
+                json!({
+                    "health_score": health_score,
+                    "max_peers": max_peers,
+                    "sync_interval": config.sync_interval,
+                    "heartbeat_interval": config.heartbeat_interval,
+                    "discovery_enabled": config.discovery_enabled,
+                    "discovery_port": config.discovery_port
+                })
+            };
+            
+            let enhanced_status = json!({
                 "success": true,
-                "network": status
+                "network": status,
+                "health": network_health,
+                "timestamp": chrono::Utc::now().timestamp()
             });
+            
             HttpResponse::Ok()
                 .content_type("application/json")
                 .append_header(("access-control-allow-origin", "*"))
-                .json(response)
+                .json(enhanced_status)
         }
         Err(e) => {
             let response = json!({
@@ -328,4 +429,27 @@ async fn parse_qr_handler(
                 .json(response)
         }
     }
+}
+
+async fn sync_all_peers_handler(
+    app: web::Data<Arc<BreznApp>>,
+) -> HttpResponse {
+    let network_manager = Arc::clone(&app.network_manager);
+    
+    // Run sync in background to avoid blocking the response
+    tokio::spawn(async move {
+        if let Err(e) = network_manager.lock().unwrap().sync_all_peers().await {
+            eprintln!("Failed to sync all peers: {}", e);
+        }
+    });
+    
+    let response = json!({
+        "success": true,
+        "message": "Post-Synchronisation mit allen Peers gestartet"
+    });
+    
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .append_header(("access-control-allow-origin", "*"))
+        .json(response)
 }

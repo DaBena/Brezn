@@ -146,10 +146,10 @@ impl DiscoveryManager {
             message_type: "announce".to_string(),
             node_id: self.node_id.clone(),
             public_key: self.public_key.clone(),
-            address: "127.0.0.1".to_string(), // In real implementation, get external IP
+            address: self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
             port: self.port,
             timestamp: chrono::Utc::now().timestamp() as u64,
-            capabilities: vec!["posts".to_string(), "config".to_string()],
+            capabilities: vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
         };
         
         let message_bytes = serde_json::to_vec(&message)
@@ -178,29 +178,50 @@ impl DiscoveryManager {
                 std::io::ErrorKind::Other, format!("Failed to broadcast: {}", e)
             )))?;
         
-        println!("📡 Broadcast sent to {}", broadcast_addr);
+        println!("📡 Discovery Broadcast gesendet an {}", broadcast_addr);
         Ok(())
+    }
+
+    /// Gets the local IP address for external connections
+    fn get_local_ip(&self) -> Result<String> {
+        // Try to get the local IP that's not loopback
+        for interface in get_if_addrs::get_if_addrs()? {
+            if !interface.is_loopback() && interface.addr.ip().is_ipv4() {
+                return Ok(interface.addr.ip().to_string());
+            }
+        }
+        
+        // Fallback to localhost
+        Ok("127.0.0.1".to_string())
     }
     
     pub fn generate_qr_code(&self) -> Result<String> {
         let peer_data = serde_json::json!({
             "node_id": self.node_id,
             "public_key": self.public_key,
-            "address": "127.0.0.1", // In real implementation, get external IP
+            "address": self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
             "port": self.port,
             "timestamp": chrono::Utc::now().timestamp(),
-            "capabilities": vec!["posts", "config"],
+            "capabilities": vec!["posts", "config", "p2p"],
+            "version": "1.0",
         });
         
         let qr_data = serde_json::to_string(&peer_data)
             .map_err(|e| BreznError::Serialization(e))?;
         
         // Validate that we can build a QR code from the data
-        let _qr = qrcode::QrCode::new(qr_data.as_bytes())
+        let qr = qrcode::QrCode::new(qr_data.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
-        // Return QR payload data for consumers/tests
-        Ok(qr_data)
+        // Convert to PNG image
+        let png_data = qr.to_png()
+            .map_err(|e| BreznError::InvalidInput(format!("PNG conversion failed: {}", e)))?;
+        
+        // Convert to base64 for web display
+        let base64_data = base64::encode(&png_data);
+        let data_url = format!("data:image/png;base64,{}", base64_data);
+        
+        Ok(data_url)
     }
     
     pub fn generate_qr_code_image(&self, size: u32) -> Result<Vec<u8>> {
@@ -237,9 +258,30 @@ impl DiscoveryManager {
     }
     
     pub fn parse_qr_code(&self, qr_data: &str) -> Result<PeerInfo> {
-        let peer_data: serde_json::Value = serde_json::from_str(qr_data)
-            .map_err(|e| BreznError::Serialization(e))?;
+        // Try to parse as JSON first (direct QR code data)
+        if let Ok(peer_data) = serde_json::from_str::<serde_json::Value>(qr_data) {
+            return self.parse_peer_json(peer_data);
+        }
         
+        // Try to decode base64 image data
+        if qr_data.starts_with("data:image/") {
+            // Extract base64 data from data URL
+            if let Some(base64_data) = qr_data.split("base64,").nth(1) {
+                if let Ok(image_data) = base64::decode(base64_data) {
+                    return self.decode_qr_image(&image_data);
+                }
+            }
+        }
+        
+        // Try to decode raw base64
+        if let Ok(image_data) = base64::decode(qr_data) {
+            return self.decode_qr_image(&image_data);
+        }
+        
+        Err(BreznError::InvalidInput("Invalid QR code data format".to_string()))
+    }
+
+    fn parse_peer_json(&self, peer_data: serde_json::Value) -> Result<PeerInfo> {
         let node_id = peer_data["node_id"].as_str()
             .ok_or_else(|| BreznError::InvalidInput("Missing node_id".to_string()))?;
         
@@ -252,23 +294,44 @@ impl DiscoveryManager {
         let port = peer_data["port"].as_u64()
             .ok_or_else(|| BreznError::InvalidInput("Missing port".to_string()))?;
         
-        let capabilities = if let Some(caps) = peer_data["capabilities"].as_array() {
-            caps.iter()
-                .filter_map(|cap| cap.as_str())
-                .map(|s| s.to_string())
-                .collect()
-        } else {
-            vec!["posts".to_string(), "config".to_string()]
-        };
+        let timestamp = peer_data["timestamp"].as_u64()
+            .unwrap_or_else(|| chrono::Utc::now().timestamp() as u64);
+        
+        let capabilities = peer_data["capabilities"].as_array()
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+        
+        // Validate timestamp (not too old)
+        let now = chrono::Utc::now().timestamp() as u64;
+        if now.saturating_sub(timestamp) > 3600 {
+            return Err(BreznError::InvalidInput("QR code data is too old".to_string()));
+        }
         
         Ok(PeerInfo {
             node_id: node_id.to_string(),
             public_key: public_key.to_string(),
             address: address.to_string(),
             port: port as u16,
-            last_seen: chrono::Utc::now().timestamp() as u64,
+            last_seen: timestamp,
             capabilities,
         })
+    }
+
+    fn decode_qr_image(&self, image_data: &[u8]) -> Result<PeerInfo> {
+        // Try to decode QR code from image data
+        let decoder = bardecoder::default_decoder();
+        let results = decoder.decode(&image_data);
+        
+        for result in results {
+            if let Ok(decoded_text) = result {
+                // Try to parse the decoded text as peer data
+                if let Ok(peer_data) = serde_json::from_str::<serde_json::Value>(&decoded_text) {
+                    return self.parse_peer_json(peer_data);
+                }
+            }
+        }
+        
+        Err(BreznError::InvalidInput("Failed to decode QR code image".to_string()))
     }
     
     pub fn parse_qr_code_from_image(&self, image_data: &[u8]) -> Result<PeerInfo> {
