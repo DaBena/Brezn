@@ -90,6 +90,20 @@ impl NetworkManager {
         
         println!("🌐 Brezn P2P Server gestartet auf Port {}", self.port);
         
+        // Start heartbeat monitoring in background
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                
+                let nm = network_manager.lock().unwrap();
+                if let Err(e) = nm.check_peer_health().await {
+                    eprintln!("Heartbeat error: {}", e);
+                }
+            }
+        });
+        
         loop {
             match listener.accept().await {
                 Ok((socket, addr)) => {
@@ -108,6 +122,51 @@ impl NetworkManager {
         }
     }
     
+    /// Checks peer health and removes inactive peers
+    async fn check_peer_health(&self) -> Result<()> {
+        let now = chrono::Utc::now().timestamp() as u64;
+        let mut peers_to_remove = Vec::new();
+        
+        {
+            let peers = self.peers.lock().unwrap();
+            for (node_id, peer) in peers.iter() {
+                // Remove peers that haven't been seen in the last 10 minutes
+                if now.saturating_sub(peer.last_seen) > 600 {
+                    peers_to_remove.push(node_id.clone());
+                }
+            }
+        }
+        
+        // Remove inactive peers
+        for node_id in peers_to_remove {
+            println!("🗑️  Inaktiven Peer entfernt: {}", node_id);
+            self.remove_peer(&node_id);
+        }
+        
+        // Send ping to active peers to check connectivity
+        let active_peers = {
+            let peers = self.peers.lock().unwrap();
+            peers.values().cloned().collect::<Vec<_>>()
+        };
+        
+        for peer in active_peers {
+            let ping_message = NetworkMessage {
+                message_type: "ping".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: now,
+                node_id: "local".to_string(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&ping_message, &peer).await {
+                eprintln!("Failed to ping peer {}: {}", peer.node_id, e);
+                // Mark peer for removal if ping fails
+                self.remove_peer(&peer.node_id);
+            }
+        }
+        
+        Ok(())
+    }
+    
     async fn handle_connection(
         mut socket: TcpStream,
         network_manager: Arc<Mutex<NetworkManager>>,
@@ -115,11 +174,21 @@ impl NetworkManager {
         let mut buffer = Vec::new();
         let mut temp_buffer = [0u8; 1024];
         
+        // Get peer address for logging
+        let peer_addr = socket.peer_addr().unwrap_or_else(|_| "unknown".parse().unwrap());
+        println!("📡 Neue Verbindung von: {}", peer_addr);
+        
         loop {
-            let n = socket.read(&mut temp_buffer).await
-                .context("Failed to read from socket")?;
+            let n = match socket.read(&mut temp_buffer).await {
+                Ok(n) => n,
+                Err(e) => {
+                    eprintln!("Connection error from {}: {}", peer_addr, e);
+                    break;
+                }
+            };
             
             if n == 0 {
+                println!("📡 Verbindung von {} geschlossen", peer_addr);
                 break; // Connection closed
             }
             
@@ -132,7 +201,10 @@ impl NetworkManager {
                     let network_manager = network_manager.lock().unwrap();
                     network_manager.clone()
                 }; // Lock is released here
-                network_manager_clone.handle_message(&message_clone).await?;
+                
+                if let Err(e) = network_manager_clone.handle_message(&message_clone).await {
+                    eprintln!("Failed to handle message from {}: {}", peer_addr, e);
+                }
             }
         }
         
@@ -168,7 +240,12 @@ impl NetworkManager {
                 match message.message_type.as_str() {
                     "post" => {
                         if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
-                            handler.handle_post(&post)?;
+                            // Validate post before handling
+                            if self.validate_post(&post) {
+                                handler.handle_post(&post)?;
+                            } else {
+                                eprintln!("Invalid post received from {}: {}", message.node_id, post.content);
+                            }
                         }
                     }
                     "config" => {
@@ -242,6 +319,27 @@ impl NetworkManager {
         }
         
         Ok(())
+    }
+
+    /// Validates incoming posts to prevent spam and ensure data integrity
+    fn validate_post(&self, post: &Post) -> bool {
+        // Check content length
+        if post.content.is_empty() || post.content.len() > 1000 {
+            return false;
+        }
+        
+        // Check timestamp (not too old, not in future)
+        let now = chrono::Utc::now().timestamp() as u64;
+        if post.timestamp > now + 60 || post.timestamp < now - 86400 {
+            return false;
+        }
+        
+        // Check pseudonym
+        if post.pseudonym.is_empty() || post.pseudonym.len() > 50 {
+            return false;
+        }
+        
+        true
     }
     
     pub async fn broadcast_post(&self, post: &Post) -> Result<()> {
@@ -369,6 +467,64 @@ impl NetworkManager {
         }
         Ok(())
     }
+
+    /// Synchronizes posts with a specific peer to ensure feed consistency
+    pub async fn sync_posts_with_peer(&self, node_id: &str) -> Result<()> {
+        let maybe_peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = maybe_peer {
+            // Request recent posts from peer
+            let message = NetworkMessage {
+                message_type: "request_posts".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: "local".to_string(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&message, &peer).await {
+                eprintln!("Failed to sync posts with peer {}: {}", node_id, e);
+                return Err(e);
+            }
+            
+            println!("🔄 Post-Synchronisation mit Peer {} gestartet", node_id);
+        }
+        
+        Ok(())
+    }
+
+    /// Periodically sync posts with all peers to maintain consistency
+    pub async fn sync_all_peers(&self) -> Result<()> {
+        let peers = {
+            let peers_guard = self.peers.lock().unwrap();
+            peers_guard.values().cloned().collect::<Vec<_>>()
+        };
+        
+        let mut sync_tasks = Vec::new();
+        
+        for peer in peers {
+            let node_id = peer.node_id.clone();
+            let network_manager = Arc::new(Mutex::new(self.clone()));
+            
+            let task = tokio::spawn(async move {
+                if let Err(e) = network_manager.lock().unwrap().sync_posts_with_peer(&node_id).await {
+                    eprintln!("Failed to sync with peer {}: {}", node_id, e);
+                }
+            });
+            
+            sync_tasks.push(task);
+        }
+        
+        // Wait for all sync tasks to complete
+        for task in sync_tasks {
+            let _ = task.await;
+        }
+        
+        println!("🔄 Post-Synchronisation mit allen Peers abgeschlossen");
+        Ok(())
+    }
 }
 
 impl Clone for NetworkManager {
@@ -389,12 +545,12 @@ impl Clone for NetworkManager {
 // Default message handler implementation
 pub struct DefaultMessageHandler {
     pub node_id: String,
-    pub database: Arc<Mutex<Database>>,
+    pub database_manager: Arc<Mutex<Database>>,
 }
 
 impl DefaultMessageHandler {
-    pub fn new(node_id: String, database: Arc<Mutex<Database>>) -> Self {
-        Self { node_id, database }
+    pub fn new(node_id: String, database_manager: Arc<Mutex<Database>>) -> Self {
+        Self { node_id, database_manager }
     }
 }
 
@@ -402,13 +558,20 @@ impl MessageHandler for DefaultMessageHandler {
     fn handle_post(&self, post: &Post) -> Result<()> {
         println!("📨 Neuer Post von {}: {}", post.pseudonym, post.content);
         
-        // Save post to database if not duplicate
-        let db = self.database.lock().unwrap();
-        if !db.post_exists(&post.clone()).unwrap_or(false) {
+        // Enhanced duplicate detection using content hash and timestamp
+        let db = self.database_manager.lock().unwrap();
+        
+        // Check if post already exists using multiple criteria
+        if !self.is_duplicate_post(post, &db)? {
             db.add_post(&post.clone())?;
+            println!("💾 Post in Datenbank gespeichert");
+            
+            // Broadcast to other peers to ensure network consistency
+            // This will be handled by the network manager
+        } else {
+            println!("⚠️  Duplikat-Post erkannt und ignoriert");
         }
         
-        println!("💾 Post in Datenbank gespeichert");
         Ok(())
     }
     
@@ -428,9 +591,33 @@ impl MessageHandler for DefaultMessageHandler {
     }
 
     fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
-        let db = self.database.lock().unwrap();
-        let posts = db.get_posts(limit)?;
-        Ok(posts)
+        let db = self.database_manager.lock().unwrap();
+        db.get_posts_with_conflicts(limit).map_err(|e| anyhow::anyhow!("Database error: {}", e))
+    }
+}
+
+impl DefaultMessageHandler {
+    /// Enhanced duplicate detection using content hash and timestamp
+    fn is_duplicate_post(&self, post: &Post, db: &Database) -> Result<bool> {
+        // Get recent posts to check for duplicates
+        let recent_posts = db.get_posts(100)?;
+        
+        for existing_post in recent_posts {
+            // Check if this is the same post (same content + pseudonym + similar timestamp)
+            if existing_post.content == post.content 
+                && existing_post.pseudonym == post.pseudonym
+                && (existing_post.timestamp as i64).abs_diff(post.timestamp as i64) < 300 {
+                return Ok(true);
+            }
+            
+            // Check if this is a duplicate from the same node within a short time
+            if existing_post.node_id == post.node_id 
+                && (existing_post.timestamp as i64).abs_diff(post.timestamp as i64) < 60 {
+                return Ok(true);
+            }
+        }
+        
+        Ok(false)
     }
 }
 

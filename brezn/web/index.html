@@ -99,6 +99,179 @@
             margin-bottom: 20px;
         }
         
+        .error-message, .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .error-message {
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .success-message {
+            border-left: 4px solid #51cf66;
+        }
+        
+        .error-header, .success-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .error-title {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        
+        .success-title {
+            font-weight: bold;
+            color: #51cf66;
+        }
+        
+        .error-close, .success-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .error-close:hover {
+            background-color: rgba(255, 107, 107, 0.1);
+        }
+        
+        .success-close:hover {
+            background-color: rgba(81, 207, 102, 0.1);
+        }
+        
+        .error-content, .success-content {
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .network-health {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .health-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .health-label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .health-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #51cf66;
+        }
+        
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #51cf66);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        
+        .network-stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .network-stats > div {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .sync-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sync-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .sync-button:active {
+            transform: translateY(0);
+        }
+        
+        .peer-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .tor-peer {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        
+        .direct-peer {
+            background: rgba(81, 207, 102, 0.2);
+            color: #51cf66;
+            border: 1px solid rgba(81, 207, 102, 0.3);
+        }
+        
+        .no-posts {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+        
         label {
             display: block;
             margin-bottom: 5px;
@@ -276,7 +449,12 @@
             const content = document.getElementById('post-content').value;
             
             if (!content.trim()) {
-                alert('Bitte gib einen Post-Inhalt ein!');
+                showError('Bitte gib einen Post-Inhalt ein!', 'Validierungsfehler');
+                return;
+            }
+            
+            if (!pseudonym) {
+                showError('Bitte gib ein Pseudonym ein!', 'Validierungsfehler');
                 return;
             }
             
@@ -295,6 +473,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    showSuccess('Post erfolgreich erstellt!', 'Post erstellt');
                     // Clear form
                     document.getElementById('post-content').value = '';
                     
@@ -304,44 +483,38 @@
                     // Show feed tab
                     showTab('feed');
                 } else {
-                    alert('Fehler beim Erstellen des Posts: ' + result.error);
+                    showError('Fehler beim Erstellen des Posts: ' + result.error, 'Post-Erstellung fehlgeschlagen');
                 }
             } catch (error) {
-                alert('Fehler beim Verbinden zum Server: ' + error.message);
+                showError('Verbindungsfehler: ' + error.message, 'Netzwerkfehler');
             }
         }
         
         async function loadPosts() {
             try {
                 const response = await fetch('/api/posts');
-                const result = await response.json();
+                const data = await response.json();
                 
-                if (result.success) {
+                if (data.success) {
                     const postsContainer = document.getElementById('posts-container');
-                    postsContainer.innerHTML = '';
-                    
-                    result.posts.forEach(post => {
-                        const postElement = document.createElement('div');
-                        postElement.className = 'post';
-                        
-                        const timestamp = new Date(post.timestamp * 1000);
-                        const timeString = timestamp.toLocaleString('de-DE');
-                        
-                        postElement.innerHTML = `
-                            <div class="post-header">
-                                <span class="pseudonym">${post.pseudonym}</span>
-                                <span class="timestamp">${timeString}</span>
+                    if (data.posts.length === 0) {
+                        postsContainer.innerHTML = '<p class="no-posts">Noch keine Posts vorhanden. Erstelle den ersten Post!</p>';
+                    } else {
+                        postsContainer.innerHTML = data.posts.map(post => `
+                            <div class="post">
+                                <div class="post-header">
+                                    <span class="pseudonym">${post.pseudonym}</span>
+                                    <span class="timestamp">${new Date(post.timestamp * 1000).toLocaleString()}</span>
+                                </div>
+                                <div class="post-content">${post.content}</div>
                             </div>
-                            <div class="post-content">
-                                ${post.content}
-                            </div>
-                        `;
-                        
-                        postsContainer.appendChild(postElement);
-                    });
+                        `).join('');
+                    }
+                } else {
+                    showError('Fehler beim Laden der Posts: ' + data.error, 'Posts laden fehlgeschlagen');
                 }
             } catch (error) {
-                console.error('Fehler beim Laden der Posts:', error);
+                showError('Verbindungsfehler: ' + error.message, 'Netzwerkfehler');
             }
         }
         
@@ -362,6 +535,7 @@
             }
         }
         
+        // Enhanced network status loading with health information
         async function loadNetworkStatus() {
             try {
                 const response = await fetch('/api/network/status');
@@ -369,37 +543,21 @@
                 
                 if (data.success) {
                     const network = data.network;
-                    const networkInfo = document.getElementById('network-info');
+                    const health = data.health;
                     
-                    networkInfo.innerHTML = `
-                        <div class="status-item">
-                            <span>🆔 Node ID:</span>
-                            <span>${network.node_id || 'local'}</span>
-                        </div>
-                        <div class="status-item">
-                            <span>🌐 Status:</span>
-                            <span>${network.status || 'Aktiv'}</span>
-                        </div>
-                        <div class="status-item">
-                            <span>🔌 Port:</span>
-                            <span>${network.port}</span>
-                        </div>
-                        <div class="status-item">
-                            <span>🔒 Tor:</span>
-                            <span>${network.tor_enabled ? 'Aktiv' : 'Inaktiv'}</span>
-                        </div>
-                        <div class="status-item">
-                            <span>👥 Peers:</span>
-                            <span>${network.peers_count}</span>
-                        </div>
+                    // Update network status display
+                    document.getElementById('network-status').innerHTML = `
                         <div class="status">
-                            <div><strong>Verb. Peers</strong></div>
+                            <div><strong>P2P Peers</strong></div>
                             <ul>
-                                ${(network.peers || []).map(p => `<li>
-                                    <span>${p.node_id} - ${p.address}:${p.port} (${p.is_tor_peer ? 'Tor' : 'Direct'})</span>
-                                    <button onclick="requestPosts('${p.node_id}', this)" style="margin-left:8px;">Posts anfordern</button>
-                                    <span class="sync-indicator" style="display:none;margin-left:6px;">⏳ Synchronisiere...</span>
-                                </li>`).join('')}
+                                ${(network.peers || []).map(p => `
+                                    <li>${p.node_id} - ${p.address}:${p.port} 
+                                        <span class="peer-status ${p.is_tor_peer ? 'tor-peer' : 'direct-peer'}">
+                                            ${p.is_tor_peer ? '🔒 Tor' : '🌐 Direkt'}
+                                        </span>
+                                        <button onclick="requestPosts('${p.node_id}', this)" style="margin-left:8px;">Posts anfordern</button>
+                                        <span class="sync-indicator" style="display:none;margin-left:6px;">⏳ Synchronisiere...</span>
+                                    </li>`).join('')}
                             </ul>
                         </div>
                         <div class="status">
@@ -408,10 +566,66 @@
                                 ${(network.discovery_peers || []).map(p => `<li>${p.node_id} - ${p.address}:${p.port}</li>`).join('')}
                             </ul>
                         </div>
+                        <div class="status">
+                            <div><strong>Netzwerk-Status</strong></div>
+                            <div class="network-health">
+                                <div class="health-score">
+                                    <span class="health-label">Gesundheit:</span>
+                                    <span class="health-value" id="health-score">${health.health_score}%</span>
+                                </div>
+                                <div class="health-bar">
+                                    <div class="health-fill" id="health-fill" style="width: ${health.health_score}%"></div>
+                                </div>
+                            </div>
+                            <div class="network-stats">
+                                <div><strong>Peers:</strong> <span id="peer-count">${network.peers_count}</span> / <span id="max-peers">${health.max_peers}</span></div>
+                                <div><strong>Sync-Intervall:</strong> <span id="sync-interval">${health.sync_interval}</span>s</div>
+                                <div><strong>Heartbeat:</strong> <span id="heartbeat-interval">${health.heartbeat_interval}</span>s</div>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button onclick="syncAllPeers()" class="sync-button">🔄 Alle Peers synchronisieren</button>
+                        </div>
                     `;
                 }
             } catch (error) {
                 console.error('Fehler beim Laden der Netzwerk-Informationen:', error);
+                showError('Fehler beim Laden der Netzwerk-Informationen: ' + error.message, 'Netzwerkfehler');
+            }
+        }
+
+        // Sync all peers function
+        async function syncAllPeers() {
+            try {
+                const button = event.target;
+                const originalText = button.textContent;
+                
+                button.disabled = true;
+                button.textContent = '⏳ Synchronisiere...';
+                
+                const response = await fetch('/api/network/sync-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Post-Synchronisation gestartet!', 'Synchronisation');
+                    
+                    // Reload network status and posts after sync
+                    setTimeout(() => {
+                        loadNetworkStatus();
+                        loadPosts();
+                    }, 2000);
+                } else {
+                    showError('Fehler bei der Synchronisation: ' + data.error, 'Synchronisationsfehler');
+                }
+            } catch (error) {
+                showError('Verbindungsfehler: ' + error.message, 'Netzwerkfehler');
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
             }
         }
         
@@ -443,7 +657,7 @@
             const qrData = document.getElementById('qr-input').value.trim();
             
             if (!qrData) {
-                alert('Bitte gib QR-Code-Daten ein!');
+                showError('Bitte gib QR-Code-Daten ein!', 'Validierungsfehler');
                 return;
             }
             
@@ -461,14 +675,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('✅ Peer erfolgreich hinzugefügt!');
+                    showSuccess('✅ Peer erfolgreich hinzugefügt!', 'Peer hinzugefügt');
                     document.getElementById('qr-input').value = '';
                     loadNetworkStatus(); // Reload network status
                 } else {
-                    alert('❌ Fehler beim Hinzufügen des Peers: ' + result.error);
+                    showError('❌ Fehler beim Hinzufügen des Peers: ' + result.error, 'Peer hinzufügen fehlgeschlagen');
                 }
             } catch (error) {
-                alert('Fehler beim Verbinden zum Server: ' + error.message);
+                showError('Verbindungsfehler: ' + error.message, 'Netzwerkfehler');
             }
         }
         
@@ -485,13 +699,13 @@
                 });
                 const data = await resp.json();
                 if (!data.success) {
-                    alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+                    showError('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'Posts anfordern fehlgeschlagen');
                 }
                 // nach kurzer Zeit Status neu laden
                 setTimeout(loadNetworkStatus, 300);
                 setTimeout(loadPosts, 300);
             } catch (e) {
-                alert('Fehler beim Anfordern: ' + e.message);
+                showError('Verbindungsfehler: ' + e.message, 'Netzwerkfehler');
             } finally {
                 indicator.style.display = 'none';
                 buttonEl.disabled = false;
@@ -542,7 +756,7 @@
             // Update pseudonym in new post tab
             document.getElementById('pseudonym').value = config.defaultPseudonym;
             
-            alert('✅ Konfiguration gespeichert!');
+            showSuccess('✅ Konfiguration gespeichert!', 'Konfiguration gespeichert');
         }
         
         // Load data when page loads
@@ -550,7 +764,92 @@
             loadPosts();
             loadConfig();
             loadNetworkStatus();
+            
+            // Start real-time updates
+            startRealTimeUpdates();
         });
+
+        // Real-time updates for posts and network status
+        function startRealTimeUpdates() {
+            // Update posts every 5 seconds
+            setInterval(loadPosts, 5000);
+            
+            // Update network status every 10 seconds
+            setInterval(loadNetworkStatus, 10000);
+            
+            // Auto-sync with peers every 30 seconds
+            setInterval(autoSyncPeers, 30000);
+        }
+
+        // Auto-sync posts with all peers
+        async function autoSyncPeers() {
+            try {
+                const response = await fetch('/api/network/status');
+                const data = await response.json();
+                
+                if (data.success && data.network.peers_count > 0) {
+                    console.log('🔄 Auto-sync mit Peers gestartet...');
+                    // Trigger sync for all peers
+                    for (const peer of data.network.peers) {
+                        try {
+                            await fetch('/api/network/request-posts', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ node_id: peer.node_id })
+                            });
+                        } catch (e) {
+                            console.warn(`Sync mit Peer ${peer.node_id} fehlgeschlagen:`, e);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Auto-sync fehlgeschlagen:', error);
+            }
+        }
+
+        // Enhanced error handling
+        function showError(message, title = 'Fehler') {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <div class="error-header">
+                    <span class="error-title">${title}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="error-close">×</button>
+                </div>
+                <div class="error-content">${message}</div>
+            `;
+            
+            document.body.appendChild(errorDiv);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
+
+        // Enhanced success messages
+        function showSuccess(message, title = 'Erfolg') {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.innerHTML = `
+                <div class="success-header">
+                    <span class="success-title">${title}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="success-close">×</button>
+                </div>
+                <div class="success-content">${message}</div>
+            `;
+            
+            document.body.appendChild(successDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (successDiv.parentElement) {
+                    successDiv.remove();
+                }
+            }, 5000);
+        }
     </script>
 </body>
 </html> 

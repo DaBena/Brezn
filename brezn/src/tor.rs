@@ -76,6 +76,9 @@ impl TorManager {
             Err(e) => println!("⚠️  Could not get Tor external IP: {}", e),
         }
         
+        // Test circuit health
+        self.test_circuit_health().await?;
+        
         println!("🔒 Tor SOCKS5 Proxy aktiviert auf Port {}", self.config.socks_port);
         Ok(())
     }
@@ -231,39 +234,48 @@ impl TorManager {
         self.circuit_id.clone()
     }
     
+    /// Tests the health of the Tor circuit
+    async fn test_circuit_health(&self) -> Result<()> {
+        // Try to connect to a known service through Tor to test circuit
+        match self.connect_through_tor("check.torproject.org", 80).await {
+            Ok(_) => {
+                println!("✅ Tor circuit health check passed");
+                Ok(())
+            }
+            Err(e) => {
+                println!("⚠️  Tor circuit health check failed: {}", e);
+                // Don't fail the entire enable process for this
+                Ok(())
+            }
+        }
+    }
+
+    /// Gets the external IP address through Tor
     pub async fn get_external_ip(&self) -> Result<String> {
         if !self.is_enabled() {
             return Err(BreznError::Tor("Tor is not enabled".to_string()));
         }
         
-        // Connect to a service to get external IP through Tor
-        let mut stream = self.connect_through_tor("checkip.amazonaws.com", 80).await?;
+        // Try to get external IP through Tor
+        let mut stream = self.connect_through_tor("check.torproject.org", 80).await?;
         
-        let request = "GET / HTTP/1.1\r\nHost: checkip.amazonaws.com\r\nConnection: close\r\n\r\n";
+        let request = "GET / HTTP/1.1\r\nHost: check.torproject.org\r\nConnection: close\r\n\r\n";
         stream.write_all(request.as_bytes()).await
-            .map_err(|e| BreznError::Tor(format!("Failed to send IP request: {}", e)))?;
+            .map_err(|e| BreznError::Tor(format!("HTTP request failed: {}", e)))?;
         
         let mut response = Vec::new();
-        let mut buffer = [0u8; 1024];
-        
-        loop {
-            let n = stream.read(&mut buffer).await
-                .map_err(|e| BreznError::Tor(format!("Failed to read IP response: {}", e)))?;
-            
-            if n == 0 {
-                break;
-            }
-            
-            response.extend_from_slice(&buffer[..n]);
-        }
+        stream.read_to_end(&mut response).await
+            .map_err(|e| BreznError::Tor(format!("HTTP response read failed: {}", e)))?;
         
         // Parse response to extract IP
         let response_str = String::from_utf8_lossy(&response);
-        if let Some(ip) = response_str.lines().last() {
-            return Ok(ip.trim().to_string());
+        if let Some(ip_line) = response_str.lines().find(|line| line.contains("IP:")) {
+            if let Some(ip) = ip_line.split("IP:").nth(1) {
+                return Ok(ip.trim().to_string());
+            }
         }
         
-        Err(BreznError::Tor("Failed to get external IP".to_string()))
+        Err(BreznError::Tor("Could not extract IP from response".to_string()))
     }
 }
 

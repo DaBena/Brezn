@@ -181,7 +181,7 @@ impl BreznApp {
     
     pub async fn get_posts(&self) -> Result<Vec<Post>> {
         let db = self.database_manager.lock().unwrap();
-        db.get_posts(1000).map_err(|e| BreznError::Database(e))
+        db.get_posts_with_conflicts(1000).map_err(|e| BreznError::Database(e))
     }
     
     pub fn generate_qr_code(&self) -> Result<String> {

@@ -77,6 +77,12 @@ impl Database {
     pub fn add_post(&self, post: &Post) -> SqliteResult<i64> {
         let node_id_opt: Option<&str> = post.node_id.as_deref();
         let hash = self.compute_post_hash(post);
+        
+        // Check if post already exists using multiple criteria
+        if self.is_duplicate_post(post)? {
+            return Err(rusqlite::Error::InvalidParameterName("Post already exists".to_string()));
+        }
+        
         self.conn.execute(
             "INSERT INTO posts (content, timestamp, pseudonym, node_id, hash) VALUES (?, ?, ?, ?, ?)",
             (&post.content, &(post.timestamp as i64), &post.pseudonym, &node_id_opt, &hash)
@@ -84,15 +90,42 @@ impl Database {
         
         Ok(self.conn.last_insert_rowid())
     }
-    
-    pub fn post_exists(&self, post: &Post) -> SqliteResult<bool> {
+
+    /// Enhanced duplicate detection using multiple criteria
+    pub fn is_duplicate_post(&self, post: &Post) -> SqliteResult<bool> {
+        // Check by hash first (most reliable)
         let hash = self.compute_post_hash(post);
         let mut stmt = self.conn.prepare("SELECT EXISTS(SELECT 1 FROM posts WHERE hash = ?)")?;
         let exists: i64 = stmt.query_row([hash], |row| row.get(0))?;
-        Ok(exists != 0)
+        if exists != 0 {
+            return Ok(true);
+        }
+        
+        // Check by content + pseudonym + similar timestamp (within 5 minutes)
+        let mut stmt = self.conn.prepare(
+            "SELECT EXISTS(SELECT 1 FROM posts WHERE content = ? AND pseudonym = ? AND ABS(timestamp - ?) < 300)"
+        )?;
+        let exists: i64 = stmt.query_row([&post.content, &post.pseudonym, &(post.timestamp as i64)], |row| row.get(0))?;
+        if exists != 0 {
+            return Ok(true);
+        }
+        
+        // Check for rapid posting from same node (within 1 minute)
+        if let Some(ref node_id) = post.node_id {
+            let mut stmt = self.conn.prepare(
+                "SELECT EXISTS(SELECT 1 FROM posts WHERE node_id = ? AND ABS(timestamp - ?) < 60)"
+            )?;
+            let exists: i64 = stmt.query_row([node_id, &(post.timestamp as i64)], |row| row.get(0))?;
+            if exists != 0 {
+                return Ok(true);
+            }
+        }
+        
+        Ok(false)
     }
-    
-    pub fn get_posts(&self, limit: usize) -> SqliteResult<Vec<Post>> {
+
+    /// Gets posts with conflict resolution
+    pub fn get_posts_with_conflicts(&self, limit: usize) -> SqliteResult<Vec<Post>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, content, timestamp, pseudonym, node_id FROM posts ORDER BY timestamp DESC LIMIT ?"
         )?;
@@ -101,18 +134,47 @@ impl Database {
             Ok(Post {
                 id: Some(row.get(0)?),
                 content: row.get(1)?,
-                timestamp: row.get(2)?,
+                timestamp: row.get::<_, i64>(2)? as u64,
                 pseudonym: row.get(3)?,
-                node_id: row.get::<_, Option<String>>(4)?,
+                node_id: row.get(4)?,
             })
         })?;
         
-        let mut posts = Vec::new();
-        for post in post_iter {
-            posts.push(post?);
-        }
+        let mut posts: Vec<Post> = post_iter.collect::<Result<Vec<_>, _>>()?;
+        
+        // Remove duplicate posts (keep the most recent)
+        posts = self.deduplicate_posts(posts);
         
         Ok(posts)
+    }
+
+    /// Removes duplicate posts, keeping the most recent
+    fn deduplicate_posts(&self, mut posts: Vec<Post>) -> Vec<Post> {
+        let mut seen = std::collections::HashMap::new();
+        let mut unique_posts = Vec::new();
+        
+        for post in posts {
+            let key = format!("{}|{}", post.content, post.pseudonym);
+            
+            if let Some(existing_post) = seen.get(&key) {
+                // Keep the more recent post
+                if post.timestamp > existing_post.timestamp {
+                    // Remove the old post from unique_posts and add the new one
+                    if let Some(pos) = unique_posts.iter().position(|p| p.id == existing_post.id) {
+                        unique_posts.remove(pos);
+                    }
+                    unique_posts.push(post.clone());
+                    seen.insert(key, post);
+                }
+            } else {
+                unique_posts.push(post.clone());
+                seen.insert(key, post);
+            }
+        }
+        
+        // Sort by timestamp (most recent first)
+        unique_posts.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        unique_posts
     }
     
     pub fn get_config(&self) -> SqliteResult<Config> {
@@ -197,7 +259,7 @@ mod tests {
         let id = db.add_post(&post).unwrap();
         assert!(id > 0);
         
-        let posts = db.get_posts(10).unwrap();
+        let posts = db.get_posts_with_conflicts(10).unwrap();
         // Check that our post is in the list (there might be existing posts)
         let our_post = posts.iter().find(|p| p.content == "Test post" && p.pseudonym == "TestUser");
         assert!(our_post.is_some());
