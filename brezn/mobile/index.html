@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brezn - Dezentrale anonyme Feed-App</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f5f5f5;
+        }
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #007AFF;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #007AFF;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+        }
+        .feed-container {
+            margin-bottom: 30px;
+        }
+        .post {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007AFF;
+        }
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .pseudonym {
+            font-weight: bold;
+            color: #007AFF;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 0.9em;
+        }
+        .post-content {
+            color: #333;
+            line-height: 1.6;
+        }
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #007AFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+            transition: all 0.3s ease;
+        }
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,122,255,0.4);
+        }
+        .status-bar {
+            background: #e9ecef;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+        .status-dot.offline {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="app-container">
+            <div class="header">
+                <h1>🍞 Brezn</h1>
+                <p>Dezentrale anonyme Feed-App</p>
+            </div>
+            
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>P2P Netzwerk: Online</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Tor: Aktiv</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Peers: 3 verbunden</span>
+                </div>
+            </div>
+            
+            <div class="feed-container">
+                <div class="post">
+                    <div class="post-header">
+                        <span class="pseudonym">Anonymer_Brezner_42</span>
+                        <span class="timestamp">vor 2 Stunden</span>
+                    </div>
+                    <div class="post-content">
+                        Hallo Brezn-Community! 🍞 Heute war ein wunderschöner Tag für einen Spaziergang durch die Stadt. 
+                        Die dezentrale Natur dieser App gibt mir wirklich das Gefühl der Freiheit zurück. 
+                        Keine Überwachung, keine Zensur - einfach nur echte Menschen, die echte Gedanken teilen.
+                    </div>
+                </div>
+                
+                <div class="post">
+                    <div class="post-header">
+                        <span class="pseudonym">Digitaler_Nomade</span>
+                        <span class="timestamp">vor 4 Stunden</span>
+                    </div>
+                    <div class="post-content">
+                        Bin gerade dabei, mein eigenes P2P-Netzwerk aufzubauen. 
+                        Die Technologie dahinter ist faszinierend - direkte Verbindungen zwischen Nutzern, 
+                        ohne zentrale Server. Das ist die Zukunft des Internets! 🔒
+                    </div>
+                </div>
+                
+                <div class="post">
+                    <div class="post-header">
+                        <span class="pseudonym">Privacy_Advocate</span>
+                        <span class="timestamp">vor 6 Stunden</span>
+                    </div>
+                    <div class="post-content">
+                        Wichtige Erinnerung: Anonymität ist ein Menschenrecht. 
+                        Apps wie Brezn zeigen, dass wir Technologie haben können, 
+                        die uns schützt, anstatt uns zu überwachen. 
+                        Bleibt sicher und anonym! 🛡️
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="fab" onclick="showCreatePost()">+</div>
+    </div>
+    
+    <script>
+        function showCreatePost() {
+            alert('Neuer Post erstellen - Diese Funktion wird in der vollständigen App verfügbar sein!');
+        }
+        
+        // Simuliere Live-Updates
+        setInterval(() => {
+            const statusDots = document.querySelectorAll('.status-dot');
+            statusDots.forEach(dot => {
+                if (Math.random() > 0.95) {
+                    dot.classList.toggle('offline');
+                }
+            });
+        }, 5000);
+        
+        console.log('🍞 Brezn App Demo läuft!');
+        console.log('Metro Bundler Status: Nicht erforderlich für diese Demo');
+    </script>
+</body>
+</html>
