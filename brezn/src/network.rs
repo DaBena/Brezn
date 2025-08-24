@@ -80,6 +80,29 @@ pub struct NetworkStatus {
     pub unresolved_conflicts: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct TorHealthMonitor {
+    pub overall_health: f64,
+    pub circuit_count: usize,
+    pub active_connections: usize,
+    pub failure_count: u32,
+    pub last_check: std::time::Instant,
+    pub last_circuit_rotation: std::time::Instant,
+}
+
+impl Default for TorHealthMonitor {
+    fn default() -> Self {
+        Self {
+            overall_health: 1.0,
+            circuit_count: 0,
+            active_connections: 0,
+            failure_count: 0,
+            last_check: std::time::Instant::now(),
+            last_circuit_rotation: std::time::Instant::now(),
+        }
+    }
+}
+
 pub struct NetworkManager {
     port: u16,
     tor_enabled: bool,
@@ -2852,6 +2875,780 @@ mod tests {
         assert_eq!(excellent_peers[0].node_id, "excellent_peer");
         assert_eq!(good_peers[0].node_id, "good_peer");
         assert_eq!(poor_peers[0].node_id, "poor_peer");
+    }
+    /// Connect to a peer at the specified address
+    pub async fn connect_to_peer(&mut self, address: &str, port: u16) -> Result<()> {
+        let stream = TcpStream::connect(format!("{}:{}", address, port)).await
+            .context("Failed to connect to peer")?;
+        
+        // Create a new peer info
+        let peer_info = PeerInfo {
+            node_id: format!("peer_{}:{}", address, port),
+            public_key: box_::PublicKey([0u8; 32]), // Will be updated during handshake
+            address: address.to_string(),
+            port,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            connection_quality: ConnectionQuality::Unknown,
+            capabilities: vec!["basic".to_string()],
+            latency_ms: None,
+            is_tor_peer: false,
+            circuit_id: None,
+            connection_health: 1.0,
+        };
+        
+        // Add to peers list
+        {
+            let mut peers = self.peers.lock().unwrap();
+            peers.insert(peer_info.node_id.clone(), peer_info);
+        }
+        
+        // Start connection handler
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        tokio::spawn(async move {
+            if let Err(e) = Self::handle_connection(stream, network_manager).await {
+                eprintln!("Peer connection handler error: {}", e);
+            }
+        });
+        
+        println!("🔗 Verbindung zu Peer {}:{} hergestellt", address, port);
+        Ok(())
+    }
+    
+    /// Start UDP discovery for peer finding
+    async fn start_udp_discovery(&mut self, discovery_port: u16) -> Result<()> {
+        self.discovery_port = discovery_port;
+        
+        let socket = UdpSocket::bind(format!("0.0.0.0:{}", discovery_port)).await
+            .context("Failed to bind discovery socket")?;
+        
+        self.discovery_socket = Some(socket);
+        
+        // Start discovery listener
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone().await?;
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            let mut buffer = [0u8; 1024];
+            
+            loop {
+                match discovery_socket.recv_from(&mut buffer).await {
+                    Ok((n, addr)) => {
+                        if let Ok(message) = serde_json::from_slice::<DiscoveryMessage>(&buffer[..n]) {
+                            let network_manager_clone = network_manager.clone();
+                            tokio::spawn(async move {
+                                if let Ok(nm) = network_manager_clone.lock() {
+                                    if let Err(e) = nm.handle_discovery_message(&message, &addr).await {
+                                        eprintln!("Discovery message handling error: {}", e);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Discovery socket error: {}", e);
+                        break;
+                    }
+                }
+            }
+        });
+        
+        println!("🔍 UDP Discovery gestartet auf Port {}", discovery_port);
+        Ok(())
+    }
+    
+    /// Handle incoming discovery messages
+    async fn handle_discovery_message(&self, message: &DiscoveryMessage, addr: &std::net::SocketAddr) -> Result<()> {
+        match message.message_type.as_str() {
+            "ping" => {
+                // Respond with pong
+                let pong = DiscoveryMessage {
+                    message_type: "pong".to_string(),
+                    node_id: self.local_node_id.clone(),
+                    public_key: self.local_public_key.clone(),
+                    network_port: self.port,
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    capabilities: vec!["basic".to_string(), "posts".to_string(), "sync".to_string()],
+                };
+                
+                if let Some(socket) = &self.discovery_socket {
+                    let response = serde_json::to_vec(&pong)?;
+                    socket.send_to(&response, addr).await?;
+                }
+            }
+            "pong" => {
+                // New peer discovered, try to connect
+                if message.node_id != self.local_node_id {
+                    println!("🔍 Neuer Peer entdeckt: {} auf {}:{}", 
+                            message.node_id, addr.ip(), message.network_port);
+                    
+                    // Connect to the discovered peer
+                    if let Err(e) = self.connect_to_peer(&addr.ip().to_string(), message.network_port).await {
+                        eprintln!("Failed to connect to discovered peer: {}", e);
+                    }
+                }
+            }
+            _ => {
+                // Unknown message type, ignore
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Start heartbeat monitoring for all peers
+    async fn start_heartbeat_monitoring(&self) -> Result<()> {
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(30)); // Every 30 seconds
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.send_heartbeat_to_all_peers().await {
+                        eprintln!("Heartbeat error: {}", e);
+                    }
+                }
+            }
+        });
+        
+        println!("💓 Heartbeat-Monitoring gestartet");
+        Ok(())
+    }
+    
+    /// Send heartbeat to all connected peers
+    async fn send_heartbeat_to_all_peers(&self) -> Result<()> {
+        let peers = {
+            let peers = self.peers.lock().unwrap();
+            peers.values().cloned().collect::<Vec<_>>()
+        };
+        
+        for peer in peers {
+            let heartbeat = NetworkMessage {
+                message_type: "heartbeat".to_string(),
+                payload: serde_json::json!({
+                    "timestamp": chrono::Utc::now().timestamp(),
+                    "node_id": self.local_node_id
+                }),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&heartbeat, &peer).await {
+                eprintln!("Failed to send heartbeat to {}: {}", peer.node_id, e);
+                // Mark peer for removal if heartbeat fails
+                self.remove_peer(&peer.node_id);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Start error recovery monitoring
+    async fn start_error_recovery_monitoring(&self) -> Result<()> {
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(60)); // Every minute
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.perform_error_recovery().await {
+                        eprintln!("Error recovery failed: {}", e);
+                    }
+                }
+            }
+        });
+        
+        println!("🔧 Error Recovery Monitoring gestartet");
+        Ok(())
+    }
+    
+    /// Perform error recovery for unhealthy peers
+    async fn perform_error_recovery(&self) -> Result<()> {
+        let mut peers_to_recover = Vec::new();
+        
+        {
+            let peers = self.peers.lock().unwrap();
+            for (node_id, peer) in peers.iter() {
+                if peer.connection_health < 0.5 {
+                    peers_to_recover.push(node_id.clone());
+                }
+            }
+        }
+        
+        for node_id in peers_to_recover {
+            println!("🔄 Versuche Wiederherstellung für Peer: {}", node_id);
+            
+            // Try to reconnect
+            if let Err(e) = self.reconnect_to_peer(&node_id).await {
+                eprintln!("Failed to reconnect to peer {}: {}", node_id, e);
+                // Remove peer if reconnection fails
+                self.remove_peer(&node_id);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Reconnect to a specific peer
+    async fn reconnect_to_peer(&self, node_id: &str) -> Result<()> {
+        let peer_info = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer_info {
+            // Try to establish new connection
+            let stream = TcpStream::connect(format!("{}:{}", peer.address, peer.port)).await
+                .context("Failed to reconnect to peer")?;
+            
+            // Update connection health
+            {
+                let mut peers = self.peers.lock().unwrap();
+                if let Some(peer) = peers.get_mut(node_id) {
+                    peer.connection_health = 1.0;
+                    peer.last_seen = chrono::Utc::now().timestamp() as u64;
+                }
+            }
+            
+            // Start new connection handler
+            let network_manager = Arc::new(Mutex::new(self.clone()));
+            tokio::spawn(async move {
+                if let Err(e) = Self::handle_connection(stream, network_manager).await {
+                    eprintln!("Reconnection handler error: {}", e);
+                }
+            });
+            
+            println!("🔗 Wiederherstellung zu Peer {} erfolgreich", node_id);
+        }
+        
+        Ok(())
+    }
+    
+    /// Analyze network topology
+    async fn analyze_topology(&self) -> Result<()> {
+        let peers = {
+            let peers = self.peers.lock().unwrap();
+            peers.values().cloned().collect::<Vec<_>>()
+        };
+        
+        let mut topology = self.topology.lock().unwrap();
+        
+        // Update connections
+        topology.connections.clear();
+        for peer in &peers {
+            topology.connections.insert(peer.node_id.clone());
+        }
+        
+        // Analyze network segments
+        let mut segments = Vec::new();
+        
+        // Core segment: highly connected nodes
+        let core_nodes: Vec<_> = peers.iter()
+            .filter(|p| p.connection_quality == ConnectionQuality::Excellent)
+            .map(|p| p.node_id.clone())
+            .collect();
+        
+        if !core_nodes.is_empty() {
+            segments.push(NetworkSegment {
+                segment_id: "core".to_string(),
+                nodes: core_nodes.into_iter().collect(),
+                segment_type: SegmentType::Core,
+                connectivity_score: 1.0,
+            });
+        }
+        
+        // Edge segment: leaf nodes
+        let edge_nodes: Vec<_> = peers.iter()
+            .filter(|p| p.connection_quality == ConnectionQuality::Poor)
+            .map(|p| p.node_id.clone())
+            .collect();
+        
+        if !edge_nodes.is_empty() {
+            segments.push(NetworkSegment {
+                segment_id: "edge".to_string(),
+                nodes: edge_nodes.into_iter().collect(),
+                segment_type: SegmentType::Edge,
+                connectivity_score: 0.3,
+            });
+        }
+        
+        topology.network_segments = segments;
+        topology.topology_version += 1;
+        
+        println!("🔍 Topologie-Analyse abgeschlossen. Version: {}", topology.topology_version);
+        Ok(())
+    }
+    
+    /// Get network statistics
+    pub fn get_network_stats(&self) -> NetworkStats {
+        let peers = self.peers.lock().unwrap();
+        let total_peers = peers.len();
+        
+        let mut excellent_connections = 0;
+        let mut good_connections = 0;
+        let mut poor_connections = 0;
+        let mut total_latency = 0u64;
+        let mut latency_count = 0;
+        
+        for peer in peers.values() {
+            match peer.connection_quality {
+                ConnectionQuality::Excellent => excellent_connections += 1,
+                ConnectionQuality::Good => good_connections += 1,
+                ConnectionQuality::Poor => poor_connections += 1,
+                _ => {}
+            }
+            
+            if let Some(latency) = peer.latency_ms {
+                total_latency += latency;
+                latency_count += 1;
+            }
+        }
+        
+        let avg_latency = if latency_count > 0 {
+            total_latency / latency_count
+        } else {
+            0
+        };
+        
+        let topology = self.topology.lock().unwrap();
+        
+        NetworkStats {
+            total_peers,
+            active_peers: total_peers,
+            excellent_connections,
+            good_connections,
+            poor_connections,
+            avg_latency_ms: avg_latency,
+            segments_count: topology.network_segments.len(),
+            topology_version: topology.topology_version,
+        }
+    }
+    
+    /// Get current topology
+    pub fn get_topology(&self) -> NetworkTopology {
+        self.topology.lock().unwrap().clone()
+    }
+    
+    /// Get all peers
+    pub fn get_peers(&self) -> Vec<PeerInfo> {
+        let peers = self.peers.lock().unwrap();
+        peers.values().cloned().collect()
+    }
+    
+    /// Get peers by connection quality
+    pub fn get_peers_by_quality(&self, quality: ConnectionQuality) -> Vec<PeerInfo> {
+        let peers = self.peers.lock().unwrap();
+        peers.values()
+            .filter(|p| p.connection_quality == quality)
+            .cloned()
+            .collect()
+    }
+    
+    /// Remove a peer
+    pub fn remove_peer(&self, node_id: &str) {
+        let mut peers = self.peers.lock().unwrap();
+        peers.remove(node_id);
+        println!("🗑️  Peer entfernt: {}", node_id);
+    }
+    
+    /// Get node ID
+    pub async fn get_node_id(&self) -> Result<String> {
+        Ok(self.local_node_id.clone())
+    }
+    
+    /// Send message to a specific peer
+    async fn send_message_to_peer(&self, message: &NetworkMessage, peer: &PeerInfo) -> Result<()> {
+        // This would typically involve maintaining persistent connections
+        // For now, we'll create a new connection for each message
+        let stream = TcpStream::connect(format!("{}:{}", peer.address, peer.port)).await
+            .context("Failed to connect to peer")?;
+        
+        let message_data = serde_json::to_vec(message)?;
+        let length = message_data.len() as u32;
+        let length_bytes = length.to_be_bytes();
+        
+        // Send length + message
+        stream.write_all(&length_bytes).await?;
+        stream.write_all(&message_data).await?;
+        
+        Ok(())
+    }
+    
+    /// Measure latency to a specific peer
+    pub async fn measure_peer_latency(&self, node_id: &str) -> Result<u64> {
+        let peer_info = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer_info {
+            let start = std::time::Instant::now();
+            
+            // Send ping
+            let ping = NetworkMessage {
+                message_type: "ping".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&ping, &peer).await {
+                return Err(anyhow::anyhow!("Failed to send ping: {}", e));
+            }
+            
+            // Wait for pong (simplified - in real implementation you'd wait for response)
+            sleep(Duration::from_millis(100)).await;
+            
+            let latency = start.elapsed().as_millis() as u64;
+            
+            // Update peer latency
+            {
+                let mut peers = self.peers.lock().unwrap();
+                if let Some(peer) = peers.get_mut(node_id) {
+                    peer.latency_ms = Some(latency);
+                    peer.connection_quality = ConnectionQuality::from_latency(latency);
+                }
+            }
+            
+            Ok(latency)
+        } else {
+            Err(anyhow::anyhow!("Peer not found: {}", node_id))
+        }
+    }
+    
+    /// Handle legacy message types
+    async fn handle_legacy_message(&self, message: &NetworkMessage) -> Result<()> {
+        match message.message_type.as_str() {
+            "post" => {
+                if let Ok(post) = serde_json::from_value::<Post>(message.payload.clone()) {
+                    // Notify all message handlers
+                    let handlers = self.message_handlers.lock().unwrap();
+                    for handler in handlers.iter() {
+                        if let Err(e) = handler.handle_post(&post) {
+                            eprintln!("Handler error: {}", e);
+                        }
+                    }
+                }
+            }
+            "config" => {
+                if let Ok(config) = serde_json::from_value::<Config>(message.payload.clone()) {
+                    // Notify all message handlers
+                    let handlers = self.message_handlers.lock().unwrap();
+                    for handler in handlers.iter() {
+                        if let Err(e) = handler.handle_config(&config) {
+                            eprintln!("Handler error: {}", e);
+                        }
+                    }
+                }
+            }
+            "ping" => {
+                // Respond with pong
+                let handlers = self.message_handlers.lock().unwrap();
+                for handler in handlers.iter() {
+                    if let Err(e) = handler.handle_ping(&message.node_id) {
+                        eprintln!("Handler error: {}", e);
+                        break;
+                    }
+                }
+            }
+            "pong" => {
+                // Handle pong response
+                let handlers = self.message_handlers.lock().unwrap();
+                for handler in handlers.iter() {
+                    if let Err(e) = handler.handle_pong(&message.node_id) {
+                        eprintln!("Handler error: {}", e);
+                        break;
+                    }
+                }
+            }
+            "heartbeat" => {
+                // Update peer last seen timestamp
+                if let Ok(payload) = message.payload.as_object() {
+                    if let Some(node_id) = payload.get("node_id").and_then(|v| v.as_str()) {
+                        let mut peers = self.peers.lock().unwrap();
+                        if let Some(peer) = peers.get_mut(node_id) {
+                            peer.last_seen = chrono::Utc::now().timestamp() as u64;
+                        }
+                    }
+                }
+            }
+            _ => {
+                println!("⚠️  Unbekannter Nachrichtentyp: {}", message.message_type);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle post broadcast
+    async fn handle_post_broadcast(&self, broadcast: &PostBroadcast) -> Result<()> {
+        // Check TTL
+        if broadcast.ttl == 0 {
+            return Ok(());
+        }
+        
+        // Process the post
+        let post = &broadcast.post;
+        
+        // Notify all message handlers
+        let handlers = self.message_handlers.lock().unwrap();
+        for handler in handlers.iter() {
+            if let Err(e) = handler.handle_post(post) {
+                eprintln!("Handler error: {}", e);
+            }
+        }
+        
+        // Re-broadcast with decremented TTL if TTL > 1
+        if broadcast.ttl > 1 {
+            let mut new_broadcast = broadcast.clone();
+            new_broadcast.ttl -= 1;
+            
+            let message = NetworkMessage {
+                message_type: "post_broadcast".to_string(),
+                payload: serde_json::to_value(&new_broadcast)?,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            self.broadcast_message(&message).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle sync request
+    async fn handle_sync_request(&self, sync_request: &SyncRequest, requesting_node: &str) -> Result<()> {
+        // Get recent posts from handlers
+        let mut all_posts = Vec::new();
+        let handlers = self.message_handlers.lock().unwrap();
+        
+        for handler in handlers.iter() {
+            if let Ok(posts) = handler.get_recent_posts(sync_request.requested_post_count) {
+                all_posts.extend(posts);
+            }
+        }
+        
+        // Create sync response
+        let response = SyncResponse {
+            responding_node: self.local_node_id.clone(),
+            posts: all_posts,
+            conflicts: Vec::new(), // Will be populated by conflict detection
+            feed_state: self.get_feed_state().await?,
+            sync_timestamp: chrono::Utc::now().timestamp() as u64,
+        };
+        
+        // Send response back to requesting node
+        let message = NetworkMessage {
+            message_type: "sync_response".to_string(),
+            payload: serde_json::to_value(&response)?,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            node_id: self.local_node_id.clone(),
+        };
+        
+        // Find the requesting peer and send response
+        let peers = self.peers.lock().unwrap();
+        if let Some(peer) = peers.get(requesting_node) {
+            drop(peers); // Release lock before async call
+            self.send_message_to_peer(&message, peer).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle sync response
+    async fn handle_sync_response(&self, sync_response: &SyncResponse) -> Result<()> {
+        // Process received posts
+        for post in &sync_response.posts {
+            let handlers = self.message_handlers.lock().unwrap();
+            for handler in handlers.iter() {
+                if let Err(e) = handler.handle_post(post) {
+                    eprintln!("Handler error: {}", e);
+                }
+            }
+        }
+        
+        // Process conflicts
+        for conflict in &sync_response.conflicts {
+            let mut conflicts = self.post_conflicts.lock().unwrap();
+            conflicts.insert(conflict.post_id.hash.clone(), conflict.clone());
+        }
+        
+        // Update feed state
+        let mut feed_state = self.feed_state.lock().unwrap();
+        feed_state.last_sync_timestamp = sync_response.sync_timestamp;
+        
+        Ok(())
+    }
+    
+    /// Get current feed state
+    async fn get_feed_state(&self) -> Result<FeedState> {
+        let feed_state = self.feed_state.lock().unwrap();
+        Ok(feed_state.clone())
+    }
+    
+    /// Get unresolved conflicts
+    pub async fn get_unresolved_conflicts(&self) -> Result<Vec<PostConflict>> {
+        let conflicts = self.post_conflicts.lock().unwrap();
+        Ok(conflicts.values().cloned().collect())
+    }
+    
+    /// Manually resolve a conflict
+    pub async fn manually_resolve_conflict(&self, post_id: &str, strategy: ConflictResolutionStrategy) -> Result<()> {
+        let mut conflicts = self.post_conflicts.lock().unwrap();
+        
+        if let Some(conflict) = conflicts.get_mut(post_id) {
+            conflict.resolution_strategy = strategy;
+            conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+            
+            // Apply resolution strategy
+            match strategy {
+                ConflictResolutionStrategy::LatestWins => {
+                    // Keep the most recent post
+                    if let Some(latest_post) = conflict.conflicting_posts.iter().max_by_key(|p| p.timestamp) {
+                        let handlers = self.message_handlers.lock().unwrap();
+                        for handler in handlers.iter() {
+                            if let Err(e) = handler.handle_post(latest_post) {
+                                eprintln!("Handler error: {}", e);
+                            }
+                        }
+                    }
+                }
+                ConflictResolutionStrategy::FirstWins => {
+                    // Keep the first post
+                    if let Some(first_post) = conflict.conflicting_posts.iter().min_by_key(|p| p.timestamp) {
+                        let handlers = self.message_handlers.lock().unwrap();
+                        for handler in handlers.iter() {
+                            if let Err(e) = handler.handle_post(first_post) {
+                                eprintln!("Handler error: {}", e);
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    // Other strategies would be implemented here
+                }
+            }
+            
+            // Remove resolved conflict
+            conflicts.remove(post_id);
+        }
+        
+        Ok(())
+    }
+    
+    /// Sync with all peers
+    pub async fn sync_all_peers(&self) -> Result<()> {
+        let peers = {
+            let peers = self.peers.lock().unwrap();
+            peers.values().cloned().collect::<Vec<_>>()
+        };
+        
+        for peer in peers {
+            let sync_request = SyncRequest {
+                requesting_node: self.local_node_id.clone(),
+                last_known_timestamp: 0, // Will be updated with actual last timestamp
+                requested_post_count: 100,
+                sync_mode: SyncMode::Incremental,
+            };
+            
+            let message = NetworkMessage {
+                message_type: "sync_request".to_string(),
+                payload: serde_json::to_value(&sync_request)?,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&message, &peer).await {
+                eprintln!("Failed to sync with peer {}: {}", peer.node_id, e);
+            }
+        }
+        
+        println!("🔄 Synchronisation mit {} Peers abgeschlossen", peers.len());
+        Ok(())
+    }
+    
+    /// Clone implementation for NetworkManager
+    pub fn clone(&self) -> Self {
+        Self {
+            port: self.port,
+            tor_enabled: self.tor_enabled,
+            tor_socks_port: self.tor_socks_port,
+            _crypto: self._crypto.clone(),
+            peers: Arc::clone(&self.peers),
+            message_handlers: Arc::clone(&self.message_handlers),
+            tor_manager: self.tor_manager.clone(),
+            request_cooldowns: Arc::clone(&self.request_cooldowns),
+            topology: Arc::clone(&self.topology),
+            discovery_manager: self.discovery_manager.clone(),
+            discovery_socket: self.discovery_socket.clone(),
+            discovery_port: self.discovery_port,
+            heartbeat_interval: self.heartbeat_interval,
+            peer_timeout: self.peer_timeout,
+            max_peers: self.max_peers,
+            local_node_id: self.local_node_id.clone(),
+            local_public_key: self.local_public_key.clone(),
+            feed_state: Arc::clone(&self.feed_state),
+            post_conflicts: Arc::clone(&self.post_conflicts),
+            post_order: Arc::clone(&self.post_conflicts),
+            broadcast_cache: Arc::clone(&self.broadcast_cache),
+            tor_health_monitor: Arc::clone(&self.tor_health_monitor),
+            circuit_rotation_task: None, // Cannot clone JoinHandle
+        }
+    }
+}
+
+/// Default message handler implementation
+pub struct DefaultMessageHandler {
+    node_id: String,
+    database: Arc<Mutex<Database>>,
+}
+
+impl DefaultMessageHandler {
+    pub fn new(node_id: String, database: Arc<Mutex<Database>>) -> Self {
+        Self { node_id, database }
+    }
+}
+
+impl MessageHandler for DefaultMessageHandler {
+    fn handle_post(&self, post: &Post) -> Result<()> {
+        // Store post in database
+        if let Ok(mut db) = self.database.lock() {
+            if let Err(e) = db.insert_post(post) {
+                eprintln!("Failed to store post: {}", e);
+            }
+        }
+        
+        println!("📝 Post von {} verarbeitet: {}", post.pseudonym, post.content);
+        Ok(())
+    }
+    
+    fn handle_config(&self, _config: &Config) -> Result<()> {
+        // Handle configuration updates
+        println!("⚙️  Konfiguration aktualisiert");
+        Ok(())
+    }
+    
+    fn handle_ping(&self, node_id: &str) -> Result<()> {
+        println!("🏓 Ping von {} erhalten", node_id);
+        Ok(())
+    }
+    
+    fn handle_pong(&self, node_id: &str) -> Result<()> {
+        println!("🏓 Pong von {} erhalten", node_id);
+        Ok(())
+    }
+    
+    fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
+        if let Ok(db) = self.database.lock() {
+            db.get_recent_posts(limit)
+        } else {
+            Ok(Vec::new())
+        }
     }
 }
 
