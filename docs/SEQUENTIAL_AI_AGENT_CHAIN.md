@@ -62,9 +62,9 @@ concurrency:
 on:
   workflow_dispatch:  # Manueller Start
   push:
-    branches: [ 'ai-feature/**' ]  # Läuft NUR auf Feature Branches
+    branches: [ main, develop, 'ai-feature/**' ]  # Läuft auf main UND Feature Branches
 ```
-**Erster Agent startet manuell von main, alle anderen automatisch vom Feature Branch**
+**Erster Agent startet von main (manuell oder Push), alle anderen automatisch vom Feature Branch**
 
 ### **3. Feature Branch-Verwaltung**
 ```bash
@@ -156,6 +156,11 @@ fi
 - **Kontinuierliche Entwicklung** ohne menschliche Intervention
 - **Push auf Feature Branch** startet automatisch nächsten Agenten
 
+### **⚠️ Wichtige Regel:**
+- **Erster Agent** startet von main (manuell oder Push)
+- **Alle anderen Agenten** starten automatisch nach Push auf Feature Branch
+- **Niemals** Workflow manuell von main starten, wenn Feature Branch existiert
+
 ### **Überwachung**
 1. **Actions Tab** → **Workflow-Status** verfolgen
 2. **Feature Branches** → **Entwicklung verfolgen**
@@ -203,7 +208,7 @@ fi
 4. **Kette läuft automatisch weiter**
 
 ### **⚠️ Wichtige Regeln:**
-- **Erster Agent** MUSS von main starten
+- **Erster Agent** startet von main (manuell oder Push)
 - **Alle anderen Agenten** starten automatisch vom Feature Branch
 - **Niemals** Workflow manuell von main starten, wenn Feature Branch existiert
 

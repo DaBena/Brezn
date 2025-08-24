@@ -4,7 +4,7 @@ name: 🤖 AI Development Agent - Brezn MVP
 on:
   workflow_dispatch:  # Manueller Start
   push:
-    branches: [ 'ai-feature/**' ]  # Läuft NUR auf Feature Branches
+    branches: [ main, develop, 'ai-feature/**' ]  # Läuft auf main UND Feature Branches
     paths-ignore:
       - '**.md'
       - 'docs/**'
