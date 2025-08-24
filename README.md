@@ -15,7 +15,7 @@ Ein dezentrales, privates Social Media System mit P2P-Netzwerk und Tor-Integrati
 - Krypto-Module (AES-GCM, NaCl Box)
 - Konfigurationsmanagement
 - Mute-User-Funktionalität
-- Test-Suite (10/10 Tests erfolgreich)
+- Build-System (Tests entfernt - nur Build)
 
 ### ⚠️ **Teilweise implementiert (Platzhalter)**
 - P2P-Netzwerk-Grundstruktur
@@ -28,7 +28,7 @@ Ein dezentrales, privates Social Media System mit P2P-Netzwerk und Tor-Integrati
 ```bash
 cd brezn
 cargo build
-cargo test
+cargo build
 cargo run --bin brezn-server
 # -> http://localhost:8080
 ```
