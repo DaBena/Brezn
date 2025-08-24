@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 
 // Re-export modules
 pub mod types;
+pub mod network;
 pub mod network_simple;
 pub mod crypto;
 pub mod database;

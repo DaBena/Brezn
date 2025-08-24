@@ -1,0 +1,101 @@
+namespace brezn {
+    BreznApp create_app();
+};
+
+interface BreznApp {
+    constructor(Config config);
+    
+    void start();
+    void stop();
+    
+    [Throws=BreznError]
+    void create_post(string content, string pseudonym);
+    
+    [Throws=BreznError]
+    sequence<Post> get_posts(u64 limit, string? search);
+    
+    [Throws=BreznError]
+    Config get_config();
+    
+    [Throws=BreznError]
+    void update_config(Config config);
+    
+    [Throws=BreznError]
+    void mute_user(string node_id);
+    
+    [Throws=BreznError]
+    void unmute_user(string node_id);
+    
+    [Throws=BreznError]
+    sequence<string> get_muted_users();
+    
+    [Throws=BreznError]
+    void toggle_network();
+    
+    [Throws=BreznError]
+    void toggle_tor();
+    
+    [Throws=BreznError]
+    NetworkStatus get_network_status();
+    
+    [Throws=BreznError]
+    u64 get_peer_count();
+    
+    [Throws=BreznError]
+    void connect_to_peer(string address, u16 port);
+    
+    [Throws=BreznError]
+    void disconnect_from_peer(string peer_id);
+};
+
+dictionary Config {
+    boolean auto_save;
+    u64 max_posts;
+    string default_pseudonym;
+    boolean network_enabled;
+    u16 network_port;
+    boolean tor_enabled;
+    u16 tor_socks_port;
+    boolean discovery_enabled;
+    u16 discovery_port;
+    u64 sync_interval;
+    u64 max_peers;
+    u64 heartbeat_interval;
+    PostValidationConfig post_validation;
+};
+
+dictionary PostValidationConfig {
+    u64 max_content_length;
+    u64 min_content_length;
+    u64 max_pseudonym_length;
+    boolean allow_empty_pseudonym;
+};
+
+dictionary Post {
+    i64? id;
+    string content;
+    u64 timestamp;
+    string pseudonym;
+    string? node_id;
+};
+
+dictionary NetworkStatus {
+    boolean active;
+    u64 peer_count;
+    u64 bytes_sent;
+    u64 bytes_received;
+    u64 posts_synced;
+};
+
+[Error]
+enum BreznError {
+    "DatabaseError",
+    "NetworkError",
+    "ConfigurationError",
+    "PostValidationError",
+    "CryptoError",
+    "TorError",
+    "DiscoveryError",
+    "PeerError",
+    "UnknownError",
+};

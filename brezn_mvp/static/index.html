@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🥨 Brezn - Dezentraler Feed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            text-align: center;
+            font-size: 2.5em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            margin-bottom: -2px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .post-form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .post {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .post-content {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-value {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .peer-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .peer-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .qr-code {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🥨 Brezn</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="feed">Feed</button>
+            <button class="tab" data-tab="network">Netzwerk</button>
+            <button class="tab" data-tab="settings">Einstellungen</button>
+        </div>
+        
+        <!-- Feed Tab -->
+        <div class="tab-content active" id="feed">
+            <div class="post-form">
+                <h2>Neuer Post</h2>
+                <div class="form-group">
+                    <label for="pseudonym">Pseudonym (optional)</label>
+                    <input type="text" id="pseudonym" placeholder="AnonymBrezn">
+                </div>
+                <div class="form-group">
+                    <label for="content">Nachricht</label>
+                    <textarea id="content" placeholder="Was möchtest du teilen?"></textarea>
+                </div>
+                <button onclick="createPost()">Posten</button>
+            </div>
+            
+            <div id="posts">
+                <div class="loading">Lade Posts...</div>
+            </div>
+        </div>
+        
+        <!-- Network Tab -->
+        <div class="tab-content" id="network">
+            <div class="status-card">
+                <h2>Netzwerk Status</h2>
+                <div id="network-status">
+                    <div class="loading">Lade Status...</div>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h2>Mit Peer verbinden</h2>
+                <div class="form-group">
+                    <input type="text" id="peer-address" placeholder="IP:Port (z.B. 192.168.1.100:8888)">
+                </div>
+                <button onclick="connectPeer()">Verbinden</button>
+            </div>
+            
+            <div class="status-card">
+                <h2>QR-Code für Verbindung</h2>
+                <button onclick="generateQR()">QR-Code generieren</button>
+                <div id="qr-container" class="qr-container"></div>
+            </div>
+            
+            <div class="peer-list">
+                <h2>Entdeckte Peers</h2>
+                <div id="discovered-peers">
+                    <div class="loading">Suche nach Peers...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div class="tab-content" id="settings">
+            <div class="status-card">
+                <h2>Einstellungen</h2>
+                <p>Hier können später Einstellungen konfiguriert werden.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        // API functions
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/posts');
+                const posts = await response.json();
+                
+                const postsContainer = document.getElementById('posts');
+                if (posts.length === 0) {
+                    postsContainer.innerHTML = '<p class="loading">Noch keine Posts vorhanden.</p>';
+                    return;
+                }
+                
+                postsContainer.innerHTML = posts.map(post => `
+                    <div class="post">
+                        <div class="post-header">
+                            <span>${post.pseudonym}</span>
+                            <span>${new Date(post.timestamp).toLocaleString('de-DE')}</span>
+                        </div>
+                        <div class="post-content">${escapeHtml(post.content)}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                document.getElementById('posts').innerHTML = '<div class="error">Fehler beim Laden der Posts</div>';
+            }
+        }
+        
+        async function createPost() {
+            const pseudonym = document.getElementById('pseudonym').value;
+            const content = document.getElementById('content').value;
+            
+            if (!content.trim()) {
+                alert('Bitte gib eine Nachricht ein!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, pseudonym })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('content').value = '';
+                    await loadPosts();
+                } else {
+                    const error = await response.json();
+                    alert('Fehler: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error creating post:', error);
+                alert('Fehler beim Erstellen des Posts');
+            }
+        }
+        
+        async function loadNetworkStatus() {
+            try {
+                const response = await fetch('/api/network/status');
+                const status = await response.json();
+                
+                document.getElementById('network-status').innerHTML = `
+                    <div class="status-item">
+                        <span>Status</span>
+                        <span class="status-value">${status.active ? 'Aktiv' : 'Inaktiv'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Verbundene Peers</span>
+                        <span class="status-value">${status.peer_count}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Bytes gesendet</span>
+                        <span class="status-value">${status.bytes_sent}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Bytes empfangen</span>
+                        <span class="status-value">${status.bytes_received}</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading network status:', error);
+            }
+        }
+        
+        async function loadDiscoveredPeers() {
+            try {
+                const response = await fetch('/api/discovery/peers');
+                const peers = await response.json();
+                
+                const container = document.getElementById('discovered-peers');
+                if (peers.length === 0) {
+                    container.innerHTML = '<p>Keine Peers gefunden.</p>';
+                    return;
+                }
+                
+                container.innerHTML = peers.map(peer => `
+                    <div class="peer-item">
+                        <strong>${peer.node_id}</strong><br>
+                        ${peer.address}<br>
+                        <small>Zuletzt gesehen: ${new Date(peer.last_seen).toLocaleString('de-DE')}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading discovered peers:', error);
+            }
+        }
+        
+        async function connectPeer() {
+            const address = document.getElementById('peer-address').value;
+            if (!address) {
+                alert('Bitte gib eine Adresse ein!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/network/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Erfolgreich verbunden!');
+                    document.getElementById('peer-address').value = '';
+                    await loadNetworkStatus();
+                } else {
+                    alert('Fehler: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error connecting to peer:', error);
+                alert('Fehler beim Verbinden');
+            }
+        }
+        
+        async function generateQR() {
+            try {
+                const response = await fetch('/api/network/qr');
+                const data = await response.json();
+                
+                document.getElementById('qr-container').innerHTML = `
+                    <img src="${data.qr_code}" alt="QR Code" class="qr-code">
+                    <p>Node ID: ${data.connection_info.node_id}</p>
+                    <p>Adresse: ${data.connection_info.address}:${data.connection_info.port}</p>
+                `;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                alert('Fehler beim Generieren des QR-Codes');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Initial load
+        loadPosts();
+        loadNetworkStatus();
+        loadDiscoveredPeers();
+        
+        // Auto-refresh
+        setInterval(loadPosts, 5000);
+        setInterval(loadNetworkStatus, 10000);
+        setInterval(loadDiscoveredPeers, 15000);
+    </script>
+</body>
+</html>
