@@ -583,8 +583,15 @@ impl P2PNetworkManager {
                 };
                 
                 for peer_id in peer_ids {
+                    // Get last known timestamp from database for this peer
+                    let last_known_timestamp = if let Some(db) = &self.database {
+                        db.get_last_sync_timestamp(&peer_id).unwrap_or(0)
+                    } else {
+                        0
+                    };
+                    
                     let sync_request = P2PMessage::PostSyncRequest {
-                        last_known_timestamp: 0, // TODO: Get from database
+                        last_known_timestamp,
                         requesting_node: node_id.clone(),
                         sync_mode: SyncMode::Incremental,
                     };
@@ -945,9 +952,25 @@ impl P2PNetworkManager {
         // Store received posts
         if let Some(db) = &self.database {
             for post in posts {
-                // TODO: Check for conflicts and resolve
-                db.insert_post(&post).await?;
+                // Check for conflicts and resolve
+                if let Err(e) = db.insert_post(&post) {
+                    // If insertion fails due to duplicate, store conflict for manual resolution
+                    if e.to_string().contains("Post already exists") {
+                        let conflict_data = serde_json::to_string(&post)?;
+                        let _ = db.store_post_conflict(
+                            &post.get_post_id(),
+                            &conflict_data,
+                            "manual_resolution"
+                        );
+                        println!("⚠️ Konflikt für Post {} gespeichert: {}", post.get_post_id(), e);
+                    } else {
+                        return Err(anyhow::anyhow!("Failed to insert post: {}", e));
+                    }
+                }
             }
+            
+            // Update last sync timestamp for this peer
+            db.update_last_sync_timestamp(&requesting_node, last_sync_timestamp)?;
         }
         
         // Update stats
@@ -995,8 +1018,24 @@ impl P2PNetworkManager {
         // Store received posts
         if let Some(db) = &self.database {
             for post in posts {
-                db.insert_post(&post).await?;
+                if let Err(e) = db.insert_post(&post) {
+                    // Handle duplicate posts
+                    if e.to_string().contains("Post already exists") {
+                        let conflict_data = serde_json::to_string(&post)?;
+                        let _ = db.store_post_conflict(
+                            &post.get_post_id(),
+                            &conflict_data,
+                            "duplicate_detection"
+                        );
+                        println!("⚠️ Duplikat-Post {} gespeichert: {}", post.get_post_id(), e);
+                    } else {
+                        return Err(anyhow::anyhow!("Failed to insert post: {}", e));
+                    }
+                }
             }
+            
+            // Update last sync timestamp for this peer
+            db.update_last_sync_timestamp(&responding_node, last_sync_timestamp)?;
         }
         
         // Resolve conflicts
@@ -1762,8 +1801,13 @@ impl P2PNetworkManager {
     async fn store_conflict_for_manual_resolution(&self, conflict: PostConflict) -> Result<()> {
         // Store conflict in database for manual review
         if let Some(db) = &self.database {
-            // TODO: Implement conflict storage table
-            println!("⚠️ Konflikt für manuelle Lösung gespeichert: {:?}", conflict.post_id);
+            let conflict_data = serde_json::to_string(&conflict.conflicting_posts)?;
+            let _ = db.store_post_conflict(
+                &conflict.post_id,
+                &conflict_data,
+                &format!("{:?}", conflict.resolution_strategy)
+            );
+            println!("⚠️ Konflikt für manuelle Lösung gespeichert: {}", conflict.post_id);
         }
         Ok(())
     }
