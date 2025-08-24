@@ -150,15 +150,7 @@ impl BreznApp {
         Ok(posts.clone())
     }
 
-    pub fn get_network_status(&self) -> Result<NetworkStatus> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
 
-        let status = self.network_status.lock().unwrap();
-        Ok(status.clone())
-    }
 
     pub fn enable_tor(&self) -> Result<bool> {
         let initialized = self.is_initialized.lock().unwrap();
@@ -272,6 +264,11 @@ impl BreznApp {
     pub async fn enable_tor_async(&self) -> Result<bool> {
         let mut network_manager = self.network_manager.lock().unwrap();
         network_manager.enable_tor().await
+    }
+
+    pub fn get_network_status(&self) -> Result<network_simple::NetworkStatus> {
+        let network_manager = self.network_manager.lock().unwrap();
+        Ok(network_manager.get_network_status())
     }
 }
 

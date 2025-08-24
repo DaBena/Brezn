@@ -335,7 +335,7 @@ impl NetworkManager {
         self.discovery_socket = Some(socket);
         
         // Start discovery listener
-        let discovery_socket = self.discovery_socket.as_ref().unwrap().clone().await?;
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone()?;
         
         tokio::spawn(async move {
             let mut buffer = [0u8; 1024];
