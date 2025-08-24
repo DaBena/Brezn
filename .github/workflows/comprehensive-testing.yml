@@ -1,0 +1,504 @@
+name: Comprehensive Testing & QA Suite
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly tests at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Specific test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - integration
+          - performance
+          - stress
+          - coverage
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUST_LOG: info
+
+jobs:
+  # Integration Tests (1 week equivalent - run daily)
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust-version: [stable, 1.70, 1.75]
+        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+        include:
+          - rust-version: stable
+            target: x86_64-unknown-linux-gnu
+            cache-key: stable-linux
+          - rust-version: 1.70
+            target: x86_64-unknown-linux-gnu
+            cache-key: 1.70-linux
+          - rust-version: 1.75
+            target: x86_64-unknown-linux-gnu
+            cache-key: 1.75-linux
+    
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust ${{ matrix.rust-version }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-version }}
+          target: ${{ matrix.target }}
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+          
+      - name: 🧪 Run integration tests
+        run: |
+          cd brezn
+          cargo test --test integration_test --test p2p_integration_tests --test p2p_network_test --test post_sync_tests --test qr_code_tests --verbose
+          
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results-${{ matrix.rust-version }}-${{ matrix.target }}
+          path: |
+            brezn/target/test-results/
+            brezn/coverage_report.html
+          retention-days: 30
+
+  # Performance Tests (1 week equivalent - run daily)
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    strategy:
+      matrix:
+        test-scenario: [throughput, memory, cpu, stress]
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: stable-linux-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install performance tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev htop iotop
+          
+      - name: 🧪 Run performance tests
+        run: |
+          cd brezn
+          case "${{ matrix.test-scenario }}" in
+            "throughput")
+              cargo test --test performance_tests test_network_throughput_benchmark --verbose
+              ;;
+            "memory")
+              cargo test --test performance_tests test_memory_usage_benchmark --verbose
+              ;;
+            "cpu")
+              cargo test --test performance_tests test_cpu_usage_benchmark --verbose
+              ;;
+            "stress")
+              cargo test --test performance_tests --verbose
+              ;;
+          esac
+          
+      - name: 📊 Generate performance report
+        run: |
+          cd brezn
+          cargo bench --verbose
+          
+      - name: 📤 Upload performance results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-test-results-${{ matrix.test-scenario }}
+          path: |
+            brezn/target/criterion/
+            brezn/performance_report.html
+          retention-days: 30
+
+  # Stress Tests (1 week equivalent - run daily)
+  stress-tests:
+    name: 🔥 Stress Tests
+    runs-on: ubuntu-latest
+    needs: performance-tests
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        stress-level: [low, medium, high, extreme]
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: stable-linux-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install stress testing tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev stress-ng
+          
+      - name: 🧪 Run stress tests
+        run: |
+          cd brezn
+          case "${{ matrix.stress-level }}" in
+            "low")
+              cargo test --test stress_tests test_stress_high_load --verbose
+              ;;
+            "medium")
+              cargo test --test stress_tests test_stress_network_partitions --verbose
+              ;;
+            "high")
+              cargo test --test stress_tests test_stress_failure_recovery --verbose
+              ;;
+            "extreme")
+              cargo test --test stress_tests test_stress_stability_long_run --verbose
+              ;;
+          esac
+          
+      - name: 📊 Generate stress test report
+        run: |
+          cd brezn
+          cargo test --test stress_tests --verbose -- --nocapture
+          
+      - name: 📤 Upload stress test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: stress-test-results-${{ matrix.stress-level }}
+          path: |
+            brezn/stress_test_report.html
+            brezn/test_results.env
+          retention-days: 30
+
+  # Advanced Integration Tests
+  advanced-integration-tests:
+    name: 🌐 Advanced Integration Tests
+    runs-on: ubuntu-latest
+    needs: stress-tests
+    timeout-minutes: 45
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: stable-linux-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install network tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev netcat-openbsd iperf3
+          
+      - name: 🧪 Run advanced integration tests
+        run: |
+          cd brezn
+          cargo test --test advanced_integration_tests --verbose
+          
+      - name: 📊 Generate integration report
+        run: |
+          cd brezn
+          cargo test --test advanced_integration_tests --verbose -- --nocapture
+          
+      - name: 📤 Upload integration results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: advanced-integration-test-results
+          path: |
+            brezn/integration_test_report.html
+            brezn/test_results.env
+          retention-days: 30
+
+  # Test Coverage Analysis
+  coverage-analysis:
+    name: 📊 Test Coverage Analysis
+    runs-on: ubuntu-latest
+    needs: advanced-integration-tests
+    timeout-minutes: 30
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: stable-linux-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+          cargo install cargo-tarpaulin
+          
+      - name: 🧪 Run coverage analysis
+        run: |
+          cd brezn
+          cargo test --test test_coverage --verbose
+          
+      - name: 📊 Generate coverage report
+        run: |
+          cd brezn
+          cargo tarpaulin --out Html --output-dir coverage
+          
+      - name: 📤 Upload coverage results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage-analysis-results
+          path: |
+            brezn/coverage/
+            brezn/coverage_report.html
+            brezn/test_results.env
+          retention-days: 30
+
+  # Comprehensive Test Runner
+  comprehensive-test-runner:
+    name: 🚀 Comprehensive Test Runner
+    runs-on: ubuntu-latest
+    needs: [integration-tests, performance-tests, stress-tests, advanced-integration-tests, coverage-analysis]
+    timeout-minutes: 120
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: stable-linux-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: 🔧 Install all testing tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev stress-ng iperf3 htop iotop
+          
+      - name: 🧪 Run comprehensive test suite
+        run: |
+          cd brezn
+          cargo test --test test_runner --verbose
+          
+      - name: 📊 Generate comprehensive report
+        run: |
+          cd brezn
+          cargo test --test test_runner --verbose -- --nocapture
+          
+      - name: 📤 Upload comprehensive results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: comprehensive-test-results
+          path: |
+            brezn/test_results.env
+            brezn/coverage_report.html
+            brezn/performance_report.html
+            brezn/stress_test_report.html
+            brezn/integration_test_report.html
+          retention-days: 30
+
+  # Quality Gate
+  quality-gate:
+    name: 🎯 Quality Gate
+    runs-on: ubuntu-latest
+    needs: comprehensive-test-runner
+    timeout-minutes: 10
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📥 Download test results
+        uses: actions/download-artifact@v3
+        with:
+          name: comprehensive-test-results
+          path: ./test-results
+          
+      - name: 🔍 Analyze test results
+        run: |
+          if [ -f "./test-results/test_results.env" ]; then
+            source "./test-results/test_results.env"
+            echo "Test Results Analysis:"
+            echo "Total Tests: $TOTAL_TESTS"
+            echo "Passed Tests: $PASSED_TESTS"
+            echo "Failed Tests: $FAILED_TESTS"
+            echo "Success Rate: $SUCCESS_RATE"
+            echo "Exit Success: $EXIT_SUCCESS"
+            
+            # Quality gate checks
+            if [ "$EXIT_SUCCESS" = "true" ]; then
+              echo "✅ Quality Gate PASSED - All critical tests passed"
+              exit 0
+            else
+              echo "❌ Quality Gate FAILED - Critical tests failed"
+              exit 1
+            fi
+          else
+            echo "❌ Test results file not found"
+            exit 1
+          fi
+          
+      - name: 📊 Generate quality report
+        run: |
+          echo "## Quality Gate Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -f "./test-results/test_results.env" ]; then
+            source "./test-results/test_results.env"
+            echo "- **Total Tests:** $TOTAL_TESTS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Passed Tests:** $PASSED_TESTS ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- **Failed Tests:** $FAILED_TESTS ❌" >> $GITHUB_STEP_SUMMARY
+            echo "- **Success Rate:** $SUCCESS_RATE%" >> $GITHUB_STEP_SUMMARY
+            echo "- **Quality Gate:** $([ "$EXIT_SUCCESS" = "true" ] && echo "PASSED ✅" || echo "FAILED ❌")" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Security and Compliance Checks
+  security-checks:
+    name: 🔒 Security & Compliance
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    timeout-minutes: 30
+        
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🦀 Setup Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: 🔍 Run security audit
+        run: |
+          cd brezn
+          cargo audit --version || cargo install cargo-audit
+          cargo audit
+          
+      - name: 🔍 Run clippy checks
+        run: |
+          cd brezn
+          cargo clippy -- -D warnings
+          
+      - name: 🔍 Run format check
+        run: |
+          cd brezn
+          cargo fmt -- --check
+          
+      - name: 📊 Generate security report
+        run: |
+          echo "## Security & Compliance Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security audit completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code quality checks passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Formatting standards met" >> $GITHUB_STEP_SUMMARY
+
+  # Final Status
+  final-status:
+    name: 🎯 Final Status
+    runs-on: ubuntu-latest
+    needs: [quality-gate, security-checks]
+    timeout-minutes: 5
+        
+    steps:
+      - name: 📊 Generate final status report
+        run: |
+          echo "## 🎉 Brezn Comprehensive Testing Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Suites Executed:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ Performance Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔥 Stress Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 Advanced Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Test Coverage Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚀 Comprehensive Test Runner" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Security & Compliance Checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quality Metrics:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Coverage:** ≥80% target" >> $GITHUB_STEP_SUMMARY
+          echo "- **Performance:** Benchmarked and validated" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stability:** Stress tested and verified" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security:** Audited and compliant" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎯 **All quality gates passed!** The Brezn project meets enterprise-grade testing standards." >> $GITHUB_STEP_SUMMARY
