@@ -4,13 +4,13 @@
 
 Nutzer posten anonyme Beiträge in einen öffentlichen Feed. Alle Netzwerk‑Teilnehmer sehen alle Posts. Komplett dezentral, keine Server, Open Source (Ziel: F‑Droid).
 
-## 🚨 **WICHTIG: Projektstatus korrigiert (Dezember 2024)**
+## 🚨 **WICHTIG: Projektstatus korrigiert (19. Dezember 2024)**
 
 **Der ursprüngliche Fortschritt von 70% war irreführend.** Das Projekt ist tatsächlich zu **45% abgeschlossen**.
 
 **Grund**: Platzhalter-Implementierungen wurden als funktional bewertet, obwohl sie keine echte Funktionalität bieten.
 
-**Für den aktuellen, ehrlichen Projektstatus siehe**: `docs/PROJECT_STATUS_ACTUAL.md`
+**Für den aktuellen, ehrlichen Projektstatus siehe**: [`docs/PROJECT_STATUS_ACTUAL.md`](docs/PROJECT_STATUS_ACTUAL.md)
 
 ---
 
@@ -119,7 +119,7 @@ pub struct Config {
 }
 ```
 
-## 🚨 **Aktuelle Einschränkungen (Dezember 2024)**
+## 🚨 **Aktuelle Einschränkungen (19. Dezember 2024)**
 
 ### **Funktional (45%)**
 - ✅ Posts erstellen und anzeigen
@@ -144,19 +144,19 @@ pub struct Config {
 ## 📚 **Dokumentation**
 
 ### **Aktuelle, ehrliche Bewertung**
-- `docs/PROJECT_STATUS_ACTUAL.md` - Ehrliche Projektbewertung
-- `docs/ROADMAP_DETAILED.md` - Korrigierte Roadmap (5 Wochen MVP)
-- `docs/PHASE2_PROGRESS.md` - Aktualisierter Fortschritt
+- [`docs/PROJECT_STATUS_ACTUAL.md`](docs/PROJECT_STATUS_ACTUAL.md) - Ehrliche Projektbewertung
+- [`docs/ROADMAP_DETAILED.md`](docs/ROADMAP_DETAILED.md) - Korrigierte Roadmap (5 Wochen MVP)
+- [`docs/PHASE2_PROGRESS.md`](docs/PHASE2_PROGRESS.md) - Aktualisierter Fortschritt
 
 ### **Technische Dokumentation**
-- `docs/API.md` - API-Referenz mit Funktionsstatus
-- `docs/architecture.md` - Netzwerkarchitektur
-- `docs/INSTALL.md` - Installationsanleitung
+- [`docs/API.md`](docs/API.md) - API-Referenz mit Funktionsstatus
+- [`docs/architecture.md`](docs/architecture.md) - Netzwerkarchitektur
+- [`docs/INSTALL.md`](docs/INSTALL.md) - Installationsanleitung
 
 ### **Entwicklungsdokumentation**
-- `docs/REPOSITORY_SECURITY_SETUP.md` - Sicherheitssetup
-- `docs/mobile-setup.md` - Mobile-Entwicklung
-- `CONTRIBUTING.md` - Beitragsrichtlinien
+- [`docs/REPOSITORY_SECURITY_SETUP.md`](docs/REPOSITORY_SECURITY_SETUP.md) - Sicherheitssetup
+- [`docs/mobile-setup.md`](docs/mobile-setup.md) - Mobile-Entwicklung
+- [`CONTRIBUTING.md`](../CONTRIBUTING.md) - Beitragsrichtlinien
 
 ## 🎯 **Nächste Schritte**
 
@@ -183,4 +183,4 @@ pub struct Config {
 
 ---
 
-**Für detaillierte Informationen siehe die aktualisierten Dokumentationen in `docs/`**
+**Für detaillierte Informationen siehe die aktualisierten Dokumentationen in [`docs/`](docs/)**
