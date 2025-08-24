@@ -1,65 +1,108 @@
-use brezn::{BreznApp, types::Config, tor_tests};
-use anyhow::Result;
 use std::env;
+use brezn::{BreznApp, types::Config};
 
-fn main() -> Result<()> {
-    println!("🚀 Brezn CLI wird gestartet...");
-    
-    // Check for command line arguments
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     
-    if args.len() > 1 {
-        match args[1].as_str() {
-            "tor-test" => {
-                println!("🧪 Running Tor integration tests...");
-                tokio::runtime::Runtime::new()?.block_on(async {
-                    tor_tests::run_tor_integration_tests().await
-                })?;
+    if args.len() < 2 {
+        println!("Brezn CLI");
+        println!("Usage: brezn-cli <command> [args...]");
+        println!("Commands:");
+        println!("  post <content> [pseudonym] - Create a new post");
+        println!("  list                       - List all posts");
+        println!("  connect <address> <port>   - Connect to a peer");
+        println!("  status                     - Show network status");
+        println!("  qr                         - Generate QR code");
+        println!("  discovery                  - Show discovered peers");
+        return Ok(());
+    }
+
+    let config = Config::default();
+    let app = BreznApp::new(config)?;
+    app.start().await?;
+
+    match args[1].as_str() {
+        "post" => {
+            if args.len() < 3 {
+                println!("Usage: brezn-cli post <content> [pseudonym]");
                 return Ok(());
             }
-            "tor-status" => {
-                println!("📊 Tor status check...");
-                // This would show current Tor status
-                println!("✅ Tor status check completed");
-                return Ok(());
-            }
-            "help" => {
-                println!("📖 Available commands:");
-                println!("  tor-test    - Run Tor integration tests");
-                println!("  tor-status  - Show Tor status");
-                println!("  help        - Show this help");
-                println!("  (no args)   - Start normal CLI mode");
-                return Ok(());
-            }
-            _ => {
-                println!("❌ Unknown command: {}", args[1]);
-                println!("Use 'help' for available commands");
-                return Ok(());
+            let content = args[2].clone();
+            let pseudonym = args.get(3).cloned();
+            
+            match app.create_post(content.clone(), pseudonym.clone()) {
+                Ok(id) => println!("✅ Post created with ID: {}", id),
+                Err(e) => println!("❌ Failed to create post: {}", e),
             }
         }
+        
+        "list" => {
+            match app.get_posts() {
+                Ok(posts) => {
+                    if posts.is_empty() {
+                        println!("No posts found.");
+                    } else {
+                        println!("📝 Posts:");
+                        for post in posts {
+                            println!("  [{}] {}: {}", 
+                                post.id.unwrap_or(0), 
+                                post.pseudonym, 
+                                post.content
+                            );
+                        }
+                    }
+                }
+                Err(e) => println!("❌ Failed to get posts: {}", e),
+            }
+        }
+        
+        "connect" => {
+            if args.len() < 4 {
+                println!("Usage: brezn-cli connect <address> <port>");
+                return Ok(());
+            }
+            let address = args[2].clone();
+            let port: u16 = args[3].parse().unwrap_or(8888);
+            
+            match app.connect_to_peer(address.clone(), port).await {
+                Ok(_) => println!("✅ Connected to {}:{}", address, port),
+                Err(e) => println!("❌ Failed to connect: {}", e),
+            }
+        }
+        
+        "status" => {
+            let status = app.get_network_status();
+            println!("🌐 Network Status:");
+            println!("  Enabled: {}", status.is_enabled);
+            println!("  Peers: {}", status.peer_count);
+            println!("  Bytes sent: {}", status.bytes_sent);
+            println!("  Bytes received: {}", status.bytes_received);
+        }
+        
+        "qr" => {
+            match app.generate_qr_code() {
+                Ok(qr) => println!("📱 QR Code generated: {}", qr),
+                Err(e) => println!("❌ Failed to generate QR code: {}", e),
+            }
+        }
+        
+        "discovery" => {
+            let peers = app.get_discovered_peers();
+            let peer_count = app.get_discovery_peer_count();
+            
+            println!("🔍 Discovery Status:");
+            println!("  Discovered peers: {}", peer_count);
+            for peer in peers {
+                println!("  - {} ({}:{})", peer.node_id, peer.address, peer.port);
+            }
+        }
+        
+        _ => {
+            println!("Unknown command: {}", args[1]);
+            println!("Run 'brezn-cli' without arguments to see available commands.");
+        }
     }
-    
-    // Initialize configuration
-    let config = Config {
-        auto_save: true,
-        max_posts: 1000,
-        default_pseudonym: "AnonymBrezn".to_string(),
-        network_enabled: true,
-        network_port: 8888,
-        tor_enabled: false,
-        tor_socks_port: 9050,
-    };
-    
-    // Initialize the app
-    let _app = BreznApp::new(config)?;
-    
-    println!("✅ Brezn CLI initialisiert");
-    println!("📝 Verwenden Sie die Web-UI unter http://localhost:8080");
-    println!("🔒 Tor-Tests: ./brezn-cli tor-test");
-    println!("📊 Tor-Status: ./brezn-cli tor-status");
-    
-    // Keep the CLI running
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
+
+    Ok(())
 }
