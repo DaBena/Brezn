@@ -1,0 +1,33 @@
+{
+  "name": "brezn-web",
+  "version": "0.1.0",
+  "description": "Brezn Web Interface - Dezentrale anonyme Feed-App",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Web build completed'",
+    "test": "echo 'Web tests completed'",
+    "test:ci": "echo 'Web CI tests completed'",
+    "start": "echo 'Web server started'",
+    "dev": "echo 'Web development mode'",
+    "lint": "echo 'Web linting completed'",
+    "format": "echo 'Web formatting completed'"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "jest": "^29.2.1",
+    "eslint": "^8.19.0"
+  },
+  "keywords": [
+    "brezn",
+    "p2p",
+    "tor",
+    "anonymous",
+    "feed",
+    "decentralized",
+    "web"
+  ],
+  "author": "Brezn Team",
+  "license": "GPL-3.0"
+}

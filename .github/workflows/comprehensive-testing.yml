@@ -75,7 +75,7 @@ jobs:
       - name: 🧪 Run integration tests
         run: |
           cd brezn
-          cargo test --test integration_test --test p2p_integration_tests --test p2p_network_test --test post_sync_tests --test qr_code_tests --verbose
+          cargo test --test integration_tests --test p2p_integration_tests --test p2p_network_test --test post_sync_tests --test qr_code_tests --verbose
           
       - name: 📊 Upload test results
         uses: actions/upload-artifact@v3
