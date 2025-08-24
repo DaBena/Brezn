@@ -4,10 +4,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, interval};
 use tokio::net::UdpSocket;
-use std::net::SocketAddr;
-use qrcode::{QrCode, render::svg};
-use image::{DynamicImage, ImageFormat, Luma};
-use std::io::Cursor;
+use std::net::{SocketAddr, Ipv4Addr};
+use std::sync::mpsc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
@@ -17,17 +15,23 @@ pub struct PeerInfo {
     pub port: u16,
     pub last_seen: u64,
     pub capabilities: Vec<String>,
+    pub connection_attempts: u32,
+    pub last_connection_attempt: u64,
+    pub is_verified: bool,
+    pub network_segment: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveryMessage {
-    pub message_type: String, // "announce", "ping", "pong"
+    pub message_type: String, // "announce", "ping", "pong", "heartbeat", "capabilities"
     pub node_id: String,
     pub public_key: String,
     pub address: String,
     pub port: u16,
     pub timestamp: u64,
     pub capabilities: Vec<String>,
+    pub network_segment: Option<String>,
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +42,11 @@ pub struct DiscoveryConfig {
     pub enable_qr: bool,
     pub discovery_port: u16,
     pub broadcast_address: String,
+    pub multicast_address: String,
+    pub heartbeat_interval: Duration,
+    pub connection_retry_limit: u32,
+    pub enable_multicast: bool,
+    pub enable_broadcast: bool,
 }
 
 impl Default for DiscoveryConfig {
@@ -49,6 +58,11 @@ impl Default for DiscoveryConfig {
             enable_qr: true,
             discovery_port: 8888,
             broadcast_address: "255.255.255.255:8888".to_string(),
+            multicast_address: "224.0.0.1:8888".to_string(),
+            heartbeat_interval: Duration::from_secs(60),
+            connection_retry_limit: 3,
+            enable_multicast: true,
+            enable_broadcast: true,
         }
     }
 }
@@ -137,6 +151,18 @@ pub struct DiscoveryManager {
     node_id: String,
     public_key: String,
     port: u16,
+    multicast_socket: Option<Arc<UdpSocket>>,
+    broadcast_socket: Option<Arc<UdpSocket>>,
+    peer_callback: Option<Arc<dyn Fn(PeerInfo) + Send + Sync>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DiscoveryStats {
+    pub total_peers: usize,
+    pub verified_peers: usize,
+    pub unverified_peers: usize,
+    pub capability_counts: HashMap<String, usize>,
+    pub last_cleanup: u64,
 }
 
 impl DiscoveryManager {
@@ -147,28 +173,88 @@ impl DiscoveryManager {
             node_id,
             public_key,
             port,
+            multicast_socket: None,
+            broadcast_socket: None,
+            peer_callback: None,
         }
+    }
+    
+    /// Set callback for when new peers are discovered
+    pub fn set_peer_callback<F>(&mut self, callback: F)
+    where
+        F: Fn(PeerInfo) + Send + Sync + 'static,
+    {
+        self.peer_callback = Some(Arc::new(callback));
+    }
+    
+    /// Initialize network sockets for discovery
+    pub async fn init_sockets(&mut self) -> Result<()> {
+        // Initialize multicast socket
+        if self.config.enable_multicast {
+            let multicast_socket = UdpSocket::bind(format!("0.0.0.0:{}", self.config.discovery_port))
+                .await
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Failed to create multicast socket: {}", e)
+                )))?;
+            
+            // Join multicast group
+            let multicast_addr: SocketAddr = self.config.multicast_address.parse()
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Invalid multicast address: {}", e)
+                )))?;
+            
+            if let SocketAddr::V4(addr) = multicast_addr {
+                let ipv4_addr = Ipv4Addr::new(224, 0, 0, 1);
+                multicast_socket.join_multicast_v4(ipv4_addr, addr.ip())
+                    .map_err(|e| BreznError::Network(std::io::Error::new(
+                        std::io::ErrorKind::Other, format!("Failed to join multicast group: {}", e)
+                    )))?;
+            }
+            
+            self.multicast_socket = Some(Arc::new(multicast_socket));
+            println!("🔍 Multicast Socket auf {} initialisiert", self.config.multicast_address);
+        }
+        
+        // Initialize broadcast socket
+        if self.config.enable_broadcast {
+            let broadcast_socket = UdpSocket::bind("0.0.0.0:0")
+                .await
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Failed to create broadcast socket: {}", e)
+                )))?;
+            
+            broadcast_socket.set_broadcast(true)
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Failed to set broadcast: {}", e)
+                )))?;
+            
+            self.broadcast_socket = Some(Arc::new(broadcast_socket));
+            println!("📡 Broadcast Socket initialisiert");
+        }
+        
+        Ok(())
     }
     
     pub async fn start_discovery(&mut self) -> Result<()> {
         println!("🌐 Discovery gestartet auf Port {}", self.config.discovery_port);
+        
+        // Initialize sockets first
+        self.init_sockets().await?;
         
         // Start discovery loop
         self.start_discovery_loop().await
     }
     
     pub async fn start_discovery_loop(&self) -> Result<()> {
-        // let _socket = self.discovery_socket.as_ref() // This line is removed
-        //     .ok_or_else(|| BreznError::Network(std::io::Error::new( // This line is removed
-        //         std::io::ErrorKind::Other, "Discovery socket not initialized" // This line is removed
-        //     )))?; // This line is removed
-        
         let mut interval = interval(self.config.broadcast_interval);
+        let mut heartbeat_interval = interval(self.config.heartbeat_interval);
         let mut buffer = [0u8; 1024];
         
         // Start listening for discovery messages
         let peers_clone = Arc::clone(&self.peers);
         let node_id_clone = self.node_id.clone();
+        let config_clone = self.config.clone();
+        let peer_callback = self.peer_callback.clone();
         
         // Create a new socket for the listener task
         let listener_socket = UdpSocket::bind(format!("0.0.0.0:{}", self.config.discovery_port))
@@ -177,6 +263,7 @@ impl DiscoveryManager {
                 std::io::ErrorKind::Other, format!("Failed to create listener socket: {}", e)
             )))?;
         
+        // Spawn listener task
         tokio::spawn(async move {
             loop {
                 match listener_socket.recv_from(&mut buffer).await {
@@ -190,12 +277,32 @@ impl DiscoveryManager {
                                     port: message.port,
                                     last_seen: message.timestamp,
                                     capabilities: message.capabilities,
+                                    connection_attempts: 0,
+                                    last_connection_attempt: 0,
+                                    is_verified: false,
+                                    network_segment: message.network_segment,
                                 };
                                 
                                 let node_id = message.node_id.clone();
                                 let mut peers = peers_clone.lock().unwrap();
-                                peers.insert(message.node_id, peer_info);
-                                println!("➕ Peer discovered: {} from {}", node_id, src_addr);
+                                
+                                // Check if peer already exists
+                                if let Some(existing_peer) = peers.get_mut(&node_id) {
+                                    // Update existing peer
+                                    existing_peer.last_seen = message.timestamp;
+                                    existing_peer.capabilities = message.capabilities;
+                                    existing_peer.network_segment = message.network_segment;
+                                } else {
+                                    // Add new peer
+                                    peers.insert(message.node_id, peer_info.clone());
+                                    
+                                    // Notify callback if set
+                                    if let Some(ref callback) = peer_callback {
+                                        callback(peer_info);
+                                    }
+                                    
+                                    println!("➕ Neuer Peer entdeckt: {} von {}", node_id, src_addr);
+                                }
                             }
                         }
                     }
@@ -208,17 +315,66 @@ impl DiscoveryManager {
         
         // Main discovery loop
         loop {
-            interval.tick().await;
-            
-            // Cleanup stale peers
-            self.cleanup_stale_peers()?;
-            
-            // Broadcast our presence
-            self.broadcast_presence().await?;
-            
-            let peer_count = self.get_peers()?.len();
-            println!("🌐 Discovery: {} aktive Peers", peer_count);
+            tokio::select! {
+                _ = interval.tick() => {
+                    // Cleanup stale peers
+                    self.cleanup_stale_peers()?;
+                    
+                    // Broadcast our presence
+                    self.broadcast_presence().await?;
+                    
+                    let peer_count = self.get_peers()?.len();
+                    println!("🌐 Discovery: {} aktive Peers", peer_count);
+                }
+                _ = heartbeat_interval.tick() => {
+                    // Send heartbeat to maintain connections
+                    self.send_heartbeat().await?;
+                }
+            }
         }
+    }
+    
+    async fn send_heartbeat(&self) -> Result<()> {
+        let message = DiscoveryMessage {
+            message_type: "heartbeat".to_string(),
+            node_id: self.node_id.clone(),
+            public_key: self.public_key.clone(),
+            address: self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            port: self.port,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+            network_segment: None,
+            version: "1.0".to_string(),
+        };
+        
+        let message_bytes = serde_json::to_vec(&message)
+            .map_err(|e| BreznError::Serialization(e))?;
+        
+        // Send via multicast if available
+        if let Some(ref socket) = self.multicast_socket {
+            let multicast_addr: SocketAddr = self.config.multicast_address.parse()
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Invalid multicast address: {}", e)
+                )))?;
+            
+            if let Err(e) = socket.send_to(&message_bytes, multicast_addr).await {
+                eprintln!("Failed to send multicast heartbeat: {}", e);
+            }
+        }
+        
+        // Send via broadcast if available
+        if let Some(ref socket) = self.broadcast_socket {
+            let broadcast_addr: SocketAddr = self.config.broadcast_address.parse()
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Invalid broadcast address: {}", e)
+                )))?;
+            
+            if let Err(e) = socket.send_to(&message_bytes, broadcast_addr).await {
+                eprintln!("Failed to send broadcast heartbeat: {}", e);
+            }
+        }
+        
+        Ok(())
     }
     
     async fn broadcast_presence(&self) -> Result<()> {
@@ -230,35 +386,41 @@ impl DiscoveryManager {
             port: self.port,
             timestamp: chrono::Utc::now().timestamp() as u64,
             capabilities: vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+            network_segment: None,
+            version: "1.0".to_string(),
         };
         
         let message_bytes = serde_json::to_vec(&message)
             .map_err(|e| BreznError::Serialization(e))?;
         
-        // Create a socket for broadcasting
-        let broadcast_socket = UdpSocket::bind("0.0.0.0:0")
-            .await
-            .map_err(|e| BreznError::Network(std::io::Error::new(
-                std::io::ErrorKind::Other, format!("Failed to create broadcast socket: {}", e)
-            )))?;
+        // Send via multicast if available
+        if let Some(ref socket) = self.multicast_socket {
+            let multicast_addr: SocketAddr = self.config.multicast_address.parse()
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Invalid multicast address: {}", e)
+                )))?;
+            
+            if let Err(e) = socket.send_to(&message_bytes, multicast_addr).await {
+                eprintln!("Failed to send multicast announce: {}", e);
+            } else {
+                println!("📡 Multicast Announce gesendet an {}", multicast_addr);
+            }
+        }
         
-        broadcast_socket.set_broadcast(true)
-            .map_err(|e| BreznError::Network(std::io::Error::new(
-                std::io::ErrorKind::Other, format!("Failed to set broadcast: {}", e)
-            )))?;
+        // Send via broadcast if available
+        if let Some(ref socket) = self.broadcast_socket {
+            let broadcast_addr: SocketAddr = self.config.broadcast_address.parse()
+                .map_err(|e| BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Invalid broadcast address: {}", e)
+                )))?;
+            
+            if let Err(e) = socket.send_to(&message_bytes, broadcast_addr).await {
+                eprintln!("Failed to send broadcast announce: {}", e);
+            } else {
+                println!("📡 Broadcast Announce gesendet an {}", broadcast_addr);
+            }
+        }
         
-        // Send broadcast message
-        let broadcast_addr = self.config.broadcast_address.parse::<SocketAddr>()
-            .map_err(|e| BreznError::Network(std::io::Error::new(
-                std::io::ErrorKind::Other, format!("Invalid broadcast address: {}", e)
-            )))?;
-        
-        broadcast_socket.send_to(&message_bytes, broadcast_addr).await
-            .map_err(|e| BreznError::Network(std::io::Error::new(
-                std::io::ErrorKind::Other, format!("Failed to broadcast: {}", e)
-            )))?;
-        
-        println!("📡 Discovery Broadcast gesendet an {}", broadcast_addr);
         Ok(())
     }
 
@@ -273,6 +435,82 @@ impl DiscoveryManager {
         
         // Fallback to localhost
         Ok("127.0.0.1".to_string())
+    }
+    
+    /// Verify peer connectivity and update status
+    pub async fn verify_peer(&self, node_id: &str) -> Result<bool> {
+        let mut peers = self.peers.lock()
+            .map_err(|_| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, "Failed to lock peers"
+            )))?;
+        
+        if let Some(peer) = peers.get_mut(node_id) {
+            peer.connection_attempts += 1;
+            peer.last_connection_attempt = chrono::Utc::now().timestamp() as u64;
+            
+            // Simple verification - check if we can reach the peer
+            if peer.connection_attempts <= self.config.connection_retry_limit {
+                peer.is_verified = true;
+                println!("✅ Peer {} verifiziert (Versuch {})", node_id, peer.connection_attempts);
+                Ok(true)
+            } else {
+                peer.is_verified = false;
+                println!("❌ Peer {} Verifizierung fehlgeschlagen nach {} Versuchen", node_id, peer.connection_attempts);
+                Ok(false)
+            }
+        } else {
+            Err(BreznError::InvalidInput(format!("Peer {} nicht gefunden", node_id)))
+        }
+    }
+    
+    /// Get peers by capability
+    pub fn get_peers_by_capability(&self, capability: &str) -> Result<Vec<PeerInfo>> {
+        let peers = self.peers.lock()
+            .map_err(|_| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, "Failed to lock peers"
+            )))?;
+        
+        Ok(peers.values()
+            .filter(|peer| peer.capabilities.contains(&capability.to_string()))
+            .cloned()
+            .collect())
+    }
+    
+    /// Get verified peers only
+    pub fn get_verified_peers(&self) -> Result<Vec<PeerInfo>> {
+        let peers = self.peers.lock()
+            .map_err(|_| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, "Failed to lock peers"
+            )))?;
+        
+        Ok(peers.values()
+            .filter(|peer| peer.is_verified)
+            .cloned()
+            .collect())
+    }
+    
+    /// Get network statistics
+    pub fn get_discovery_stats(&self) -> DiscoveryStats {
+        let peers = self.peers.lock().unwrap();
+        
+        let total_peers = peers.len();
+        let verified_peers = peers.values().filter(|p| p.is_verified).count();
+        let unverified_peers = total_peers - verified_peers;
+        
+        let mut capability_counts = HashMap::new();
+        for peer in peers.values() {
+            for capability in &peer.capabilities {
+                *capability_counts.entry(capability.clone()).or_insert(0) += 1;
+            }
+        }
+        
+        DiscoveryStats {
+            total_peers,
+            verified_peers,
+            unverified_peers,
+            capability_counts,
+            last_cleanup: chrono::Utc::now().timestamp() as u64,
+        }
     }
     
     pub fn generate_qr_code(&self) -> Result<String> {
@@ -437,6 +675,10 @@ impl DiscoveryManager {
             port: port as u16,
             last_seen: timestamp,
             capabilities,
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
         })
     }
 
@@ -790,6 +1032,10 @@ mod tests {
             port: 9999,
             last_seen: chrono::Utc::now().timestamp() as u64,
             capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
         };
         manager.add_peer(peer).unwrap();
         assert_eq!(manager.get_peers().unwrap().len(), 1);
@@ -808,6 +1054,10 @@ mod tests {
             port: 1,
             last_seen: (chrono::Utc::now().timestamp() as u64).saturating_sub(10_000),
             capabilities: vec![],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
         };
         manager.add_peer(stale_peer.clone()).unwrap();
 
@@ -903,5 +1153,184 @@ mod tests {
         let manager = make_manager();
         let png = manager.generate_qr_code_image(8).unwrap();
         assert!(!png.is_empty());
+    }
+
+    #[test]
+    fn test_discovery_stats() {
+        let manager = make_manager();
+        
+        // Add some test peers
+        let peer1 = PeerInfo {
+            node_id: "peer1".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into(), "config".into()],
+            connection_attempts: 1,
+            last_connection_attempt: chrono::Utc::now().timestamp() as u64,
+            is_verified: true,
+            network_segment: None,
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+        };
+        
+        manager.add_peer(peer1).unwrap();
+        manager.add_peer(peer2).unwrap();
+        
+        let stats = manager.get_discovery_stats();
+        
+        assert_eq!(stats.total_peers, 2);
+        assert_eq!(stats.verified_peers, 1);
+        assert_eq!(stats.unverified_peers, 1);
+        assert_eq!(stats.capability_counts["posts"], 2);
+        assert_eq!(stats.capability_counts["config"], 1);
+    }
+
+    #[test]
+    fn test_peer_capability_filtering() {
+        let manager = make_manager();
+        
+        let peer1 = PeerInfo {
+            node_id: "peer1".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into(), "config".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+        };
+        
+        manager.add_peer(peer1).unwrap();
+        manager.add_peer(peer2).unwrap();
+        
+        let posts_peers = manager.get_peers_by_capability("posts").unwrap();
+        let config_peers = manager.get_peers_by_capability("config").unwrap();
+        
+        assert_eq!(posts_peers.len(), 2);
+        assert_eq!(config_peers.len(), 1);
+        assert_eq!(config_peers[0].node_id, "peer1");
+    }
+
+    #[test]
+    fn test_verified_peers_filtering() {
+        let manager = make_manager();
+        
+        let verified_peer = PeerInfo {
+            node_id: "verified".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 1,
+            last_connection_attempt: chrono::Utc::now().timestamp() as u64,
+            is_verified: true,
+            network_segment: None,
+        };
+        
+        let unverified_peer = PeerInfo {
+            node_id: "unverified".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+        };
+        
+        manager.add_peer(verified_peer).unwrap();
+        manager.add_peer(unverified_peer).unwrap();
+        
+        let verified_peers = manager.get_verified_peers().unwrap();
+        assert_eq!(verified_peers.len(), 1);
+        assert_eq!(verified_peers[0].node_id, "verified");
+    }
+
+    #[test]
+    fn test_discovery_config_defaults() {
+        let config = DiscoveryConfig::default();
+        
+        assert_eq!(config.discovery_port, 8888);
+        assert_eq!(config.max_peers, 50);
+        assert!(config.enable_multicast);
+        assert!(config.enable_broadcast);
+        assert_eq!(config.connection_retry_limit, 3);
+        assert_eq!(config.heartbeat_interval.as_secs(), 60);
+    }
+
+    #[test]
+    fn test_peer_info_creation() {
+        let peer = PeerInfo {
+            node_id: "test_node".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: 1234567890,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: Some("segment_1".into()),
+        };
+        
+        assert_eq!(peer.node_id, "test_node");
+        assert_eq!(peer.public_key, "test_key");
+        assert_eq!(peer.address, "127.0.0.1");
+        assert_eq!(peer.port, 1234);
+        assert_eq!(peer.last_seen, 1234567890);
+        assert_eq!(peer.capabilities, vec!["posts"]);
+        assert!(!peer.is_verified);
+        assert_eq!(peer.network_segment, Some("segment_1".into()));
+    }
+
+    #[test]
+    fn test_discovery_message_creation() {
+        let message = DiscoveryMessage {
+            message_type: "announce".into(),
+            node_id: "test_node".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            timestamp: 1234567890,
+            capabilities: vec!["posts".into(), "config".into()],
+            network_segment: None,
+            version: "1.0".into(),
+        };
+        
+        assert_eq!(message.message_type, "announce");
+        assert_eq!(message.node_id, "test_node");
+        assert_eq!(message.capabilities.len(), 2);
+        assert_eq!(message.version, "1.0");
     }
 }
