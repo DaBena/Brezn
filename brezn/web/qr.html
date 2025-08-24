@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brezn - QR-Code System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .qr-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .qr-section h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+            font-size: 1.5em;
+        }
+        
+        .qr-display {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+        
+        .qr-code {
+            max-width: 200px;
+            margin: 0 auto 15px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .qr-code img {
+            width: 100%;
+            height: auto;
+        }
+        
+        .qr-code svg {
+            width: 100%;
+            height: auto;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #51cf66, #40c057);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+        }
+        
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .format-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .format-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .format-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .format-option.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #ffd700;
+        }
+        
+        .qr-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: rgba(81, 207, 102, 0.2);
+            border: 1px solid rgba(81, 207, 102, 0.5);
+            color: #51cf66;
+        }
+        
+        .status.error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.5);
+            color: #ff6b6b;
+        }
+        
+        .status.info {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            color: #667eea;
+        }
+        
+        .download-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .download-section h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+        
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #51cf66, #40c057);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .validation-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        
+        .validation-result.valid {
+            background: rgba(81, 207, 102, 0.1);
+            border-left-color: #51cf66;
+        }
+        
+        .validation-result.invalid {
+            background: rgba(255, 107, 107, 0.1);
+            border-left-color: #ff6b6b;
+        }
+        
+        @media (max-width: 768px) {
+            .qr-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Brezn QR-Code System</h1>
+            <p>Erweiterte QR-Code-Generierung und -Verarbeitung für das dezentrale Netzwerk</p>
+        </div>
+        
+        <div class="qr-grid">
+            <!-- QR-Code Generierung -->
+            <div class="qr-section">
+                <h2>📱 QR-Code Generieren</h2>
+                <p>Generiere einen QR-Code mit deinen Peer-Informationen für andere Netzwerk-Teilnehmer.</p>
+                
+                <div class="format-selector">
+                    <div class="format-option active" data-format="png">PNG</div>
+                    <div class="format-option" data-format="svg">SVG</div>
+                    <div class="format-option" data-format="json">JSON</div>
+                    <div class="format-option" data-format="all">Alle Formate</div>
+                </div>
+                
+                <button onclick="generateQRCode()" class="btn">QR-Code generieren</button>
+                
+                <div id="qr-display" class="qr-display" style="display: none;">
+                    <div id="qr-code" class="qr-code"></div>
+                    <div id="qr-info" class="qr-info"></div>
+                </div>
+                
+                <div id="download-section" class="download-section" style="display: none;">
+                    <h3>📥 Download Optionen</h3>
+                    <div class="download-buttons">
+                        <a id="download-png" class="download-btn" download="brezn-qr.png">PNG herunterladen</a>
+                        <a id="download-svg" class="download-btn" download="brezn-qr.svg">SVG herunterladen</a>
+                        <a id="download-json" class="download-btn" download="brezn-qr.json">JSON herunterladen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- QR-Code Parsing -->
+            <div class="qr-section">
+                <h2>🔍 QR-Code Verarbeiten</h2>
+                <p>Verarbeite QR-Codes von anderen Netzwerk-Teilnehmern und trete dem Netzwerk bei.</p>
+                
+                <div class="form-group">
+                    <label for="qr-input">QR-Code-Daten eingeben:</label>
+                    <textarea id="qr-input" placeholder="Füge hier QR-Code-Daten ein (JSON, Base64, oder Bild-URL)..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="qr-file">Oder Datei hochladen:</label>
+                    <input type="file" id="qr-file" accept="image/*,.json,.txt">
+                </div>
+                
+                <button onclick="parseQRCode()" class="btn btn-success">QR-Code verarbeiten</button>
+                <button onclick="validateQRCode()" class="btn btn-secondary">Nur validieren</button>
+                
+                <div id="parse-result"></div>
+                <div id="validation-result"></div>
+            </div>
+        </div>
+        
+        <!-- Erweiterte Funktionen -->
+        <div class="qr-section" style="grid-column: 1 / -1;">
+            <h2>⚙️ Erweiterte QR-Code-Funktionen</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h3>🔧 QR-Code-Einstellungen</h3>
+                    <div class="form-group">
+                        <label for="qr-size">QR-Code-Größe:</label>
+                        <select id="qr-size">
+                            <option value="100">100x100</option>
+                            <option value="200" selected>200x200</option>
+                            <option value="300">300x300</option>
+                            <option value="400">400x400</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="qr-error-correction">Fehlerkorrektur:</label>
+                        <select id="qr-error-correction">
+                            <option value="L">Niedrig (7%)</option>
+                            <option value="M" selected>Mittel (15%)</option>
+                            <option value="Q">Hoch (25%)</option>
+                            <option value="H">Maximal (30%)</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="applySettings()" class="btn">Einstellungen anwenden</button>
+                </div>
+                
+                <div>
+                    <h3>📊 QR-Code-Statistiken</h3>
+                    <div id="qr-stats">
+                        <p><strong>Generierte QR-Codes:</strong> <span id="generated-count">0</span></p>
+                        <p><strong>Verarbeitete QR-Codes:</strong> <span id="parsed-count">0</span></p>
+                        <p><strong>Erfolgreiche Verbindungen:</strong> <span id="success-count">0</span></p>
+                        <p><strong>Fehlerrate:</strong> <span id="error-rate">0%</span></p>
+                    </div>
+                    
+                    <button onclick="resetStats()" class="btn btn-secondary">Statistiken zurücksetzen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentQRData = null;
+        let stats = {
+            generated: 0,
+            parsed: 0,
+            success: 0,
+            errors: 0
+        };
+        
+        // Format-Auswahl
+        document.querySelectorAll('.format-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.format-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+            });
+        });
+        
+        // QR-Code generieren
+        async function generateQRCode() {
+            try {
+                const format = document.querySelector('.format-option.active').dataset.format;
+                const size = parseInt(document.getElementById('qr-size').value);
+                
+                showStatus('Generiere QR-Code...', 'info');
+                
+                let endpoint = '/api/network/qr';
+                if (format === 'all') {
+                    endpoint = `/api/network/qr-formats?size=${size}`;
+                }
+                
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayQRCode(data, format);
+                    stats.generated++;
+                    updateStats();
+                    showStatus('QR-Code erfolgreich generiert!', 'success');
+                } else {
+                    throw new Error(data.error || 'Unbekannter Fehler');
+                }
+            } catch (error) {
+                console.error('Fehler beim Generieren des QR-Codes:', error);
+                showStatus('Fehler beim Generieren des QR-Codes: ' + error.message, 'error');
+            }
+        }
+        
+        // QR-Code anzeigen
+        function displayQRCode(data, format) {
+            const qrDisplay = document.getElementById('qr-display');
+            const qrCode = document.getElementById('qr-code');
+            const qrInfo = document.getElementById('qr-info');
+            const downloadSection = document.getElementById('download-section');
+            
+            qrDisplay.style.display = 'block';
+            downloadSection.style.display = 'block';
+            
+            if (format === 'all' && data.formats) {
+                // Alle Formate anzeigen
+                qrCode.innerHTML = `
+                    <img src="${data.formats.png_base64}" alt="QR Code PNG">
+                `;
+                
+                qrInfo.innerHTML = `
+                    <strong>Node ID:</strong> ${data.qr_data.node_id}<br>
+                    <strong>Adresse:</strong> ${data.qr_data.address}:${data.qr_data.port}<br>
+                    <strong>Zeitstempel:</strong> ${new Date(data.qr_data.timestamp * 1000).toLocaleString()}<br>
+                    <strong>Capabilities:</strong> ${data.qr_data.capabilities.join(', ')}<br>
+                    <strong>Checksum:</strong> ${data.qr_data.checksum.substring(0, 16)}...
+                `;
+                
+                // Download-Links aktualisieren
+                document.getElementById('download-png').href = data.formats.png_base64;
+                document.getElementById('download-svg').href = 'data:image/svg+xml;base64,' + btoa(data.formats.svg);
+                document.getElementById('download-json').href = 'data:application/json;base64,' + btoa(data.formats.json);
+            } else {
+                // Einzelnes Format
+                qrCode.innerHTML = `
+                    <img src="${data.qr_code}" alt="QR Code">
+                `;
+                
+                qrInfo.innerHTML = `
+                    <strong>Node ID:</strong> ${data.qr_data.node_id}<br>
+                    <strong>Adresse:</strong> ${data.qr_data.address}:${data.qr_data.port}<br>
+                    <strong>Zeitstempel:</strong> ${new Date(data.qr_data.timestamp * 1000).toLocaleString()}
+                `;
+            }
+            
+            currentQRData = data;
+        }
+        
+        // QR-Code verarbeiten
+        async function parseQRCode() {
+            const qrInput = document.getElementById('qr-input').value.trim();
+            const qrFile = document.getElementById('qr-file').files[0];
+            
+            if (!qrInput && !qrFile) {
+                showStatus('Bitte gib QR-Code-Daten ein oder lade eine Datei hoch!', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Verarbeite QR-Code...', 'info');
+                
+                let qrData = qrInput;
+                
+                if (qrFile) {
+                    qrData = await readFileAsText(qrFile);
+                }
+                
+                const response = await fetch('/api/network/parse-qr-advanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        qr_data: qrData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayParseResult(result);
+                    stats.parsed++;
+                    stats.success++;
+                    updateStats();
+                    showStatus('QR-Code erfolgreich verarbeitet!', 'success');
+                } else {
+                    throw new Error(result.error || 'Unbekannter Fehler');
+                }
+            } catch (error) {
+                console.error('Fehler beim Verarbeiten des QR-Codes:', error);
+                showStatus('Fehler beim Verarbeiten des QR-Codes: ' + error.message, 'error');
+                stats.errors++;
+                updateStats();
+            }
+        }
+        
+        // QR-Code validieren
+        async function validateQRCode() {
+            const qrInput = document.getElementById('qr-input').value.trim();
+            
+            if (!qrInput) {
+                showStatus('Bitte gib QR-Code-Daten ein!', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Validiere QR-Code...', 'info');
+                
+                const response = await fetch('/api/network/validate-qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        qr_data: qrInput
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showValidationResult(true, 'QR-Code ist gültig!');
+                } else {
+                    showValidationResult(false, 'QR-Code ist ungültig: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Fehler bei der Validierung:', error);
+                showValidationResult(false, 'Validierungsfehler: ' + error.message);
+            }
+        }
+        
+        // Datei als Text lesen
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+        
+        // Parse-Ergebnis anzeigen
+        function displayParseResult(result) {
+            const parseResult = document.getElementById('parse-result');
+            
+            let html = '<div class="status success">';
+            html += '<h3>✅ QR-Code erfolgreich verarbeitet!</h3>';
+            
+            if (result.recommended_result) {
+                const peer = result.recommended_result[1];
+                html += `
+                    <p><strong>Node ID:</strong> ${peer.node_id}</p>
+                    <p><strong>Adresse:</strong> ${peer.address}:${peer.port}</p>
+                    <p><strong>Capabilities:</strong> ${peer.capabilities.join(', ')}</p>
+                `;
+            }
+            
+            if (result.errors && result.errors.length > 0) {
+                html += '<p><strong>Warnungen:</strong></p><ul>';
+                result.errors.forEach(error => {
+                    html += `<li>${error}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            
+            parseResult.innerHTML = html;
+        }
+        
+        // Validierungsergebnis anzeigen
+        function showValidationResult(isValid, message) {
+            const validationResult = document.getElementById('validation-result');
+            
+            validationResult.innerHTML = `
+                <div class="validation-result ${isValid ? 'valid' : 'invalid'}">
+                    <h3>${isValid ? '✅ Gültig' : '❌ Ungültig'}</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+        
+        // Status anzeigen
+        function showStatus(message, type) {
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            document.body.appendChild(status);
+            
+            setTimeout(() => {
+                status.remove();
+            }, 5000);
+        }
+        
+        // Einstellungen anwenden
+        function applySettings() {
+            showStatus('Einstellungen angewendet!', 'success');
+        }
+        
+        // Statistiken aktualisieren
+        function updateStats() {
+            document.getElementById('generated-count').textContent = stats.generated;
+            document.getElementById('parsed-count').textContent = stats.parsed;
+            document.getElementById('success-count').textContent = stats.success;
+            
+            const total = stats.parsed + stats.generated;
+            const errorRate = total > 0 ? Math.round((stats.errors / total) * 100) : 0;
+            document.getElementById('error-rate').textContent = errorRate + '%';
+        }
+        
+        // Statistiken zurücksetzen
+        function resetStats() {
+            stats = { generated: 0, parsed: 0, success: 0, errors: 0 };
+            updateStats();
+            showStatus('Statistiken zurückgesetzt!', 'info');
+        }
+        
+        // Datei-Upload-Handler
+        document.getElementById('qr-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('qr-input').value = `Datei ausgewählt: ${file.name}`;
+            }
+        });
+        
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            showStatus('QR-Code-System bereit!', 'info');
+        });
+    </script>
+</body>
+</html>

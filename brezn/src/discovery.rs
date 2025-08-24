@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, interval};
 use tokio::net::UdpSocket;
 use std::net::SocketAddr;
+use qrcode::{QrCode, render::svg};
+use image::{DynamicImage, ImageFormat, Luma};
+use std::io::Cursor;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
@@ -47,6 +50,83 @@ impl Default for DiscoveryConfig {
             discovery_port: 8888,
             broadcast_address: "255.255.255.255:8888".to_string(),
         }
+    }
+}
+
+// Neue Struktur für standardisierte QR-Code-Daten
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QRCodeData {
+    pub version: String,
+    pub node_id: String,
+    pub public_key: String,
+    pub address: String,
+    pub port: u16,
+    pub timestamp: u64,
+    pub capabilities: Vec<String>,
+    pub checksum: String,
+}
+
+impl QRCodeData {
+    pub fn new(node_id: String, public_key: String, address: String, port: u16, capabilities: Vec<String>) -> Self {
+        let timestamp = chrono::Utc::now().timestamp() as u64;
+        let checksum = Self::calculate_checksum(&node_id, &public_key, &address, port, timestamp, &capabilities);
+        
+        Self {
+            version: "1.0".to_string(),
+            node_id,
+            public_key,
+            address,
+            port,
+            timestamp,
+            capabilities,
+            checksum,
+        }
+    }
+    
+    fn calculate_checksum(node_id: &str, public_key: &str, address: &str, port: u16, timestamp: u64, capabilities: &[String]) -> String {
+        use ring::digest::{digest, SHA256};
+        
+        let data = format!("{}{}{}{}{}{}", 
+            node_id, public_key, address, port, timestamp, 
+            capabilities.join(","));
+        
+        let hash = digest(&SHA256, data.as_bytes());
+        hex::encode(hash.as_ref())
+    }
+    
+    pub fn validate(&self) -> Result<()> {
+        // Überprüfe Version
+        if self.version != "1.0" {
+            return Err(BreznError::InvalidInput("Unsupported QR code version".to_string()));
+        }
+        
+        // Überprüfe Zeitstempel (nicht älter als 1 Stunde)
+        let now = chrono::Utc::now().timestamp() as u64;
+        if now.saturating_sub(self.timestamp) > 3600 {
+            return Err(BreznError::InvalidInput("QR code data is too old".to_string()));
+        }
+        
+        // Überprüfe Checksum
+        let expected_checksum = Self::calculate_checksum(
+            &self.node_id, &self.public_key, &self.address, 
+            self.port, self.timestamp, &self.capabilities
+        );
+        
+        if self.checksum != expected_checksum {
+            return Err(BreznError::InvalidInput("QR code checksum validation failed".to_string()));
+        }
+        
+        // Überprüfe Pflichtfelder
+        if self.node_id.is_empty() || self.public_key.is_empty() || self.address.is_empty() {
+            return Err(BreznError::InvalidInput("Missing required fields in QR code data".to_string()));
+        }
+        
+        // Überprüfe Port-Bereich
+        if self.port == 0 || self.port > 65535 {
+            return Err(BreznError::InvalidInput("Invalid port number".to_string()));
+        }
+        
+        Ok(())
     }
 }
 
@@ -196,21 +276,19 @@ impl DiscoveryManager {
     }
     
     pub fn generate_qr_code(&self) -> Result<String> {
-        let peer_data = serde_json::json!({
-            "node_id": self.node_id,
-            "public_key": self.public_key,
-            "address": self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
-            "port": self.port,
-            "timestamp": chrono::Utc::now().timestamp(),
-            "capabilities": vec!["posts", "config", "p2p"],
-            "version": "1.0",
-        });
+        let qr_data = QRCodeData::new(
+            self.node_id.clone(),
+            self.public_key.clone(),
+            self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            self.port,
+            vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+        );
         
-        let qr_data = serde_json::to_string(&peer_data)
+        let qr_json = serde_json::to_string(&qr_data)
             .map_err(|e| BreznError::Serialization(e))?;
         
-        // Validate that we can build a QR code from the data
-        let qr = qrcode::QrCode::new(qr_data.as_bytes())
+        // Generate QR code
+        let qr = QrCode::new(qr_json.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
         // Convert to PNG image
@@ -224,34 +302,59 @@ impl DiscoveryManager {
         Ok(data_url)
     }
     
-    pub fn generate_qr_code_image(&self, size: u32) -> Result<Vec<u8>> {
-        let peer_data = serde_json::json!({
-            "node_id": self.node_id,
-            "public_key": self.public_key,
-            "address": "127.0.0.1", // In real implementation, get external IP
-            "port": self.port,
-            "timestamp": chrono::Utc::now().timestamp(),
-            "capabilities": vec!["posts", "config"],
-        });
+    pub fn generate_qr_code_svg(&self, size: u32) -> Result<String> {
+        let qr_data = QRCodeData::new(
+            self.node_id.clone(),
+            self.public_key.clone(),
+            self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            self.port,
+            vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+        );
         
-        let qr_data = serde_json::to_string(&peer_data)
+        let qr_json = serde_json::to_string(&qr_data)
+            .map_err(|e| BreznError::Serialization(e))?;
+        
+        // Generate QR code
+        let qr = QrCode::new(qr_json.as_bytes())
+            .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
+        
+        // Render as SVG
+        let svg_string = qr.render()
+            .min_dimensions(size, size)
+            .dark_color(svg::Color("#000000"))
+            .light_color(svg::Color("#ffffff"))
+            .build();
+        
+        Ok(svg_string)
+    }
+    
+    pub fn generate_qr_code_image(&self, size: u32) -> Result<Vec<u8>> {
+        let qr_data = QRCodeData::new(
+            self.node_id.clone(),
+            self.public_key.clone(),
+            self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            self.port,
+            vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+        );
+        
+        let qr_json = serde_json::to_string(&qr_data)
             .map_err(|e| BreznError::Serialization(e))?;
         
         // Generate QR code matrix
-        let code = qrcode::QrCode::new(qr_data.as_bytes())
+        let code = QrCode::new(qr_json.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
         // Render to grayscale image (Luma<u8>) with requested minimum dimensions
         let image_luma = code
-            .render::<image::Luma<u8>>()
+            .render::<Luma<u8>>()
             .min_dimensions(size, size)
             .build();
         
         // Encode as PNG
-        let dyn_img = image::DynamicImage::ImageLuma8(image_luma);
+        let dyn_img = DynamicImage::ImageLuma8(image_luma);
         let mut png_bytes: Vec<u8> = Vec::new();
         dyn_img
-            .write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
+            .write_to(&mut Cursor::new(&mut png_bytes), ImageFormat::Png)
             .map_err(|e| BreznError::InvalidInput(format!("PNG encoding failed: {}", e)))?;
         
         Ok(png_bytes)
@@ -259,8 +362,10 @@ impl DiscoveryManager {
     
     pub fn parse_qr_code(&self, qr_data: &str) -> Result<PeerInfo> {
         // Try to parse as JSON first (direct QR code data)
-        if let Ok(peer_data) = serde_json::from_str::<serde_json::Value>(qr_data) {
-            return self.parse_peer_json(peer_data);
+        if let Ok(qr_code_data) = serde_json::from_str::<QRCodeData>(qr_data) {
+            // Validate the QR code data
+            qr_code_data.validate()?;
+            return self.convert_qr_data_to_peer_info(qr_code_data);
         }
         
         // Try to decode base64 image data
@@ -280,8 +385,26 @@ impl DiscoveryManager {
         
         Err(BreznError::InvalidInput("Invalid QR code data format".to_string()))
     }
-
+    
+    fn convert_qr_data_to_peer_info(&self, qr_data: QRCodeData) -> Result<PeerInfo> {
+        Ok(PeerInfo {
+            node_id: qr_data.node_id,
+            public_key: qr_data.public_key,
+            address: qr_data.address,
+            port: qr_data.port,
+            last_seen: qr_data.timestamp,
+            capabilities: qr_data.capabilities,
+        })
+    }
+    
     fn parse_peer_json(&self, peer_data: serde_json::Value) -> Result<PeerInfo> {
+        // Try to parse as new QRCodeData format first
+        if let Ok(qr_code_data) = serde_json::from_value::<QRCodeData>(peer_data.clone()) {
+            qr_code_data.validate()?;
+            return self.convert_qr_data_to_peer_info(qr_code_data);
+        }
+        
+        // Fallback to old format for backward compatibility
         let node_id = peer_data["node_id"].as_str()
             .ok_or_else(|| BreznError::InvalidInput("Missing node_id".to_string()))?;
         
@@ -343,7 +466,7 @@ impl DiscoveryManager {
         let gray_image = image.to_luma8();
         
         // Convert to DynamicImage for bardecoder
-        let dynamic_image = image::DynamicImage::ImageLuma8(gray_image);
+        let dynamic_image = DynamicImage::ImageLuma8(gray_image);
         
         // Decode QR code from image
         let decoder = bardecoder::default_decoder();
@@ -356,6 +479,143 @@ impl DiscoveryManager {
         }
         
         Err(BreznError::InvalidInput("No valid QR code found in image".to_string()))
+    }
+    
+    // Neue Funktionen für erweiterte QR-Code-Funktionalität
+    
+    /// Generiert QR-Code-Daten im JSON-Format (ohne Bild)
+    pub fn generate_qr_data_json(&self) -> Result<String> {
+        let qr_data = QRCodeData::new(
+            self.node_id.clone(),
+            self.public_key.clone(),
+            self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            self.port,
+            vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+        );
+        
+        serde_json::to_string_pretty(&qr_data)
+            .map_err(|e| BreznError::Serialization(e))
+    }
+    
+    /// Validiert QR-Code-Daten ohne sie zu parsen
+    pub fn validate_qr_data(&self, qr_data: &str) -> Result<()> {
+        let qr_code_data: QRCodeData = serde_json::from_str(qr_data)
+            .map_err(|e| BreznError::InvalidInput(format!("Invalid JSON format: {}", e)))?;
+        
+        qr_code_data.validate()
+    }
+    
+    /// Generiert QR-Code in verschiedenen Formaten
+    pub fn generate_qr_code_formats(&self, size: u32) -> Result<serde_json::Value> {
+        let qr_data = QRCodeData::new(
+            self.node_id.clone(),
+            self.public_key.clone(),
+            self.get_local_ip().unwrap_or_else(|_| "127.0.0.1".to_string()),
+            self.port,
+            vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+        );
+        
+        let qr_json = serde_json::to_string(&qr_data)
+            .map_err(|e| BreznError::Serialization(e))?;
+        
+        // Generate QR code
+        let qr = QrCode::new(qr_json.as_bytes())
+            .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
+        
+        // Generate PNG
+        let png_data = qr.to_png()
+            .map_err(|e| BreznError::InvalidInput(format!("PNG conversion failed: {}", e)))?;
+        let png_base64 = base64::encode(&png_data);
+        
+        // Generate SVG
+        let svg_string = qr.render()
+            .min_dimensions(size, size)
+            .dark_color(svg::Color("#000000"))
+            .light_color(svg::Color("#ffffff"))
+            .build();
+        
+        // Generate raw data
+        let raw_data = qr.to_string();
+        
+        Ok(serde_json::json!({
+            "qr_data": qr_data,
+            "formats": {
+                "png_base64": format!("data:image/png;base64,{}", png_base64),
+                "svg": svg_string,
+                "raw_data": raw_data,
+                "json": qr_json
+            }
+        }))
+    }
+    
+    /// Parst QR-Code aus verschiedenen Eingabeformaten
+    pub fn parse_qr_code_advanced(&self, input: &str) -> Result<serde_json::Value> {
+        // Try different parsing methods
+        let mut results = Vec::new();
+        let mut errors = Vec::new();
+        
+        // Method 1: Direct JSON parsing
+        match serde_json::from_str::<QRCodeData>(input) {
+            Ok(qr_data) => {
+                match qr_data.validate() {
+                    Ok(()) => {
+                        let peer_info = self.convert_qr_data_to_peer_info(qr_data.clone());
+                        results.push(("json_direct", serde_json::to_value(&peer_info).unwrap()));
+                    }
+                    Err(e) => errors.push(format!("JSON validation failed: {}", e)),
+                }
+            }
+            Err(e) => errors.push(format!("JSON parsing failed: {}", e)),
+        }
+        
+        // Method 2: Base64 image decoding
+        if input.starts_with("data:image/") {
+            if let Some(base64_data) = input.split("base64,").nth(1) {
+                match base64::decode(base64_data) {
+                    Ok(image_data) => {
+                        match self.decode_qr_image(&image_data) {
+                            Ok(peer_info) => {
+                                results.push(("base64_image", serde_json::to_value(&peer_info).unwrap()));
+                            }
+                            Err(e) => errors.push(format!("Base64 image decoding failed: {}", e)),
+                        }
+                    }
+                    Err(e) => errors.push(format!("Base64 decode failed: {}", e)),
+                }
+            }
+        }
+        
+        // Method 3: Raw base64
+        if !input.starts_with("data:") && !input.starts_with("{") {
+            match base64::decode(input) {
+                Ok(image_data) => {
+                    match self.decode_qr_image(&image_data) {
+                        Ok(peer_info) => {
+                            results.push(("raw_base64", serde_json::to_value(&peer_info).unwrap()));
+                        }
+                        Err(e) => errors.push(format!("Raw base64 decoding failed: {}", e)),
+                    }
+                }
+                Err(_) => {
+                    // Not base64, might be raw text
+                    errors.push("Input is not valid base64, JSON, or image data".to_string());
+                }
+            }
+        }
+        
+        if results.is_empty() {
+            return Err(BreznError::InvalidInput(format!(
+                "Failed to parse QR code. Errors: {}", 
+                errors.join("; ")
+            )));
+        }
+        
+        Ok(serde_json::json!({
+            "success": true,
+            "results": results,
+            "errors": errors,
+            "recommended_result": results[0]
+        }))
     }
     
     pub fn add_peer(&self, peer: PeerInfo) -> Result<()> {
@@ -432,6 +692,93 @@ mod tests {
     }
 
     #[test]
+    fn test_qr_code_data_creation_and_validation() {
+        let qr_data = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string(), "config".to_string()],
+        );
+        
+        assert_eq!(qr_data.version, "1.0");
+        assert_eq!(qr_data.node_id, "test_node");
+        assert_eq!(qr_data.port, 8080);
+        assert_eq!(qr_data.capabilities.len(), 2);
+        
+        // Validation should pass
+        assert!(qr_data.validate().is_ok());
+    }
+    
+    #[test]
+    fn test_qr_code_data_checksum() {
+        let qr_data1 = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        
+        let qr_data2 = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        
+        // Same data should have same checksum
+        assert_eq!(qr_data1.checksum, qr_data2.checksum);
+        
+        // Different data should have different checksums
+        let qr_data3 = QRCodeData::new(
+            "different_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        
+        assert_ne!(qr_data1.checksum, qr_data3.checksum);
+    }
+    
+    #[test]
+    fn test_qr_code_data_validation_failures() {
+        // Test invalid version
+        let mut qr_data = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        qr_data.version = "2.0".to_string();
+        assert!(qr_data.validate().is_err());
+        
+        // Test old timestamp
+        let mut qr_data = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        qr_data.timestamp = chrono::Utc::now().timestamp() as u64 - 7200; // 2 hours ago
+        assert!(qr_data.validate().is_err());
+        
+        // Test invalid port
+        let mut qr_data = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            0, // Invalid port
+            vec!["posts".to_string()],
+        );
+        assert!(qr_data.validate().is_err());
+    }
+
+    #[test]
     fn test_add_remove_and_get_peers() {
         let manager = make_manager();
         assert_eq!(manager.get_peers().unwrap().len(), 0);
@@ -477,6 +824,37 @@ mod tests {
     }
 
     #[test]
+    fn test_qr_code_generation() {
+        let manager = make_manager();
+        
+        // Test PNG generation
+        let qr_png = manager.generate_qr_code().unwrap();
+        assert!(qr_png.starts_with("data:image/png;base64,"));
+        
+        // Test SVG generation
+        let qr_svg = manager.generate_qr_code_svg(100).unwrap();
+        assert!(qr_svg.contains("<svg"));
+        
+        // Test image generation
+        let qr_image = manager.generate_qr_code_image(50).unwrap();
+        assert!(!qr_image.is_empty());
+        
+        // Test JSON data generation
+        let qr_json = manager.generate_qr_data_json().unwrap();
+        assert!(qr_json.contains("test_node"));
+    }
+    
+    #[test]
+    fn test_qr_code_formats() {
+        let manager = make_manager();
+        let formats = manager.generate_qr_code_formats(100).unwrap();
+        
+        assert!(formats["formats"]["png_base64"].as_str().unwrap().starts_with("data:image/png;base64,"));
+        assert!(formats["formats"]["svg"].as_str().unwrap().contains("<svg"));
+        assert!(formats["formats"]["json"].as_str().unwrap().contains("test_node"));
+    }
+
+    #[test]
     fn test_qr_code_parse_and_generate() {
         let manager = make_manager();
         let qr = manager.generate_qr_code().unwrap();
@@ -496,6 +874,28 @@ mod tests {
         assert_eq!(parsed.node_id, "x");
         assert_eq!(parsed.port, 42);
         assert_eq!(parsed.address, "127.0.0.1");
+    }
+    
+    #[test]
+    fn test_qr_code_advanced_parsing() {
+        let manager = make_manager();
+        
+        // Test JSON validation
+        let qr_data = QRCodeData::new(
+            "test_node".to_string(),
+            "test_key".to_string(),
+            "127.0.0.1".to_string(),
+            8080,
+            vec!["posts".to_string()],
+        );
+        let qr_json = serde_json::to_string(&qr_data).unwrap();
+        
+        assert!(manager.validate_qr_data(&qr_json).is_ok());
+        
+        // Test advanced parsing
+        let result = manager.parse_qr_code_advanced(&qr_json).unwrap();
+        assert!(result["success"].as_bool().unwrap());
+        assert_eq!(result["results"].as_array().unwrap().len(), 1);
     }
 
     #[test]

@@ -87,3 +87,54 @@ curl -X POST http://localhost:8080/api/tor/toggle
 - CORS ist für die API-Endpunkte aktiviert.
 - Tor muss lokal laufen, wenn Tor aktiviert werden soll (Standard‑SOCKS5: 9050).
 - Der P2P‑Port kann in der App‑Konfiguration angepasst werden (Standard: 8888).
+
+## 🚨 **Funktionsstatus der Endpunkte (AKTUALISIERT)**
+
+### ✅ **Vollständig funktional**
+- `GET /api/posts` - Posts abrufen
+- `POST /api/posts` - Post erstellen
+- `GET /api/config` - Konfiguration abrufen
+- `POST /api/config` - Konfiguration aktualisieren (Platzhalter)
+
+### ⚠️ **Teilweise funktional**
+- `GET /api/network/status` - Zeigt Status an, aber keine echte Netzwerk-Kommunikation
+- `POST /api/network/toggle` - Toggle-Funktion, aber Netzwerk ist nur Platzhalter
+
+### ❌ **Nicht funktional (Platzhalter)**
+- `GET /api/network/qr` - QR-Code-Generierung ist nur Platzhalter
+- `POST /api/network/parse-qr` - QR-Code-Parsing ist nur Platzhalter
+- `POST /api/tor/toggle` - Tor-Integration ist nur Basis-Setup
+
+## 🔧 **Bekannte Einschränkungen**
+
+### **Netzwerk-Features**
+- **P2P-Netzwerk**: Nur Platzhalter-Implementierung, keine echte Peer-Kommunikation
+- **Peer-Discovery**: Nur Platzhalter, keine echte Peer-Findung
+- **Post-Synchronisation**: Nicht implementiert
+
+### **Tor-Integration**
+- **SOCKS5-Proxy**: Nur Basis-Setup, keine funktionale Integration
+- **Netzwerk-Traffic**: Läuft nicht über Tor
+- **Circuit-Management**: Nicht implementiert
+
+### **QR-Code**
+- **Generierung**: Nur Platzhalter-Format
+- **Parsing**: Nur Platzhalter-Implementierung
+- **Peer-Beitritt**: Nicht funktional
+
+## 📋 **Nächste Schritte für funktionale API**
+
+### **Priorität 1: P2P-Netzwerk**
+1. Peer-Discovery implementieren (ersetzt Platzhalter)
+2. Post-Synchronisation implementieren
+3. Netzwerk-Tests schreiben
+
+### **Priorität 2: Tor-Integration**
+1. SOCKS5-Proxy-Integration (ersetzt Basis-Setup)
+2. Netzwerk-Traffic über Tor routen
+3. Tor-Status-Monitoring
+
+### **Priorität 3: QR-Code**
+1. QR-Code-Generierung (ersetzt Platzhalter)
+2. QR-Code-Parsing (ersetzt Platzhalter)
+3. Peer-Beitritt über QR implementieren
