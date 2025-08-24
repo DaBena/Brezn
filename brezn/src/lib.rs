@@ -17,6 +17,9 @@ pub mod sync_metrics;
 pub mod tor;
 
 pub mod ui_extensions;
+pub mod discovery_network_bridge;
+pub mod p2p_e2e_tests;
+pub mod performance_optimizer;
 
 // FFI types
 #[derive(Debug, Clone, Serialize, Deserialize)]
