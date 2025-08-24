@@ -73,6 +73,18 @@ pub struct NetworkTopology {
     pub topology_version: u64,
 }
 
+impl Default for NetworkTopology {
+    fn default() -> Self {
+        Self {
+            node_id: "local".to_string(),
+            connections: HashSet::new(),
+            routing_table: HashMap::new(),
+            network_segments: Vec::new(),
+            topology_version: 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NetworkSegment {
     pub segment_id: String,
@@ -99,6 +111,21 @@ pub struct NetworkStats {
     pub avg_latency_ms: u64,
     pub segments_count: usize,
     pub topology_version: u64,
+}
+
+impl Default for NetworkStats {
+    fn default() -> Self {
+        Self {
+            total_peers: 0,
+            active_peers: 0,
+            excellent_connections: 0,
+            good_connections: 0,
+            poor_connections: 0,
+            avg_latency_ms: 0,
+            segments_count: 0,
+            topology_version: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -335,7 +362,7 @@ impl NetworkManager {
         self.discovery_socket = Some(socket);
         
         // Start discovery listener
-        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone()?;
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone().await?;
         
         tokio::spawn(async move {
             let mut buffer = [0u8; 1024];

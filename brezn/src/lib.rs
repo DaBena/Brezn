@@ -15,7 +15,7 @@ pub mod error;
 pub mod ffi;
 pub mod sync_metrics;
 pub mod tor;
-pub mod tor_tests;
+
 pub mod ui_extensions;
 
 // FFI types
@@ -28,15 +28,7 @@ pub struct Post {
     pub node_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NetworkStatus {
-    pub network_enabled: bool,
-    pub tor_enabled: bool,
-    pub peers_count: u32,
-    pub discovery_peers_count: u32,
-    pub port: u16,
-    pub tor_socks_port: u16,
-}
+// NetworkStatus is now defined in network_simple module
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceMetrics {
@@ -57,7 +49,7 @@ pub struct DeviceInfo {
 pub struct BreznApp {
     runtime: Arc<Runtime>,
     posts: Arc<Mutex<Vec<Post>>>,
-    network_status: Arc<Mutex<NetworkStatus>>,
+    network_status: Arc<Mutex<network_simple::NetworkStatus>>,
     is_initialized: Arc<Mutex<bool>>,
     config: Arc<Mutex<types::Config>>,
     network_manager: Arc<Mutex<network_simple::NetworkManager>>,
@@ -67,13 +59,17 @@ impl BreznApp {
     pub fn new() -> Result<Self> {
         let runtime = Arc::new(Runtime::new()?);
         let posts = Arc::new(Mutex::new(Vec::new()));
-        let network_status = Arc::new(Mutex::new(NetworkStatus {
-            network_enabled: false,
+        let network_status = Arc::new(Mutex::new(network_simple::NetworkStatus {
+            node_id: "local".to_string(),
+            discovery_active: false,
+            discovery_port: 8888,
+            network_port: 8888,
             tor_enabled: false,
-            peers_count: 0,
-            discovery_peers_count: 0,
-            port: 8080,
-            tor_socks_port: 9050,
+            tor_status: None,
+            stats: network_simple::NetworkStats::default(),
+            topology: network_simple::NetworkTopology::default(),
+            peer_count: 0,
+            unresolved_conflicts: 0,
         }));
         let is_initialized = Arc::new(Mutex::new(false));
         let config = Arc::new(Mutex::new(types::Config::default()));
@@ -91,8 +87,8 @@ impl BreznApp {
 
     pub fn init(&self, network_port: u16, tor_socks_port: u16) -> Result<bool> {
         let mut status = self.network_status.lock().unwrap();
-        status.port = network_port;
-        status.tor_socks_port = tor_socks_port;
+        status.network_port = network_port;
+        // tor_socks_port is not available in NetworkStatus
         
         let mut initialized = self.is_initialized.lock().unwrap();
         *initialized = true;
@@ -475,7 +471,7 @@ pub extern "C" fn brezn_string_free(ptr: *mut i8) {
 }
 
 #[no_mangle]
-pub extern "C" fn brezn_network_status_free(ptr: *mut NetworkStatus) {
+pub extern "C" fn brezn_network_status_free(ptr: *mut network_simple::NetworkStatus) {
     if !ptr.is_null() {
         unsafe {
             let _ = Box::from_raw(ptr);

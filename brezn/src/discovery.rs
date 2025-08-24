@@ -294,7 +294,7 @@ impl DiscoveryManager {
     
     pub async fn start_discovery_loop(&self) -> Result<()> {
         let mut interval = interval(self.config.broadcast_interval);
-        let mut heartbeat_interval = interval(self.config.heartbeat_interval);
+        let mut heartbeat_interval = tokio::time::interval(self.config.heartbeat_interval);
         let mut buffer = [0u8; 1024];
         
         // Start listening for discovery messages
@@ -323,11 +323,11 @@ impl DiscoveryManager {
                                     address: message.address,
                                     port: message.port,
                                     last_seen: message.timestamp,
-                                    capabilities: message.capabilities,
+                                    capabilities: message.capabilities.clone(),
                                     connection_attempts: 0,
                                     last_connection_attempt: 0,
                                     is_verified: false,
-                                    network_segment: message.network_segment,
+                                    network_segment: message.network_segment.clone(),
                                     // Neue Felder für erweiterte Peer-Verwaltung
                                     health_score: 0.0,
                                     response_time_ms: None,
@@ -348,8 +348,8 @@ impl DiscoveryManager {
                                 if let Some(existing_peer) = peers.get_mut(&node_id) {
                                     // Update existing peer
                                     existing_peer.last_seen = message.timestamp;
-                                    existing_peer.capabilities = message.capabilities;
-                                    existing_peer.network_segment = message.network_segment;
+                                    existing_peer.capabilities = message.capabilities.clone();
+                                    existing_peer.network_segment = message.network_segment.clone();
                                 } else {
                                     // Add new peer
                                     peers.insert(message.node_id, peer_info.clone());
@@ -698,6 +698,10 @@ impl DiscoveryManager {
             port: qr_data.port,
             last_seen: qr_data.timestamp,
             capabilities: qr_data.capabilities,
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
             // Neue Felder für erweiterte Peer-Verwaltung
             health_score: 0.0,
             response_time_ms: None,
@@ -773,7 +777,9 @@ impl DiscoveryManager {
     fn decode_qr_image(&self, image_data: &[u8]) -> Result<PeerInfo> {
         // Try to decode QR code from image data
         let decoder = bardecoder::default_decoder();
-        let results = decoder.decode(image_data);
+        let image = image::load_from_memory(image_data)
+            .map_err(|e| BreznError::InvalidInput(format!("Failed to load image: {}", e)))?;
+        let results = decoder.decode(&image);
         
         for result in results {
             if let Ok(decoded_text) = result {
@@ -897,7 +903,7 @@ impl DiscoveryManager {
             Ok(qr_data) => {
                 match qr_data.validate() {
                     Ok(()) => {
-                        let peer_info = self.convert_qr_data_to_peer_info(qr_data.clone());
+                        let peer_info = self.convert_qr_data_to_peer_info(qr_data.clone())?;
                         results.push(("json_direct", serde_json::to_value(&peer_info).unwrap()));
                     }
                     Err(e) => errors.push(format!("JSON validation failed: {}", e)),
@@ -1035,9 +1041,21 @@ impl DiscoveryManager {
         let topology_monitor = self.start_topology_monitoring().await?;
         
         // Starte alle Tasks parallel
-        tokio::spawn(async move { health_monitor.await });
-        tokio::spawn(async move { peer_discovery.await });
-        tokio::spawn(async move { topology_monitor.await });
+        tokio::spawn(async move { 
+            if let Err(e) = health_monitor.await { 
+                eprintln!("Health monitor error: {}", e); 
+            } 
+        });
+        tokio::spawn(async move { 
+            if let Err(e) = peer_discovery.await { 
+                eprintln!("Peer discovery error: {}", e); 
+            } 
+        });
+        tokio::spawn(async move { 
+            if let Err(e) = topology_monitor.await { 
+                eprintln!("Topology monitor error: {}", e); 
+            } 
+        });
         
         Ok(())
     }

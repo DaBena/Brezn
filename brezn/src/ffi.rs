@@ -164,7 +164,7 @@ pub extern "C" fn brezn_ffi_get_posts() -> *mut PostFFI {
         match posts {
             Ok(posts) => {
                 let ffi_posts: Vec<PostFFI> = posts.into_iter().map(|post| PostFFI {
-                    id: post.id.map(|id| rust_string_to_c(&id.to_string())).unwrap_or(ptr::null_mut()),
+                    id: post.id.as_ref().map(|id| rust_string_to_c(id.as_str())).unwrap_or(ptr::null_mut()),
                     content: rust_string_to_c(&post.content),
                     timestamp: post.timestamp.timestamp() as u64,
                     pseudonym: rust_string_to_c(&post.pseudonym),
@@ -193,12 +193,12 @@ pub extern "C" fn brezn_ffi_get_network_status() -> *mut NetworkStatusFFI {
         match status {
             Ok(status_obj) => {
                 let ffi_status = Box::new(NetworkStatusFFI {
-                    network_enabled: status_obj.network_enabled,
+                    network_enabled: status_obj.discovery_active,
                     tor_enabled: status_obj.tor_enabled,
-                    peers_count: status_obj.peers_count as u32,
-                    discovery_peers_count: status_obj.discovery_peers_count as u32,
-                    port: status_obj.port,
-                    tor_socks_port: status_obj.tor_socks_port,
+                    peers_count: status_obj.peer_count as u32,
+                    discovery_peers_count: 0, // Not available in NetworkStatus
+                    port: status_obj.network_port,
+                    tor_socks_port: 0, // Not available in NetworkStatus
                 });
                 
                 Box::into_raw(ffi_status)
