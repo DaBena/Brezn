@@ -1,0 +1,198 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  RUST_VERSION: '1.75'
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Code-Qualität
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install clippy
+        run: rustup component add clippy
+        
+      - name: Run clippy
+        run: |
+          cd brezn
+          cargo clippy --all-targets --all-features -- -D warnings
+        
+      - name: Run rustfmt
+        run: |
+          cd brezn
+          cargo fmt --all -- --check
+        
+      - name: Security audit
+        run: |
+          cd brezn
+          cargo audit
+
+  # Rust Build & Test
+  rust-build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
+        features: [default, full, minimal]
+        
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+        
+      - name: Build
+        run: |
+          cd brezn
+          cargo build --target ${{ matrix.target }} --features ${{ matrix.features }}
+        
+      - name: Test
+        run: |
+          cd brezn
+          cargo test --target ${{ matrix.target }} --features ${{ matrix.features }}
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build-${{ matrix.target }}-${{ matrix.features }}
+          path: brezn/target/${{ matrix.target }}/debug/
+
+  # Web Build & Test
+  web-build-test:
+    runs-on: ubuntu-latest
+    needs: rust-build-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          cd brezn/web
+          npm ci
+          
+      - name: Build web
+        run: |
+          cd brezn/web
+          npm run build
+          
+      - name: Test web
+        run: |
+          cd brezn/web
+          npm run test:ci
+          
+      - name: Upload web artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: brezn/web/dist/
+
+  # Mobile Build & Test
+  mobile-build-test:
+    runs-on: ubuntu-latest
+    needs: rust-build-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install mobile dependencies
+        run: |
+          cd brezn/mobile
+          npm ci
+          
+      - name: Test mobile
+        run: |
+          cd brezn/mobile
+          npm run test:ci
+          
+      - name: Upload mobile artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-test-results
+          path: brezn/mobile/test-results/
+
+  # Integration Tests
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, web-build-test, mobile-build-test]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/brezn_test
+        run: |
+          cd brezn
+          cargo test --test integration_tests
+        
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: test-results/
+
+  # Performance Tests
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install cargo-criterion
+        run: cargo install cargo-criterion
+        
+      - name: Run performance tests
+        run: |
+          cd brezn
+          cargo criterion --message-format=json > performance-results.json
+        
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: performance-results.json

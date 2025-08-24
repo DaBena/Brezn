@@ -258,6 +258,74 @@ Die Tor-Integration verwendet strukturiertes Logging mit Emojis für bessere Les
 - **REST-API für Tor-Management**
 - **Grafische Monitoring-Dashboards**
 
+## 📚 API-Referenz
+
+### Tor-Endpoints
+- `GET /api/tor/status` - Detaillierten Tor-Status abrufen
+- `POST /api/tor/toggle` - Tor ein/ausschalten
+- `POST /api/tor/rotate-circuits` - Tor-Circuits rotieren
+- `GET /api/tor/health` - Tor-Gesundheitsprüfung durchführen
+
+### Tor-Status-Response
+```json
+{
+  "success": true,
+  "tor_enabled": true,
+  "connection_status": "connected",
+  "circuits": [
+    {
+      "circuit_id": "circuit1",
+      "status": "active",
+      "age_seconds": 180,
+      "health_score": 0.95,
+      "exit_node": "exit_node_1",
+      "latency_ms": 120
+    }
+  ],
+  "connection_pool": {
+    "active_connections": 5,
+    "max_connections": 20,
+    "pool_health": 0.85
+  },
+  "external_ip": "185.220.101.42",
+  "last_rotation": 1712345678,
+  "overall_health": 0.92
+}
+```
+
+### Circuit-Rotation-Request
+```json
+{
+  "force_rotation": false,
+  "max_age_seconds": 300,
+  "health_threshold": 0.7
+}
+```
+
+### Health-Check-Response
+```json
+{
+  "success": true,
+  "health_check": {
+    "overall_health": 0.92,
+    "connection_health": 0.95,
+    "circuit_health": 0.88,
+    "performance_health": 0.94
+  },
+  "metrics": {
+    "total_circuits": 5,
+    "active_circuits": 4,
+    "failed_circuits": 1,
+    "avg_latency_ms": 150,
+    "connection_success_rate": 0.98
+  },
+  "recommendations": [
+    "Circuit rotation recommended in 2 minutes",
+    "Connection pool utilization: 75%"
+  ]
+}
+```
+
 ## 📚 Weitere Ressourcen
 
 - [Tor Project Documentation](https://2019.www.torproject.org/docs/documentation.html.en)
