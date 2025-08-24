@@ -57,6 +57,27 @@ impl Database {
             )
         ", [])?;
         
+        // Neue Tabelle für Synchronisations-Timestamps
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS sync_timestamps (
+                node_id TEXT PRIMARY KEY,
+                last_sync_timestamp INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )
+        ", [])?;
+        
+        // Neue Tabelle für Post-Konflikte
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS post_conflicts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id TEXT NOT NULL,
+                conflicting_posts TEXT NOT NULL,
+                resolution_strategy TEXT NOT NULL,
+                resolved_at INTEGER,
+                created_at INTEGER NOT NULL
+            )
+        ", [])?;
+        
         let db = Self { conn };
         db.init_default_config()?;
         
@@ -277,6 +298,78 @@ impl Database {
         }
         
         Ok(posts)
+    }
+    
+    /// Get the last synchronization timestamp for a specific node
+    pub fn get_last_sync_timestamp(&self, node_id: &str) -> SqliteResult<u64> {
+        let mut stmt = self.conn.prepare(
+            "SELECT last_sync_timestamp FROM sync_timestamps WHERE node_id = ?"
+        )?;
+        
+        match stmt.query_row([node_id], |row| row.get::<_, i64>(0)) {
+            Ok(timestamp) => Ok(timestamp as u64),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(0), // Default to 0 if no sync record
+            Err(e) => Err(e),
+        }
+    }
+    
+    /// Update the last synchronization timestamp for a specific node
+    pub fn update_last_sync_timestamp(&self, node_id: &str, timestamp: u64) -> SqliteResult<()> {
+        let current_time = chrono::Utc::now().timestamp();
+        
+        self.conn.execute(
+            "INSERT OR REPLACE INTO sync_timestamps (node_id, last_sync_timestamp, updated_at) VALUES (?, ?, ?)",
+            (node_id, timestamp as i64, current_time)
+        )?;
+        
+        Ok(())
+    }
+    
+    /// Store a post conflict for manual resolution
+    pub fn store_post_conflict(&self, post_id: &str, conflicting_posts: &str, resolution_strategy: &str) -> SqliteResult<i64> {
+        let current_time = chrono::Utc::now().timestamp();
+        
+        self.conn.execute(
+            "INSERT INTO post_conflicts (post_id, conflicting_posts, resolution_strategy, created_at) VALUES (?, ?, ?, ?)",
+            (post_id, conflicting_posts, resolution_strategy, current_time)
+        )?;
+        
+        Ok(self.conn.last_insert_rowid())
+    }
+    
+    /// Get all unresolved post conflicts
+    pub fn get_unresolved_conflicts(&self) -> SqliteResult<Vec<(i64, String, String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, post_id, conflicting_posts, resolution_strategy FROM post_conflicts WHERE resolved_at IS NULL ORDER BY created_at ASC"
+        )?;
+        
+        let conflict_iter = stmt.query_map([], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+            ))
+        })?;
+        
+        let mut conflicts = Vec::new();
+        for conflict in conflict_iter {
+            conflicts.push(conflict?);
+        }
+        
+        Ok(conflicts)
+    }
+    
+    /// Mark a conflict as resolved
+    pub fn resolve_conflict(&self, conflict_id: i64) -> SqliteResult<()> {
+        let current_time = chrono::Utc::now().timestamp();
+        
+        self.conn.execute(
+            "UPDATE post_conflicts SET resolved_at = ? WHERE id = ?",
+            (current_time, conflict_id)
+        )?;
+        
+        Ok(())
     }
 }
 

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brezn P2P-Netzwerk Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-card h3 i {
+            margin-right: 10px;
+            font-size: 1.5em;
+        }
+
+        .status-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-button i {
+            margin-right: 10px;
+        }
+
+        .control-button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .control-button.success {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .qr-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .qr-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .qr-card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #ccc;
+        }
+
+        .qr-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .qr-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .peers-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .peers-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .peer-count {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .peer-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .peer-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .peer-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .peer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .peer-info h4 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .peer-address {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .peer-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .health-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .health-indicator.warning {
+            background: #FF9800;
+        }
+
+        .health-indicator.danger {
+            background: #F44336;
+        }
+
+        .health-score {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .peer-capabilities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .capability-tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .peer-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .peer-action {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .peer-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .peer-action.danger {
+            background: #F44336;
+        }
+
+        .peer-action.warning {
+            background: #FF9800;
+        }
+
+        .metrics-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .metrics-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .performance-chart {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .performance-chart h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .chart-container {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #F44336;
+        }
+
+        .notification.warning {
+            background: #FF9800;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-section {
+                grid-template-columns: 1fr;
+            }
+
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-network-wired"></i> Brezn P2P-Netzwerk</h1>
+            <p>Echtzeit-Überwachung und Verwaltung des dezentralen Netzwerks</p>
+        </div>
+
+        <!-- Status Grid -->
+        <div class="status-grid">
+            <div class="status-card">
+                <h3><i class="fas fa-wifi"></i> Netzwerk-Status</h3>
+                <div class="status-value" id="network-status">Aktiv</div>
+                <div class="status-label">P2P-Netzwerk läuft</div>
+            </div>
+
+            <div class="status-card">
+                <h3><i class="fas fa-users"></i> Verbundene Peers</h3>
+                <div class="status-value" id="peer-count">12</div>
+                <div class="status-label">Aktive Verbindungen</div>
+            </div>
+
+            <div class="status-card">
+                <h3><i class="fas fa-shield-alt"></i> Tor-Status</h3>
+                <div class="status-value" id="tor-status">Aktiv</div>
+                <div class="status-label">Anonymisierung läuft</div>
+            </div>
+
+            <div class="status-card">
+                <h3><i class="fas fa-heartbeat"></i> Netzwerk-Gesundheit</h3>
+                <div class="status-value" id="network-health">85%</div>
+                <div class="status-label">Gute Verbindungsqualität</div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2><i class="fas fa-sliders-h"></i> Netzwerk-Steuerung</h2>
+            <div class="control-buttons">
+                <button class="control-button success" id="start-network">
+                    <i class="fas fa-play"></i> Netzwerk Starten
+                </button>
+                <button class="control-button danger" id="stop-network">
+                    <i class="fas fa-stop"></i> Netzwerk Stoppen
+                </button>
+                <button class="control-button success" id="start-tor">
+                    <i class="fas fa-shield-alt"></i> Tor Starten
+                </button>
+                <button class="control-button danger" id="stop-tor">
+                    <i class="fas fa-shield-alt"></i> Tor Stoppen
+                </button>
+                <button class="control-button" id="refresh-status">
+                    <i class="fas fa-sync-alt"></i> Status Aktualisieren
+                </button>
+            </div>
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="qr-section">
+            <div class="qr-card">
+                <h3><i class="fas fa-qrcode"></i> QR-Code Generieren</h3>
+                <div class="qr-placeholder" id="qr-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <button class="qr-button" id="generate-qr">QR-Code Generieren</button>
+                <button class="qr-button" id="copy-qr">Kopieren</button>
+            </div>
+
+            <div class="qr-card">
+                <h3><i class="fas fa-qrcode-scanner"></i> QR-Code Scannen</h3>
+                <div class="qr-placeholder">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <button class="qr-button" id="scan-qr">QR-Code Scannen</button>
+                <button class="qr-button" id="upload-qr">Datei Hochladen</button>
+            </div>
+        </div>
+
+        <!-- Peers Section -->
+        <div class="peers-section">
+            <h2>
+                <i class="fas fa-users"></i> Verbundene Peers
+                <span class="peer-count" id="peer-count-badge">12</span>
+            </h2>
+            <div class="peer-list" id="peer-list">
+                <!-- Peer items will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Metrics Section -->
+        <div class="metrics-section">
+            <h2><i class="fas fa-chart-line"></i> Netzwerk-Metriken</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="posts-synced">156</div>
+                    <div class="metric-label">Posts Synchronisiert</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="conflicts-resolved">3</div>
+                    <div class="metric-label">Konflikte Gelöst</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avg-latency">45ms</div>
+                    <div class="metric-label">Durchschn. Latenz</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="bandwidth">2.4 MB/s</div>
+                    <div class="metric-label">Bandbreite</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="performance-chart">
+            <h2><i class="fas fa-chart-area"></i> Performance-Verlauf</h2>
+            <div class="chart-container">
+                <div>Performance-Chart wird geladen...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Mock data for demonstration
+        const mockPeers = [
+            {
+                id: 'peer-001',
+                address: '192.168.1.100:8888',
+                capabilities: ['posts', 'p2p'],
+                health: 0.95,
+                lastSeen: Date.now() - 30000,
+                isActive: true
+            },
+            {
+                id: 'peer-002',
+                address: '192.168.1.101:8888',
+                capabilities: ['posts', 'config'],
+                health: 0.87,
+                lastSeen: Date.now() - 45000,
+                isActive: true
+            },
+            {
+                id: 'peer-003',
+                address: '192.168.1.102:8888',
+                capabilities: ['p2p'],
+                health: 0.72,
+                lastSeen: Date.now() - 120000,
+                isActive: false
+            },
+            {
+                id: 'peer-004',
+                address: '10.0.0.50:8888',
+                capabilities: ['posts', 'p2p', 'config'],
+                health: 0.98,
+                lastSeen: Date.now() - 15000,
+                isActive: true
+            }
+        ];
+
+        // Network status
+        let networkStatus = {
+            isActive: true,
+            peerCount: 12,
+            torEnabled: true,
+            networkHealth: 0.85
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            setupEventListeners();
+            startAutoRefresh();
+        });
+
+        function initializeDashboard() {
+            updateStatusCards();
+            renderPeerList();
+            updateMetrics();
+        }
+
+        function updateStatusCards() {
+            document.getElementById('network-status').textContent = networkStatus.isActive ? 'Aktiv' : 'Inaktiv';
+            document.getElementById('peer-count').textContent = networkStatus.peerCount;
+            document.getElementById('tor-status').textContent = networkStatus.torEnabled ? 'Aktiv' : 'Inaktiv';
+            document.getElementById('network-health').textContent = Math.round(networkStatus.networkHealth * 100) + '%';
+        }
+
+        function renderPeerList() {
+            const peerList = document.getElementById('peer-list');
+            peerList.innerHTML = '';
+
+            mockPeers.forEach(peer => {
+                const peerItem = createPeerItem(peer);
+                peerList.appendChild(peerItem);
+            });
+
+            document.getElementById('peer-count-badge').textContent = mockPeers.filter(p => p.isActive).length;
+        }
+
+        function createPeerItem(peer) {
+            const peerItem = document.createElement('div');
+            peerItem.className = 'peer-item';
+
+            const healthClass = peer.health >= 0.8 ? '' : peer.health >= 0.6 ? 'warning' : 'danger';
+            const statusText = peer.isActive ? 'Verbunden' : 'Getrennt';
+
+            peerItem.innerHTML = `
+                <div class="peer-header">
+                    <div class="peer-info">
+                        <h4>${peer.id}</h4>
+                        <div class="peer-address">${peer.address}</div>
+                    </div>
+                    <div class="peer-status">
+                        <div class="health-indicator ${healthClass}"></div>
+                        <div class="health-score">${Math.round(peer.health * 100)}%</div>
+                    </div>
+                </div>
+                <div class="peer-capabilities">
+                    ${peer.capabilities.map(cap => `<span class="capability-tag">${cap}</span>`).join('')}
+                </div>
+                <div class="peer-actions">
+                    <button class="peer-action ${peer.isActive ? 'warning' : 'success'}" onclick="togglePeer('${peer.id}')">
+                        ${peer.isActive ? 'Trennen' : 'Verbinden'}
+                    </button>
+                    <button class="peer-action danger" onclick="removePeer('${peer.id}')">
+                        Entfernen
+                    </button>
+                </div>
+            `;
+
+            return peerItem;
+        }
+
+        function updateMetrics() {
+            document.getElementById('posts-synced').textContent = Math.floor(Math.random() * 200) + 100;
+            document.getElementById('conflicts-resolved').textContent = Math.floor(Math.random() * 10);
+            document.getElementById('avg-latency').textContent = Math.floor(Math.random() * 100) + 20 + 'ms';
+            document.getElementById('bandwidth').textContent = (Math.random() * 5 + 1).toFixed(1) + ' MB/s';
+        }
+
+        function setupEventListeners() {
+            // Network control buttons
+            document.getElementById('start-network').addEventListener('click', () => startNetwork());
+            document.getElementById('stop-network').addEventListener('click', () => stopNetwork());
+            document.getElementById('start-tor').addEventListener('click', () => startTor());
+            document.getElementById('stop-tor').addEventListener('click', () => stopTor());
+            document.getElementById('refresh-status').addEventListener('click', () => refreshStatus());
+
+            // QR code buttons
+            document.getElementById('generate-qr').addEventListener('click', () => generateQRCode());
+            document.getElementById('copy-qr').addEventListener('click', () => copyQRCode());
+            document.getElementById('scan-qr').addEventListener('click', () => scanQRCode());
+            document.getElementById('upload-qr').addEventListener('click', () => uploadQRCode());
+        }
+
+        function startNetwork() {
+            networkStatus.isActive = true;
+            updateStatusCards();
+            showNotification('Netzwerk erfolgreich gestartet', 'success');
+        }
+
+        function stopNetwork() {
+            networkStatus.isActive = false;
+            updateStatusCards();
+            showNotification('Netzwerk gestoppt', 'warning');
+        }
+
+        function startTor() {
+            networkStatus.torEnabled = true;
+            updateStatusCards();
+            showNotification('Tor erfolgreich gestartet', 'success');
+        }
+
+        function stopTor() {
+            networkStatus.torEnabled = false;
+            updateStatusCards();
+            showNotification('Tor gestoppt', 'warning');
+        }
+
+        function refreshStatus() {
+            const button = document.getElementById('refresh-status');
+            const icon = button.querySelector('i');
+            
+            icon.classList.add('fa-spin');
+            button.disabled = true;
+
+            // Simulate refresh
+            setTimeout(() => {
+                updateMetrics();
+                icon.classList.remove('fa-spin');
+                button.disabled = false;
+                showNotification('Status aktualisiert', 'success');
+            }, 1000);
+        }
+
+        function generateQRCode() {
+            const placeholder = document.getElementById('qr-placeholder');
+            placeholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            // Simulate QR generation
+            setTimeout(() => {
+                placeholder.innerHTML = '<i class="fas fa-qrcode" style="color: #667eea; font-size: 4em;"></i>';
+                showNotification('QR-Code generiert', 'success');
+            }, 1500);
+        }
+
+        function copyQRCode() {
+            // Simulate copying to clipboard
+            showNotification('QR-Code in Zwischenablage kopiert', 'success');
+        }
+
+        function scanQRCode() {
+            showNotification('QR-Code Scanner wird geöffnet', 'info');
+        }
+
+        function uploadQRCode() {
+            showNotification('QR-Code Datei-Upload gestartet', 'info');
+        }
+
+        function togglePeer(peerId) {
+            const peer = mockPeers.find(p => p.id === peerId);
+            if (peer) {
+                peer.isActive = !peer.isActive;
+                renderPeerList();
+                showNotification(`Peer ${peer.id} ${peer.isActive ? 'verbunden' : 'getrennt'}`, 'success');
+            }
+        }
+
+        function removePeer(peerId) {
+            const index = mockPeers.findIndex(p => p.id === peerId);
+            if (index !== -1) {
+                mockPeers.splice(index, 1);
+                renderPeerList();
+                showNotification(`Peer ${peerId} entfernt`, 'success');
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function startAutoRefresh() {
+            // Auto-refresh every 10 seconds
+            setInterval(() => {
+                if (networkStatus.isActive) {
+                    updateMetrics();
+                }
+            }, 10000);
+        }
+
+        // Simulate real-time updates
+        setInterval(() => {
+            if (networkStatus.isActive) {
+                // Randomly update peer health
+                mockPeers.forEach(peer => {
+                    if (peer.isActive) {
+                        peer.health = Math.max(0.5, Math.min(1.0, peer.health + (Math.random() - 0.5) * 0.1));
+                    }
+                });
+                renderPeerList();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

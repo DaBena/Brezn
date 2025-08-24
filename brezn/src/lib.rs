@@ -15,6 +15,7 @@ pub mod error;
 pub mod ffi;
 pub mod sync_metrics;
 pub mod tor;
+pub mod performance;
 
 pub mod ui_extensions;
 pub mod discovery_network_bridge;

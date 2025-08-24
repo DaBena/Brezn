@@ -2431,4 +2431,311 @@ mod tests {
             assert_eq!(deserialized.message_type, msg_type);
         }
     }
+
+    #[test]
+    fn test_qr_code_validation() {
+        let qr_data = QRCodeData::new(
+            "test-node".to_string(),
+            "test-key".to_string(),
+            "127.0.0.1".to_string(),
+            8888,
+            vec!["posts".to_string(), "p2p".to_string()],
+            None,
+        );
+        
+        assert!(qr_data.validate().is_ok());
+        
+        // Test invalid data
+        let invalid_qr = QRCodeData {
+            node_id: "".to_string(), // Empty node_id
+            public_key: "test-key".to_string(),
+            address: "127.0.0.1".to_string(),
+            port: 8888,
+            capabilities: vec!["posts".to_string()],
+            network_segment: None,
+            version: "1.0".to_string(),
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            checksum: "invalid".to_string(),
+        };
+        
+        assert!(invalid_qr.validate().is_err());
+    }
+    
+    // ========================================================================
+    // END-TO-END DISCOVERY TESTS
+    // ========================================================================
+    
+    #[tokio::test]
+    async fn test_end_to_end_peer_discovery_workflow() {
+        // Create discovery manager
+        let config = DiscoveryConfig::default();
+        let mut discovery = DiscoveryManager::new(
+            config,
+            "test-node-1".to_string(),
+            "test-key-1".to_string(),
+            8888
+        );
+        
+        // Start discovery
+        let discovery_handle = tokio::spawn(async move {
+            discovery.start_discovery().await
+        });
+        
+        // Wait for discovery to start
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        
+        // Create second discovery manager to simulate peer
+        let config2 = DiscoveryConfig::default();
+        let mut discovery2 = DiscoveryManager::new(
+            config2,
+            "test-node-2".to_string(),
+            "test-key-2".to_string(),
+            8889
+        );
+        
+        // Start second discovery
+        let discovery2_handle = tokio::spawn(async move {
+            discovery2.start_discovery().await
+        });
+        
+        // Wait for peer discovery
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        
+        // Check if peers were discovered
+        let peers = discovery.get_peers().unwrap();
+        assert!(peers.len() > 0, "No peers discovered in end-to-end test");
+        
+        // Cleanup
+        discovery_handle.abort();
+        discovery2_handle.abort();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_qr_code_peer_addition() {
+        // Create discovery manager
+        let config = DiscoveryConfig::default();
+        let mut discovery = DiscoveryManager::new(
+            config,
+            "test-node".to_string(),
+            "test-key".to_string(),
+            8888
+        );
+        
+        // Generate QR code
+        let qr_data = discovery.generate_qr_code().unwrap();
+        assert!(!qr_data.is_empty(), "QR code generation failed");
+        
+        // Parse QR code back to peer info
+        let peer_info = discovery.parse_qr_code(&qr_data).unwrap();
+        assert_eq!(peer_info.node_id, "test-node");
+        assert_eq!(peer_info.public_key, "test-key");
+        assert_eq!(peer_info.port, 8888);
+        
+        // Add peer from QR code
+        let add_result = discovery.add_peer(peer_info);
+        assert!(add_result.is_ok(), "Failed to add peer from QR code");
+        
+        // Verify peer was added
+        let peers = discovery.get_peers().unwrap();
+        assert!(peers.iter().any(|p| p.node_id == "test-node"), "Peer not added from QR code");
+    }
+    
+    #[test]
+    fn test_end_to_end_network_topology_discovery() {
+        // Create discovery manager
+        let config = DiscoveryConfig::default();
+        let mut discovery = DiscoveryManager::new(
+            config,
+            "test-node".to_string(),
+            "test-key".to_string(),
+            8888
+        );
+        
+        // Add multiple peers with different capabilities
+        let peer1 = PeerInfo {
+            node_id: "peer1".to_string(),
+            public_key: "key1".to_string(),
+            address: "127.0.0.1".to_string(),
+            port: 8889,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".to_string(), "config".to_string()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment1".to_string()),
+            health_score: 0.9,
+            response_time_ms: Some(25),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: Some(1000000),
+            latency_history: vec![25, 30, 35],
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".to_string(),
+            public_key: "key2".to_string(),
+            address: "127.0.0.2".to_string(),
+            port: 8890,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["p2p".to_string()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment2".to_string()),
+            health_score: 0.8,
+            response_time_ms: Some(50),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Broadcast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: Some(500000),
+            latency_history: vec![50, 55, 60],
+        };
+        
+        discovery.add_peer(peer1).unwrap();
+        discovery.add_peer(peer2).unwrap();
+        
+        // Test network topology analysis
+        let topology = discovery.get_network_topology().unwrap();
+        
+        // Verify topology data
+        assert_eq!(topology.total_peers, 2);
+        assert_eq!(topology.verified_peers, 2);
+        assert_eq!(topology.network_segments.len(), 2);
+        assert!(topology.capability_distribution.contains_key("posts"));
+        assert!(topology.capability_distribution.contains_key("p2p"));
+        
+        // Test segment filtering
+        let segment1_peers = discovery.get_peers_by_segment("segment1").unwrap();
+        assert_eq!(segment1_peers.len(), 1);
+        assert_eq!(segment1_peers[0].node_id, "peer1");
+        
+        let segment2_peers = discovery.get_peers_by_segment("segment2").unwrap();
+        assert_eq!(segment2_peers.len(), 1);
+        assert_eq!(segment2_peers[0].node_id, "peer2");
+    }
+    
+    #[test]
+    fn test_end_to_end_peer_health_monitoring() {
+        // Create discovery manager
+        let config = DiscoveryConfig::default();
+        let mut discovery = DiscoveryManager::new(
+            config,
+            "test-node".to_string(),
+            "test-key".to_string(),
+            8888
+        );
+        
+        // Add peer with health data
+        let peer = PeerInfo {
+            node_id: "healthy-peer".to_string(),
+            public_key: "key".to_string(),
+            address: "127.0.0.1".to_string(),
+            port: 8889,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".to_string()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: None,
+            health_score: 0.9,
+            response_time_ms: Some(25),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: Some(1000000),
+            latency_history: vec![25, 30, 35],
+        };
+        
+        discovery.add_peer(peer).unwrap();
+        
+        // Test health monitoring
+        let health_stats = discovery.get_peer_health_statistics().unwrap();
+        
+        // Verify health statistics
+        assert_eq!(health_stats.total_peers, 1);
+        assert_eq!(health_stats.healthy_peers, 1);
+        assert_eq!(health_stats.average_health_score, 0.9);
+        assert_eq!(health_stats.average_response_time_ms, 25);
+        
+        // Test peer verification
+        let verify_result = discovery.verify_peer("healthy-peer").unwrap();
+        assert!(verify_result, "Peer verification failed");
+        
+        // Test stale peer cleanup
+        discovery.cleanup_stale_peers().unwrap();
+        let peers_after_cleanup = discovery.get_peers().unwrap();
+        assert_eq!(peers_after_cleanup.len(), 1, "Healthy peer was incorrectly cleaned up");
+    }
+    
+    #[test]
+    fn test_end_to_end_discovery_statistics() {
+        // Create discovery manager
+        let config = DiscoveryConfig::default();
+        let mut discovery = DiscoveryManager::new(
+            config,
+            "test-node".to_string(),
+            "test-key".to_string(),
+            8888
+        );
+        
+        // Add multiple peers
+        for i in 1..=5 {
+            let peer = PeerInfo {
+                node_id: format!("peer{}", i),
+                public_key: format!("key{}", i),
+                address: format!("127.0.0.{}", i),
+                port: 8888 + i as u16,
+                last_seen: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec!["posts".to_string()],
+                connection_attempts: 0,
+                last_connection_attempt: 0,
+                is_verified: i % 2 == 0, // Alternate verified status
+                network_segment: Some(format!("segment{}", (i % 3) + 1)),
+                health_score: 0.8 + (i as f64 * 0.05),
+                response_time_ms: Some(25 + (i * 5) as u64),
+                last_health_check: chrono::Utc::now().timestamp() as u64,
+                consecutive_failures: 0,
+                discovery_source: DiscoverySource::Multicast,
+                metadata: HashMap::new(),
+                is_active: true,
+                last_successful_communication: chrono::Utc::now().timestamp() as u64,
+                bandwidth_estimate: Some(1000000),
+                latency_history: vec![25, 30, 35],
+            };
+            
+            discovery.add_peer(peer).unwrap();
+        }
+        
+        // Get discovery statistics
+        let stats = discovery.get_discovery_statistics().unwrap();
+        
+        // Verify statistics
+        assert_eq!(stats.total_peers, 5);
+        assert_eq!(stats.verified_peers, 2); // peers 2, 4
+        assert_eq!(stats.unverified_peers, 3); // peers 1, 3, 5
+        assert_eq!(stats.capability_counts["posts"], 5);
+        
+        // Test capability filtering
+        let posts_capable_peers = discovery.get_peers_by_capability("posts").unwrap();
+        assert_eq!(posts_capable_peers.len(), 5);
+        
+        // Test network segment analysis
+        let segment1_peers = discovery.get_peers_by_segment("segment1").unwrap();
+        let segment2_peers = discovery.get_peers_by_segment("segment2").unwrap();
+        let segment3_peers = discovery.get_peers_by_segment("segment3").unwrap();
+        
+        assert!(segment1_peers.len() > 0);
+        assert!(segment2_peers.len() > 0);
+        assert!(segment3_peers.len() > 0);
+    }
 }
