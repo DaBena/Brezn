@@ -193,6 +193,7 @@ pub struct NetworkManager {
     tor_manager: Option<TorManager>,
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
     topology: Arc<Mutex<NetworkTopology>>,
+    #[cfg(feature = "p2p")]
     discovery_manager: Option<Arc<Mutex<crate::discovery::DiscoveryManager>>>,
     
     discovery_socket: Option<UdpSocket>,
@@ -237,7 +238,7 @@ impl NetworkManager {
                 network_segments: Vec::new(),
                 topology_version: 0,
             })),
-            discovery_manager: None,
+            
             
             discovery_socket: None,
             discovery_port: 0,
@@ -357,10 +358,11 @@ impl NetworkManager {
         let socket = UdpSocket::bind(format!("0.0.0.0:{}", discovery_port)).await
             .context("Failed to bind discovery socket")?;
         
+        // Store socket
         self.discovery_socket = Some(socket);
         
-        // Start discovery listener
-        let discovery_socket = self.discovery_socket.as_ref().unwrap().clone();
+        // Move socket into the task to avoid borrowing self
+        let discovery_socket = self.discovery_socket.take().unwrap();
         
         tokio::spawn(async move {
             let mut buffer = [0u8; 1024];
@@ -380,7 +382,6 @@ impl NetworkManager {
             }
         });
         
-        println!("🔍 UDP Discovery gestartet auf Port {}", discovery_port);
         Ok(())
     }
 
@@ -583,6 +584,15 @@ impl NetworkManager {
         Ok(true)
     }
 
+    pub fn disable_tor(&mut self) {
+        if let Some(mut tm) = self.tor_manager.take() {
+            // Best-effort disable; ignore errors in MVP
+            tm.disable();
+        }
+        self.tor_enabled = false;
+        println!("🔓 Tor SOCKS5 Proxy deaktiviert");
+    }
+
     pub async fn sync_all_peers(&self) -> Result<()> {
         let peers = {
             let peers = self.peers.lock().unwrap();
@@ -617,6 +627,12 @@ impl NetworkManager {
     pub async fn get_unresolved_conflicts(&self) -> Result<Vec<PostConflict>> {
         let conflicts = self.post_conflicts.lock().unwrap();
         Ok(conflicts.values().cloned().collect())
+    }
+
+    pub async fn request_posts_from_peer(&self, _node_id: &str) -> Result<()> {
+        // MVP stub: In a full implementation, this would locate the peer by node_id
+        // and send a SyncRequest. For now, just return Ok to satisfy API usage.
+        Ok(())
     }
 
     pub async fn manually_resolve_conflict(&self, post_id: &str, strategy: ConflictResolutionStrategy) -> Result<()> {

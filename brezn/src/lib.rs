@@ -10,6 +10,7 @@ pub mod types;
 pub mod network_simple;
 pub mod crypto;
 pub mod database;
+#[cfg(feature = "p2p")]
 pub mod discovery;
 pub mod error;
 pub mod ffi;
@@ -17,9 +18,13 @@ pub mod sync_metrics;
 pub mod tor;
 pub mod performance;
 
+#[cfg(feature = "p2p")]
 pub mod ui_extensions;
+#[cfg(feature = "p2p")]
 pub mod discovery_network_bridge;
+#[cfg(any(feature = "p2p", test))]
 pub mod p2p_e2e_tests;
+#[cfg(feature = "p2p")]
 pub mod performance_optimizer;
 
 // FFI types
@@ -277,6 +282,7 @@ impl BreznApp {
 uniffi::include_scaffolding!("brezn");
 
 // Export FFI functions
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_new() -> *mut BreznApp {
     match BreznApp::new() {
@@ -285,6 +291,7 @@ pub extern "C" fn brezn_app_new() -> *mut BreznApp {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_free(ptr: *mut BreznApp) {
     if !ptr.is_null() {
@@ -294,6 +301,7 @@ pub extern "C" fn brezn_app_free(ptr: *mut BreznApp) {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_init(app: *mut BreznApp, network_port: u16, tor_socks_port: u16) -> bool {
     if app.is_null() {
@@ -308,6 +316,7 @@ pub extern "C" fn brezn_app_init(app: *mut BreznApp, network_port: u16, tor_sock
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_start(app: *mut BreznApp) -> bool {
     if app.is_null() {
@@ -322,6 +331,7 @@ pub extern "C" fn brezn_app_start(app: *mut BreznApp) -> bool {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_create_post(app: *mut BreznApp, content: *const i8, pseudonym: *const i8) -> bool {
     if app.is_null() || content.is_null() || pseudonym.is_null() {
@@ -339,6 +349,7 @@ pub extern "C" fn brezn_app_create_post(app: *mut BreznApp, content: *const i8, 
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_get_network_status(app: *mut BreznApp) -> *mut network_simple::NetworkStatus {
     if app.is_null() {
@@ -353,6 +364,7 @@ pub extern "C" fn brezn_app_get_network_status(app: *mut BreznApp) -> *mut netwo
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_enable_tor(app: *mut BreznApp) -> bool {
     if app.is_null() {
@@ -367,6 +379,7 @@ pub extern "C" fn brezn_app_enable_tor(app: *mut BreznApp) -> bool {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_disable_tor(app: *mut BreznApp) {
     if app.is_null() {
@@ -378,6 +391,7 @@ pub extern "C" fn brezn_app_disable_tor(app: *mut BreznApp) {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_generate_qr_code(app: *mut BreznApp) -> *mut i8 {
     if app.is_null() {
@@ -395,6 +409,7 @@ pub extern "C" fn brezn_app_generate_qr_code(app: *mut BreznApp) -> *mut i8 {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_parse_qr_code(app: *mut BreznApp, qr_data: *const i8) -> bool {
     if app.is_null() || qr_data.is_null() {
@@ -411,6 +426,7 @@ pub extern "C" fn brezn_app_parse_qr_code(app: *mut BreznApp, qr_data: *const i8
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_get_performance_metrics(app: *mut BreznApp) -> *mut PerformanceMetrics {
     if app.is_null() {
@@ -425,6 +441,7 @@ pub extern "C" fn brezn_app_get_performance_metrics(app: *mut BreznApp) -> *mut 
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_get_device_info(app: *mut BreznApp) -> *mut DeviceInfo {
     if app.is_null() {
@@ -439,6 +456,7 @@ pub extern "C" fn brezn_app_get_device_info(app: *mut BreznApp) -> *mut DeviceIn
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_test_p2p_network(app: *mut BreznApp) -> bool {
     if app.is_null() {
@@ -453,6 +471,7 @@ pub extern "C" fn brezn_app_test_p2p_network(app: *mut BreznApp) -> bool {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_app_cleanup(app: *mut BreznApp) {
     if app.is_null() {
@@ -465,6 +484,7 @@ pub extern "C" fn brezn_app_cleanup(app: *mut BreznApp) {
 }
 
 // Memory management functions
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_string_free(ptr: *mut i8) {
     if !ptr.is_null() {
@@ -474,6 +494,7 @@ pub extern "C" fn brezn_string_free(ptr: *mut i8) {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_network_status_free(ptr: *mut network_simple::NetworkStatus) {
     if !ptr.is_null() {
@@ -483,6 +504,7 @@ pub extern "C" fn brezn_network_status_free(ptr: *mut network_simple::NetworkSta
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_performance_metrics_free(ptr: *mut PerformanceMetrics) {
     if !ptr.is_null() {
@@ -492,6 +514,7 @@ pub extern "C" fn brezn_performance_metrics_free(ptr: *mut PerformanceMetrics) {
     }
 }
 
+#[cfg(feature = "uniffi")]
 #[no_mangle]
 pub extern "C" fn brezn_device_info_free(ptr: *mut DeviceInfo) {
     if !ptr.is_null() {

@@ -1,5 +1,5 @@
 use crate::discovery::DiscoveryManager;
-use crate::network::P2PNetworkManager;
+// use crate::network::P2PNetworkManager; // Not used in MVP build
 use crate::discovery_network_bridge::DiscoveryNetworkBridge;
 use crate::database::Database;
 use crate::types::{Post, Config};
@@ -76,11 +76,11 @@ impl P2PE2ETestSuite {
     async fn create_test_node(&self, node_id: &str, port: u16) -> Result<TestNode, Box<dyn std::error::Error>> {
         // Create database
         let db_path = format!("/tmp/brezn_test_{}.db", node_id);
-        let database = Arc::new(Database::new(&db_path)?);
+        let database = Arc::new(Database::new()?);
         
         // Create discovery manager
         let discovery_config = crate::discovery::DiscoveryConfig::default();
-        let discovery_manager = Arc::new(DiscoveryManager::new(discovery_config)?);
+        let discovery_manager = Arc::new(DiscoveryManager::new(discovery_config, "node".into(), "pk".into(), 0));
         
         // Create network manager
         let network_manager = Arc::new(P2PNetworkManager::new(port, Some(database.clone()))?);

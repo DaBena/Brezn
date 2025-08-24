@@ -1040,22 +1040,8 @@ impl DiscoveryManager {
         // Starte Network-Topology Task
         let topology_monitor = self.start_topology_monitoring().await?;
         
-        // Starte alle Tasks parallel
-        tokio::spawn(async move { 
-            if let Err(e) = health_monitor.await { 
-                eprintln!("Health monitor error: {}", e); 
-            } 
-        });
-        tokio::spawn(async move { 
-            if let Err(e) = peer_discovery.await { 
-                eprintln!("Peer discovery error: {}", e); 
-            } 
-        });
-        tokio::spawn(async move { 
-            if let Err(e) = topology_monitor.await { 
-                eprintln!("Topology monitor error: {}", e); 
-            } 
-        });
+        // Starte alle Tasks parallel (Funktionen starten bereits im Hintergrund)
+        // Diese Aufrufe liefern aktuell () zurück; es gibt nichts zu awaiten hier.
         
         Ok(())
     }

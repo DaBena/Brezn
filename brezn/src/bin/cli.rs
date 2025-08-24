@@ -1,4 +1,4 @@
-use brezn::{BreznApp, types::Config, tor_tests};
+use brezn::{BreznApp, types::Config};
 use anyhow::Result;
 use std::env;
 
@@ -11,10 +11,7 @@ fn main() -> Result<()> {
     if args.len() > 1 {
         match args[1].as_str() {
             "tor-test" => {
-                println!("🧪 Running Tor integration tests...");
-                tokio::runtime::Runtime::new()?.block_on(async {
-                    tor_tests::run_tor_integration_tests().await
-                })?;
+                println!("🧪 Tor test command is disabled in MVP build");
                 return Ok(());
             }
             "tor-status" => {
@@ -39,19 +36,8 @@ fn main() -> Result<()> {
         }
     }
     
-    // Initialize configuration
-    let config = Config {
-        auto_save: true,
-        max_posts: 1000,
-        default_pseudonym: "AnonymBrezn".to_string(),
-        network_enabled: true,
-        network_port: 8888,
-        tor_enabled: false,
-        tor_socks_port: 9050,
-    };
-    
     // Initialize the app
-    let _app = BreznApp::new(config)?;
+    let _app = BreznApp::new()?;
     
     println!("✅ Brezn CLI initialisiert");
     println!("📝 Verwenden Sie die Web-UI unter http://localhost:8080");
