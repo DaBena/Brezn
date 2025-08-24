@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -14,7 +15,7 @@ import { RootStackParamList } from '../types/navigation';
 import { Post } from '../types/navigation';
 import { BreznService } from '../services/BreznService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { formatRelativeTime } from '../utils/time';
+import PostCard from '../components/PostCard';
 
 type FeedScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -23,6 +24,7 @@ const FeedScreen: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadPosts();
@@ -47,20 +49,41 @@ const FeedScreen: React.FC = () => {
     setRefreshing(false);
   };
 
+  const handleLike = (postId: number) => {
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+    
+    // TODO: Implement actual like functionality with backend
+    Alert.alert('Info', 'Like-Funktionalität wird implementiert');
+  };
+
+  const handleShare = (postId: number) => {
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      // TODO: Implement actual sharing functionality
+      Alert.alert('Teilen', `Post von ${post.pseudonym} wird geteilt`);
+    }
+  };
+
+  const handleReport = (postId: number) => {
+    // TODO: Implement actual reporting functionality
+    Alert.alert('Melden', 'Post wurde gemeldet und wird überprüft');
+  };
+
   const renderPost = ({ item }: { item: Post }) => (
-    <View style={styles.postContainer} onRefresh={onRefresh as any}>
-      <View style={styles.postHeader}>
-        <Text style={styles.pseudonym}>{item.pseudonym}</Text>
-        <Text style={styles.timestamp}>{formatRelativeTime(item.timestamp)}</Text>
-      </View>
-      <Text style={styles.postContent}>{item.content}</Text>
-      {item.nodeId && (
-        <View style={styles.nodeInfo}>
-          <Icon name="device-hub" size={12} color="#666" />
-          <Text style={styles.nodeText}>Node: {item.nodeId}</Text>
-        </View>
-      )}
-    </View>
+    <PostCard
+      post={item}
+      onLike={handleLike}
+      onShare={handleShare}
+      onReport={handleReport}
+    />
   );
 
   const renderEmptyState = () => (
@@ -73,6 +96,14 @@ const FeedScreen: React.FC = () => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#667eea" testID="loading-indicator" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -82,10 +113,15 @@ const FeedScreen: React.FC = () => {
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            testID="refresh-control"
+          />
         }
         ListEmptyComponent={renderEmptyState}
         contentContainerStyle={posts.length === 0 ? styles.emptyList : undefined}
+        showsVerticalScrollIndicator={false}
       />
       <TouchableOpacity
         style={styles.fab}
@@ -103,50 +139,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  postContainer: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  pseudonym: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#667eea',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#666',
-  },
-  postContent: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-  },
-  nodeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  nodeText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+    backgroundColor: '#f5f5f5',
   },
   emptyContainer: {
     flex: 1,

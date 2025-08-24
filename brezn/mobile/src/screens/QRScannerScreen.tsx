@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,6 +23,7 @@ const QRScannerScreen: React.FC = () => {
   const navigation = useNavigation<QRScannerScreenNavigationProp>();
   const [scanning, setScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
 
   useEffect(() => {
     requestCameraPermission();
@@ -28,24 +31,24 @@ const QRScannerScreen: React.FC = () => {
 
   const requestCameraPermission = async () => {
     try {
+      setPermissionRequested(true);
       const granted = await BreznService.requestPermissions();
       setHasPermission(granted);
       
       if (granted) {
         setScanning(true);
-      } else {
-        Alert.alert(
-          'Kamera-Berechtigung erforderlich',
-          'Bitte erlaube den Zugriff auf die Kamera, um QR-Codes zu scannen.',
-          [
-            { text: 'Abbrechen', onPress: () => navigation.goBack() },
-            { text: 'Einstellungen', onPress: () => requestCameraPermission() },
-          ]
-        );
       }
     } catch (error) {
       console.error('Error requesting camera permission:', error);
-      Alert.alert('Fehler', 'Kamera-Berechtigung konnte nicht angefordert werden');
+      setHasPermission(false);
+    }
+  };
+
+  const openSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:');
+    } else {
+      Linking.openSettings();
     }
   };
 
@@ -65,8 +68,7 @@ const QRScannerScreen: React.FC = () => {
             text: 'Hinzufügen',
             onPress: async () => {
               try {
-                // Add peer to network
-                // This would be implemented in the native module
+                // TODO: Implement actual peer addition
                 Alert.alert('Erfolg', 'Peer wurde zum Netzwerk hinzugefügt!');
                 navigation.goBack();
               } catch (error) {
@@ -103,7 +105,13 @@ const QRScannerScreen: React.FC = () => {
     );
   };
 
-  if (!hasPermission) {
+  const handleTestQRCode = () => {
+    // Test QR code for development
+    const testData = 'brezn://peer?nodeId=test123&address=192.168.1.100&port=8080&publicKey=testkey';
+    handleQRCodeScanned(testData);
+  };
+
+  if (!hasPermission && permissionRequested) {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
@@ -114,9 +122,9 @@ const QRScannerScreen: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={styles.permissionButton}
-            onPress={requestCameraPermission}
+            onPress={openSettings}
           >
-            <Text style={styles.permissionButtonText}>Berechtigung erteilen</Text>
+            <Text style={styles.permissionButtonText}>Einstellungen öffnen</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.cancelButton}
@@ -139,15 +147,30 @@ const QRScannerScreen: React.FC = () => {
           <Text style={styles.cameraSubtext}>
             Richte die Kamera auf einen QR-Code
           </Text>
+          
+          {/* Development Test Button */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={handleTestQRCode}
+            >
+              <Text style={styles.testButtonText}>Test QR-Code</Text>
+            </TouchableOpacity>
+          )}
         </View>
         
         {/* Scanner Frame */}
-        <View style={styles.scannerFrame}>
+        <View style={styles.scannerFrame} testID="scanner-frame">
           <View style={styles.corner} />
           <View style={[styles.corner, styles.cornerTopRight]} />
           <View style={[styles.corner, styles.cornerBottomLeft]} />
           <View style={[styles.corner, styles.cornerBottomRight]} />
         </View>
+        
+        {/* Scanning Animation */}
+        {scanning && (
+          <View style={styles.scanLine} testID="scan-line" />
+        )}
       </View>
 
       {/* Controls */}
@@ -251,6 +274,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  testButton: {
+    backgroundColor: '#667eea',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   scannerFrame: {
     position: 'absolute',
     width: 250,
@@ -290,6 +325,14 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderBottomWidth: 4,
     borderRightWidth: 4,
+  },
+  scanLine: {
+    position: 'absolute',
+    width: 250,
+    height: 2,
+    backgroundColor: '#667eea',
+    top: height * 0.35,
+    left: (width - 250) / 2,
   },
   controlsContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
