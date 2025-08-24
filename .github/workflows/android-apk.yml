@@ -8,6 +8,11 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android]
+        build_type: [debug, release]
+        
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +41,7 @@ jobs:
 
       - name: Add Rust Android targets
         run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+          rustup target add ${{ matrix.target }}
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -87,9 +92,7 @@ jobs:
           cargo --version
 
           cd brezn
-          cargo build -vv --target aarch64-linux-android --release --lib
-          cargo build -vv --target armv7-linux-androideabi --release --lib
-          cargo build -vv --target x86_64-linux-android --release --lib
+          cargo build -vv --target ${{ matrix.target }} --${{ matrix.build_type }} --lib
 
       - name: Prepare jniLibs (if Android project exists)
         if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
@@ -109,19 +112,19 @@ jobs:
           cd brezn/mobile
           npm ci
 
-      - name: Build Android APK (Release, unsigned)
+      - name: Build Android APK
         if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
         run: |
           cd brezn/mobile/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assemble${{ matrix.build_type }}
 
-      - name: Upload APK artifact
+      - name: Upload APK
         if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: brezn-android-apk
-          path: brezn/mobile/android/app/build/outputs/apk/release/*.apk
+          name: brezn-android-${{ matrix.target }}-${{ matrix.build_type }}
+          path: brezn/mobile/android/app/build/outputs/apk/${{ matrix.build_type }}/*.apk
 
       - name: Skip - Android project not present
         if: ${{ hashFiles('brezn/mobile/android/gradlew') == '' }}

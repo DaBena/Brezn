@@ -1,0 +1,51 @@
+name: Deployment
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-build-x86_64-unknown-linux-gnu-default
+
+      - name: Setup deployment
+        run: |
+          mkdir -p deployment
+          cp -r * deployment/
+
+      - name: Deploy to staging
+        if: github.event.inputs.environment == 'staging' || github.ref == 'refs/tags/v*'
+        run: |
+          echo "Deploying to staging..."
+          # Staging deployment logic
+
+      - name: Deploy to production
+        if: github.event.inputs.environment == 'production'
+        run: |
+          echo "Deploying to production..."
+          # Production deployment logic
+
+      - name: Notify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          # Notification logic
