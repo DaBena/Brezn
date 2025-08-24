@@ -9,6 +9,7 @@
     "start": "react-native start",
     "web": "expo start --web",
     "test": "jest",
+    "test:ci": "jest --ci --coverage --watchAll=false",
     "lint": "eslint .",
     "build:android": "cd android && ./gradlew assembleRelease",
     "build:ios": "cd ios && mkdir -p build && xcodebuild -workspace Brezn.xcworkspace -scheme Brezn -configuration Release -destination 'generic/platform:iOS' -archivePath build/Brezn.xcarchive archive",
