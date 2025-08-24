@@ -1,20 +1,19 @@
 name: 🤖 AI Development Agent - Brezn MVP
 
-# Läuft alle 3 Stunden automatisch
+# Läuft kontinuierlich - ein Agent wartet auf den anderen
 on:
-  schedule:
-    - cron: '0 */3 * * *'  # Alle 3 Stunden
-  workflow_dispatch:  # Manueller Start möglich
+  workflow_dispatch:  # Manueller Start
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'ai-feature/**' ]  # Läuft auch auf Feature Branches
     paths-ignore:
       - '**.md'
       - 'docs/**'
       - '.github/**'
+  # Kein schedule - Agenten laufen sequenziell
 
-# Verhindert parallele Ausführung
+# Verhindert parallele Ausführung - nur ein Agent gleichzeitig
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ai-agent-chain
   cancel-in-progress: false
 
 jobs:
@@ -114,26 +113,63 @@ jobs:
           # Ausgabe für nächste Steps
           echo "ai_agent_completed=true" >> $GITHUB_OUTPUT
       
-      - name: 🔧 Feature Branch erstellen
+      - name: 🔍 Feature Branch Status prüfen
+        id: check_branch
+        run: |
+          echo "🔍 Prüfe Feature Branch Status..."
+          
+          FEATURE_NAME="${{ steps.analyze.outputs.next_feature }}"
+          
+          # Suche nach existierenden Feature Branches
+          EXISTING_BRANCHES=$(git branch -r | grep "ai-feature/${FEATURE_NAME}" | head -1 | sed 's/origin\///')
+          
+          if [ -n "$EXISTING_BRANCHES" ]; then
+            echo "🔄 Existierender Feature Branch gefunden: ${EXISTING_BRANCHES}"
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+            echo "existing_branch=${EXISTING_BRANCHES}" >> $GITHUB_OUTPUT
+            
+            # Branch auschecken
+            git checkout -b "${EXISTING_BRANCHES}" origin/"${EXISTING_BRANCHES}"
+            echo "✅ Auf existierendem Branch weitergearbeitet: ${EXISTING_BRANCHES}"
+          else
+            echo "🆕 Erstelle neuen Feature Branch..."
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+            
+            # Neuen Branch erstellen
+            BRANCH_NAME="ai-feature/${FEATURE_NAME}-$(date +%Y%m%d-%H%M)"
+            git checkout -b "$BRANCH_NAME"
+            echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+            echo "✅ Neuer Feature Branch erstellt: ${BRANCH_NAME}"
+          fi
+      
+      - name: 🔧 Feature implementieren
         id: implement
         run: |
-          echo "🔧 Erstelle Feature Branch..."
-          
-          # Feature Branch erstellen
-          FEATURE_NAME="${{ steps.analyze.outputs.next_feature }}"
-          BRANCH_NAME="ai-feature/${FEATURE_NAME}-$(date +%Y%m%d-%H%M)"
-          
-          git checkout -b "$BRANCH_NAME"
+          echo "🔧 Implementiere Feature..."
           
           # Änderungen committen
           git add .
           git config user.email "brezn-dev@noreply.github.com"
           git config user.name "Brezn AI Developer"
-          git commit -m "🤖 AI Agent: Implement ${FEATURE_NAME}"
+          
+          if [ "${{ steps.check_branch.outputs.branch_exists }}" == "true" ]; then
+            COMMIT_MSG="🤖 AI Agent: Weiterentwicklung ${FEATURE_NAME} (Fortsetzung)"
+            echo "📝 Commit: ${COMMIT_MSG}"
+          else
+            COMMIT_MSG="🤖 AI Agent: Start ${FEATURE_NAME} Implementation"
+            echo "📝 Commit: ${COMMIT_MSG}"
+          fi
+          
+          git commit -m "${COMMIT_MSG}"
           
           # Branch pushen
-          git push origin "$BRANCH_NAME"
+          if [ "${{ steps.check_branch.outputs.branch_exists }}" == "true" ]; then
+            BRANCH_NAME="${{ steps.check_branch.outputs.existing_branch }}"
+          else
+            BRANCH_NAME="${{ steps.check_branch.outputs.branch_name }}"
+          fi
           
+          git push origin "$BRANCH_NAME"
           echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
       
       - name: 🔄 Pull Request erstellen
@@ -184,19 +220,47 @@ jobs:
           echo "**Letzte Ausführung:** $(date)" >> development-status.md
           echo "**MVP-Fortschritt:** ${{ steps.analyze.outputs.mvp_progress }}%" >> development-status.md
           echo "**Implementiertes Feature:** ${{ steps.analyze.outputs.next_feature }}" >> development-status.md
-          echo "**Nächste Ausführung:** $(date -d '+3 hours')" >> development-status.md
+          echo "**Feature Branch:** ${{ steps.implement.outputs.branch_name }}" >> development-status.md
+          echo "**Status:** Feature implementiert, warte auf nächsten Agenten..." >> development-status.md
+      
+      - name: 🔄 Nächsten Agenten starten
+        if: success()
+        run: |
+          echo "🔄 Starte nächsten Agenten in der Kette..."
+          
+          # GitHub API verwenden um nächsten Workflow zu starten
+          FEATURE_NAME="${{ steps.analyze.outputs.next_feature }}"
+          BRANCH_NAME="${{ steps.implement.outputs.branch_name }}"
+          
+          # Prüfe ob Feature vollständig implementiert ist
+          if [ "${{ steps.ai_agent.outputs.implementation_success }}" == "true" ]; then
+            echo "✅ Feature erfolgreich implementiert - nächster Agent startet automatisch"
+            
+            # Starte nächsten Workflow mit 30 Sekunden Verzögerung
+            sleep 30
+            
+            # WICHTIG: Starte nächsten Workflow vom FEATURE BRANCH aus, nicht von main!
+            gh workflow run ai-agent-development.yml --ref "$BRANCH_NAME"
+            
+            echo "🚀 Nächster Agent startet vom Feature Branch: $BRANCH_NAME"
+          else
+            echo "❌ Feature nicht vollständig - warte auf manuellen Start"
+          fi
       
       - name: 🎉 Erfolg melden
         if: success()
         run: |
-          echo "🎉 AI Agent Development erfolgreich abgeschlossen!"
+          echo "🎉 AI Agent erfolgreich abgeschlossen!"
           echo "📊 MVP-Fortschritt: ${{ steps.analyze.outputs.mvp_progress }}%"
-          echo "🎯 Nächstes Feature: ${{ steps.analyze.outputs.next_feature }}"
-          echo "⏰ Nächste Ausführung in 3 Stunden"
+          echo "🎯 Implementiertes Feature: ${{ steps.analyze.outputs.next_feature }}"
+          echo "🌿 Feature Branch: ${{ steps.implement.outputs.branch_name }}"
+          echo "🔄 Nächster Agent startet automatisch in 30 Sekunden..."
+          echo "⏰ Kontinuierliche Entwicklung läuft..."
       
       - name: ❌ Fehler melden
         if: failure()
         run: |
-          echo "❌ AI Agent Development fehlgeschlagen!"
+          echo "❌ AI Agent fehlgeschlagen!"
           echo "🔍 Überprüfe die Logs für Details"
-          echo "🔄 Nächster Versuch in 3 Stunden"
+          echo "🔄 Agenten-Kette pausiert - manueller Start erforderlich"
+          echo "📋 Feature Branch: ${{ steps.implement.outputs.branch_name || 'Unbekannt' }}"
