@@ -2,6 +2,7 @@ use rusqlite::{Connection, Result as SqliteResult};
 use serde_json;
 use crate::types::{Post, Config};
 use ring::digest::{digest, SHA256};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Database {
@@ -137,6 +138,10 @@ impl Database {
                 timestamp: row.get::<_, i64>(2)? as u64,
                 pseudonym: row.get(3)?,
                 node_id: row.get(4)?,
+                post_id: None,
+                parent_id: None,
+                signature: None,
+                version: 1,
             })
         })?;
         
@@ -150,7 +155,7 @@ impl Database {
 
     /// Removes duplicate posts, keeping the most recent
     fn deduplicate_posts(&self, mut posts: Vec<Post>) -> Vec<Post> {
-        let mut seen = std::collections::HashMap::new();
+        let mut seen: HashMap<String, Post> = std::collections::HashMap::new();
         let mut unique_posts = Vec::new();
         
         for post in posts {

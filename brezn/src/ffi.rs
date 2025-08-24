@@ -51,14 +51,14 @@ fn get_global_app() -> Option<Arc<Mutex<BreznApp>>> {
 // Helper functions for string conversion
 fn c_string_to_rust(c_str: *const c_char) -> Result<String> {
     if c_str.is_null() {
-        return Err(BreznError::InvalidInput("Null string pointer".to_string()));
+        return Err(BreznError::InvalidInput("Null string pointer".to_string()).into());
     }
     
     unsafe {
         let c_str = CStr::from_ptr(c_str);
-        c_str.to_str()
+        Ok(c_str.to_str()
             .map(|s| s.to_string())
-            .map_err(|e| BreznError::InvalidInput(format!("Invalid UTF-8: {}", e)))
+            .map_err(|e| BreznError::InvalidInput(format!("Invalid UTF-8: {}", e)))?)
     }
 }
 
@@ -82,7 +82,7 @@ pub extern "C" fn brezn_ffi_init(
         ..Default::default()
     };
     
-    match BreznApp::new(config) {
+    match BreznApp::new() {
         Ok(app) => {
             let app_arc = Arc::new(Mutex::new(app));
             unsafe {
@@ -90,7 +90,7 @@ pub extern "C" fn brezn_ffi_init(
             }
             
             let ffi_wrapper = Box::new(BreznFFI {
-                app: Box::into_raw(app_arc) as *mut c_void,
+                app: Box::into_raw(Box::new(app_arc)) as *mut c_void,
             });
             
             Box::into_raw(ffi_wrapper)
@@ -109,7 +109,7 @@ pub extern "C" fn brezn_ffi_start(ffi: *mut BreznFFI) -> BreznFFIResult {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(async {
             let app_guard = app.lock().unwrap();
-            app_guard.start().await
+            app_guard.start()
         });
         
         match result {
@@ -140,7 +140,7 @@ pub extern "C" fn brezn_ffi_create_post(
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(async {
             let app_guard = app.lock().unwrap();
-            app_guard.create_post(content_str, pseudonym_str).await
+            app_guard.create_post(content_str, pseudonym_str)
         });
         
         match result {
@@ -158,17 +158,17 @@ pub extern "C" fn brezn_ffi_get_posts() -> *mut PostFFI {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let posts = runtime.block_on(async {
             let app_guard = app.lock().unwrap();
-            app_guard.get_posts().await
+            app_guard.get_posts()
         });
         
         match posts {
             Ok(posts) => {
                 let ffi_posts: Vec<PostFFI> = posts.into_iter().map(|post| PostFFI {
-                    id: post.id.map(|id| rust_string_to_c(&id.to_string())).unwrap_or(ptr::null_mut()),
+                    id: post.id.as_ref().map(|id| rust_string_to_c(id.as_str())).unwrap_or(ptr::null_mut()),
                     content: rust_string_to_c(&post.content),
-                    timestamp: post.timestamp,
+                    timestamp: post.timestamp.timestamp() as u64,
                     pseudonym: rust_string_to_c(&post.pseudonym),
-                    node_id: post.node_id.map(|n| rust_string_to_c(&n)).unwrap_or(ptr::null_mut()),
+                    node_id: post.node_id.map(|n| rust_string_to_c(n.as_str())).unwrap_or(ptr::null_mut()),
                 }).collect();
                 
                 let boxed_posts = Box::new(ffi_posts);
@@ -191,16 +191,14 @@ pub extern "C" fn brezn_ffi_get_network_status() -> *mut NetworkStatusFFI {
         });
         
         match status {
-            Ok(status_json) => {
-                let status_obj = status_json.as_object().unwrap();
-                
+            Ok(status_obj) => {
                 let ffi_status = Box::new(NetworkStatusFFI {
-                    network_enabled: status_obj.get("network_enabled").and_then(|v| v.as_bool()).unwrap_or(false),
-                    tor_enabled: status_obj.get("tor_enabled").and_then(|v| v.as_bool()).unwrap_or(false),
-                    peers_count: status_obj.get("peers_count").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                    discovery_peers_count: status_obj.get("discovery_peers_count").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                    port: status_obj.get("port").and_then(|v| v.as_u64()).unwrap_or(0) as u16,
-                    tor_socks_port: status_obj.get("tor_socks_port").and_then(|v| v.as_u64()).unwrap_or(0) as u16,
+                    network_enabled: status_obj.discovery_active,
+                    tor_enabled: status_obj.tor_enabled,
+                    peers_count: status_obj.peer_count as u32,
+                    discovery_peers_count: 0, // Not available in NetworkStatus
+                    port: status_obj.network_port,
+                    tor_socks_port: 0, // Not available in NetworkStatus
                 });
                 
                 Box::into_raw(ffi_status)
@@ -218,7 +216,7 @@ pub extern "C" fn brezn_ffi_enable_tor() -> BreznFFIResult {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(async {
             let app_guard = app.lock().unwrap();
-            app_guard.enable_tor().await
+            app_guard.enable_tor()
         });
         
         match result {
@@ -259,7 +257,7 @@ pub extern "C" fn brezn_ffi_parse_qr_code(qr_data: *const c_char) -> BreznFFIRes
     };
     
     if let Some(app) = get_global_app() {
-        match app.lock().unwrap().parse_qr_code(&qr_str) {
+        match app.lock().unwrap().parse_qr_code(qr_str) {
             Ok(_) => BreznFFIResult::Success,
             Err(_) => BreznFFIResult::Error,
         }
@@ -335,7 +333,7 @@ pub extern "C" fn brezn_ffi_test_p2p_network() -> BreznFFIResult {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(async {
             let app_guard = app.lock().unwrap();
-            app_guard.test_p2p_network().await
+            app_guard.test_p2p_network()
         });
         
         match result {

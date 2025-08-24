@@ -223,8 +223,8 @@ impl FeedConsistencyChecker {
             .cloned()
             .collect();
         
-        report.missing_local_posts = missing_local;
-        report.missing_peer_posts = missing_peer;
+        report.missing_local_posts = missing_local.clone();
+        report.missing_peer_posts = missing_peer.clone();
         report.consistency_score = self.calculate_consistency_score(local_posts.len(), peer_posts.len(), missing_local.len(), missing_peer.len());
         
         report

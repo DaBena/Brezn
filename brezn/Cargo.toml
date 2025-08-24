@@ -37,7 +37,7 @@ sha2 = "0.10"
 
 # Mobile FFI dependencies
 uniffi = "0.25"
-uniffi-bindgen = "0.25"
+uniffi_bindgen = "0.25"
 
 [dev-dependencies]
 rand = "0.8"
@@ -47,8 +47,8 @@ tempfile = "3.8"
 mockall = "0.12"
 proptest = "1.4"
 quickcheck = "1.0"
-criterion-criterion = "0.5"
 
 [build-dependencies]
-uniffi-bindgen = "0.25"
+uniffi_bindgen = "0.25"
+which = "7.0"
 

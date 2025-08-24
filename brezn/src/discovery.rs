@@ -252,7 +252,7 @@ impl DiscoveryManager {
             
             if let SocketAddr::V4(addr) = multicast_addr {
                 let ipv4_addr = Ipv4Addr::new(224, 0, 0, 1);
-                multicast_socket.join_multicast_v4(ipv4_addr, addr.ip())
+                multicast_socket.join_multicast_v4(ipv4_addr, *addr.ip())
                     .map_err(|e| BreznError::Network(std::io::Error::new(
                         std::io::ErrorKind::Other, format!("Failed to join multicast group: {}", e)
                     )))?;
@@ -294,7 +294,7 @@ impl DiscoveryManager {
     
     pub async fn start_discovery_loop(&self) -> Result<()> {
         let mut interval = interval(self.config.broadcast_interval);
-        let mut heartbeat_interval = interval(self.config.heartbeat_interval);
+        let mut heartbeat_interval = tokio::time::interval(self.config.heartbeat_interval);
         let mut buffer = [0u8; 1024];
         
         // Start listening for discovery messages
@@ -323,11 +323,11 @@ impl DiscoveryManager {
                                     address: message.address,
                                     port: message.port,
                                     last_seen: message.timestamp,
-                                    capabilities: message.capabilities,
+                                    capabilities: message.capabilities.clone(),
                                     connection_attempts: 0,
                                     last_connection_attempt: 0,
                                     is_verified: false,
-                                    network_segment: message.network_segment,
+                                    network_segment: message.network_segment.clone(),
                                     // Neue Felder für erweiterte Peer-Verwaltung
                                     health_score: 0.0,
                                     response_time_ms: None,
@@ -348,8 +348,8 @@ impl DiscoveryManager {
                                 if let Some(existing_peer) = peers.get_mut(&node_id) {
                                     // Update existing peer
                                     existing_peer.last_seen = message.timestamp;
-                                    existing_peer.capabilities = message.capabilities;
-                                    existing_peer.network_segment = message.network_segment;
+                                    existing_peer.capabilities = message.capabilities.clone();
+                                    existing_peer.network_segment = message.network_segment.clone();
                                 } else {
                                     // Add new peer
                                     peers.insert(message.node_id, peer_info.clone());
@@ -587,9 +587,17 @@ impl DiscoveryManager {
         let qr = QrCode::new(qr_json.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
-        // Convert to PNG image
-        let png_data = qr.to_png()
-            .map_err(|e| BreznError::InvalidInput(format!("PNG conversion failed: {}", e)))?;
+        // Convert to PNG image using render method
+        let image_luma = qr
+            .render::<Luma<u8>>()
+            .min_dimensions(200, 200)
+            .build();
+        
+        let dyn_img = DynamicImage::ImageLuma8(image_luma);
+        let mut png_data: Vec<u8> = Vec::new();
+        dyn_img
+            .write_to(&mut Cursor::new(&mut png_data), ImageFormat::Png)
+            .map_err(|e| BreznError::InvalidInput(format!("PNG encoding failed: {}", e)))?;
         
         // Convert to base64 for web display
         let base64_data = base64::encode(&png_data);
@@ -690,6 +698,10 @@ impl DiscoveryManager {
             port: qr_data.port,
             last_seen: qr_data.timestamp,
             capabilities: qr_data.capabilities,
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
             // Neue Felder für erweiterte Peer-Verwaltung
             health_score: 0.0,
             response_time_ms: None,
@@ -765,7 +777,9 @@ impl DiscoveryManager {
     fn decode_qr_image(&self, image_data: &[u8]) -> Result<PeerInfo> {
         // Try to decode QR code from image data
         let decoder = bardecoder::default_decoder();
-        let results = decoder.decode(&image_data);
+        let image = image::load_from_memory(image_data)
+            .map_err(|e| BreznError::InvalidInput(format!("Failed to load image: {}", e)))?;
+        let results = decoder.decode(&image);
         
         for result in results {
             if let Ok(decoded_text) = result {
@@ -844,9 +858,17 @@ impl DiscoveryManager {
         let qr = QrCode::new(qr_json.as_bytes())
             .map_err(|e| BreznError::InvalidInput(format!("QR generation failed: {}", e)))?;
         
-        // Generate PNG
-        let png_data = qr.to_png()
-            .map_err(|e| BreznError::InvalidInput(format!("PNG conversion failed: {}", e)))?;
+        // Generate PNG using render method
+        let image_luma = qr
+            .render::<Luma<u8>>()
+            .min_dimensions(200, 200)
+            .build();
+        
+        let dyn_img = DynamicImage::ImageLuma8(image_luma);
+        let mut png_data: Vec<u8> = Vec::new();
+        dyn_img
+            .write_to(&mut Cursor::new(&mut png_data), ImageFormat::Png)
+            .map_err(|e| BreznError::InvalidInput(format!("PNG encoding failed: {}", e)))?;
         let png_base64 = base64::encode(&png_data);
         
         // Generate SVG
@@ -856,8 +878,8 @@ impl DiscoveryManager {
             .light_color(svg::Color("#ffffff"))
             .build();
         
-        // Generate raw data
-        let raw_data = qr.to_string();
+        // Generate raw data (QR code matrix as string)
+        let raw_data = format!("QR Code Matrix: {}x{}", qr.width(), qr.width());
         
         Ok(serde_json::json!({
             "qr_data": qr_data,
@@ -881,7 +903,7 @@ impl DiscoveryManager {
             Ok(qr_data) => {
                 match qr_data.validate() {
                     Ok(()) => {
-                        let peer_info = self.convert_qr_data_to_peer_info(qr_data.clone());
+                        let peer_info = self.convert_qr_data_to_peer_info(qr_data.clone())?;
                         results.push(("json_direct", serde_json::to_value(&peer_info).unwrap()));
                     }
                     Err(e) => errors.push(format!("JSON validation failed: {}", e)),
@@ -1018,8 +1040,22 @@ impl DiscoveryManager {
         // Starte Network-Topology Task
         let topology_monitor = self.start_topology_monitoring().await?;
         
-        // Warte auf alle Tasks
-        tokio::try_join!(health_monitor, peer_discovery, topology_monitor)?;
+        // Starte alle Tasks parallel
+        tokio::spawn(async move { 
+            if let Err(e) = health_monitor.await { 
+                eprintln!("Health monitor error: {}", e); 
+            } 
+        });
+        tokio::spawn(async move { 
+            if let Err(e) = peer_discovery.await { 
+                eprintln!("Peer discovery error: {}", e); 
+            } 
+        });
+        tokio::spawn(async move { 
+            if let Err(e) = topology_monitor.await { 
+                eprintln!("Topology monitor error: {}", e); 
+            } 
+        });
         
         Ok(())
     }
@@ -1035,13 +1071,25 @@ impl DiscoveryManager {
             loop {
                 interval.tick().await;
                 
-                let mut peers = peers_clone.lock().unwrap();
                 let now = chrono::Utc::now().timestamp() as u64;
                 
-                for (node_id, peer) in peers.iter_mut() {
-                    // Führe Health-Check durch
-                    if let Err(e) = Self::perform_peer_health_check(peer, now).await {
+                // Sammle alle Peers für Health-Check
+                let peers_to_check: Vec<(String, PeerInfo)> = {
+                    let peers = peers_clone.lock().unwrap();
+                    peers.iter().map(|(id, peer)| (id.clone(), peer.clone())).collect()
+                };
+                
+                // Führe Health-Check für jeden Peer durch
+                for (node_id, mut peer) in peers_to_check {
+                    if let Err(e) = Self::perform_peer_health_check(&mut peer, now).await {
                         eprintln!("Health-Check fehlgeschlagen für {}: {}", node_id, e);
+                    }
+                    
+                    // Aktualisiere den Peer in der HashMap
+                    if let Ok(mut peers) = peers_clone.lock() {
+                        if let Some(existing_peer) = peers.get_mut(&node_id) {
+                            *existing_peer = peer;
+                        }
                     }
                 }
             }
@@ -1157,8 +1205,6 @@ impl DiscoveryManager {
                 if let Ok(message_bytes) = serde_json::to_vec(&message) {
                     // Versuche Verbindung (mit Timeout)
                     if let Ok(socket) = UdpSocket::bind("0.0.0.0:0").await {
-                        socket.set_read_timeout(Some(std::time::Duration::from_millis(100))).ok();
-                        
                         if socket.send_to(&message_bytes, socket_addr).await.is_ok() {
                             // Warte auf Response
                             let mut buffer = [0u8; 1024];
@@ -1191,8 +1237,9 @@ impl DiscoveryManager {
                                         
                                         let mut peers_guard = peers.lock().unwrap();
                                         if !peers_guard.contains_key(&peer_info.node_id) {
-                                            peers_guard.insert(peer_info.node_id.clone(), peer_info);
-                                            println!("🔍 Neuer Peer durch Network-Scan gefunden: {}", peer_info.node_id);
+                                                                                    let node_id = peer_info.node_id.clone();
+                                        peers_guard.insert(node_id.clone(), peer_info);
+                                        println!("🔍 Neuer Peer durch Network-Scan gefunden: {}", node_id);
                                         }
                                     }
                                 }
