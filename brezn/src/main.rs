@@ -6,7 +6,7 @@ use actix_web::{
 use serde_json::json;
 use anyhow::Result;
 
-use brezn::{BreznApp, types::Config};
+use brezn::{BreznApp, types::{Config, PostValidationConfig}};
 
 #[actix_web::main]
 async fn main() -> Result<()> {

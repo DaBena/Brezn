@@ -23,6 +23,9 @@ pub enum BreznError {
     
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+    
+    #[error("Generic error: {0}")]
+    Generic(String),
 }
 
 pub type Result<T> = std::result::Result<T, BreznError>;

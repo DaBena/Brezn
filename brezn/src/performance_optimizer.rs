@@ -338,7 +338,7 @@ impl PerformanceOptimizer {
     async fn optimize_peer_prioritization(
         network_manager: &Arc<P2PNetworkManager>,
         discovery_manager: &Arc<DiscoveryManager>,
-        peer_response_times: &Arc<Mutex<HashMap<String, Vec<u64>>>,
+        peer_response_times: &Arc<Mutex<HashMap<String, Vec<u64>>>>,
     ) -> Result<()> {
         let response_times = peer_response_times.lock().unwrap();
         
