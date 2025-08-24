@@ -2,134 +2,150 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Tell Cargo to rerun this script if any of these files change
+    // Generate FFI bindings for mobile platforms
+    if env::var("CARGO_CFG_TARGET_OS").unwrap() == "android" {
+        generate_mobile_bindings();
+    }
+    
+    // Set up build-time environment variables
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
     
-    // Set up platform-specific configurations
-    let target = env::var("TARGET").unwrap();
+    // Set build timestamp
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    println!("cargo:rustc-env=VERGEN_BUILD_TIMESTAMP={}", timestamp);
     
-    if target.contains("android") {
-        // Android-specific configurations
-        println!("cargo:rustc-cfg=target_os=\"android\"");
-        
-        // Link against Android-specific libraries
-        println!("cargo:rustc-link-lib=android");
-        println!("cargo:rustc-link-lib=log");
-    } else if target.contains("ios") {
-        // iOS-specific configurations
-        println!("cargo:rustc-cfg=target_os=\"ios\"");
-        
-        // Link against iOS-specific frameworks
-        println!("cargo:rustc-link-framework=Foundation");
-        println!("cargo:rustc-link-framework=Security");
-    } else if target.contains("windows") {
-        // Windows-specific configurations
-        println!("cargo:rustc-cfg=target_os=\"windows\"");
-        
-        // Link against Windows-specific libraries
-        println!("cargo:rustc-link-lib=ws2_32");
-        println!("cargo:rustc-link-lib=iphlpapi");
-    } else {
-        // Linux/Unix configurations
-        // Note: Removed target_os cfg to avoid compiler warnings
-    }
-    
-    // Set up FFI bindings
-    // Note: FFI feature is not defined in Cargo.toml, so we'll always generate bindings
-    generate_ffi_bindings();
+    // Set version info
+    println!("cargo:rustc-env=VERGEN_BUILD_SEMVER={}", env!("CARGO_PKG_VERSION"));
+    println!("cargo:rustc-env=VERGEN_GIT_SHA={}", get_git_sha());
+    println!("cargo:rustc-env=VERGEN_GIT_BRANCH={}", get_git_branch());
 }
 
-fn generate_ffi_bindings() {
-    // This would generate C headers for the FFI functions
-    // For now, we'll just set up the configuration
-    println!("cargo:rustc-cfg=feature=\"ffi\"");
-    
-    // Set up the output directory for generated files
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let bindings_file = out_dir.join("bindings.rs");
-    
-    // Generate basic FFI bindings
-    let bindings = r#"
-        use std::ffi::{CStr, CString};
-        use std::os::raw::c_char;
+fn generate_mobile_bindings() {
+    // Check if uniffi-bindgen is available
+    if let Ok(uniffi_bindgen) = which::which("uniffi-bindgen") {
+        let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+        let udl_file = PathBuf::from("src/brezn.udl");
         
-        #[no_mangle]
-        pub extern "C" fn brezn_init() -> *mut crate::BreznApp {
-            match crate::BreznApp::new() {
-                Ok(app) => Box::into_raw(Box::new(app)),
-                Err(_) => std::ptr::null_mut(),
-            }
-        }
-        
-        #[no_mangle]
-        pub extern "C" fn brezn_free(app: *mut crate::BreznApp) {
-            if !app.is_null() {
-                unsafe {
-                    let _ = Box::from_raw(app);
-                }
-            }
-        }
-        
-        #[no_mangle]
-        pub extern "C" fn brezn_add_post(
-            app: *mut crate::BreznApp,
-            content: *const c_char,
-            pseudonym: *const c_char,
-        ) -> i64 {
-            if app.is_null() || content.is_null() || pseudonym.is_null() {
-                return -1;
-            }
-            
-            unsafe {
-                let app = &*app;
-                let content = CStr::from_ptr(content).to_string_lossy().to_string();
-                let pseudonym = CStr::from_ptr(pseudonym).to_string_lossy().to_string();
+        if udl_file.exists() {
+            // Generate bindings using uniffi-bindgen
+            let status = std::process::Command::new(uniffi_bindgen)
+                .arg("generate")
+                .arg(&udl_file)
+                .arg("--language")
+                .arg("kotlin")
+                .arg("--out-dir")
+                .arg(&out_dir)
+                .status();
                 
-                match app.add_post(content, pseudonym) {
-                    Ok(id) => id,
-                    Err(_) => -1,
+            if let Ok(exit_status) = status {
+                if !exit_status.success() {
+                    eprintln!("Warning: Failed to generate uniffi bindings");
                 }
             }
         }
-        
-        #[no_mangle]
-        pub extern "C" fn brezn_get_posts_json(
-            app: *mut crate::BreznApp,
-            limit: usize,
-        ) -> *mut c_char {
-            if app.is_null() {
-                return std::ptr::null_mut();
-            }
-            
-            unsafe {
-                let app = &*app;
-                match app.get_posts(limit) {
-                    Ok(posts) => {
-                        match serde_json::to_string(&posts) {
-                            Ok(json) => {
-                                match CString::new(json) {
-                                    Ok(c_string) => c_string.into_raw(),
-                                    Err(_) => std::ptr::null_mut(),
-                                }
-                            }
-                            Err(_) => std::ptr::null_mut(),
-                        }
-                    }
-                    Err(_) => std::ptr::null_mut(),
-                }
-            }
-        }
-        
-        #[no_mangle]
-        pub extern "C" fn brezn_free_string(s: *mut c_char) {
-            if !s.is_null() {
-                unsafe {
-                    let _ = CString::from_raw(s);
-                }
-            }
-        }
-    "#;
+    }
     
-    std::fs::write(bindings_file, bindings).unwrap();
+    // Generate C header file for direct FFI
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let header_path = out_dir.join("brezn.h");
+    
+    let header_content = r#"// Auto-generated C header for Brezn FFI
+#ifndef BREZN_H
+#define BREZN_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Forward declarations
+typedef struct BreznApp BreznApp;
+typedef struct NetworkStatus NetworkStatus;
+typedef struct PerformanceMetrics PerformanceMetrics;
+typedef struct DeviceInfo DeviceInfo;
+
+// Core functions
+BreznApp* brezn_app_new(void);
+void brezn_app_free(BreznApp* app);
+bool brezn_app_init(BreznApp* app, uint16_t network_port, uint16_t tor_socks_port);
+bool brezn_app_start(BreznApp* app);
+
+// Post functions
+bool brezn_app_create_post(BreznApp* app, const char* content, const char* pseudonym);
+
+// Network functions
+NetworkStatus* brezn_app_get_network_status(BreznApp* app);
+bool brezn_app_enable_tor(BreznApp* app);
+void brezn_app_disable_tor(BreznApp* app);
+
+// QR code functions
+char* brezn_app_generate_qr_code(BreznApp* app);
+bool brezn_app_parse_qr_code(BreznApp* app, const char* qr_data);
+
+// Utility functions
+PerformanceMetrics* brezn_app_get_performance_metrics(BreznApp* app);
+DeviceInfo* brezn_app_get_device_info(BreznApp* app);
+bool brezn_app_test_p2p_network(BreznApp* app);
+void brezn_app_cleanup(BreznApp* app);
+
+// Memory management
+void brezn_string_free(char* ptr);
+void brezn_network_status_free(NetworkStatus* ptr);
+void brezn_performance_metrics_free(PerformanceMetrics* ptr);
+void brezn_device_info_free(DeviceInfo* ptr);
+
+// Struct definitions
+struct NetworkStatus {
+    bool network_enabled;
+    bool tor_enabled;
+    uint32_t peers_count;
+    uint32_t discovery_peers_count;
+    uint16_t port;
+    uint16_t tor_socks_port;
+};
+
+struct PerformanceMetrics {
+    uint64_t memory_usage;
+    uint32_t thread_count;
+    uint64_t timestamp;
+};
+
+struct DeviceInfo {
+    char* platform;
+    char* arch;
+    char* rust_version;
+    char* build_time;
+};
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // BREZN_H
+"#;
+    
+    std::fs::write(&header_path, header_content).unwrap();
+    println!("cargo:rustc-env=BREZN_HEADER_PATH={}", header_path.display());
+}
+
+fn get_git_sha() -> String {
+    std::process::Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .unwrap_or_else(|_| "unknown".to_string())
+}
+
+fn get_git_branch() -> String {
+    std::process::Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .unwrap_or_else(|_| "unknown".to_string())
 }

@@ -1,0 +1,51 @@
+Categories:
+  - Internet
+  - Social
+  - Privacy
+License: GPL-3.0-or-later
+WebSite: https://github.com/brezn-project/brezn
+SourceCode: https://github.com/brezn-project/brezn
+IssueTracker: https://github.com/brezn-project/brezn/issues
+Translation: https://github.com/brezn-project/brezn/tree/main/brezn/mobile/src/locales
+
+RepoType: git
+Repo: https://github.com/brezn-project/brezn.git
+
+Builds:
+  - versionName: '0.1.0'
+    versionCode: 1
+    commit: v0.1.0
+    subdir: brezn/mobile
+    gradle:
+      - yes
+    preassemble:
+      - cd ../.. && cargo build --target aarch64-linux-android --release --lib
+      - cd ../.. && cargo build --target armv7-linux-androideabi --release --lib
+      - cd ../.. && cargo build --target x86_64-linux-android --release --lib
+      - cd ../.. && cargo build --target i686-linux-android --release --lib
+    output: app/build/outputs/apk/release/app-release.apk
+    srclibs:
+      - react-native@0.72.6
+      - brezn-rust@0.1.0
+
+AutoName: Brezn
+Description: |
+  Brezn ist eine dezentrale, anonyme Feed-App, die auf P2P-Netzwerken und Tor basiert.
+  
+  **Features:**
+  * Dezentrale Architektur ohne zentrale Server
+  * Anonyme Kommunikation über Tor-Netzwerk
+  * P2P-Peer-Discovery über QR-Codes
+  * Lokale Datenspeicherung
+  * Open Source und GPL-3.0 lizenziert
+  
+  **Technische Details:**
+  * React Native Mobile App
+  * Rust-FFI für Performance-kritische Funktionen
+  * SQLite-Datenbank für lokale Speicherung
+  * Tor-Integration für anonyme Kommunikation
+  * QR-Code-basierte Peer-Discovery
+
+  Die App ermöglicht es Benutzern, anonyme Posts zu erstellen und zu teilen, ohne dass ihre Identität oder ihr Standort preisgegeben wird.
+
+Summary: Dezentrale anonyme Feed-App mit P2P-Netzwerk und Tor-Integration
