@@ -75,6 +75,7 @@ struct Socks5Proxy {
     connection_semaphore: Arc<Semaphore>,
 }
 
+#[derive(Clone)]
 struct ConnectionPool {
     connections: HashMap<String, PooledConnection>,
     max_connections: usize,
@@ -86,12 +87,24 @@ struct PooledConnection {
     circuit_id: String,
 }
 
+impl Clone for PooledConnection {
+    fn clone(&self) -> Self {
+        Self {
+            stream: None, // Don't clone the actual stream
+            last_used: self.last_used,
+            circuit_id: self.circuit_id.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
 struct HealthMonitor {
     last_check: std::time::Instant,
     health_score: f64,
     failure_history: Vec<FailureRecord>,
 }
 
+#[derive(Clone)]
 struct FailureRecord {
     timestamp: std::time::Instant,
     error: String,
@@ -741,16 +754,6 @@ impl TorManager {
         
         println!("🔄 Tor circuit rotation completed");
         Ok(())
-    }
-}
-
-impl Clone for PooledConnection {
-    fn clone(&self) -> Self {
-        Self {
-            stream: None, // Don't clone the actual stream
-            last_used: self.last_used,
-            circuit_id: self.circuit_id.clone(),
-        }
     }
 }
 

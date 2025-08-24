@@ -6,6 +6,10 @@ use tokio::time::{Duration, interval};
 use tokio::net::UdpSocket;
 use std::net::{SocketAddr, Ipv4Addr};
 use std::sync::mpsc;
+use qrcode::QrCode;
+use qrcode::render::svg;
+use image::{Luma, DynamicImage, ImageFormat};
+use std::io::Cursor;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
