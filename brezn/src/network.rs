@@ -2,13 +2,49 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde_json;
 use anyhow::{Result, Context};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use crate::types::{NetworkMessage, Post, Config};
 use crate::crypto::CryptoManager;
 use crate::database::Database;
 use crate::tor::TorManager;
 use sodiumoxide::crypto::box_;
+
+#[derive(Debug, Clone)]
+pub struct NetworkTopology {
+    pub node_id: String,
+    pub connections: HashSet<String>, // Connected peer IDs
+    pub routing_table: HashMap<String, String>, // destination -> next_hop
+    pub network_segments: Vec<NetworkSegment>,
+    pub topology_version: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct NetworkSegment {
+    pub segment_id: String,
+    pub nodes: HashSet<String>,
+    pub segment_type: SegmentType,
+    pub connectivity_score: f64,
+}
+
+#[derive(Debug, Clone)]
+pub enum SegmentType {
+    Core,      // Highly connected nodes
+    Edge,      // Leaf nodes
+    Bridge,    // Nodes connecting segments
+    Isolated,  // Poorly connected nodes
+}
+
+#[derive(Debug, Clone)]
+pub struct NetworkStats {
+    pub total_peers: usize,
+    pub active_peers: usize,
+    pub excellent_connections: usize,
+    pub poor_connections: usize,
+    pub avg_latency_ms: u64,
+    pub segments_count: usize,
+    pub topology_version: u64,
+}
 
 pub struct NetworkManager {
     port: u16,
@@ -19,6 +55,8 @@ pub struct NetworkManager {
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
     tor_manager: Option<TorManager>,
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
+    topology: Arc<Mutex<NetworkTopology>>,
+    discovery_manager: Option<Arc<Mutex<crate::discovery::DiscoveryManager>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +67,39 @@ pub struct PeerInfo {
     pub port: u16,
     pub last_seen: u64,
     pub is_tor_peer: bool,
+    pub connection_quality: ConnectionQuality,
+    pub capabilities: Vec<String>,
+    pub latency_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConnectionQuality {
+    Excellent, // < 50ms latency, stable
+    Good,      // 50-100ms latency, stable
+    Fair,      // 100-200ms latency, occasional drops
+    Poor,      // > 200ms latency, frequent drops
+    Unknown,   // Not yet measured
+}
+
+impl ConnectionQuality {
+    pub fn from_latency(latency_ms: u64) -> Self {
+        match latency_ms {
+            0..=50 => ConnectionQuality::Excellent,
+            51..=100 => ConnectionQuality::Good,
+            101..=200 => ConnectionQuality::Fair,
+            _ => ConnectionQuality::Poor,
+        }
+    }
+    
+    pub fn score(&self) -> f64 {
+        match self {
+            ConnectionQuality::Excellent => 1.0,
+            ConnectionQuality::Good => 0.8,
+            ConnectionQuality::Fair => 0.6,
+            ConnectionQuality::Poor => 0.3,
+            ConnectionQuality::Unknown => 0.5,
+        }
+    }
 }
 
 pub trait MessageHandler: Send + Sync {
@@ -50,6 +121,14 @@ impl NetworkManager {
             message_handlers: Arc::new(Mutex::new(Vec::new())),
             tor_manager: None,
             request_cooldowns: Arc::new(Mutex::new(HashMap::new())),
+            topology: Arc::new(Mutex::new(NetworkTopology {
+                node_id: "local".to_string(), // Placeholder, will be set by discovery
+                connections: HashSet::new(),
+                routing_table: HashMap::new(),
+                network_segments: Vec::new(),
+                topology_version: 0,
+            })),
+            discovery_manager: None,
         }
     }
     
@@ -411,6 +490,9 @@ impl NetworkManager {
             port,
             last_seen: chrono::Utc::now().timestamp() as u64,
             is_tor_peer,
+            connection_quality: ConnectionQuality::Unknown,
+            capabilities: Vec::new(),
+            latency_ms: None,
         });
     }
     
@@ -437,6 +519,242 @@ impl NetworkManager {
             tor_manager.get_external_ip().await.map_err(|e| anyhow::anyhow!("Tor IP failed: {}", e))
         } else {
             Err(anyhow::anyhow!("Tor not enabled"))
+        }
+    }
+
+    /// Initialize discovery manager for automatic peer discovery
+    pub async fn init_discovery(&mut self, node_id: String, public_key: String) -> Result<()> {
+        let discovery_config = crate::discovery::DiscoveryConfig::default();
+        let discovery_manager = crate::discovery::DiscoveryManager::new(
+            discovery_config,
+            node_id.clone(),
+            public_key,
+            self.port,
+        );
+        
+        // Update topology with our node ID
+        {
+            let mut topology = self.topology.lock().unwrap();
+            topology.node_id = node_id.clone();
+        }
+        
+        self.discovery_manager = Some(Arc::new(Mutex::new(discovery_manager)));
+        println!("🔍 Discovery Manager für Node {} initialisiert", node_id);
+        Ok(())
+    }
+    
+    /// Start automatic peer discovery
+    pub async fn start_discovery(&self) -> Result<()> {
+        if let Some(ref discovery_manager) = self.discovery_manager {
+            let discovery_manager = discovery_manager.lock().unwrap();
+            discovery_manager.start_discovery().await?;
+            println!("🚀 Peer Discovery gestartet");
+        } else {
+            return Err(anyhow::anyhow!("Discovery manager not initialized"));
+        }
+        Ok(())
+    }
+    
+    /// Measure latency to a peer
+    pub async fn measure_peer_latency(&self, node_id: &str) -> Result<u64> {
+        let start_time = std::time::Instant::now();
+        
+        let ping_message = NetworkMessage {
+            message_type: "ping".to_string(),
+            payload: serde_json::json!({}),
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            node_id: "local".to_string(),
+        };
+        
+        if let Some(peer) = self.peers.lock().unwrap().get(node_id) {
+            if let Err(_) = self.send_message_to_peer(&ping_message, peer).await {
+                return Err(anyhow::anyhow!("Failed to send ping to peer"));
+            }
+            
+            // Wait for pong response (simplified - in real implementation use async timeout)
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            
+            let latency = start_time.elapsed().as_millis() as u64;
+            
+            // Update peer latency
+            if let Some(peer) = self.peers.lock().unwrap().get_mut(node_id) {
+                peer.latency_ms = Some(latency);
+                peer.connection_quality = ConnectionQuality::from_latency(latency);
+            }
+            
+            Ok(latency)
+        } else {
+            Err(anyhow::anyhow!("Peer not found"))
+        }
+    }
+    
+    /// Analyze network topology and identify segments
+    pub async fn analyze_topology(&self) -> Result<()> {
+        let peers = self.peers.lock().unwrap();
+        let mut topology = self.topology.lock().unwrap();
+        
+        // Clear old data
+        topology.connections.clear();
+        topology.routing_table.clear();
+        topology.network_segments.clear();
+        
+        // Build connection graph
+        for (node_id, peer) in peers.iter() {
+            if peer.connection_quality.score() > 0.5 {
+                topology.connections.insert(node_id.clone());
+            }
+        }
+        
+        // Identify network segments based on connectivity
+        let mut visited = HashSet::new();
+        let mut segments = Vec::new();
+        
+        for node_id in topology.connections.iter() {
+            if !visited.contains(node_id) {
+                let mut segment_nodes = HashSet::new();
+                self.dfs_traverse(node_id, &mut segment_nodes, &mut visited, &peers);
+                
+                let segment_type = self.classify_segment(&segment_nodes, &peers);
+                let connectivity_score = self.calculate_segment_score(&segment_nodes, &peers);
+                
+                let segment = NetworkSegment {
+                    segment_id: format!("segment_{}", segments.len()),
+                    nodes: segment_nodes,
+                    segment_type,
+                    connectivity_score,
+                };
+                
+                segments.push(segment);
+            }
+        }
+        
+        topology.network_segments = segments;
+        topology.topology_version += 1;
+        
+        println!("🔍 Netzwerk-Topologie analysiert: {} Segmente, {} aktive Verbindungen", 
+                topology.network_segments.len(), topology.connections.len());
+        
+        Ok(())
+    }
+    
+    /// Depth-first search to find connected components
+    fn dfs_traverse(
+        &self,
+        node_id: &str,
+        segment_nodes: &mut HashSet<String>,
+        visited: &mut HashSet<String>,
+        peers: &HashMap<String, PeerInfo>,
+    ) {
+        if visited.contains(node_id) {
+            return;
+        }
+        
+        visited.insert(node_id.to_string());
+        segment_nodes.insert(node_id.to_string());
+        
+        // Find peers with good connection quality
+        for (peer_id, peer) in peers.iter() {
+            if peer.connection_quality.score() > 0.5 && !visited.contains(peer_id) {
+                self.dfs_traverse(peer_id, segment_nodes, visited, peers);
+            }
+        }
+    }
+    
+    /// Classify network segment based on node characteristics
+    fn classify_segment(
+        &self,
+        segment_nodes: &HashSet<String>,
+        peers: &HashMap<String, PeerInfo>,
+    ) -> SegmentType {
+        if segment_nodes.len() == 1 {
+            return SegmentType::Isolated;
+        }
+        
+        let mut total_score = 0.0;
+        let mut node_count = 0;
+        
+        for node_id in segment_nodes {
+            if let Some(peer) = peers.get(node_id) {
+                total_score += peer.connection_quality.score();
+                node_count += 1;
+            }
+        }
+        
+        let avg_score = if node_count > 0 { total_score / node_count as f64 } else { 0.0 };
+        
+        match (segment_nodes.len(), avg_score) {
+            (1, _) => SegmentType::Isolated,
+            (2..=5, score) if score > 0.7 => SegmentType::Core,
+            (2..=5, _) => SegmentType::Edge,
+            (6.., score) if score > 0.8 => SegmentType::Core,
+            (6.., score) if score > 0.6 => SegmentType::Bridge,
+            _ => SegmentType::Edge,
+        }
+    }
+    
+    /// Calculate connectivity score for a segment
+    fn calculate_segment_score(
+        &self,
+        segment_nodes: &HashSet<String>,
+        peers: &HashMap<String, PeerInfo>,
+    ) -> f64 {
+        let mut total_score = 0.0;
+        let mut node_count = 0;
+        
+        for node_id in segment_nodes {
+            if let Some(peer) = peers.get(node_id) {
+                total_score += peer.connection_quality.score();
+                node_count += 1;
+            }
+        }
+        
+        if node_count > 0 {
+            total_score / node_count as f64
+        } else {
+            0.0
+        }
+    }
+    
+    /// Get network topology information
+    pub fn get_topology(&self) -> NetworkTopology {
+        self.topology.lock().unwrap().clone()
+    }
+    
+    /// Get peers with specific connection quality
+    pub fn get_peers_by_quality(&self, quality: ConnectionQuality) -> Vec<PeerInfo> {
+        let peers = self.peers.lock().unwrap();
+        peers.values()
+            .filter(|peer| peer.connection_quality == quality)
+            .cloned()
+            .collect()
+    }
+    
+    /// Get network statistics
+    pub fn get_network_stats(&self) -> NetworkStats {
+        let peers = self.peers.lock().unwrap();
+        let topology = self.topology.lock().unwrap();
+        
+        let total_peers = peers.len();
+        let active_peers = topology.connections.len();
+        let excellent_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Excellent)
+            .count();
+        let poor_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Poor)
+            .count();
+        
+        let avg_latency = peers.values()
+            .filter_map(|p| p.latency_ms)
+            .sum::<u64>() as f64 / total_peers.max(1) as f64;
+        
+        NetworkStats {
+            total_peers,
+            active_peers,
+            excellent_connections,
+            poor_connections,
+            avg_latency_ms: avg_latency as u64,
+            segments_count: topology.network_segments.len(),
+            topology_version: topology.topology_version,
         }
     }
 
@@ -538,6 +856,8 @@ impl Clone for NetworkManager {
             message_handlers: Arc::clone(&self.message_handlers),
             tor_manager: self.tor_manager.clone(),
             request_cooldowns: Arc::clone(&self.request_cooldowns),
+            topology: Arc::clone(&self.topology),
+            discovery_manager: self.discovery_manager.clone(),
         }
     }
 }
@@ -737,5 +1057,143 @@ mod tests {
         assert_eq!(manager.get_peers().len(), 1);
         manager.remove_peer("id1");
         assert_eq!(manager.get_peers().len(), 0);
+    }
+
+    #[test]
+    fn test_connection_quality_scoring() {
+        assert_eq!(ConnectionQuality::Excellent.score(), 1.0);
+        assert_eq!(ConnectionQuality::Good.score(), 0.8);
+        assert_eq!(ConnectionQuality::Fair.score(), 0.6);
+        assert_eq!(ConnectionQuality::Poor.score(), 0.3);
+        assert_eq!(ConnectionQuality::Unknown.score(), 0.5);
+    }
+
+    #[test]
+    fn test_connection_quality_from_latency() {
+        assert!(matches!(ConnectionQuality::from_latency(25), ConnectionQuality::Excellent));
+        assert!(matches!(ConnectionQuality::from_latency(75), ConnectionQuality::Good));
+        assert!(matches!(ConnectionQuality::from_latency(150), ConnectionQuality::Fair));
+        assert!(matches!(ConnectionQuality::from_latency(300), ConnectionQuality::Poor));
+    }
+
+    #[test]
+    fn test_network_topology_creation() {
+        let topology = NetworkTopology {
+            node_id: "test_node".to_string(),
+            connections: HashSet::new(),
+            routing_table: HashMap::new(),
+            network_segments: Vec::new(),
+            topology_version: 0,
+        };
+        
+        assert_eq!(topology.node_id, "test_node");
+        assert_eq!(topology.topology_version, 0);
+        assert!(topology.connections.is_empty());
+    }
+
+    #[test]
+    fn test_network_segment_classification() {
+        let manager = NetworkManager::new(0, 9050);
+        let mut peers = HashMap::new();
+        
+        // Create test peers with different connection qualities
+        let (pubk1, _) = CryptoManager::new().generate_keypair().unwrap();
+        let (pubk2, _) = CryptoManager::new().generate_keypair().unwrap();
+        
+        manager.add_peer("peer1".to_string(), pubk1, "127.0.0.1".to_string(), 1234, false);
+        manager.add_peer("peer2".to_string(), pubk2, "127.0.0.1".to_string(), 1235, false);
+        
+        // Update peer connection quality
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("peer1") {
+            peer.connection_quality = ConnectionQuality::Excellent;
+            peer.latency_ms = Some(25);
+        }
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("peer2") {
+            peer.connection_quality = ConnectionQuality::Good;
+            peer.latency_ms = Some(75);
+        }
+        
+        let peers = manager.peers.lock().unwrap();
+        let segment_nodes = HashSet::from_iter(vec!["peer1".to_string(), "peer2".to_string()]);
+        
+        let segment_type = manager.classify_segment(&segment_nodes, &peers);
+        let score = manager.calculate_segment_score(&segment_nodes, &peers);
+        
+        // Should be classified as Core due to high average score
+        assert!(matches!(segment_type, SegmentType::Core));
+        assert!(score > 0.8); // Average of Excellent (1.0) and Good (0.8)
+    }
+
+    #[test]
+    fn test_network_stats() {
+        let manager = NetworkManager::new(0, 9050);
+        let (pubk1, _) = CryptoManager::new().generate_keypair().unwrap();
+        let (pubk2, _) = CryptoManager::new().generate_keypair().unwrap();
+        
+        manager.add_peer("peer1".to_string(), pubk1, "127.0.0.1".to_string(), 1234, false);
+        manager.add_peer("peer2".to_string(), pubk2, "127.0.0.1".to_string(), 1235, false);
+        
+        // Update peer connection quality and latency
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("peer1") {
+            peer.connection_quality = ConnectionQuality::Excellent;
+            peer.latency_ms = Some(25);
+        }
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("peer2") {
+            peer.connection_quality = ConnectionQuality::Good;
+            peer.latency_ms = Some(75);
+        }
+        
+        let stats = manager.get_network_stats();
+        
+        assert_eq!(stats.total_peers, 2);
+        assert_eq!(stats.excellent_connections, 1);
+        assert_eq!(stats.good_connections, 1);
+        assert_eq!(stats.poor_connections, 0);
+        assert_eq!(stats.avg_latency_ms, 50); // (25 + 75) / 2
+    }
+
+    #[tokio::test]
+    async fn test_discovery_initialization() {
+        let mut manager = NetworkManager::new(0, 9050);
+        let result = manager.init_discovery("test_node".to_string(), "test_key".to_string()).await;
+        assert!(result.is_ok());
+        
+        let topology = manager.get_topology();
+        assert_eq!(topology.node_id, "test_node");
+    }
+
+    #[test]
+    fn test_peer_quality_filtering() {
+        let manager = NetworkManager::new(0, 9050);
+        let (pubk1, _) = CryptoManager::new().generate_keypair().unwrap();
+        let (pubk2, _) = CryptoManager::new().generate_keypair().unwrap();
+        let (pubk3, _) = CryptoManager::new().generate_keypair().unwrap();
+        
+        manager.add_peer("excellent_peer".to_string(), pubk1, "127.0.0.1".to_string(), 1234, false);
+        manager.add_peer("good_peer".to_string(), pubk2, "127.0.0.1".to_string(), 1235, false);
+        manager.add_peer("poor_peer".to_string(), pubk3, "127.0.0.1".to_string(), 1236, false);
+        
+        // Update peer connection quality
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("excellent_peer") {
+            peer.connection_quality = ConnectionQuality::Excellent;
+        }
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("good_peer") {
+            peer.connection_quality = ConnectionQuality::Good;
+        }
+        if let Some(peer) = manager.peers.lock().unwrap().get_mut("poor_peer") {
+            peer.connection_quality = ConnectionQuality::Poor;
+        }
+        
+        let excellent_peers = manager.get_peers_by_quality(ConnectionQuality::Excellent);
+        let good_peers = manager.get_peers_by_quality(ConnectionQuality::Good);
+        let poor_peers = manager.get_peers_by_quality(ConnectionQuality::Poor);
+        
+        assert_eq!(excellent_peers.len(), 1);
+        assert_eq!(good_peers.len(), 1);
+        assert_eq!(poor_peers.len(), 1);
+        
+        assert_eq!(excellent_peers[0].node_id, "excellent_peer");
+        assert_eq!(good_peers[0].node_id, "good_peer");
+        assert_eq!(poor_peers[0].node_id, "poor_peer");
     }
 }
