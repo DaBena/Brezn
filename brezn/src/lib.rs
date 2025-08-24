@@ -6,6 +6,7 @@ pub mod network;
 pub mod tor;
 pub mod types;
 pub mod ui_extensions;
+pub mod sync_metrics;
 
 use crate::error::{Result, BreznError};
 use crate::network::{NetworkManager, DefaultMessageHandler};
