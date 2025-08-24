@@ -1,4 +1,4 @@
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde_json;
 use anyhow::{Result, Context};
@@ -49,10 +49,35 @@ pub struct NetworkStats {
     pub total_peers: usize,
     pub active_peers: usize,
     pub excellent_connections: usize,
+    pub good_connections: usize,
     pub poor_connections: usize,
     pub avg_latency_ms: u64,
     pub segments_count: usize,
     pub topology_version: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DiscoveryMessage {
+    pub message_type: String,
+    pub node_id: String,
+    pub public_key: String,
+    pub network_port: u16,
+    pub timestamp: u64,
+    pub capabilities: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NetworkStatus {
+    pub node_id: String,
+    pub discovery_active: bool,
+    pub discovery_port: u16,
+    pub network_port: u16,
+    pub tor_enabled: bool,
+    pub tor_status: Option<TorStatus>,
+    pub stats: NetworkStats,
+    pub topology: NetworkTopology,
+    pub peer_count: usize,
+    pub unresolved_conflicts: usize,
 }
 
 pub struct NetworkManager {
@@ -66,6 +91,23 @@ pub struct NetworkManager {
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
     topology: Arc<Mutex<NetworkTopology>>,
     discovery_manager: Option<Arc<Mutex<crate::discovery::DiscoveryManager>>>,
+    
+    // New fields for peer discovery and management
+    discovery_socket: Option<UdpSocket>,
+    discovery_port: u16,
+    heartbeat_interval: Duration,
+    peer_timeout: Duration,
+    max_peers: usize,
+    local_node_id: String,
+    local_public_key: String,
+    
+    // Missing fields that were referenced but not defined
+    feed_state: Arc<Mutex<FeedState>>,
+    post_conflicts: Arc<Mutex<HashMap<String, PostConflict>>>,
+    post_order: Arc<Mutex<HashMap<String, PostOrder>>>,
+    broadcast_cache: Arc<Mutex<HashMap<String, PostBroadcast>>>,
+    tor_health_monitor: Arc<Mutex<TorHealthMonitor>>,
+    circuit_rotation_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +120,9 @@ pub struct PeerInfo {
     pub connection_quality: ConnectionQuality,
     pub capabilities: Vec<String>,
     pub latency_ms: Option<u64>,
+    pub is_tor_peer: bool,
+    pub circuit_id: Option<String>,
+    pub connection_health: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -146,6 +191,23 @@ impl NetworkManager {
                 topology_version: 0,
             })),
             discovery_manager: None,
+            
+            // New fields for peer discovery and management
+            discovery_socket: None,
+            discovery_port: 0, // Will be set by discovery manager
+            heartbeat_interval: Duration::from_secs(60),
+            peer_timeout: Duration::from_secs(10),
+            max_peers: 100,
+            local_node_id: node_id.clone(),
+            local_public_key: "".to_string(), // Will be set by discovery manager
+            
+            // Missing fields that were referenced but not defined
+            feed_state: Arc::new(Mutex::new(feed_state)),
+            post_conflicts: Arc::new(Mutex::new(HashMap::new())),
+            post_order: Arc::new(Mutex::new(HashMap::new())),
+            broadcast_cache: Arc::new(Mutex::new(HashMap::new())),
+            tor_health_monitor: Arc::new(Mutex::new(TorHealthMonitor::default())),
+            circuit_rotation_task: None,
         }
     }
     
@@ -1170,6 +1232,8 @@ impl NetworkManager {
             connection_quality: ConnectionQuality::Unknown,
             capabilities: Vec::new(),
             latency_ms: None,
+            circuit_id: None,
+            connection_health: 1.0,
         });
     }
     
@@ -1248,6 +1312,401 @@ impl NetworkManager {
         Ok(())
     }
     
+    /// Start UDP broadcast for peer discovery
+    pub async fn start_udp_discovery(&mut self, discovery_port: u16) -> Result<()> {
+        self.discovery_port = discovery_port;
+        
+        // Bind UDP socket for discovery
+        let socket = UdpSocket::bind(format!("0.0.0.0:{}", discovery_port)).await
+            .context("Failed to bind UDP discovery socket")?;
+        
+        self.discovery_socket = Some(socket);
+        
+        // Start discovery listener task
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone().await?;
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            Self::udp_discovery_listener(discovery_socket, network_manager).await;
+        });
+        
+        // Start periodic broadcast task
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone().await?;
+        let local_node_id = self.local_node_id.clone();
+        let local_public_key = self.local_public_key.clone();
+        let network_port = self.port;
+        
+        tokio::spawn(async move {
+            Self::periodic_discovery_broadcast(
+                discovery_socket,
+                local_node_id,
+                local_public_key,
+                network_port,
+            ).await;
+        });
+        
+        println!("📡 UDP Discovery gestartet auf Port {}", discovery_port);
+        Ok(())
+    }
+    
+    /// UDP discovery listener that handles incoming discovery messages
+    async fn udp_discovery_listener(
+        mut socket: UdpSocket,
+        network_manager: Arc<Mutex<NetworkManager>>,
+    ) {
+        let mut buffer = [0u8; 1024];
+        
+        loop {
+            match socket.recv_from(&mut buffer).await {
+                Ok((len, src_addr)) => {
+                    let message_data = &buffer[..len];
+                    
+                    if let Ok(discovery_msg) = serde_json::from_slice::<DiscoveryMessage>(message_data) {
+                        let network_manager_clone = network_manager.clone();
+                        tokio::spawn(async move {
+                            if let Ok(mut nm) = network_manager_clone.lock() {
+                                if let Err(e) = nm.handle_discovery_message(&discovery_msg, &src_addr).await {
+                                    eprintln!("Discovery message handling error: {}", e);
+                                }
+                            }
+                        });
+                    }
+                }
+                Err(e) => {
+                    eprintln!("UDP discovery receive error: {}", e);
+                    break;
+                }
+            }
+        }
+    }
+    
+    /// Periodic discovery broadcast to announce our presence
+    async fn periodic_discovery_broadcast(
+        socket: UdpSocket,
+        node_id: String,
+        public_key: String,
+        network_port: u16,
+    ) {
+        let mut interval = interval(Duration::from_secs(30)); // Broadcast every 30 seconds
+        
+        loop {
+            interval.tick().await;
+            
+            let discovery_msg = DiscoveryMessage {
+                message_type: "announce".to_string(),
+                node_id,
+                public_key: public_key.clone(),
+                network_port,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec!["post_sync".to_string(), "tor_support".to_string()],
+            };
+            
+            if let Ok(message_data) = serde_json::to_vec(&discovery_msg) {
+                // Broadcast to all interfaces
+                let broadcast_addrs = vec![
+                    "255.255.255.255:8888".parse().unwrap(),
+                    "224.0.0.1:8888".parse().unwrap(),
+                ];
+                
+                for addr in broadcast_addrs {
+                    if let Err(e) = socket.send_to(&message_data, addr).await {
+                        eprintln!("Failed to send discovery broadcast to {}: {}", addr, e);
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Handle incoming discovery messages
+    async fn handle_discovery_message(&mut self, message: &DiscoveryMessage, src_addr: &std::net::SocketAddr) -> Result<()> {
+        match message.message_type.as_str() {
+            "announce" => {
+                // New peer announcement
+                if message.node_id != self.local_node_id {
+                    self.handle_peer_announcement(message, src_addr).await?;
+                }
+            }
+            "ping" => {
+                // Discovery ping - respond with pong
+                self.send_discovery_pong(message, src_addr).await?;
+            }
+            "pong" => {
+                // Discovery pong response
+                self.handle_discovery_pong(message, src_addr).await?;
+            }
+            _ => {
+                eprintln!("Unknown discovery message type: {}", message.message_type);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle peer announcement from discovery
+    async fn handle_peer_announcement(&mut self, message: &DiscoveryMessage, src_addr: &std::net::SocketAddr) -> Result<()> {
+        // Check if we already know this peer
+        if self.peers.lock().unwrap().contains_key(&message.node_id) {
+            return Ok(());
+        }
+        
+        // Check if we have room for more peers
+        if self.peers.lock().unwrap().len() >= self.max_peers {
+            // Remove worst peer to make room
+            self.remove_worst_peer().await?;
+        }
+        
+        // Convert public key string to box_::PublicKey
+        let public_key = self.parse_public_key(&message.public_key)?;
+        
+        // Add new peer
+        let peer_info = PeerInfo {
+            node_id: message.node_id.clone(),
+            public_key,
+            address: src_addr.ip().to_string(),
+            port: message.network_port,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            connection_quality: ConnectionQuality::Unknown,
+            capabilities: message.capabilities.clone(),
+            latency_ms: None,
+            is_tor_peer: false, // Will be determined during connection
+            circuit_id: None,
+            connection_health: 1.0,
+        };
+        
+        self.add_peer_info(peer_info);
+        
+        println!("🔍 Neuer Peer entdeckt: {} ({}:{})", 
+                message.node_id, src_addr.ip(), message.network_port);
+        
+        // Send our own announcement to establish bidirectional connection
+        self.send_discovery_announcement(src_addr).await?;
+        
+        Ok(())
+    }
+    
+    /// Send discovery announcement to specific address
+    async fn send_discovery_announcement(&self, target_addr: &std::net::SocketAddr) -> Result<()> {
+        if let Some(ref socket) = self.discovery_socket {
+            let discovery_msg = DiscoveryMessage {
+                message_type: "announce".to_string(),
+                node_id: self.local_node_id.clone(),
+                public_key: self.local_public_key.clone(),
+                network_port: self.port,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec!["post_sync".to_string(), "tor_support".to_string()],
+            };
+            
+            let message_data = serde_json::to_vec(&discovery_msg)?;
+            socket.send_to(&message_data, target_addr).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Send discovery ping to check peer availability
+    async fn send_discovery_ping(&self, target_addr: &std::net::SocketAddr) -> Result<()> {
+        if let Some(ref socket) = self.discovery_socket {
+            let discovery_msg = DiscoveryMessage {
+                message_type: "ping".to_string(),
+                node_id: self.local_node_id.clone(),
+                public_key: self.local_public_key.clone(),
+                network_port: self.port,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec![],
+            };
+            
+            let message_data = serde_json::to_vec(&discovery_msg)?;
+            socket.send_to(&message_data, target_addr).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Send discovery pong response
+    async fn send_discovery_pong(&self, ping_message: &DiscoveryMessage, target_addr: &std::net::SocketAddr) -> Result<()> {
+        if let Some(ref socket) = self.discovery_socket {
+            let discovery_msg = DiscoveryMessage {
+                message_type: "pong".to_string(),
+                node_id: self.local_node_id.clone(),
+                public_key: self.local_public_key.clone(),
+                network_port: self.port,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec![],
+            };
+            
+            let message_data = serde_json::to_vec(&discovery_msg)?;
+            socket.send_to(&message_data, target_addr).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle discovery pong response
+    async fn handle_discovery_pong(&self, message: &DiscoveryMessage, _src_addr: &std::net::SocketAddr) -> Result<()> {
+        // Update peer last seen timestamp
+        if let Some(peer) = self.peers.lock().unwrap().get_mut(&message.node_id) {
+            peer.last_seen = chrono::Utc::now().timestamp() as u64;
+        }
+        
+        Ok(())
+    }
+    
+    /// Parse public key string to box_::PublicKey
+    fn parse_public_key(&self, key_str: &str) -> Result<box_::PublicKey> {
+        // Convert hex string to bytes
+        let key_bytes = hex::decode(key_str)
+            .context("Invalid public key format")?;
+        
+        // Convert to box_::PublicKey
+        if key_bytes.len() != box_::PUBLICKEYBYTES {
+            return Err(anyhow::anyhow!("Invalid public key length"));
+        }
+        
+        let mut key_array = [0u8; box_::PUBLICKEYBYTES];
+        key_array.copy_from_slice(&key_bytes);
+        
+        Ok(box_::PublicKey(key_array))
+    }
+    
+    /// Remove worst peer to make room for new ones
+    async fn remove_worst_peer(&self) -> Result<()> {
+        let mut peers = self.peers.lock().unwrap();
+        
+        // Find peer with lowest connection quality
+        let worst_peer = peers.iter()
+            .min_by_key(|(_, peer)| peer.connection_quality.score() as u32);
+        
+        if let Some((node_id, _)) = worst_peer {
+            let node_id = node_id.clone();
+            drop(peers); // Release lock before calling remove_peer
+            self.remove_peer(&node_id);
+            println!("🗑️  Schlechtesten Peer entfernt: {}", node_id);
+        }
+        
+        Ok(())
+    }
+    
+    /// Add peer info to the peer registry
+    fn add_peer_info(&self, peer_info: PeerInfo) {
+        let mut peers = self.peers.lock().unwrap();
+        peers.insert(peer_info.node_id.clone(), peer_info);
+    }
+    
+    /// Start heartbeat monitoring for all peers
+    pub async fn start_heartbeat_monitoring(&self) -> Result<()> {
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(60)); // Heartbeat every minute
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.perform_heartbeat_round().await {
+                        eprintln!("Heartbeat round error: {}", e);
+                    }
+                }
+            }
+        });
+        
+        println!("💓 Heartbeat-Monitoring gestartet");
+        Ok(())
+    }
+    
+    /// Perform one round of heartbeat checks
+    async fn perform_heartbeat_round(&self) -> Result<()> {
+        let peers = self.get_peers();
+        let mut tasks = Vec::new();
+        
+        for peer in peers {
+            let node_id = peer.node_id.clone();
+            let network_manager = Arc::new(Mutex::new(self.clone()));
+            
+            let task = tokio::spawn(async move {
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.heartbeat_peer(&node_id).await {
+                        eprintln!("Heartbeat failed for peer {}: {}", node_id, e);
+                    }
+                }
+            });
+            
+            tasks.push(task);
+        }
+        
+        // Wait for all heartbeat tasks to complete
+        for task in tasks {
+            let _ = task.await;
+        }
+        
+        // Remove inactive peers
+        self.cleanup_inactive_peers().await?;
+        
+        Ok(())
+    }
+    
+    /// Send heartbeat to specific peer
+    async fn heartbeat_peer(&self, node_id: &str) -> Result<()> {
+        let peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer {
+            // Send ping message
+            let ping_message = NetworkMessage {
+                message_type: "ping".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&ping_message, &peer).await {
+                // Mark peer as potentially inactive
+                if let Some(peer) = self.peers.lock().unwrap().get_mut(node_id) {
+                    peer.connection_health *= 0.8; // Reduce health score
+                }
+                return Err(e);
+            }
+            
+            // Update peer health on successful ping
+            if let Some(peer) = self.peers.lock().unwrap().get_mut(node_id) {
+                peer.connection_health = (peer.connection_health + 0.2).min(1.0);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Clean up inactive peers
+    async fn cleanup_inactive_peers(&self) -> Result<()> {
+        let now = chrono::Utc::now().timestamp() as u64;
+        let mut peers_to_remove = Vec::new();
+        
+        {
+            let peers = self.peers.lock().unwrap();
+            for (node_id, peer) in peers.iter() {
+                // Remove peers that haven't been seen in the last 10 minutes
+                if now.saturating_sub(peer.last_seen) > 600 {
+                    peers_to_remove.push(node_id.clone());
+                }
+                
+                // Remove peers with very low health scores
+                if peer.connection_health < 0.1 {
+                    peers_to_remove.push(node_id.clone());
+                }
+            }
+        }
+        
+        // Remove inactive peers
+        for node_id in peers_to_remove {
+            println!("🗑️  Inaktiven Peer entfernt: {}", node_id);
+            self.remove_peer(&node_id);
+        }
+        
+        Ok(())
+    }
+
     /// Measure latency to a peer
     pub async fn measure_peer_latency(&self, node_id: &str) -> Result<u64> {
         let start_time = std::time::Instant::now();
@@ -1432,6 +1891,9 @@ impl NetworkManager {
         let excellent_connections = peers.values()
             .filter(|p| p.connection_quality == ConnectionQuality::Excellent)
             .count();
+        let good_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Good)
+            .count();
         let poor_connections = peers.values()
             .filter(|p| p.connection_quality == ConnectionQuality::Poor)
             .count();
@@ -1444,6 +1906,7 @@ impl NetworkManager {
             total_peers,
             active_peers,
             excellent_connections,
+            good_connections,
             poor_connections,
             avg_latency_ms: avg_latency as u64,
             segments_count: topology.network_segments.len(),
@@ -1506,6 +1969,214 @@ impl NetworkManager {
         Ok(())
     }
 
+    /// Enhanced post synchronization with conflict detection and resolution
+    pub async fn sync_posts_with_conflict_resolution(&self, node_id: &str) -> Result<()> {
+        let peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer {
+            // Create comprehensive sync request
+            let sync_request = SyncRequest {
+                requesting_node: self.local_node_id.clone(),
+                last_known_timestamp: {
+                    let feed_state = self.feed_state.lock().unwrap();
+                    feed_state.last_sync_timestamp
+                },
+                requested_post_count: 200, // Request more posts for better conflict detection
+                sync_mode: SyncMode::Conflict, // Focus on posts with conflicts
+            };
+            
+            let message = NetworkMessage {
+                message_type: "sync_request".to_string(),
+                payload: serde_json::to_value(&sync_request)?,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(e) = self.send_message_to_peer(&message, &peer).await {
+                eprintln!("Failed to sync posts with peer {}: {}", node_id, e);
+                return Err(e);
+            }
+            
+            println!("🔄 Erweiterte Post-Synchronisation mit Peer {} gestartet", node_id);
+        }
+        
+        Ok(())
+    }
+    
+    /// Perform bidirectional post synchronization
+    pub async fn bidirectional_sync_with_peer(&self, node_id: &str) -> Result<()> {
+        // First, send our posts to the peer
+        let posts_to_send = self.get_ordered_posts(100).await?;
+        
+        if !posts_to_send.is_empty() {
+            for post in posts_to_send {
+                let broadcast = PostBroadcast {
+                    post: post.clone(),
+                    broadcast_id: Uuid::new_v4().to_string(),
+                    ttl: 3, // Limited TTL for direct sync
+                    origin_node: self.local_node_id.clone(),
+                    broadcast_timestamp: chrono::Utc::now().timestamp() as u64,
+                };
+                
+                let message = NetworkMessage {
+                    message_type: "post_broadcast".to_string(),
+                    payload: serde_json::to_value(&broadcast)?,
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    node_id: self.local_node_id.clone(),
+                };
+                
+                if let Some(peer) = self.peers.lock().unwrap().get(node_id) {
+                    if let Err(e) = self.send_message_to_peer(&message, peer).await {
+                        eprintln!("Failed to send post to peer {}: {}", node_id, e);
+                    }
+                }
+            }
+        }
+        
+        // Then, request posts from the peer
+        self.sync_posts_with_conflict_resolution(node_id).await?;
+        
+        println!("🔄 Bidirektionale Synchronisation mit Peer {} abgeschlossen", node_id);
+        Ok(())
+    }
+    
+    /// Enhanced conflict resolution with multiple strategies
+    async fn resolve_post_conflict_enhanced(&self, mut conflict: PostConflict) -> Result<()> {
+        // Try automatic resolution first
+        match conflict.resolution_strategy {
+            ConflictResolutionStrategy::LatestWins => {
+                self.resolve_latest_wins(&mut conflict).await?;
+            }
+            ConflictResolutionStrategy::FirstWins => {
+                self.resolve_first_wins(&mut conflict).await?;
+            }
+            ConflictResolutionStrategy::ContentHash => {
+                self.resolve_content_hash(&mut conflict).await?;
+            }
+            ConflictResolutionStrategy::Merged => {
+                self.resolve_merged(&mut conflict).await?;
+            }
+            ConflictResolutionStrategy::Manual => {
+                // Store for manual resolution
+                self.store_manual_conflict(conflict.clone()).await?;
+                println!("⚠️  Manuelle Konfliktauflösung erforderlich für Post: {}", conflict.post_id.hash);
+                return Ok(());
+            }
+        }
+        
+        // Update conflict store
+        {
+            let mut conflict_store = self.post_conflicts.lock().unwrap();
+            conflict_store.insert(conflict.post_id.hash.clone(), conflict);
+        }
+        
+        Ok(())
+    }
+    
+    /// Resolve conflict using latest wins strategy
+    async fn resolve_latest_wins(&self, conflict: &mut PostConflict) -> Result<()> {
+        let latest_post = conflict.conflicting_posts.iter()
+            .max_by_key(|p| p.timestamp)
+            .cloned();
+        
+        if let Some(post) = latest_post {
+            self.update_feed_state(&post).await?;
+            conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+            println!("✅ Konflikt gelöst: Neuester Post gewinnt ({}: {})", 
+                    post.pseudonym, post.content);
+        }
+        
+        Ok(())
+    }
+    
+    /// Resolve conflict using first wins strategy
+    async fn resolve_first_wins(&self, conflict: &mut PostConflict) -> Result<()> {
+        let first_post = conflict.conflicting_posts.iter()
+            .min_by_key(|p| p.timestamp)
+            .cloned();
+        
+        if let Some(post) = first_post {
+            self.update_feed_state(&post).await?;
+            conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+            println!("✅ Konflikt gelöst: Erster Post gewinnt ({}: {})", 
+                    post.pseudonym, post.content);
+        }
+        
+        Ok(())
+    }
+    
+    /// Resolve conflict using content hash strategy
+    async fn resolve_content_hash(&self, conflict: &mut PostConflict) -> Result<()> {
+        let best_post = conflict.conflicting_posts.iter()
+            .max_by_key(|p| {
+                // Score based on content uniqueness and length
+                let content_score = p.content.len() as u64;
+                let uniqueness_score = p.content.chars().collect::<HashSet<_>>().len() as u64;
+                content_score + uniqueness_score
+            })
+            .cloned();
+        
+        if let Some(post) = best_post {
+            self.update_feed_state(&post).await?;
+            conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+            println!("✅ Konflikt gelöst: Beste Inhaltsqualität gewinnt ({}: {})", 
+                    post.pseudonym, post.content);
+        }
+        
+        Ok(())
+    }
+    
+    /// Resolve conflict by merging content
+    async fn resolve_merged(&self, conflict: &mut PostConflict) -> Result<()> {
+        if let Some(merged_post) = self.merge_conflicting_posts(&conflict.conflicting_posts) {
+            self.update_feed_state(&merged_post).await?;
+            conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+            println!("✅ Konflikt gelöst: Inhalte zusammengeführt ({}: {})", 
+                    merged_post.pseudonym, merged_post.content);
+        } else {
+            // Fallback to latest wins if merging fails
+            self.resolve_latest_wins(conflict).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Store conflict for manual resolution
+    async fn store_manual_conflict(&self, conflict: PostConflict) -> Result<()> {
+        let mut conflict_store = self.post_conflicts.lock().unwrap();
+        conflict_store.insert(conflict.post_id.hash.clone(), conflict);
+        Ok(())
+    }
+    
+    /// Get all unresolved conflicts
+    pub async fn get_unresolved_conflicts(&self) -> Result<Vec<PostConflict>> {
+        let conflict_store = self.post_conflicts.lock().unwrap();
+        Ok(conflict_store.values()
+            .filter(|c| c.resolved_at.is_none())
+            .cloned()
+            .collect())
+    }
+    
+    /// Manually resolve a specific conflict
+    pub async fn manually_resolve_conflict(&self, post_id: &str, resolution_strategy: ConflictResolutionStrategy) -> Result<()> {
+        let mut conflict_store = self.post_conflicts.lock().unwrap();
+        
+        if let Some(mut conflict) = conflict_store.get_mut(post_id) {
+            conflict.resolution_strategy = resolution_strategy;
+            drop(conflict_store); // Release lock before calling resolution
+            
+            self.resolve_post_conflict_enhanced(conflict.clone()).await?;
+            println!("✅ Konflikt {} manuell gelöst", post_id);
+        } else {
+            return Err(anyhow::anyhow!("Conflict not found"));
+        }
+        
+        Ok(())
+    }
+    
     /// Periodically sync posts with all peers to maintain consistency
     pub async fn sync_all_peers(&self) -> Result<()> {
         let peers = {
@@ -1515,7 +2186,7 @@ impl NetworkManager {
         
         let mut sync_tasks = Vec::new();
         
-                for peer in peers {
+        for peer in peers {
             let node_id = peer.node_id.clone();
             let network_manager = Arc::new(Mutex::new(self.clone()));
             
@@ -1524,7 +2195,7 @@ impl NetworkManager {
                 let network_manager_clone = network_manager.clone();
                 let result = {
                     let nm = network_manager_clone.lock().unwrap();
-                    nm.sync_posts_with_peer(&node_id)
+                    nm.bidirectional_sync_with_peer(&node_id)
                 };
                 if let Err(e) = result.await {
                     eprintln!("Failed to sync with peer {}: {}", node_id, e);
@@ -1542,6 +2213,277 @@ impl NetworkManager {
         println!("🔄 Post-Synchronisation mit allen Peers abgeschlossen");
         Ok(())
     }
+    
+    /// Enhanced message handling with retry logic and error handling
+    async fn handle_message_enhanced(&self, message: &NetworkMessage) -> Result<()> {
+        let max_retries = 3;
+        let mut retry_count = 0;
+        
+        while retry_count < max_retries {
+            match self.handle_message(message).await {
+                Ok(_) => {
+                    // Message handled successfully
+                    return Ok(());
+                }
+                Err(e) => {
+                    retry_count += 1;
+                    eprintln!("Message handling attempt {} failed: {}", retry_count, e);
+                    
+                    if retry_count < max_retries {
+                        // Wait before retry with exponential backoff
+                        let delay = Duration::from_millis(100 * 2_u64.pow(retry_count as u32));
+                        sleep(delay).await;
+                        
+                        // Try to reconnect to peer if connection issues
+                        if let Err(conn_err) = self.reconnect_to_peer(&message.node_id).await {
+                            eprintln!("Failed to reconnect to peer {}: {}", message.node_id, conn_err);
+                        }
+                    } else {
+                        // Max retries reached, log error and continue
+                        eprintln!("Max retries reached for message from {}: {}", message.node_id, e);
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Attempt to reconnect to a peer
+    async fn reconnect_to_peer(&self, node_id: &str) -> Result<()> {
+        let peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer {
+            // Test connection
+            let test_message = NetworkMessage {
+                message_type: "ping".to_string(),
+                payload: serde_json::json!({}),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                node_id: self.local_node_id.clone(),
+            };
+            
+            if let Err(_) = self.send_message_to_peer(&test_message, &peer).await {
+                // Connection failed, try to refresh peer info
+                println!("🔄 Versuche Verbindung zu Peer {} zu erneuern", node_id);
+                
+                // Update peer connection quality
+                if let Some(peer) = self.peers.lock().unwrap().get_mut(node_id) {
+                    peer.connection_quality = ConnectionQuality::Poor;
+                    peer.connection_health *= 0.5;
+                }
+                
+                // Try discovery ping to refresh peer
+                if let Some(peer) = self.peers.lock().unwrap().get(node_id) {
+                    let addr = format!("{}:{}", peer.address, peer.port).parse::<std::net::SocketAddr>()?;
+                    if let Err(e) = self.send_discovery_ping(&addr).await {
+                        eprintln!("Discovery ping failed: {}", e);
+                    }
+                }
+            } else {
+                // Connection successful, update peer health
+                if let Some(peer) = self.peers.lock().unwrap().get_mut(node_id) {
+                    peer.connection_health = (peer.connection_health + 0.3).min(1.0);
+                }
+                println!("✅ Verbindung zu Peer {} wiederhergestellt", node_id);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Handle network errors with appropriate recovery strategies
+    async fn handle_network_error(&self, error: &anyhow::Error, peer_id: &str) -> Result<()> {
+        let error_str = error.to_string().to_lowercase();
+        
+        if error_str.contains("connection refused") || error_str.contains("timeout") {
+            // Connection issues - try to reconnect
+            self.reconnect_to_peer(peer_id).await?;
+        } else if error_str.contains("invalid message") || error_str.contains("parse error") {
+            // Message format issues - log and continue
+            eprintln!("Message format error from peer {}: {}", peer_id, error);
+        } else if error_str.contains("permission denied") || error_str.contains("access denied") {
+            // Permission issues - remove peer
+            eprintln!("Permission denied for peer {}, removing: {}", peer_id, error);
+            self.remove_peer(peer_id);
+        } else {
+            // Unknown error - log and try to continue
+            eprintln!("Unknown network error from peer {}: {}", peer_id, error);
+        }
+        
+        Ok(())
+    }
+    
+    /// Start automatic error recovery and monitoring
+    pub async fn start_error_recovery_monitoring(&self) -> Result<()> {
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(300)); // Check every 5 minutes
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.perform_error_recovery_round().await {
+                        eprintln!("Error recovery round failed: {}", e);
+                    }
+                }
+            }
+        });
+        
+        println!("🔧 Fehlerbehebung-Monitoring gestartet");
+        Ok(())
+    }
+    
+    /// Perform one round of error recovery
+    async fn perform_error_recovery_round(&self) -> Result<()> {
+        let peers = self.get_peers();
+        let mut recovery_tasks = Vec::new();
+        
+        for peer in peers {
+            let node_id = peer.node_id.clone();
+            let network_manager = Arc::new(Mutex::new(self.clone()));
+            
+            let task = tokio::spawn(async move {
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.recover_peer_connection(&node_id).await {
+                        eprintln!("Peer recovery failed for {}: {}", node_id, e);
+                    }
+                }
+            });
+            
+            recovery_tasks.push(task);
+        }
+        
+        // Wait for all recovery tasks to complete
+        for task in recovery_tasks {
+            let _ = task.await;
+        }
+        
+        Ok(())
+    }
+    
+    /// Attempt to recover connection to a specific peer
+    async fn recover_peer_connection(&self, node_id: &str) -> Result<()> {
+        let peer = {
+            let peers = self.peers.lock().unwrap();
+            peers.get(node_id).cloned()
+        };
+        
+        if let Some(peer) = peer {
+            // Check if peer needs recovery
+            if peer.connection_health < 0.5 {
+                println!("🔄 Versuche Verbindung zu Peer {} zu erneuern (Health: {:.2})", 
+                        node_id, peer.connection_health);
+                
+                // Try to reconnect
+                self.reconnect_to_peer(node_id).await?;
+                
+                // Measure latency to assess recovery
+                if let Ok(latency) = self.measure_peer_latency(node_id).await {
+                    println!("📊 Peer {} Latenz nach Wiederherstellung: {}ms", node_id, latency);
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Start the complete P2P network with all components
+    pub async fn start_p2p_network(&mut self, discovery_port: u16, public_key: String) -> Result<()> {
+        println!("🚀 Starte vollständiges P2P-Netzwerk...");
+        
+        // Initialize local node information
+        self.local_public_key = public_key;
+        
+        // Start UDP discovery
+        self.start_udp_discovery(discovery_port).await?;
+        
+        // Start heartbeat monitoring
+        self.start_heartbeat_monitoring().await?;
+        
+        // Start error recovery monitoring
+        self.start_error_recovery_monitoring().await?;
+        
+        // Start TCP server for incoming connections
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        tokio::spawn(async move {
+            if let Ok(nm) = network_manager.lock() {
+                if let Err(e) = nm.start_server().await {
+                    eprintln!("Failed to start TCP server: {}", e);
+                }
+            }
+        });
+        
+        // Start periodic topology analysis
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(300)); // Every 5 minutes
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.analyze_topology().await {
+                        eprintln!("Topology analysis failed: {}", e);
+                    }
+                }
+            }
+        });
+        
+        // Start periodic post synchronization
+        let network_manager = Arc::new(Mutex::new(self.clone()));
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(180)); // Every 3 minutes
+            
+            loop {
+                interval.tick().await;
+                
+                if let Ok(nm) = network_manager.lock() {
+                    if let Err(e) = nm.sync_all_peers().await {
+                        eprintln!("Periodic sync failed: {}", e);
+                    }
+                }
+            }
+        });
+        
+        println!("✅ P2P-Netzwerk erfolgreich gestartet!");
+        println!("   📡 Discovery Port: {}", discovery_port);
+        println!("   🌐 Network Port: {}", self.port);
+        println!("   💓 Heartbeat: Aktiv");
+        println!("   🔧 Error Recovery: Aktiv");
+        println!("   🔍 Topology Analysis: Aktiv");
+        println!("   🔄 Post Sync: Aktiv");
+        
+        Ok(())
+    }
+    
+    /// Get comprehensive network status
+    pub fn get_network_status(&self) -> NetworkStatus {
+        let stats = self.get_network_stats();
+        let topology = self.get_topology();
+        let tor_status = self.get_tor_status();
+        
+        NetworkStatus {
+            node_id: self.local_node_id.clone(),
+            discovery_active: self.discovery_socket.is_some(),
+            discovery_port: self.discovery_port,
+            network_port: self.port,
+            tor_enabled: self.tor_enabled,
+            tor_status,
+            stats,
+            topology,
+            peer_count: self.peers.lock().unwrap().len(),
+            unresolved_conflicts: {
+                let conflicts = self.post_conflicts.lock().unwrap();
+                conflicts.values().filter(|c| c.resolved_at.is_none()).count()
+            },
+        }
+    }
 }
 
 impl Clone for NetworkManager {
@@ -1557,6 +2499,23 @@ impl Clone for NetworkManager {
             request_cooldowns: Arc::clone(&self.request_cooldowns),
             topology: Arc::clone(&self.topology),
             discovery_manager: self.discovery_manager.clone(),
+            
+            // New fields for peer discovery and management
+            discovery_socket: self.discovery_socket.clone(),
+            discovery_port: self.discovery_port,
+            heartbeat_interval: self.heartbeat_interval,
+            peer_timeout: self.peer_timeout,
+            max_peers: self.max_peers,
+            local_node_id: self.local_node_id.clone(),
+            local_public_key: self.local_public_key.clone(),
+            
+            // Missing fields that were referenced but not defined
+            feed_state: Arc::clone(&self.feed_state),
+            post_conflicts: Arc::clone(&self.post_conflicts),
+            post_order: Arc::clone(&self.post_order),
+            broadcast_cache: Arc::clone(&self.broadcast_cache),
+            tor_health_monitor: Arc::clone(&self.tor_health_monitor),
+            circuit_rotation_task: self.circuit_rotation_task.clone(),
         }
     }
 }
@@ -1894,5 +2853,86 @@ mod tests {
         assert_eq!(excellent_peers[0].node_id, "excellent_peer");
         assert_eq!(good_peers[0].node_id, "good_peer");
         assert_eq!(poor_peers[0].node_id, "poor_peer");
+    }
+}
+
+/// Example implementation showing how to use the P2P network
+pub struct P2PNetworkExample {
+    network_manager: NetworkManager,
+}
+
+impl P2PNetworkExample {
+    pub fn new(network_port: u16, discovery_port: u16) -> Self {
+        let network_manager = NetworkManager::new(network_port, 9050);
+        
+        Self { network_manager }
+    }
+    
+    /// Start the complete P2P network
+    pub async fn start(&mut self, public_key: String) -> Result<()> {
+        println!("🚀 Starte Brezn P2P-Netzwerk...");
+        
+        // Start the complete P2P network
+        self.network_manager.start_p2p_network(8888, public_key).await?;
+        
+        // Add a default message handler
+        let database = Database::new("brezn.db")?;
+        let handler = DefaultMessageHandler::new(
+            self.network_manager.local_node_id.clone(),
+            Arc::new(Mutex::new(database))
+        );
+        self.network_manager.add_message_handler(Box::new(handler));
+        
+        println!("✅ Brezn P2P-Netzwerk erfolgreich gestartet!");
+        Ok(())
+    }
+    
+    /// Broadcast a post to all peers
+    pub async fn broadcast_post(&self, content: String, pseudonym: String) -> Result<()> {
+        let post = Post::new(content, pseudonym, Some(self.network_manager.local_node_id.clone()));
+        
+        println!("📤 Sende Post: {}", post.content);
+        self.network_manager.broadcast_post(&post).await?;
+        
+        Ok(())
+    }
+    
+    /// Get network status
+    pub fn get_status(&self) -> NetworkStatus {
+        self.network_manager.get_network_status()
+    }
+    
+    /// Sync with all peers
+    pub async fn sync_all_peers(&self) -> Result<()> {
+        println!("🔄 Starte Synchronisation mit allen Peers...");
+        self.network_manager.sync_all_peers().await?;
+        Ok(())
+    }
+    
+    /// Get unresolved conflicts
+    pub async fn get_conflicts(&self) -> Result<Vec<PostConflict>> {
+        self.network_manager.get_unresolved_conflicts().await
+    }
+    
+    /// Resolve a conflict manually
+    pub async fn resolve_conflict(&self, post_id: &str, strategy: ConflictResolutionStrategy) -> Result<()> {
+        self.network_manager.manually_resolve_conflict(post_id, strategy).await?;
+        Ok(())
+    }
+    
+    /// Enable Tor support
+    pub async fn enable_tor(&mut self) -> Result<()> {
+        self.network_manager.enable_tor().await?;
+        Ok(())
+    }
+    
+    /// Get peer information
+    pub fn get_peers(&self) -> Vec<PeerInfo> {
+        self.network_manager.get_peers()
+    }
+    
+    /// Measure latency to a peer
+    pub async fn measure_latency(&self, node_id: &str) -> Result<u64> {
+        self.network_manager.measure_peer_latency(node_id).await
     }
 }
