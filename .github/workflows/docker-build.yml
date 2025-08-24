@@ -1,11 +1,12 @@
-name: Docker Build
+name: Docker Build (DEAKTIVIERT)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
+  # DEAKTIVIERT - läuft nicht mehr automatisch
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  workflow_dispatch:  # Nur manueller Start möglich
 
 jobs:
   docker-build:

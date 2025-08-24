@@ -1,9 +1,10 @@
-name: Build Android APK
+name: Build Android APK (DEAKTIVIERT)
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ "main" ]
+  # DEAKTIVIERT - läuft nicht mehr automatisch
+  # push:
+  #   branches: [ "main" ]
+  workflow_dispatch:  # Nur manueller Start möglich
 
 jobs:
   build-android:
