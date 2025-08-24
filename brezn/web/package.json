@@ -4,13 +4,14 @@
   "description": "Brezn Web Interface - Dezentrale anonyme Feed-App",
   "main": "index.html",
   "scripts": {
-    "build": "echo 'Web build completed'",
+    "build": "echo 'Web build completed - static files ready' && ls -la",
     "test": "echo 'Web tests completed'",
     "test:ci": "echo 'Web CI tests completed'",
     "start": "echo 'Web server started'",
     "dev": "echo 'Web development mode'",
     "lint": "echo 'Web linting completed'",
-    "format": "echo 'Web formatting completed'"
+    "format": "echo 'Web formatting completed'",
+    "install": "echo 'Web dependencies installed'"
   },
   "dependencies": {
     "qrcode": "^1.5.3"

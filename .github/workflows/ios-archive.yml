@@ -25,20 +25,36 @@ jobs:
         run: |
           rustup target add aarch64-apple-ios x86_64-apple-ios
 
+      - name: Check for iOS project
+        id: check-ios
+        run: |
+          if [ -d "brezn/mobile/ios" ] && [ -f "brezn/mobile/ios/Brezn.xcworkspace" ]; then
+            echo "ios_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "ios_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Rust libraries for iOS
+        if: steps.check-ios.outputs.ios_exists == 'true'
+        run: |
+          cd brezn
+          cargo build --target aarch64-apple-ios --release --lib --features mobile
+          cargo build --target x86_64-apple-ios --release --lib --features mobile
+
       - name: Install mobile dependencies
-        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        if: steps.check-ios.outputs.ios_exists == 'true'
         run: |
           cd brezn/mobile
           npm ci
 
       - name: Install Pods
-        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        if: steps.check-ios.outputs.ios_exists == 'true'
         run: |
           cd brezn/mobile/ios
           pod install --repo-update
 
       - name: Build iOS archive
-        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        if: steps.check-ios.outputs.ios_exists == 'true'
         run: |
           cd brezn/mobile/ios
           xcodebuild -workspace Brezn.xcworkspace \
@@ -49,14 +65,14 @@ jobs:
             archive
 
       - name: Upload iOS archive artifact
-        if: ${{ hashFiles('brezn/mobile/ios/**') != '' }}
+        if: steps.check-ios.outputs.ios_exists == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: brezn-ios-archive
           path: brezn/mobile/ios/build/Brezn.xcarchive
 
       - name: Skip - iOS project not present
-        if: ${{ hashFiles('brezn/mobile/ios/**') == '' }}
+        if: steps.check-ios.outputs.ios_exists == 'false'
         run: |
           echo "iOS project not found at brezn/mobile/ios. Commit the React Native iOS project and signing configuration to build IPAs." 
           exit 0
