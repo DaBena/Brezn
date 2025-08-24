@@ -3,10 +3,6 @@ name = "brezn"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "brezn"
-crate-type = ["cdylib", "staticlib", "rlib", "lib"]
-
 [[bin]]
 name = "brezn-server"
 path = "src/main.rs"
@@ -15,62 +11,37 @@ path = "src/main.rs"
 name = "brezn-cli"
 path = "src/bin/cli.rs"
 
-[features]
-default = ["web", "mobile"]
-full = ["web", "mobile", "p2p", "tor", "encryption"]
-minimal = ["core"]
-web = ["actix-web", "qrcode", "image", "base64"]
-mobile = ["uniffi", "uniffi_bindgen"]
-p2p = ["get_if_addrs", "sha2"]
-tor = ["sodiumoxide"]
-encryption = ["ring", "sodiumoxide"]
-core = ["rusqlite", "serde", "serde_json", "tokio", "uuid", "chrono", "anyhow", "thiserror"]
-
 [dependencies]
-rusqlite = { version = "0.31", features = ["bundled"] }
+# Core dependencies
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-ring = { version = "0.17", optional = true }
-sodiumoxide = { version = "0.2", optional = true }
 tokio = { version = "1.0", features = ["full"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
 thiserror = "1.0"
-actix-web = { version = "4.4", optional = true }
-qrcode = { version = "0.13", optional = true }
-image = { version = "0.24", optional = true }
-base64 = { version = "0.21", optional = true }
-bardecoder = { version = "0.4", optional = true }
-hex = "0.4"
-get_if_addrs = { version = "0.5", optional = true }
-sha2 = { version = "0.10", optional = true }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
 
-# Mobile FFI dependencies
-uniffi = { version = "0.25", optional = true }
-uniffi_bindgen = { version = "0.25", optional = true }
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
 
+# Network
+actix-web = "4.4"
+
+# Crypto
+ring = "0.17"
+
+# P2P and Discovery
+get_if_addrs = "0.5"
+
+# QR Code
+qrcode = "0.14"
+image = "0.24"
+base64 = "0.21"
+
+# Optional dependencies for testing
 [dev-dependencies]
-rand = "0.8"
 tempfile = "3.8"
 tokio-test = "0.4"
-criterion = "0.5"
 
-[profile.test]
-opt-level = 0
-debug = true
-
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-
-[[test]]
-name = "integration_tests"
-path = "tests/integration_tests.rs"
-harness = false
-
-[build-dependencies]
-uniffi_bindgen = { version = "0.25", optional = true }
-which = "7.0"
-
+[features]
+default = []

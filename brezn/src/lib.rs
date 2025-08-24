@@ -1,502 +1,189 @@
 use std::sync::{Arc, Mutex};
-use tokio::runtime::Runtime;
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-// Re-export modules
-pub mod types;
-pub mod network_simple;
-pub mod crypto;
-pub mod database;
-pub mod discovery;
 pub mod error;
-pub mod ffi;
-pub mod sync_metrics;
-pub mod tor;
-pub mod performance;
+pub mod types;
+pub mod database;
+pub mod network;
+pub mod discovery;
+pub mod qr;
 
-pub mod ui_extensions;
-pub mod discovery_network_bridge;
-pub mod p2p_e2e_tests;
-pub mod performance_optimizer;
+use crate::error::Result;
+use crate::types::{Config, Post, NetworkStatus};
+use crate::database::Database;
+use crate::network::NetworkManager;
+use crate::discovery::DiscoveryManager;
+use crate::qr::QRCodeManager;
 
-// FFI types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Post {
-    pub id: String,
-    pub content: String,
-    pub timestamp: DateTime<Utc>,
-    pub pseudonym: String,
-    pub node_id: Option<String>,
-}
-
-// NetworkStatus is now defined in network_simple module
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PerformanceMetrics {
-    pub memory_usage: u64,
-    pub thread_count: u32,
-    pub timestamp: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeviceInfo {
-    pub platform: String,
-    pub arch: String,
-    pub rust_version: String,
-    pub build_time: String,
-}
-
-// Main Brezn application
 pub struct BreznApp {
-    runtime: Arc<Runtime>,
-    posts: Arc<Mutex<Vec<Post>>>,
-    network_status: Arc<Mutex<network_simple::NetworkStatus>>,
-    is_initialized: Arc<Mutex<bool>>,
-    config: Arc<Mutex<types::Config>>,
-    network_manager: Arc<Mutex<network_simple::NetworkManager>>,
+    config: Config,
+    database: Arc<Database>,
+    network_manager: Arc<Mutex<Option<Arc<NetworkManager>>>>,
+    discovery_manager: Arc<Mutex<Option<DiscoveryManager>>>,
+    qr_manager: Arc<Mutex<Option<QRCodeManager>>>,
 }
 
 impl BreznApp {
-    pub fn new() -> Result<Self> {
-        let runtime = Arc::new(Runtime::new()?);
-        let posts = Arc::new(Mutex::new(Vec::new()));
-        let network_status = Arc::new(Mutex::new(network_simple::NetworkStatus {
-            node_id: "local".to_string(),
-            discovery_active: false,
-            discovery_port: 8888,
-            network_port: 8888,
-            tor_enabled: false,
-            tor_status: None,
-            stats: network_simple::NetworkStats::default(),
-            topology: network_simple::NetworkTopology::default(),
-            peer_count: 0,
-            unresolved_conflicts: 0,
-        }));
-        let is_initialized = Arc::new(Mutex::new(false));
-        let config = Arc::new(Mutex::new(types::Config::default()));
-        let network_manager = Arc::new(Mutex::new(network_simple::NetworkManager::new(8888, 9050)));
-
+    pub fn new(config: Config) -> Result<Self> {
+        let database = Arc::new(Database::new()?);
+        
         Ok(Self {
-            runtime,
-            posts,
-            network_status,
-            is_initialized,
             config,
-            network_manager,
+            database,
+            network_manager: Arc::new(Mutex::new(None)),
+            discovery_manager: Arc::new(Mutex::new(None)),
+            qr_manager: Arc::new(Mutex::new(None)),
         })
     }
 
-    pub fn init(&self, network_port: u16, tor_socks_port: u16) -> Result<bool> {
-        let mut status = self.network_status.lock().unwrap();
-        status.network_port = network_port;
-        // tor_socks_port is not available in NetworkStatus
-        
-        let mut initialized = self.is_initialized.lock().unwrap();
-        *initialized = true;
-        
-        Ok(true)
+    pub async fn start(&self) -> Result<()> {
+        println!("🚀 Starting Brezn application...");
+
+        // Initialize network manager
+        let network_manager = Arc::new(NetworkManager::new(self.config.network_port, self.database.clone()));
+        if self.config.network_enabled {
+            network_manager.start().await?;
+        }
+        *self.network_manager.lock().unwrap() = Some(network_manager);
+
+        // Initialize discovery manager
+        let mut discovery_manager = DiscoveryManager::new(
+            "node-".to_string() + &uuid::Uuid::new_v4().to_string()[..8],
+            self.config.discovery_port,
+            self.config.network_port,
+        );
+        if self.config.discovery_enabled {
+            discovery_manager.start().await?;
+        }
+        *self.discovery_manager.lock().unwrap() = Some(discovery_manager);
+
+        // Initialize QR manager
+        let qr_manager = QRCodeManager::new(
+            "node-".to_string() + &uuid::Uuid::new_v4().to_string()[..8],
+            "public-key-placeholder".to_string(),
+            self.config.network_port,
+        );
+        *self.qr_manager.lock().unwrap() = Some(qr_manager);
+
+        println!("✅ Brezn application started successfully");
+        Ok(())
     }
 
-    pub fn start(&self) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        // Start network services in background
-        let runtime = self.runtime.clone();
-        let network_status = self.network_status.clone();
-        
-        tokio::spawn(async move {
-            // Simulate network startup
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            let mut status = network_status.lock().unwrap();
-            status.tor_enabled = true; // Use available property
-        });
-
-        Ok(true)
-    }
-
-    pub fn create_post(&self, content: String, pseudonym: String) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
+    // Post management
+    pub fn create_post(&self, content: String, pseudonym: Option<String>) -> Result<i64> {
         let post = Post {
-            id: Uuid::new_v4().to_string(),
+            id: None,
             content,
-            timestamp: Utc::now(),
-            pseudonym,
+            pseudonym: pseudonym.unwrap_or(self.config.default_pseudonym.clone()),
+            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
             node_id: None,
         };
 
-        let mut posts = self.posts.lock().unwrap();
-        posts.push(post);
+        let post_id = self.database.create_post(&post)?;
+        
+        // Broadcast to network if enabled
+        if self.config.network_enabled {
+            if let Some(network_manager) = self.network_manager.lock().unwrap().clone() {
+                let mut post_with_id = post;
+                post_with_id.id = Some(post_id);
+                tokio::spawn(async move {
+                    if let Err(e) = network_manager.broadcast_post(&post_with_id).await {
+                        eprintln!("Failed to broadcast post: {}", e);
+                    }
+                });
+            }
+        }
 
-        Ok(true)
+        Ok(post_id)
     }
 
     pub fn get_posts(&self) -> Result<Vec<Post>> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        let posts = self.posts.lock().unwrap();
-        Ok(posts.clone())
+        self.database.get_all_posts()
     }
 
-
-
-    pub fn enable_tor(&self) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        let mut status = self.network_status.lock().unwrap();
-        status.tor_enabled = true;
-        
-        Ok(true)
+    pub fn delete_post(&self, id: i64) -> Result<()> {
+        self.database.delete_post(id)
     }
 
-    pub fn disable_tor(&self) -> Result<()> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        let mut status = self.network_status.lock().unwrap();
-        status.tor_enabled = false;
-        
-        Ok(())
-    }
-
-    pub fn generate_qr_code(&self) -> Result<String> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        // Generate a simple QR code data string
-        let qr_data = format!("brezn://peer/{}", Uuid::new_v4());
-        Ok(qr_data)
-    }
-
-    pub fn parse_qr_code(&self, qr_data: String) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        // Simple QR code parsing
-        if qr_data.starts_with("brezn://peer/") {
-            Ok(true)
+    // Network management
+    pub fn get_network_status(&self) -> NetworkStatus {
+        if let Some(network_manager) = self.network_manager.lock().unwrap().as_ref() {
+            network_manager.get_network_status()
         } else {
-            Err(anyhow::anyhow!("Invalid QR code format"))
+            NetworkStatus {
+                is_enabled: false,
+                peer_count: 0,
+                last_sync: None,
+                bytes_sent: 0,
+                bytes_received: 0,
+            }
         }
     }
 
-    pub fn get_performance_metrics(&self) -> Result<PerformanceMetrics> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        Ok(PerformanceMetrics {
-            memory_usage: std::process::id() as u64,
-            thread_count: 1,
-            timestamp: Utc::now(),
-        })
-    }
-
-    pub fn get_device_info(&self) -> Result<DeviceInfo> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        Ok(DeviceInfo {
-            platform: std::env::consts::OS.to_string(),
-            arch: std::env::consts::ARCH.to_string(),
-            rust_version: env!("CARGO_PKG_VERSION").to_string(),
-            build_time: env!("VERGEN_BUILD_TIMESTAMP").to_string(),
-        })
-    }
-
-    pub fn test_p2p_network(&self) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        // Simulate P2P network test
-        Ok(true)
-    }
-
-    pub fn cleanup(&self) -> Result<()> {
-        let mut initialized = self.is_initialized.lock().unwrap();
-        *initialized = false;
-        
-        Ok(())
-    }
-
-    // Network manager methods
-    pub fn get_network_manager(&self) -> Arc<Mutex<network_simple::NetworkManager>> {
-        self.network_manager.clone()
-    }
-
-    // Config methods
-    pub fn get_config(&self) -> Arc<Mutex<types::Config>> {
-        self.config.clone()
-    }
-
-    // P2P network methods
-    pub async fn sync_all_peers(&self) -> Result<()> {
-        let network_manager = self.network_manager.lock().unwrap();
-        network_manager.sync_all_peers().await
-    }
-
-    pub async fn enable_tor_async(&self) -> Result<bool> {
-        let mut network_manager = self.network_manager.lock().unwrap();
-        network_manager.enable_tor().await
-    }
-
-    pub fn get_network_status(&self) -> Result<network_simple::NetworkStatus> {
-        let network_manager = self.network_manager.lock().unwrap();
-        Ok(network_manager.get_network_status())
-    }
-}
-
-// FFI bindings - only include when uniffi scaffolding is available
-#[cfg(feature = "uniffi")]
-uniffi::include_scaffolding!("brezn");
-
-// Export FFI functions
-#[no_mangle]
-pub extern "C" fn brezn_app_new() -> *mut BreznApp {
-    match BreznApp::new() {
-        Ok(app) => Box::into_raw(Box::new(app)),
-        Err(_) => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_free(ptr: *mut BreznApp) {
-    if !ptr.is_null() {
-        unsafe {
-            let _ = Box::from_raw(ptr);
+    pub async fn connect_to_peer(&self, address: String, port: u16) -> Result<()> {
+        if let Some(network_manager) = self.network_manager.lock().unwrap().as_ref() {
+            network_manager.connect_to_peer(&address, port).await
+        } else {
+            Err(crate::error::BreznError::Network("Network not enabled".to_string()))
         }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn brezn_app_init(app: *mut BreznApp, network_port: u16, tor_socks_port: u16) -> bool {
-    if app.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        match (*app).init(network_port, tor_socks_port) {
-            Ok(result) => result,
-            Err(_) => false,
+    pub fn get_peers(&self) -> Vec<crate::types::PeerInfo> {
+        if let Some(network_manager) = self.network_manager.lock().unwrap().as_ref() {
+            network_manager.get_peers()
+        } else {
+            Vec::new()
         }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn brezn_app_start(app: *mut BreznApp) -> bool {
-    if app.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        match (*app).start() {
-            Ok(result) => result,
-            Err(_) => false,
+    // QR Code functionality
+    pub fn generate_qr_code(&self) -> Result<String> {
+        if let Some(qr_manager) = self.qr_manager.lock().unwrap().as_ref() {
+            qr_manager.generate_peer_qr()
+        } else {
+            Err(crate::error::BreznError::QrCode("QR manager not initialized".to_string()))
         }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn brezn_app_create_post(app: *mut BreznApp, content: *const i8, pseudonym: *const i8) -> bool {
-    if app.is_null() || content.is_null() || pseudonym.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        let content_str = std::ffi::CStr::from_ptr(content).to_string_lossy().to_string();
-        let pseudonym_str = std::ffi::CStr::from_ptr(pseudonym).to_string_lossy().to_string();
-        
-        match (*app).create_post(content_str, pseudonym_str) {
-            Ok(result) => result,
-            Err(_) => false,
+    pub fn parse_qr_code(&self, qr_data: String) -> Result<(String, u16)> {
+        if let Some(qr_manager) = self.qr_manager.lock().unwrap().as_ref() {
+            // Try simple join format first
+            if let Ok((address, port)) = qr_manager.parse_simple_join_qr(&qr_data) {
+                return Ok((address, port));
+            }
+            // Try full peer format
+            if let Ok(peer_data) = qr_manager.parse_peer_qr(&qr_data) {
+                return Ok((peer_data.address, peer_data.port));
+            }
+            Err(crate::error::BreznError::QrCode("Invalid QR code format".to_string()))
+        } else {
+            Err(crate::error::BreznError::QrCode("QR manager not initialized".to_string()))
         }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn brezn_app_get_network_status(app: *mut BreznApp) -> *mut network_simple::NetworkStatus {
-    if app.is_null() {
-        return std::ptr::null_mut();
+    // Configuration
+    pub fn get_config(&self) -> &Config {
+        &self.config
     }
-    
-    unsafe {
-        match (*app).get_network_status() {
-            Ok(status) => Box::into_raw(Box::new(status)),
-            Err(_) => std::ptr::null_mut(),
+
+    pub fn update_config(&mut self, new_config: Config) {
+        self.config = new_config;
+    }
+
+    // Discovery functionality
+    pub fn get_discovered_peers(&self) -> Vec<crate::types::PeerInfo> {
+        if let Some(discovery_manager) = self.discovery_manager.lock().unwrap().as_ref() {
+            discovery_manager.get_peers()
+        } else {
+            Vec::new()
         }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn brezn_app_enable_tor(app: *mut BreznApp) -> bool {
-    if app.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        match (*app).enable_tor() {
-            Ok(result) => result,
-            Err(_) => false,
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_disable_tor(app: *mut BreznApp) {
-    if app.is_null() {
-        return;
-    }
-    
-    unsafe {
-        let _ = (*app).disable_tor();
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_generate_qr_code(app: *mut BreznApp) -> *mut i8 {
-    if app.is_null() {
-        return std::ptr::null_mut();
-    }
-    
-    unsafe {
-        match (*app).generate_qr_code() {
-            Ok(qr_data) => {
-                let c_string = std::ffi::CString::new(qr_data).unwrap();
-                c_string.into_raw()
-            },
-            Err(_) => std::ptr::null_mut(),
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_parse_qr_code(app: *mut BreznApp, qr_data: *const i8) -> bool {
-    if app.is_null() || qr_data.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        let qr_data_str = std::ffi::CStr::from_ptr(qr_data).to_string_lossy().to_string();
-        
-        match (*app).parse_qr_code(qr_data_str) {
-            Ok(result) => result,
-            Err(_) => false,
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_get_performance_metrics(app: *mut BreznApp) -> *mut PerformanceMetrics {
-    if app.is_null() {
-        return std::ptr::null_mut();
-    }
-    
-    unsafe {
-        match (*app).get_performance_metrics() {
-            Ok(metrics) => Box::into_raw(Box::new(metrics)),
-            Err(_) => std::ptr::null_mut(),
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_get_device_info(app: *mut BreznApp) -> *mut DeviceInfo {
-    if app.is_null() {
-        return std::ptr::null_mut();
-    }
-    
-    unsafe {
-        match (*app).get_device_info() {
-            Ok(info) => Box::into_raw(Box::new(info)),
-            Err(_) => std::ptr::null_mut(),
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_test_p2p_network(app: *mut BreznApp) -> bool {
-    if app.is_null() {
-        return false;
-    }
-    
-    unsafe {
-        match (*app).test_p2p_network() {
-            Ok(result) => result,
-            Err(_) => false,
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_app_cleanup(app: *mut BreznApp) {
-    if app.is_null() {
-        return;
-    }
-    
-    unsafe {
-        let _ = (*app).cleanup();
-    }
-}
-
-// Memory management functions
-#[no_mangle]
-pub extern "C" fn brezn_string_free(ptr: *mut i8) {
-    if !ptr.is_null() {
-        unsafe {
-            let _ = std::ffi::CString::from_raw(ptr);
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_network_status_free(ptr: *mut network_simple::NetworkStatus) {
-    if !ptr.is_null() {
-        unsafe {
-            let _ = Box::from_raw(ptr);
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_performance_metrics_free(ptr: *mut PerformanceMetrics) {
-    if !ptr.is_null() {
-        unsafe {
-            let _ = Box::from_raw(ptr);
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn brezn_device_info_free(ptr: *mut DeviceInfo) {
-    if !ptr.is_null() {
-        unsafe {
-            let _ = Box::from_raw(ptr);
+    pub fn get_discovery_peer_count(&self) -> usize {
+        if let Some(discovery_manager) = self.discovery_manager.lock().unwrap().as_ref() {
+            discovery_manager.get_peer_count()
+        } else {
+            0
         }
     }
 }
