@@ -8,6 +8,8 @@ use chrono::{DateTime, Utc};
 // Re-export modules
 pub mod types;
 pub mod network_simple;
+#[cfg(feature = "p2p")]
+pub mod network;
 pub mod crypto;
 pub mod database;
 pub mod discovery;
@@ -18,8 +20,11 @@ pub mod tor;
 pub mod performance;
 
 pub mod ui_extensions;
+#[cfg(feature = "p2p")]
 pub mod discovery_network_bridge;
+#[cfg(feature = "p2p_e2e")]
 pub mod p2p_e2e_tests;
+#[cfg(feature = "p2p")]
 pub mod performance_optimizer;
 
 // FFI types

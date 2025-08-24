@@ -16,8 +16,15 @@ use crate::types::{
 use crate::crypto::CryptoManager;
 use crate::database::Database;
 use crate::tor::{TorManager, TorStatus};
+#[cfg(feature = "encryption")]
 use sodiumoxide::crypto::box_;
 use uuid::Uuid;
+
+#[cfg(not(feature = "encryption"))]
+mod crypto_stub {
+	#[derive(Clone, Copy, Debug)]
+	pub struct PublicKey(pub [u8; 32]);
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConnectionQuality {
@@ -52,7 +59,10 @@ impl ConnectionQuality {
 #[derive(Debug, Clone)]
 pub struct PeerInfo {
     pub node_id: String,
+    #[cfg(feature = "encryption")]
     pub public_key: box_::PublicKey,
+    #[cfg(not(feature = "encryption"))]
+    pub public_key: crypto_stub::PublicKey,
     pub address: String,
     pub port: u16,
     pub last_seen: u64,
@@ -390,7 +400,10 @@ impl NetworkManager {
         
         let peer_info = PeerInfo {
             node_id: format!("peer_{}:{}", address, port),
+            #[cfg(feature = "encryption")]
             public_key: box_::PublicKey([0u8; 32]),
+            #[cfg(not(feature = "encryption"))]
+            public_key: crypto_stub::PublicKey([0u8; 32]),
             address: address.to_string(),
             port,
             last_seen: chrono::Utc::now().timestamp() as u64,
