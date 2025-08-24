@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -23,8 +24,16 @@ const CreatePostScreen: React.FC = () => {
   const navigation = useNavigation<CreatePostScreenNavigationProp>();
   const [content, setContent] = useState('');
   const [pseudonym, setPseudonym] = useState('');
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [currentHashtag, setCurrentHashtag] = useState('');
+  const [category, setCategory] = useState<string>('allgemein');
   const [config, setConfig] = useState<Config | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const categories = [
+    'allgemein', 'news', 'humor', 'technik', 'politik', 
+    'kultur', 'sport', 'wissenschaft', 'gesellschaft'
+  ];
 
   useEffect(() => {
     loadConfig();
@@ -40,6 +49,17 @@ const CreatePostScreen: React.FC = () => {
     }
   };
 
+  const addHashtag = () => {
+    if (currentHashtag.trim() && !hashtags.includes(currentHashtag.trim())) {
+      setHashtags([...hashtags, currentHashtag.trim()]);
+      setCurrentHashtag('');
+    }
+  };
+
+  const removeHashtag = (tagToRemove: string) => {
+    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+  };
+
   const handleCreatePost = async () => {
     if (!content.trim()) {
       Alert.alert('Fehler', 'Bitte gib einen Post-Inhalt ein!');
@@ -51,9 +71,15 @@ const CreatePostScreen: React.FC = () => {
       return;
     }
 
+    if (content.length > 500) {
+      Alert.alert('Fehler', 'Post ist zu lang (max. 500 Zeichen)!');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // TODO: Implement hashtag and category support in backend
       await BreznService.createPost(content.trim(), pseudonym.trim());
       
       Alert.alert(
@@ -64,6 +90,8 @@ const CreatePostScreen: React.FC = () => {
             text: 'OK',
             onPress: () => {
               setContent('');
+              setHashtags([]);
+              setCategory('allgemein');
               navigation.goBack();
             },
           },
@@ -93,6 +121,16 @@ const CreatePostScreen: React.FC = () => {
     
     return `${adjective}${noun}${numbers}`;
   };
+
+  const renderHashtag = ({ item }: { item: string }) => (
+    <TouchableOpacity
+      style={styles.hashtagChip}
+      onPress={() => removeHashtag(item)}
+    >
+      <Text style={styles.hashtagText}>#{item}</Text>
+      <Icon name="close" size={16} color="#667eea" />
+    </TouchableOpacity>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -127,6 +165,29 @@ const CreatePostScreen: React.FC = () => {
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Kategorie</Text>
+            <View style={styles.categoryContainer}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryButton,
+                    category === cat && styles.categoryButtonActive
+                  ]}
+                  onPress={() => setCategory(cat)}
+                >
+                  <Text style={[
+                    styles.categoryButtonText,
+                    category === cat && styles.categoryButtonTextActive
+                  ]}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Post-Inhalt</Text>
             <TextInput
               style={styles.contentInput}
@@ -142,6 +203,37 @@ const CreatePostScreen: React.FC = () => {
             <Text style={styles.charCount}>
               {content.length}/500 Zeichen
             </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Hashtags (optional)</Text>
+            <View style={styles.hashtagInputContainer}>
+              <TextInput
+                style={styles.hashtagInput}
+                value={currentHashtag}
+                onChangeText={setCurrentHashtag}
+                placeholder="Hashtag hinzufügen"
+                placeholderTextColor="#999"
+                maxLength={20}
+                onSubmitEditing={addHashtag}
+              />
+              <TouchableOpacity
+                style={styles.addHashtagButton}
+                onPress={addHashtag}
+              >
+                <Icon name="add" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            {hashtags.length > 0 && (
+              <FlatList
+                data={hashtags}
+                renderItem={renderHashtag}
+                keyExtractor={(item) => item}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.hashtagsList}
+              />
+            )}
           </View>
 
           <View style={styles.infoContainer}>
@@ -233,6 +325,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
   },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  categoryButtonTextActive: {
+    color: '#fff',
+  },
   contentInput: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -247,6 +364,44 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'right',
     marginTop: 4,
+  },
+  hashtagInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hashtagInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  addHashtagButton: {
+    marginLeft: 8,
+    padding: 12,
+    backgroundColor: '#667eea',
+    borderRadius: 8,
+  },
+  hashtagsList: {
+    marginTop: 8,
+  },
+  hashtagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#bbdefb',
+  },
+  hashtagText: {
+    fontSize: 14,
+    color: '#1976d2',
+    marginRight: 4,
   },
   infoContainer: {
     flexDirection: 'row',
