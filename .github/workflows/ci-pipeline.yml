@@ -1,12 +1,11 @@
-name: CI Pipeline (DEAKTIVIERT)
+name: CI Pipeline
 
 on:
-  # DEAKTIVIERT - läuft nicht mehr automatisch
-  # push:
-  #   branches: [ main, develop, feature/* ]
-  # pull_request:
-  #   branches: [ main, develop ]
-  workflow_dispatch:  # Nur manueller Start möglich
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Manueller Start weiterhin möglich
 
 env:
   RUST_VERSION: '1.75'
