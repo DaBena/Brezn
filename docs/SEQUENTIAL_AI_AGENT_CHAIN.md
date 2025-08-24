@@ -5,6 +5,7 @@
 Das **Brezn Sequenzielle AI Agenten-System** ist eine intelligente Agenten-Kette, die **kontinuierlich und sequenziell** arbeitet:
 
 ### **🚀 Hauptfunktionen:**
+- **Automatischer Start bei jedem Push** - vollautomatische Entwicklung
 - **Ein Agent wartet auf den anderen** - keine parallele Ausführung
 - **Arbeitet auf demselben Feature Branch** - kontinuierliche Entwicklung
 - **Automatische Agenten-Kette** - nächster Agent startet automatisch
@@ -64,7 +65,7 @@ on:
   push:
     branches: [ main, develop, 'ai-feature/**' ]  # Läuft auf main UND Feature Branches
 ```
-**Erster Agent startet von main (manuell oder Push), alle anderen automatisch vom Feature Branch**
+**Automatischer Start bei jedem Push - Agenten laufen kontinuierlich**
 
 ### **3. Feature Branch-Verwaltung**
 ```bash
@@ -142,12 +143,11 @@ fi
 
 ## 🚀 **Starten der Agenten-Kette:**
 
-### **Manueller Start (Erster Agent)**
-1. **GitHub Repository** → **Actions Tab**
-2. **AI Development Agent** → **Run workflow**
-3. **Branch auswählen** (main) - **Erster Agent startet von main**
-4. **Run workflow** klicken
-5. **Agent erstellt Feature Branch** und startet automatisch nächsten Agenten
+### **Automatischer Start (Vollautomatisch)**
+1. **Bei jedem Push** startet der AI Agent automatisch
+2. **Kein manueller Start** mehr erforderlich
+3. **Agenten laufen kontinuierlich** bei jedem Code-Update
+4. **Maximale Entwicklungsgeschwindigkeit** ohne menschliche Intervention
 
 ### **Automatische Fortsetzung**
 - **Nach erfolgreicher Implementierung** startet der nächste Agent automatisch

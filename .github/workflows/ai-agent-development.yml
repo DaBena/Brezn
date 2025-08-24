@@ -9,8 +9,7 @@ on:
       - '**.md'
       - 'docs/**'
       - '.github/**'
-  # Erster Agent startet von main, alle anderen von Feature Branches
-  # Kein schedule - Agenten laufen sequenziell
+  # Automatischer Start bei jedem Push - Agenten laufen kontinuierlich
 
 # Verhindert parallele Ausführung - nur ein Agent gleichzeitig
 concurrency:
