@@ -1,12 +1,12 @@
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use serde::{Serialize, Deserialize};
 use serde_json;
 use anyhow::{Result, Context};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::{interval, sleep};
-use crate::types::{NetworkMessage, Post, Config};
 use crate::types::{
     NetworkMessage, Post, Config, PostId, PostConflict, ConflictResolutionStrategy,
     FeedState, PeerFeedState, SyncStatus, SyncRequest, SyncResponse, SyncMode,
@@ -1402,10 +1402,9 @@ impl NetworkManager {
             };
             
             if let Ok(message_data) = serde_json::to_vec(&discovery_msg) {
-                // Broadcast to all interfaces
+                // Broadcast to local network
                 let broadcast_addrs = vec![
                     "255.255.255.255:8888".parse().unwrap(),
-                    "224.0.0.1:8888".parse().unwrap(),
                 ];
                 
                 for addr in broadcast_addrs {
