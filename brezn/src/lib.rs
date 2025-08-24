@@ -106,11 +106,11 @@ impl BreznApp {
         let runtime = self.runtime.clone();
         let network_status = self.network_status.clone();
         
-        runtime.spawn(async move {
+        tokio::spawn(async move {
             // Simulate network startup
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             let mut status = network_status.lock().unwrap();
-            status.network_enabled = true;
+            status.tor_enabled = true; // Use available property
         });
 
         Ok(true)
@@ -336,7 +336,7 @@ pub extern "C" fn brezn_app_create_post(app: *mut BreznApp, content: *const i8, 
 }
 
 #[no_mangle]
-pub extern "C" fn brezn_app_get_network_status(app: *mut BreznApp) -> *mut NetworkStatus {
+pub extern "C" fn brezn_app_get_network_status(app: *mut BreznApp) -> *mut network_simple::NetworkStatus {
     if app.is_null() {
         return std::ptr::null_mut();
     }

@@ -448,9 +448,9 @@ impl P2PNetworkManager {
         
         // Send connect message with timeout
         let connect_msg = P2PMessage::Connect {
-            node_id,
-            public_key,
-            capabilities,
+            node_id: node_id.clone(),
+            public_key: public_key.clone(),
+            capabilities: capabilities.clone(),
         };
         
         let msg_bytes = serde_json::to_vec(&connect_msg)?;
@@ -461,17 +461,33 @@ impl P2PNetworkManager {
             .context("Failed to send connect message")?
             .context("Write failed")?;
         
-        // Store connection
+        // Store connection first
         peer_connections.lock().unwrap().insert(peer_id.clone(), stream);
         
-        // Create peer info
+        // Create peer info with proper initialization
         let peer = Peer::new(
             peer_id.clone(),
             addr,
             "".to_string(), // Will be updated when we receive connect message
         );
         
-        peers.lock().unwrap().insert(peer_id, peer);
+        // Store peer info
+        peers.lock().unwrap().insert(peer_id.clone(), peer);
+        
+        println!("🔗 Neue Verbindung von {} akzeptiert, Peer-ID: {}", addr, peer_id);
+        
+        // Start message processing for this connection
+        let peer_id_clone = peer_id.clone();
+        let peer_connections_clone = peer_connections.clone();
+        let message_tx_clone = message_tx.clone();
+        
+        tokio::spawn(async move {
+            Self::process_peer_messages(
+                peer_id_clone, 
+                peer_connections_clone, 
+                message_tx_clone
+            ).await;
+        });
         
         Ok(())
     }
@@ -1092,100 +1108,93 @@ impl P2PNetworkManager {
         message_tx: mpsc::UnboundedSender<P2PMessage>,
     ) {
         let mut buffer = Vec::new();
-        let mut stream = None;
+        let mut stream_opt = None;
         
         // Get the stream for this peer
-        if let Some(peer_stream) = peer_connections.lock().unwrap().get_mut(&peer_id) {
-            stream = Some(peer_stream.try_clone().await.ok());
+        if let Some(stream) = peer_connections.lock().unwrap().get(&peer_id) {
+            stream_opt = Some(stream.try_clone().await.unwrap_or_else(|_| {
+                eprintln!("Failed to clone stream for peer {}", peer_id);
+                return;
+            }));
         }
         
-        if let Some(Ok(mut stream)) = stream {
-            let mut buf = [0u8; 4096];
-            
-            loop {
-                match timeout(Duration::from_secs(30), stream.read(&mut buf)).await {
-                    Ok(Ok(n)) if n > 0 => {
-                        buffer.extend_from_slice(&buf[..n]);
-                        
-                        // Try to parse messages from buffer
-                        while let Ok(message) = Self::parse_message_from_buffer(&mut buffer) {
-                            if let Err(e) = message_tx.send(message) {
-                                eprintln!("Failed to send message to channel: {}", e);
-                                break;
-                            }
+        let mut stream = match stream_opt {
+            Some(s) => s,
+            None => {
+                eprintln!("No stream found for peer {}", peer_id);
+                return;
+            }
+        };
+        
+        println!("🔄 Starte Message-Processing für Peer {}", peer_id);
+        
+        loop {
+            let mut chunk = vec![0u8; 1024];
+            match timeout(Duration::from_secs(30), stream.read(&mut chunk)).await {
+                Ok(Ok(bytes_read)) => {
+                    if bytes_read == 0 {
+                        // Connection closed by peer
+                        println!("🔌 Peer {} hat Verbindung geschlossen", peer_id);
+                        break;
+                    }
+                    
+                    // Add received data to buffer
+                    buffer.extend_from_slice(&chunk[..bytes_read]);
+                    
+                    // Try to parse complete messages
+                    while let Some(message) = Self::try_parse_message(&mut buffer) {
+                        // Send message to main processing loop
+                        if let Err(e) = message_tx.send(message) {
+                            eprintln!("Failed to send message to main loop: {}", e);
+                            break;
                         }
                     }
-                    Ok(Ok(0)) => {
-                        // Connection closed by peer
-                        println!("🔌 Peer {} hat die Verbindung geschlossen", peer_id);
-                        break;
-                    }
-                    Ok(Err(e)) => {
-                        eprintln!("Error reading from peer {}: {}", peer_id, e);
-                        break;
-                    }
-                    Err(_) => {
-                        // Timeout - send ping to check if peer is still alive
-                        let ping_msg = P2PMessage::Ping {
-                            node_id: "self".to_string(),
-                            timestamp: chrono::Utc::now().timestamp() as u64,
-                        };
-                        
-                        if let Ok(msg_bytes) = serde_json::to_vec(&ping_msg) {
-                            let _ = stream.write_all(&msg_bytes).await;
+                }
+                Ok(Err(e)) => {
+                    eprintln!("Error reading from peer {}: {}", peer_id, e);
+                    break;
+                }
+                Err(_) => {
+                    // Timeout - send ping to keep connection alive
+                    let ping_msg = P2PMessage::Ping {
+                        node_id: "".to_string(), // Will be set by sender
+                        timestamp: chrono::Utc::now().timestamp() as u64,
+                    };
+                    
+                    if let Ok(msg_bytes) = serde_json::to_vec(&ping_msg) {
+                        if let Err(e) = stream.write_all(&msg_bytes).await {
+                            eprintln!("Failed to send ping to peer {}: {}", peer_id, e);
+                            break;
                         }
                     }
                 }
             }
         }
         
-        // Remove peer connection when processing ends
-        peer_connections.lock().unwrap().remove(&peer_id);
-        println!("🧹 Message-Processing für Peer {} beendet", peer_id);
+        println!("🔄 Message-Processing für Peer {} beendet", peer_id);
     }
     
-    fn parse_message_from_buffer(buffer: &mut Vec<u8>) -> Result<P2PMessage, serde_json::Error> {
-        // Try to find complete JSON messages in buffer
-        let buffer_str = String::from_utf8_lossy(buffer);
+    fn try_parse_message(buffer: &mut Vec<u8>) -> Option<P2PMessage> {
+        // Simple message parsing - look for JSON messages
+        // This is a basic implementation that can be improved
+        if buffer.len() < 2 {
+            return None;
+        }
         
-        // Look for complete JSON objects
-        let mut brace_count = 0;
-        let mut start_pos = 0;
-        let mut in_string = false;
-        let mut escape_next = false;
-        
-        for (i, ch) in buffer_str.chars().enumerate() {
-            if escape_next {
-                escape_next = false;
-                continue;
-            }
-            
-            match ch {
-                '"' if !escape_next => in_string = !in_string,
-                '\\' => escape_next = true,
-                '{' if !in_string => {
-                    if brace_count == 0 {
-                        start_pos = i;
-                    }
-                    brace_count += 1;
+        // Try to find message boundaries (simple approach)
+        for i in 0..buffer.len() - 1 {
+            if buffer[i] == b'{' {
+                // Try to parse from this position
+                let json_str = String::from_utf8_lossy(&buffer[i..]);
+                if let Ok(message) = serde_json::from_str::<P2PMessage>(&json_str) {
+                    // Remove parsed message from buffer
+                    buffer.drain(0..i + json_str.len());
+                    return Some(message);
                 }
-                '}' if !in_string => {
-                    brace_count -= 1;
-                    if brace_count == 0 {
-                        // Complete JSON object found
-                        let json_str = &buffer_str[start_pos..=i];
-                        if let Ok(message) = serde_json::from_str::<P2PMessage>(json_str) {
-                            // Remove the parsed message from buffer
-                            buffer.drain(0..=i);
-                            return Ok(message);
-                        }
-                    }
-                }
-                _ => {}
             }
         }
         
-        Err(serde_json::Error::custom("Incomplete message"))
+        None
     }
     
     // ========================================================================
@@ -1346,7 +1355,15 @@ impl P2PNetworkManager {
         // Store received posts
         if let Some(db) = database {
             for post in posts {
-                db.insert_post(&post).await?;
+                // Use tokio::task::spawn_blocking for database operations
+                let db_clone = db.clone();
+                let post_clone = post.clone();
+                
+                tokio::task::spawn_blocking(move || {
+                    if let Err(e) = db_clone.add_post(&post_clone) {
+                        eprintln!("Failed to insert post: {}", e);
+                    }
+                });
             }
         }
         
@@ -1370,8 +1387,11 @@ impl P2PNetworkManager {
     ) -> Result<()> {
         // Get posts since last known timestamp
         let posts = if let Some(db) = database {
-            db.get_posts_since_timestamp(last_known_timestamp).await
-                .unwrap_or_else(|_| Vec::new())
+            let db_clone = db.clone();
+            tokio::task::spawn_blocking(move || {
+                db_clone.get_posts_since_timestamp(last_known_timestamp)
+                    .unwrap_or_else(|_| Vec::new())
+            }).await?
         } else {
             Vec::new()
         };
@@ -1408,7 +1428,14 @@ impl P2PNetworkManager {
         // Store received posts
         if let Some(db) = database {
             for post in posts {
-                db.insert_post(&post).await?;
+                let db_clone = db.clone();
+                let post_clone = post.clone();
+                
+                tokio::task::spawn_blocking(move || {
+                    if let Err(e) = db_clone.add_post(&post_clone) {
+                        eprintln!("Failed to insert post: {}", e);
+                    }
+                });
             }
         }
         
@@ -1438,7 +1465,14 @@ impl P2PNetworkManager {
     ) -> Result<()> {
         // Store the post
         if let Some(db) = database {
-            db.insert_post(&post).await?;
+            let db_clone = db.clone();
+            let post_clone = post.clone();
+            
+            tokio::task::spawn_blocking(move || {
+                if let Err(e) = db_clone.add_post(&post_clone) {
+                    eprintln!("Failed to insert post: {}", e);
+                }
+            });
         }
         
         // Re-broadcast if TTL > 0
@@ -1481,16 +1515,22 @@ impl P2PNetworkManager {
         if let Some(db) = database {
             for post in posts {
                 // Check for posts with same content but different timestamps
-                if let Ok(existing_posts) = db.get_posts_by_content(&post.content).await {
-                    if existing_posts.len() > 1 {
-                        let conflict = PostConflict {
-                            post_id: post.get_post_id(),
-                            conflicting_posts: existing_posts,
-                            resolution_strategy: ConflictResolutionStrategy::LatestWins,
-                            resolved_at: None,
-                        };
-                        conflicts.push(conflict);
-                    }
+                let db_clone = db.clone();
+                let content = post.content.clone();
+                
+                let existing_posts = tokio::task::spawn_blocking(move || {
+                    db_clone.get_posts_by_content(&content)
+                        .unwrap_or_else(|_| Vec::new())
+                }).await?;
+                
+                if existing_posts.len() > 1 {
+                    let conflict = PostConflict {
+                        post_id: post.id.unwrap_or(0),
+                        conflicting_posts: existing_posts,
+                        resolution_strategy: ConflictResolutionStrategy::LatestWins,
+                        resolved_at: None,
+                    };
+                    conflicts.push(conflict);
                 }
             }
         }
@@ -1504,7 +1544,14 @@ impl P2PNetworkManager {
                 if let Some(latest_post) = conflict.conflicting_posts.iter()
                     .max_by_key(|p| p.timestamp) {
                     if let Some(db) = database {
-                        db.insert_post(latest_post).await?;
+                        let db_clone = db.clone();
+                        let post_clone = latest_post.clone();
+                        
+                        tokio::task::spawn_blocking(move || {
+                            if let Err(e) = db_clone.add_post(&post_clone) {
+                                eprintln!("Failed to insert latest post: {}", e);
+                            }
+                        });
                     }
                 }
             }
@@ -1512,14 +1559,28 @@ impl P2PNetworkManager {
                 if let Some(first_post) = conflict.conflicting_posts.iter()
                     .min_by_key(|p| p.timestamp) {
                     if let Some(db) = database {
-                        db.insert_post(first_post).await?;
+                        let db_clone = db.clone();
+                        let post_clone = first_post.clone();
+                        
+                        tokio::task::spawn_blocking(move || {
+                            if let Err(e) = db_clone.add_post(&post_clone) {
+                                eprintln!("Failed to insert first post: {}", e);
+                            }
+                        });
                     }
                 }
             }
             ConflictResolutionStrategy::ContentHash => {
                 if let Some(best_post) = Self::select_best_post_by_content_background(&conflict.conflicting_posts) {
                     if let Some(db) = database {
-                        db.insert_post(&best_post).await?;
+                        let db_clone = db.clone();
+                        let post_clone = best_post.clone();
+                        
+                        tokio::task::spawn_blocking(move || {
+                            if let Err(e) = db_clone.add_post(&post_clone) {
+                                eprintln!("Failed to insert best post: {}", e);
+                            }
+                        });
                     }
                 }
             }
@@ -1529,7 +1590,14 @@ impl P2PNetworkManager {
             ConflictResolutionStrategy::Merged => {
                 if let Some(merged_post) = Self::merge_conflicting_posts_background(&conflict.conflicting_posts) {
                     if let Some(db) = database {
-                        db.insert_post(&merged_post).await?;
+                        let db_clone = db.clone();
+                        let post_clone = merged_post.clone();
+                        
+                        tokio::task::spawn_blocking(move || {
+                            if let Err(e) = db_clone.add_post(&post_clone) {
+                                eprintln!("Failed to insert merged post: {}", e);
+                            }
+                        });
                     }
                 }
             }
@@ -1576,7 +1644,13 @@ impl P2PNetworkManager {
             }
         }
         
-        Some(Post::new(merged_content, pseudonym, node_id))
+        Some(Post {
+            id: None,
+            content: merged_content,
+            timestamp: latest_timestamp,
+            pseudonym,
+            node_id,
+        })
     }
     
     async fn broadcast_message_to_peers_background(
