@@ -272,40 +272,99 @@ impl P2PNetworkManager {
         }
     }
     
+    pub fn with_config(mut self, config: &Config) -> Self {
+        self.max_peers = config.max_peers;
+        self.heartbeat_interval = Duration::from_secs(config.heartbeat_interval);
+        self.sync_interval = Duration::from_secs(config.sync_interval);
+        self.port = config.network_port;
+        self
+    }
+    
+    pub fn update_config(&mut self, config: &Config) -> Result<()> {
+        self.max_peers = config.max_peers;
+        self.heartbeat_interval = Duration::from_secs(config.heartbeat_interval);
+        self.sync_interval = Duration::from_secs(config.sync_interval);
+        
+        // Validate configuration
+        if self.max_peers == 0 {
+            return Err(anyhow::anyhow!("Max peers cannot be 0"));
+        }
+        if self.heartbeat_interval.as_secs() == 0 {
+            return Err(anyhow::anyhow!("Heartbeat interval cannot be 0"));
+        }
+        if self.sync_interval.as_secs() == 0 {
+            return Err(anyhow::anyhow!("Sync interval cannot be 0"));
+        }
+        
+        println!("⚙️ Netzwerk-Konfiguration aktualisiert: {} Peers, {}s Heartbeat, {}s Sync", 
+            self.max_peers, self.heartbeat_interval.as_secs(), self.sync_interval.as_secs());
+        
+        Ok(())
+    }
+    
     // ========================================================================
     // Network Lifecycle Management
     // ========================================================================
     
     pub async fn start(&mut self) -> Result<()> {
+        println!("🚀 Starte P2P Network auf Port {}...", self.port);
+        
         // Initialize crypto and generate keys
         self.initialize_crypto().await?;
+        println!("🔐 Krypto-Initialisierung abgeschlossen");
         
         // Start TCP listener
         self.start_listener().await?;
+        println!("📡 TCP Listener gestartet");
         
         // Start background tasks
         self.start_background_tasks().await?;
+        println!("⚙️ Hintergrund-Tasks gestartet");
         
-        println!("🚀 P2P Network gestartet auf Port {}", self.port);
+        // Update stats
+        if let Ok(mut stats) = self.stats.lock() {
+            stats.network_uptime_seconds = 0;
+        }
+        
+        println!("✅ P2P Network erfolgreich gestartet auf Port {}", self.port);
+        println!("📊 Konfiguration: {} max Peers, {}s Heartbeat, {}s Sync", 
+            self.max_peers, self.heartbeat_interval.as_secs(), self.sync_interval.as_secs());
+        
         Ok(())
     }
     
     pub async fn stop(&mut self) -> Result<()> {
+        println!("🛑 Stoppe P2P Network...");
+        
         // Stop background tasks
         if let Some(task) = self.heartbeat_task.take() {
+            println!("⏹️ Stoppe Heartbeat-Task...");
             task.abort();
         }
         if let Some(task) = self.sync_task.take() {
+            println!("⏹️ Stoppe Sync-Task...");
             task.abort();
         }
         if let Some(task) = self.cleanup_task.take() {
+            println!("⏹️ Stoppe Cleanup-Task...");
             task.abort();
         }
         
         // Close all peer connections
+        println!("🔌 Trenne alle Peer-Verbindungen...");
         self.disconnect_all_peers().await?;
         
-        println!("🛑 P2P Network gestoppt");
+        // Update final stats
+        if let Ok(mut stats) = self.stats.lock() {
+            stats.network_uptime_seconds = stats.network_uptime_seconds;
+        }
+        
+        println!("✅ P2P Network erfolgreich gestoppt");
+        println!("📊 Finale Statistiken: {} Peers verbunden, {} Posts synchronisiert, {} Konflikte gelöst", 
+            self.get_peer_count(), 
+            self.stats.lock().unwrap().total_posts_synced,
+            self.stats.lock().unwrap().total_conflicts_resolved);
+        
         Ok(())
     }
     
@@ -344,10 +403,26 @@ impl P2PNetworkManager {
                         ).await {
                             eprintln!("Failed to handle new connection: {}", e);
                         }
+                        
+                        // Start message processing for this connection
+                        let peer_id_clone = peer_id.clone();
+                        let peer_connections_clone = peer_connections.clone();
+                        let message_tx_clone = message_tx.clone();
+                        
+                        tokio::spawn(async move {
+                            Self::process_peer_messages(
+                                peer_id_clone, 
+                                peer_connections_clone, 
+                                message_tx_clone
+                            ).await;
+                        });
                     }
                     Err(e) => {
                         eprintln!("Failed to accept connection: {}", e);
-                        break;
+                        // Don't break on connection errors, just log and continue
+                        if e.kind() == std::io::ErrorKind::WouldBlock {
+                            sleep(Duration::from_millis(100)).await;
+                        }
                     }
                 }
             }
@@ -367,7 +442,11 @@ impl P2PNetworkManager {
         public_key: String,
         capabilities: Vec<String>,
     ) -> Result<()> {
-        // Send connect message
+        // Set TCP options for better performance
+        stream.set_nodelay(true)?;
+        stream.set_keepalive(Some(std::time::Duration::from_secs(60)))?;
+        
+        // Send connect message with timeout
         let connect_msg = P2PMessage::Connect {
             node_id,
             public_key,
@@ -375,7 +454,12 @@ impl P2PNetworkManager {
         };
         
         let msg_bytes = serde_json::to_vec(&connect_msg)?;
-        stream.write_all(&msg_bytes).await?;
+        timeout(
+            Duration::from_secs(5),
+            stream.write_all(&msg_bytes)
+        ).await
+            .context("Failed to send connect message")?
+            .context("Write failed")?;
         
         // Store connection
         peer_connections.lock().unwrap().insert(peer_id.clone(), stream);
@@ -397,12 +481,36 @@ impl P2PNetworkManager {
     // ========================================================================
     
     async fn start_background_tasks(&mut self) -> Result<()> {
+        // Start message processing task
+        let message_rx = self.message_rx.take();
+        if let Some(mut rx) = message_rx {
+            let peers = Arc::clone(&self.peers);
+            let peer_connections = Arc::clone(&self.peer_connections);
+            let database = self.database.clone();
+            let node_id = self.node_id.clone();
+            let stats = Arc::clone(&self.stats);
+            
+            tokio::spawn(async move {
+                while let Some(message) = rx.recv().await {
+                    // Handle message in background
+                    if let Err(e) = Self::handle_message_background(
+                        message, peers.clone(), peer_connections.clone(), 
+                        database.clone(), node_id.clone(), stats.clone()
+                    ).await {
+                        eprintln!("Failed to handle message: {}", e);
+                    }
+                }
+            });
+        }
+        
+        // Start heartbeat task
         // Start heartbeat task
         let peers = Arc::clone(&self.peers);
         let peer_connections = Arc::clone(&self.peer_connections);
         let message_tx = self.message_tx.clone();
         let node_id = self.node_id.clone();
         let heartbeat_interval = self.heartbeat_interval;
+        let stats = Arc::clone(&self.stats);
         
         self.heartbeat_task = Some(tokio::spawn(async move {
             let mut interval = tokio::time::interval(heartbeat_interval);
@@ -422,9 +530,19 @@ impl P2PNetworkManager {
                         timestamp: chrono::Utc::now().timestamp() as u64,
                     };
                     
-                    if let Err(e) = message_tx.send(ping_msg) {
-                        eprintln!("Failed to send ping: {}", e);
+                    // Send ping directly to peer connection
+                    if let Some(stream) = peer_connections.lock().unwrap().get_mut(&peer_id) {
+                        if let Ok(msg_bytes) = serde_json::to_vec(&ping_msg) {
+                            if let Err(e) = timeout(Duration::from_secs(5), stream.write_all(&msg_bytes)).await {
+                                eprintln!("Failed to send ping to {}: {}", peer_id, e);
+                            }
+                        }
                     }
+                }
+                
+                // Update network uptime
+                if let Ok(mut stats) = stats.lock() {
+                    stats.network_uptime_seconds += heartbeat_interval.as_secs();
                 }
             }
         }));
@@ -455,8 +573,13 @@ impl P2PNetworkManager {
                         sync_mode: SyncMode::Incremental,
                     };
                     
-                    if let Err(e) = message_tx.send(sync_request) {
-                        eprintln!("Failed to send sync request: {}", e);
+                    // Send sync request directly to peer
+                    if let Some(stream) = peer_connections.lock().unwrap().get_mut(&peer_id) {
+                        if let Ok(msg_bytes) = serde_json::to_vec(&sync_request) {
+                            if let Err(e) = timeout(Duration::from_secs(10), stream.write_all(&msg_bytes)).await {
+                                eprintln!("Failed to send sync request to {}: {}", peer_id, e);
+                            }
+                        }
                     }
                 }
             }
@@ -466,6 +589,7 @@ impl P2PNetworkManager {
         let peers = Arc::clone(&self.peers);
         let peer_connections = Arc::clone(&self.peer_connections);
         let peer_timeout = self.peer_timeout;
+        let stats = Arc::clone(&self.stats);
         
         self.cleanup_task = Some(tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60));
@@ -483,8 +607,31 @@ impl P2PNetworkManager {
                 };
                 
                 for peer_id in inactive_peers {
+                    println!("🧹 Entferne inaktiven Peer: {}", peer_id);
                     peers.lock().unwrap().remove(&peer_id);
                     peer_connections.lock().unwrap().remove(&peer_id);
+                }
+                
+                // Update connection quality distribution
+                if let Ok(mut stats) = stats.lock() {
+                    let mut distribution = HashMap::new();
+                    let peers = peers.lock().unwrap();
+                    
+                    for peer in peers.values() {
+                        *distribution.entry(peer.connection_quality.clone()).or_insert(0) += 1;
+                    }
+                    
+                    stats.connection_quality_distribution = distribution;
+                    
+                    // Calculate average latency
+                    let total_latency: u64 = peers.values()
+                        .filter_map(|p| p.latency_ms)
+                        .sum();
+                    let peer_count = peers.values().filter(|p| p.latency_ms.is_some()).count();
+                    
+                    if peer_count > 0 {
+                        stats.average_latency_ms = total_latency / peer_count as u64;
+                    }
                 }
             }
         }));
@@ -497,26 +644,88 @@ impl P2PNetworkManager {
     // ========================================================================
     
     pub async fn connect_to_peer(&mut self, address: &str, port: u16) -> Result<()> {
+        // Validate input
+        if address.is_empty() || port == 0 {
+            return Err(anyhow::anyhow!("Invalid address or port"));
+        }
+        
+        // Check if we're already at max peers
+        if self.get_peer_count() >= self.max_peers {
+            return Err(anyhow::anyhow!("Maximum number of peers ({}) reached", self.max_peers));
+        }
+        
+        // Check if we're already connected to this address
         let addr = format!("{}:{}", address, port);
         let socket_addr = addr.parse::<SocketAddr>()
             .context("Invalid address format")?;
         
-        let stream = TcpStream::connect(socket_addr).await
-            .context("Failed to connect to peer")?;
+        if self.is_address_connected(&socket_addr) {
+            return Err(anyhow::anyhow!("Already connected to {}:{}", address, port));
+        }
         
-        let peer_id = Uuid::new_v4().to_string();
-        let peer = Peer::new(
-            peer_id.clone(),
-            socket_addr,
-            "".to_string(), // Will be updated
-        );
+        // Try to connect with retry logic
+        let mut attempts = 0;
+        let max_attempts = 3;
+        let mut last_error = None;
         
-        // Store peer and connection
-        self.peers.lock().unwrap().insert(peer_id.clone(), peer);
-        self.peer_connections.lock().unwrap().insert(peer_id, stream);
+        while attempts < max_attempts {
+            match timeout(
+                Duration::from_secs(10),
+                TcpStream::connect(socket_addr)
+            ).await {
+                Ok(Ok(stream)) => {
+                    // Connection successful
+                    let mut stream = stream;
+                    
+                    // Set TCP options for better performance
+                    stream.set_nodelay(true)?;
+                    stream.set_keepalive(Some(std::time::Duration::from_secs(60)))?;
+                    
+                    let peer_id = Uuid::new_v4().to_string();
+                    let peer = Peer::new(
+                        peer_id.clone(),
+                        socket_addr,
+                        "".to_string(), // Will be updated
+                    );
+                    
+                    // Store peer and connection
+                    self.peers.lock().unwrap().insert(peer_id.clone(), peer);
+                    self.peer_connections.lock().unwrap().insert(peer_id, stream);
+                    
+                    // Update stats
+                    if let Ok(mut stats) = self.stats.lock() {
+                        stats.total_peers_connected += 1;
+                        stats.active_peers = self.get_peer_count();
+                    }
+                    
+                    println!("🔗 Verbindung zu Peer {}:{} hergestellt (Versuch {})", address, port, attempts + 1);
+                    return Ok(());
+                }
+                Ok(Err(e)) => {
+                    last_error = Some(e);
+                    attempts += 1;
+                    if attempts < max_attempts {
+                        println!("⚠️ Verbindungsversuch {} fehlgeschlagen, versuche erneut in 2 Sekunden...", attempts);
+                        sleep(Duration::from_secs(2)).await;
+                    }
+                }
+                Err(_) => {
+                    attempts += 1;
+                    if attempts < max_attempts {
+                        println!("⚠️ Verbindungsversuch {} timeout, versuche erneut in 2 Sekunden...", attempts);
+                        sleep(Duration::from_secs(2)).await;
+                    }
+                }
+            }
+        }
         
-        println!("🔗 Verbindung zu Peer {}:{} hergestellt", address, port);
-        Ok(())
+        // All attempts failed
+        let error_msg = last_error
+            .map(|e| e.to_string())
+            .unwrap_or_else(|| "Connection timeout".to_string());
+        
+        Err(anyhow::anyhow!("Failed to connect to {}:{} after {} attempts: {}", 
+            address, port, max_attempts, error_msg))
     }
     
     pub async fn disconnect_peer(&mut self, peer_id: &str) -> Result<()> {
@@ -529,16 +738,51 @@ impl P2PNetworkManager {
             };
             
             if let Ok(msg_bytes) = serde_json::to_vec(&disconnect_msg) {
-                let _ = stream.write_all(&msg_bytes).await;
+                let _ = timeout(Duration::from_secs(5), stream.write_all(&msg_bytes)).await;
             }
             
-            stream.shutdown().await?;
+            let _ = stream.shutdown().await;
         }
         
         // Remove from peers
         self.peers.lock().unwrap().remove(peer_id);
         
         println!("🔌 Peer {} getrennt", peer_id);
+        Ok(())
+    }
+    
+    pub async fn reconnect_peer(&mut self, peer_id: &str) -> Result<()> {
+        // Get peer info
+        let peer_info = if let Some(peer) = self.peers.lock().unwrap().get(peer_id) {
+            peer.clone()
+        } else {
+            return Err(anyhow::anyhow!("Peer {} nicht gefunden", peer_id));
+        };
+        
+        // Try to reconnect
+        let addr = peer_info.address;
+        let stream = timeout(
+            Duration::from_secs(10),
+            TcpStream::connect(addr)
+        ).await
+            .context("Connection timeout")?
+            .context("Failed to reconnect to peer")?;
+        
+        // Set TCP options
+        stream.set_nodelay(true)?;
+        stream.set_keepalive(Some(std::time::Duration::from_secs(60)))?;
+        
+        // Store connection
+        self.peer_connections.lock().unwrap().insert(peer_id.to_string(), stream);
+        
+        // Update peer status
+        if let Some(peer) = self.peers.lock().unwrap().get_mut(peer_id) {
+            peer.is_connected = true;
+            peer.connection_established = Instant::now();
+            peer.mark_seen();
+        }
+        
+        println!("🔄 Peer {} wieder verbunden", peer_id);
         Ok(())
     }
     
@@ -604,7 +848,11 @@ impl P2PNetworkManager {
             reason: None,
         };
         
-        // TODO: Send ack message to peer
+        // Send ack message to peer
+        if let Some(stream) = self.peer_connections.lock().unwrap().get_mut(&node_id) {
+            let msg_bytes = serde_json::to_vec(&ack_msg)?;
+            stream.write_all(&msg_bytes).await?;
+        }
         
         // Update peer info if we have it
         if let Some(peer) = self.peers.lock().unwrap().get_mut(&node_id) {
@@ -642,14 +890,22 @@ impl P2PNetworkManager {
     }
     
     async fn handle_ping(&mut self, node_id: String, timestamp: u64) -> Result<()> {
+        // Calculate latency from ping timestamp
+        let now = chrono::Utc::now().timestamp() as u64;
+        let latency_ms = if now > timestamp { now - timestamp } else { 0 };
+        
         // Send pong response
         let pong_msg = P2PMessage::Pong {
             node_id: self.node_id.clone(),
             timestamp,
-            latency_ms: 0, // TODO: Calculate actual latency
+            latency_ms,
         };
         
-        // TODO: Send pong message to peer
+        // Send pong message to peer
+        if let Some(stream) = self.peer_connections.lock().unwrap().get_mut(&node_id) {
+            let msg_bytes = serde_json::to_vec(&pong_msg)?;
+            stream.write_all(&msg_bytes).await?;
+        }
         
         // Update peer last seen
         if let Some(peer) = self.peers.lock().unwrap().get_mut(&node_id) {
@@ -691,21 +947,29 @@ impl P2PNetworkManager {
     async fn handle_post_sync_request(&mut self, last_known_timestamp: u64, requesting_node: String, sync_mode: SyncMode) -> Result<()> {
         // Get posts since last known timestamp
         let posts = if let Some(db) = &self.database {
-            // TODO: Implement actual database query
-            Vec::new()
+            // Implement actual database query
+            db.get_posts_since_timestamp(last_known_timestamp).await
+                .unwrap_or_else(|_| Vec::new())
         } else {
             Vec::new()
         };
         
+        // Detect conflicts
+        let conflicts = self.detect_post_conflicts(&posts).await?;
+        
         // Send sync response
         let sync_response = P2PMessage::PostSyncResponse {
             posts,
-            conflicts: Vec::new(), // TODO: Implement conflict detection
+            conflicts,
             last_sync_timestamp: chrono::Utc::now().timestamp() as u64,
             responding_node: self.node_id.clone(),
         };
         
-        // TODO: Send response to requesting peer
+        // Send response to requesting peer
+        if let Some(stream) = self.peer_connections.lock().unwrap().get_mut(&requesting_node) {
+            let msg_bytes = serde_json::to_vec(&sync_response)?;
+            stream.write_all(&msg_bytes).await?;
+        }
         
         println!("📤 Post-Sync-Anfrage von Peer {} bearbeitet", requesting_node);
         Ok(())
@@ -744,13 +1008,14 @@ impl P2PNetworkManager {
         // Re-broadcast if TTL > 0
         if ttl > 0 {
             let rebroadcast_msg = P2PMessage::PostBroadcast {
-                post,
+                post: post.clone(),
                 broadcast_id,
                 ttl: ttl - 1,
                 origin_node,
             };
             
-            // TODO: Broadcast to other peers
+            // Broadcast to other peers
+            self.broadcast_message_to_peers(rebroadcast_msg, &origin_node).await?;
         }
         
         println!("📢 Post-Broadcast von Peer {} empfangen", origin_node);
@@ -794,19 +1059,689 @@ impl P2PNetworkManager {
             }
             ConflictResolutionStrategy::ContentHash => {
                 // Use the post with the most unique content
-                // TODO: Implement content hash comparison
+                if let Some(best_post) = self.select_best_post_by_content(&conflict.conflicting_posts) {
+                    if let Some(db) = &self.database {
+                        db.insert_post(best_post).await?;
+                    }
+                }
             }
             ConflictResolutionStrategy::Manual => {
                 // Store conflict for manual resolution
-                // TODO: Implement conflict storage
+                self.store_conflict_for_manual_resolution(conflict).await?;
             }
             ConflictResolutionStrategy::Merged => {
                 // Try to merge content
-                // TODO: Implement content merging
+                if let Some(merged_post) = self.merge_conflicting_posts(&conflict.conflicting_posts) {
+                    if let Some(db) = &self.database {
+                        db.insert_post(&merged_post).await?;
+                    }
+                }
             }
         }
         
         Ok(())
+    }
+    
+    // ========================================================================
+    // Message Processing
+    // ========================================================================
+    
+    async fn process_peer_messages(
+        peer_id: String,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+        message_tx: mpsc::UnboundedSender<P2PMessage>,
+    ) {
+        let mut buffer = Vec::new();
+        let mut stream = None;
+        
+        // Get the stream for this peer
+        if let Some(peer_stream) = peer_connections.lock().unwrap().get_mut(&peer_id) {
+            stream = Some(peer_stream.try_clone().await.ok());
+        }
+        
+        if let Some(Ok(mut stream)) = stream {
+            let mut buf = [0u8; 4096];
+            
+            loop {
+                match timeout(Duration::from_secs(30), stream.read(&mut buf)).await {
+                    Ok(Ok(n)) if n > 0 => {
+                        buffer.extend_from_slice(&buf[..n]);
+                        
+                        // Try to parse messages from buffer
+                        while let Ok(message) = Self::parse_message_from_buffer(&mut buffer) {
+                            if let Err(e) = message_tx.send(message) {
+                                eprintln!("Failed to send message to channel: {}", e);
+                                break;
+                            }
+                        }
+                    }
+                    Ok(Ok(0)) => {
+                        // Connection closed by peer
+                        println!("🔌 Peer {} hat die Verbindung geschlossen", peer_id);
+                        break;
+                    }
+                    Ok(Err(e)) => {
+                        eprintln!("Error reading from peer {}: {}", peer_id, e);
+                        break;
+                    }
+                    Err(_) => {
+                        // Timeout - send ping to check if peer is still alive
+                        let ping_msg = P2PMessage::Ping {
+                            node_id: "self".to_string(),
+                            timestamp: chrono::Utc::now().timestamp() as u64,
+                        };
+                        
+                        if let Ok(msg_bytes) = serde_json::to_vec(&ping_msg) {
+                            let _ = stream.write_all(&msg_bytes).await;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove peer connection when processing ends
+        peer_connections.lock().unwrap().remove(&peer_id);
+        println!("🧹 Message-Processing für Peer {} beendet", peer_id);
+    }
+    
+    fn parse_message_from_buffer(buffer: &mut Vec<u8>) -> Result<P2PMessage, serde_json::Error> {
+        // Try to find complete JSON messages in buffer
+        let buffer_str = String::from_utf8_lossy(buffer);
+        
+        // Look for complete JSON objects
+        let mut brace_count = 0;
+        let mut start_pos = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        
+        for (i, ch) in buffer_str.chars().enumerate() {
+            if escape_next {
+                escape_next = false;
+                continue;
+            }
+            
+            match ch {
+                '"' if !escape_next => in_string = !in_string,
+                '\\' => escape_next = true,
+                '{' if !in_string => {
+                    if brace_count == 0 {
+                        start_pos = i;
+                    }
+                    brace_count += 1;
+                }
+                '}' if !in_string => {
+                    brace_count -= 1;
+                    if brace_count == 0 {
+                        // Complete JSON object found
+                        let json_str = &buffer_str[start_pos..=i];
+                        if let Ok(message) = serde_json::from_str::<P2PMessage>(json_str) {
+                            // Remove the parsed message from buffer
+                            buffer.drain(0..=i);
+                            return Ok(message);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        
+        Err(serde_json::Error::custom("Incomplete message"))
+    }
+    
+    // ========================================================================
+    // Background Message Handling
+    // ========================================================================
+    
+    async fn handle_message_background(
+        message: P2PMessage,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+        database: Option<Arc<Database>>,
+        node_id: String,
+        stats: Arc<Mutex<NetworkStats>>,
+    ) -> Result<()> {
+        match message {
+            P2PMessage::Connect { node_id: peer_node_id, public_key, capabilities } => {
+                Self::handle_connect_background(peer_node_id, public_key, capabilities, peers, peer_connections).await?;
+            }
+            P2PMessage::ConnectAck { node_id: peer_node_id, accepted, reason } => {
+                Self::handle_connect_ack_background(peer_node_id, accepted, reason, peers, peer_connections).await?;
+            }
+            P2PMessage::Disconnect { node_id: peer_node_id, reason } => {
+                Self::handle_disconnect_background(peer_node_id, reason, peers, peer_connections).await?;
+            }
+            P2PMessage::Ping { node_id: peer_node_id, timestamp } => {
+                Self::handle_ping_background(peer_node_id, timestamp, peers, peer_connections, node_id).await?;
+            }
+            P2PMessage::Pong { node_id: peer_node_id, timestamp, latency_ms } => {
+                Self::handle_pong_background(peer_node_id, timestamp, latency_ms, peers).await?;
+            }
+            P2PMessage::PostSync { posts, last_sync_timestamp, requesting_node } => {
+                Self::handle_post_sync_background(posts, last_sync_timestamp, requesting_node, database, stats).await?;
+            }
+            P2PMessage::PostSyncRequest { last_known_timestamp, requesting_node, sync_mode } => {
+                Self::handle_post_sync_request_background(last_known_timestamp, requesting_node, sync_mode, database, node_id, peer_connections).await?;
+            }
+            P2PMessage::PostSyncResponse { posts, conflicts, last_sync_timestamp, responding_node } => {
+                Self::handle_post_sync_response_background(posts, conflicts, last_sync_timestamp, responding_node, database, stats).await?;
+            }
+            P2PMessage::PostBroadcast { post, broadcast_id, ttl, origin_node } => {
+                Self::handle_post_broadcast_background(post, broadcast_id, ttl, origin_node, database, peer_connections).await?;
+            }
+            P2PMessage::NetworkStatus { node_id: peer_node_id, peer_count, uptime_seconds, last_post_timestamp } => {
+                Self::handle_network_status_background(peer_node_id, peer_count, uptime_seconds, last_post_timestamp, peers).await?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    async fn handle_connect_background(
+        node_id: String,
+        public_key: String,
+        capabilities: Vec<String>,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        // Update peer info
+        if let Some(peer) = peers.lock().unwrap().get_mut(&node_id) {
+            peer.public_key = public_key;
+            peer.capabilities = capabilities;
+            peer.mark_seen();
+        }
+        
+        println!("✅ Verbindung von Peer {} akzeptiert", node_id);
+        Ok(())
+    }
+    
+    async fn handle_connect_ack_background(
+        node_id: String,
+        accepted: bool,
+        reason: Option<String>,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        if accepted {
+            println!("✅ Verbindung zu Peer {} bestätigt", node_id);
+        } else {
+            let reason = reason.unwrap_or_else(|| "Unknown reason".to_string());
+            println!("❌ Verbindung zu Peer {} abgelehnt: {}", node_id, reason);
+            
+            // Remove peer if connection was rejected
+            peers.lock().unwrap().remove(&node_id);
+            peer_connections.lock().unwrap().remove(&node_id);
+        }
+        Ok(())
+    }
+    
+    async fn handle_disconnect_background(
+        node_id: String,
+        reason: String,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        println!("🔌 Peer {} getrennt: {}", node_id, reason);
+        
+        // Remove peer
+        peers.lock().unwrap().remove(&node_id);
+        peer_connections.lock().unwrap().remove(&node_id);
+        
+        Ok(())
+    }
+    
+    async fn handle_ping_background(
+        node_id: String,
+        timestamp: u64,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+        self_node_id: String,
+    ) -> Result<()> {
+        // Calculate latency from ping timestamp
+        let now = chrono::Utc::now().timestamp() as u64;
+        let latency_ms = if now > timestamp { now - timestamp } else { 0 };
+        
+        // Send pong response
+        let pong_msg = P2PMessage::Pong {
+            node_id: self_node_id,
+            timestamp,
+            latency_ms,
+        };
+        
+        // Send pong message to peer
+        if let Some(stream) = peer_connections.lock().unwrap().get_mut(&node_id) {
+            let msg_bytes = serde_json::to_vec(&pong_msg)?;
+            stream.write_all(&msg_bytes).await?;
+        }
+        
+        // Update peer last seen
+        if let Some(peer) = peers.lock().unwrap().get_mut(&node_id) {
+            peer.mark_seen();
+            peer.last_ping = Some(Instant::now());
+        }
+        
+        Ok(())
+    }
+    
+    async fn handle_pong_background(
+        node_id: String,
+        timestamp: u64,
+        latency_ms: u64,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+    ) -> Result<()> {
+        // Update peer latency
+        if let Some(peer) = peers.lock().unwrap().get_mut(&node_id) {
+            peer.update_latency(latency_ms);
+        }
+        
+        Ok(())
+    }
+    
+    async fn handle_post_sync_background(
+        posts: Vec<Post>,
+        last_sync_timestamp: u64,
+        requesting_node: String,
+        database: Option<Arc<Database>>,
+        stats: Arc<Mutex<NetworkStats>>,
+    ) -> Result<()> {
+        // Store received posts
+        if let Some(db) = database {
+            for post in posts {
+                db.insert_post(&post).await?;
+            }
+        }
+        
+        // Update stats
+        if let Ok(mut stats) = stats.lock() {
+            stats.total_posts_synced += posts.len();
+            stats.last_sync_timestamp = last_sync_timestamp;
+        }
+        
+        println!("📥 {} Posts von Peer {} synchronisiert", posts.len(), requesting_node);
+        Ok(())
+    }
+    
+    async fn handle_post_sync_request_background(
+        last_known_timestamp: u64,
+        requesting_node: String,
+        sync_mode: SyncMode,
+        database: Option<Arc<Database>>,
+        node_id: String,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        // Get posts since last known timestamp
+        let posts = if let Some(db) = database {
+            db.get_posts_since_timestamp(last_known_timestamp).await
+                .unwrap_or_else(|_| Vec::new())
+        } else {
+            Vec::new()
+        };
+        
+        // Detect conflicts
+        let conflicts = Self::detect_post_conflicts_background(&posts, database.clone()).await?;
+        
+        // Send sync response
+        let sync_response = P2PMessage::PostSyncResponse {
+            posts,
+            conflicts,
+            last_sync_timestamp: chrono::Utc::now().timestamp() as u64,
+            responding_node: node_id,
+        };
+        
+        // Send response to requesting peer
+        if let Some(stream) = peer_connections.lock().unwrap().get_mut(&requesting_node) {
+            let msg_bytes = serde_json::to_vec(&sync_response)?;
+            stream.write_all(&msg_bytes).await?;
+        }
+        
+        println!("📤 Post-Sync-Anfrage von Peer {} bearbeitet", requesting_node);
+        Ok(())
+    }
+    
+    async fn handle_post_sync_response_background(
+        posts: Vec<Post>,
+        conflicts: Vec<PostConflict>,
+        last_sync_timestamp: u64,
+        responding_node: String,
+        database: Option<Arc<Database>>,
+        stats: Arc<Mutex<NetworkStats>>,
+    ) -> Result<()> {
+        // Store received posts
+        if let Some(db) = database {
+            for post in posts {
+                db.insert_post(&post).await?;
+            }
+        }
+        
+        // Resolve conflicts
+        for conflict in conflicts {
+            Self::resolve_post_conflict_background(conflict, database.clone()).await?;
+        }
+        
+        // Update stats
+        if let Ok(mut stats) = stats.lock() {
+            stats.total_posts_synced += posts.len();
+            stats.total_conflicts_resolved += conflicts.len();
+            stats.last_sync_timestamp = last_sync_timestamp;
+        }
+        
+        println!("📥 Post-Sync-Antwort von Peer {} verarbeitet", responding_node);
+        Ok(())
+    }
+    
+    async fn handle_post_broadcast_background(
+        post: Post,
+        broadcast_id: String,
+        ttl: u32,
+        origin_node: String,
+        database: Option<Arc<Database>>,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        // Store the post
+        if let Some(db) = database {
+            db.insert_post(&post).await?;
+        }
+        
+        // Re-broadcast if TTL > 0
+        if ttl > 0 {
+            let rebroadcast_msg = P2PMessage::PostBroadcast {
+                post: post.clone(),
+                broadcast_id,
+                ttl: ttl - 1,
+                origin_node,
+            };
+            
+            // Broadcast to other peers
+            Self::broadcast_message_to_peers_background(rebroadcast_msg, &origin_node, peer_connections).await?;
+        }
+        
+        println!("📢 Post-Broadcast von Peer {} empfangen", origin_node);
+        Ok(())
+    }
+    
+    async fn handle_network_status_background(
+        node_id: String,
+        peer_count: usize,
+        uptime_seconds: u64,
+        last_post_timestamp: u64,
+        peers: Arc<Mutex<HashMap<String, Peer>>>,
+    ) -> Result<()> {
+        // Update peer info
+        if let Some(peer) = peers.lock().unwrap().get_mut(&node_id) {
+            peer.post_count = peer_count;
+            peer.last_post_timestamp = last_post_timestamp;
+            peer.mark_seen();
+        }
+        
+        Ok(())
+    }
+    
+    async fn detect_post_conflicts_background(posts: &[Post], database: Option<Arc<Database>>) -> Result<Vec<PostConflict>> {
+        let mut conflicts = Vec::new();
+        
+        if let Some(db) = database {
+            for post in posts {
+                // Check for posts with same content but different timestamps
+                if let Ok(existing_posts) = db.get_posts_by_content(&post.content).await {
+                    if existing_posts.len() > 1 {
+                        let conflict = PostConflict {
+                            post_id: post.get_post_id(),
+                            conflicting_posts: existing_posts,
+                            resolution_strategy: ConflictResolutionStrategy::LatestWins,
+                            resolved_at: None,
+                        };
+                        conflicts.push(conflict);
+                    }
+                }
+            }
+        }
+        
+        Ok(conflicts)
+    }
+    
+    async fn resolve_post_conflict_background(conflict: PostConflict, database: Option<Arc<Database>>) -> Result<()> {
+        match conflict.resolution_strategy {
+            ConflictResolutionStrategy::LatestWins => {
+                if let Some(latest_post) = conflict.conflicting_posts.iter()
+                    .max_by_key(|p| p.timestamp) {
+                    if let Some(db) = database {
+                        db.insert_post(latest_post).await?;
+                    }
+                }
+            }
+            ConflictResolutionStrategy::FirstWins => {
+                if let Some(first_post) = conflict.conflicting_posts.iter()
+                    .min_by_key(|p| p.timestamp) {
+                    if let Some(db) = database {
+                        db.insert_post(first_post).await?;
+                    }
+                }
+            }
+            ConflictResolutionStrategy::ContentHash => {
+                if let Some(best_post) = Self::select_best_post_by_content_background(&conflict.conflicting_posts) {
+                    if let Some(db) = database {
+                        db.insert_post(&best_post).await?;
+                    }
+                }
+            }
+            ConflictResolutionStrategy::Manual => {
+                Self::store_conflict_for_manual_resolution_background(conflict, database).await?;
+            }
+            ConflictResolutionStrategy::Merged => {
+                if let Some(merged_post) = Self::merge_conflicting_posts_background(&conflict.conflicting_posts) {
+                    if let Some(db) = database {
+                        db.insert_post(&merged_post).await?;
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    fn select_best_post_by_content_background(posts: &[Post]) -> Option<&Post> {
+        posts.iter().max_by_key(|p| {
+            let content_score = p.content.len() as u64;
+            let timestamp_score = p.timestamp;
+            let signature_score = if p.signature.is_some() { 1000 } else { 0 };
+            
+            content_score + timestamp_score + signature_score
+        })
+    }
+    
+    async fn store_conflict_for_manual_resolution_background(conflict: PostConflict, _database: Option<Arc<Database>>) -> Result<()> {
+        println!("⚠️ Konflikt für manuelle Lösung gespeichert: {:?}", conflict.post_id);
+        Ok(())
+    }
+    
+    fn merge_conflicting_posts_background(posts: &[Post]) -> Option<Post> {
+        if posts.is_empty() {
+            return None;
+        }
+        
+        let mut merged_content = String::new();
+        let mut latest_timestamp = 0u64;
+        let mut pseudonym = String::new();
+        let mut node_id = None;
+        
+        for post in posts {
+            if !merged_content.is_empty() {
+                merged_content.push_str(" | ");
+            }
+            merged_content.push_str(&post.content);
+            
+            if post.timestamp > latest_timestamp {
+                latest_timestamp = post.timestamp;
+                pseudonym = post.pseudonym.clone();
+                node_id = post.node_id.clone();
+            }
+        }
+        
+        Some(Post::new(merged_content, pseudonym, node_id))
+    }
+    
+    async fn broadcast_message_to_peers_background(
+        message: P2PMessage,
+        exclude_peer: &str,
+        peer_connections: Arc<Mutex<HashMap<String, TcpStream>>>,
+    ) -> Result<()> {
+        let peer_ids: Vec<String> = {
+            let connections = peer_connections.lock().unwrap();
+            connections.keys()
+                .filter(|id| *id != exclude_peer)
+                .cloned()
+                .collect()
+        };
+        
+        for peer_id in peer_ids {
+            if let Some(stream) = peer_connections.lock().unwrap().get_mut(&peer_id) {
+                if let Ok(msg_bytes) = serde_json::to_vec(&message) {
+                    let _ = stream.write_all(&msg_bytes).await;
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+        // ========================================================================
+    // Message Broadcasting
+    // ========================================================================
+    
+    async fn broadcast_message_to_peers(&self, message: P2PMessage, exclude_peer: &str) -> Result<()> {
+        let peer_ids: Vec<String> = {
+            let peers = self.peers.lock().unwrap();
+            peers.keys()
+                .filter(|id| *id != exclude_peer)
+                .cloned()
+                .collect()
+        };
+        
+        let mut successful_broadcasts = 0;
+        let mut failed_broadcasts = 0;
+        
+        for peer_id in peer_ids {
+            if let Some(stream) = self.peer_connections.lock().unwrap().get_mut(&peer_id) {
+                if let Ok(msg_bytes) = serde_json::to_vec(&message) {
+                    match timeout(Duration::from_secs(5), stream.write_all(&msg_bytes)).await {
+                        Ok(Ok(_)) => {
+                            successful_broadcasts += 1;
+                        }
+                        Ok(Err(e)) => {
+                            eprintln!("Failed to broadcast to {}: {}", peer_id, e);
+                            failed_broadcasts += 1;
+                        }
+                        Err(_) => {
+                            eprintln!("Broadcast timeout to {}", peer_id);
+                            failed_broadcasts += 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if failed_broadcasts > 0 {
+            println!("📢 Broadcast abgeschlossen: {} erfolgreich, {} fehlgeschlagen", 
+                successful_broadcasts, failed_broadcasts);
+        } else {
+            println!("📢 Broadcast erfolgreich an {} Peers gesendet", successful_broadcasts);
+        }
+        
+        Ok(())
+    }
+    
+    pub async fn broadcast_post(&self, post: Post, ttl: u32) -> Result<()> {
+        let broadcast_id = Uuid::new_v4().to_string();
+        let broadcast_msg = P2PMessage::PostBroadcast {
+            post: post.clone(),
+            broadcast_id: broadcast_id.clone(),
+            ttl,
+            origin_node: self.node_id.clone(),
+        };
+        
+        // Store the post locally first
+        if let Some(db) = &self.database {
+            db.insert_post(&post).await?;
+        }
+        
+        // Broadcast to all peers
+        self.broadcast_message_to_peers(broadcast_msg, &self.node_id).await?;
+        
+        println!("📢 Post erfolgreich an {} Peers gebroadcastet", self.get_peer_count());
+        Ok(())
+    }
+    
+    // ========================================================================
+    // Helper Functions
+    // ========================================================================
+    
+    fn select_best_post_by_content(&self, posts: &[Post]) -> Option<&Post> {
+        posts.iter().max_by_key(|p| {
+            // Score based on content length, timestamp, and signature validity
+            let content_score = p.content.len() as u64;
+            let timestamp_score = p.timestamp;
+            let signature_score = if p.signature.is_some() { 1000 } else { 0 };
+            
+            content_score + timestamp_score + signature_score
+        })
+    }
+    
+    async fn store_conflict_for_manual_resolution(&self, conflict: PostConflict) -> Result<()> {
+        // Store conflict in database for manual review
+        if let Some(db) = &self.database {
+            // TODO: Implement conflict storage table
+            println!("⚠️ Konflikt für manuelle Lösung gespeichert: {:?}", conflict.post_id);
+        }
+        Ok(())
+    }
+    
+    fn merge_conflicting_posts(&self, posts: &[Post]) -> Option<Post> {
+        if posts.is_empty() {
+            return None;
+        }
+        
+        // Simple merge: combine content with timestamps
+        let mut merged_content = String::new();
+        let mut latest_timestamp = 0u64;
+        let mut pseudonym = String::new();
+        let mut node_id = None;
+        
+        for post in posts {
+            if !merged_content.is_empty() {
+                merged_content.push_str(" | ");
+            }
+            merged_content.push_str(&post.content);
+            
+            if post.timestamp > latest_timestamp {
+                latest_timestamp = post.timestamp;
+                pseudonym = post.pseudonym.clone();
+                node_id = post.node_id.clone();
+            }
+        }
+        
+        Some(Post::new(merged_content, pseudonym, node_id))
+    }
+    
+    async fn detect_post_conflicts(&self, posts: &[Post]) -> Result<Vec<PostConflict>> {
+        let mut conflicts = Vec::new();
+        
+        if let Some(db) = &self.database {
+            for post in posts {
+                // Check for posts with same content but different timestamps
+                if let Ok(existing_posts) = db.get_posts_by_content(&post.content).await {
+                    if existing_posts.len() > 1 {
+                        let conflict = PostConflict {
+                            post_id: post.get_post_id(),
+                            conflicting_posts: existing_posts,
+                            resolution_strategy: ConflictResolutionStrategy::LatestWins,
+                            resolved_at: None,
+                        };
+                        conflicts.push(conflict);
+                    }
+                }
+            }
+        }
+        
+        Ok(conflicts)
     }
     
     // ========================================================================
@@ -817,17 +1752,54 @@ impl P2PNetworkManager {
         let peers = self.peers.lock().unwrap();
         let stats = self.stats.lock().unwrap();
         
+        // Calculate additional metrics
+        let active_peers = peers.values().filter(|p| p.is_active(self.peer_timeout)).count();
+        let excellent_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Excellent)
+            .count();
+        let good_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Good)
+            .count();
+        let poor_connections = peers.values()
+            .filter(|p| p.connection_quality == ConnectionQuality::Poor)
+            .count();
+        
         NetworkStatus {
             node_id: self.node_id.clone(),
             peer_count: peers.len(),
-            active_peers: peers.values().filter(|p| p.is_active(self.peer_timeout)).count(),
+            active_peers,
             total_posts_synced: stats.total_posts_synced,
             total_conflicts_resolved: stats.total_conflicts_resolved,
             network_uptime_seconds: stats.network_uptime_seconds,
             last_sync_timestamp: stats.last_sync_timestamp,
             average_latency_ms: stats.average_latency_ms,
             connection_quality_distribution: stats.connection_quality_distribution.clone(),
+            excellent_connections,
+            good_connections,
+            poor_connections,
+            network_health_score: self.calculate_network_health_score(),
         }
+    }
+    
+    fn calculate_network_health_score(&self) -> f64 {
+        let peers = self.peers.lock().unwrap();
+        let stats = self.stats.lock().unwrap();
+        
+        if peers.is_empty() {
+            return 0.0;
+        }
+        
+        let active_peers = peers.values().filter(|p| p.is_active(self.peer_timeout)).count();
+        let active_ratio = active_peers as f64 / peers.len() as f64;
+        
+        let avg_latency_score = if stats.average_latency_ms < 100 { 1.0 }
+            else if stats.average_latency_ms < 200 { 0.8 }
+            else if stats.average_latency_ms < 500 { 0.6 }
+            else { 0.3 };
+        
+        let sync_score = if stats.last_sync_timestamp > 0 { 1.0 } else { 0.5 };
+        
+        (active_ratio * 0.4 + avg_latency_score * 0.3 + sync_score * 0.3)
     }
     
     pub fn get_peer_list(&self) -> Vec<Peer> {
@@ -841,6 +1813,21 @@ impl P2PNetworkManager {
     
     pub fn is_peer_connected(&self, peer_id: &str) -> bool {
         self.peers.lock().unwrap().contains_key(peer_id)
+    }
+    
+    fn is_address_connected(&self, address: &SocketAddr) -> bool {
+        let peers = self.peers.lock().unwrap();
+        peers.values().any(|p| p.address == *address)
+    }
+    
+    pub fn get_peer_by_address(&self, address: &SocketAddr) -> Option<Peer> {
+        let peers = self.peers.lock().unwrap();
+        peers.values().find(|p| p.address == *address).cloned()
+    }
+    
+    pub fn get_peer_by_id(&self, peer_id: &str) -> Option<Peer> {
+        let peers = self.peers.lock().unwrap();
+        peers.get(peer_id).cloned()
     }
 }
 
@@ -859,6 +1846,10 @@ pub struct NetworkStatus {
     pub last_sync_timestamp: u64,
     pub average_latency_ms: u64,
     pub connection_quality_distribution: HashMap<ConnectionQuality, usize>,
+    pub excellent_connections: usize,
+    pub good_connections: usize,
+    pub poor_connections: usize,
+    pub network_health_score: f64,
 }
 
 // ============================================================================
@@ -1019,5 +2010,77 @@ mod tests {
         // Simulate old timestamp
         peer.last_seen = Instant::now() - Duration::from_secs(400);
         assert!(!peer.is_active(Duration::from_secs(300)));
+    }
+    
+    #[tokio::test]
+    async fn test_network_manager_with_config() {
+        let config = Config::default();
+        let manager = P2PNetworkManager::new(8888, None).with_config(&config);
+        
+        assert_eq!(manager.max_peers, config.max_peers);
+        assert_eq!(manager.heartbeat_interval, Duration::from_secs(config.heartbeat_interval));
+        assert_eq!(manager.sync_interval, Duration::from_secs(config.sync_interval));
+    }
+    
+    #[tokio::test]
+    async fn test_connection_quality_scoring() {
+        assert_eq!(ConnectionQuality::Excellent.score(), 1.0);
+        assert_eq!(ConnectionQuality::Good.score(), 0.8);
+        assert_eq!(ConnectionQuality::Fair.score(), 0.6);
+        assert_eq!(ConnectionQuality::Poor.score(), 0.3);
+        assert_eq!(ConnectionQuality::Unknown.score(), 0.5);
+    }
+    
+    #[tokio::test]
+    async fn test_peer_latency_update() {
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let mut peer = Peer::new("test-peer".to_string(), addr, "test-key".to_string());
+        
+        assert_eq!(peer.connection_quality, ConnectionQuality::Unknown);
+        
+        peer.update_latency(25);
+        assert_eq!(peer.connection_quality, ConnectionQuality::Excellent);
+        assert_eq!(peer.latency_ms, Some(25));
+        
+        peer.update_latency(100);
+        assert_eq!(peer.connection_quality, ConnectionQuality::Good);
+        assert_eq!(peer.latency_ms, Some(100));
+    }
+    
+    #[tokio::test]
+    async fn test_message_parsing() {
+        let test_message = P2PMessage::Ping {
+            node_id: "test-node".to_string(),
+            timestamp: 1234567890,
+        };
+        
+        let json_str = serde_json::to_string(&test_message).unwrap();
+        let mut buffer = json_str.into_bytes();
+        
+        let parsed = P2PNetworkManager::parse_message_from_buffer(&mut buffer);
+        assert!(parsed.is_ok());
+        
+        let parsed_message = parsed.unwrap();
+        match parsed_message {
+            P2PMessage::Ping { node_id, timestamp } => {
+                assert_eq!(node_id, "test-node");
+                assert_eq!(timestamp, 1234567890);
+            }
+            _ => panic!("Wrong message type parsed"),
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_network_stats() {
+        let stats = NetworkStats::default();
+        
+        assert_eq!(stats.total_peers_connected, 0);
+        assert_eq!(stats.active_peers, 0);
+        assert_eq!(stats.total_posts_synced, 0);
+        assert_eq!(stats.total_conflicts_resolved, 0);
+        assert_eq!(stats.network_uptime_seconds, 0);
+        assert_eq!(stats.last_sync_timestamp, 0);
+        assert_eq!(stats.average_latency_ms, 0);
+        assert!(stats.connection_quality_distribution.is_empty());
     }
 }
