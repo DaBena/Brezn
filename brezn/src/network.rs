@@ -148,7 +148,7 @@ pub struct PeerInfo {
     pub connection_health: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConnectionQuality {
     Excellent, // < 50ms latency, stable
     Good,      // 50-100ms latency, stable
@@ -2523,7 +2523,7 @@ impl Clone for NetworkManager {
             discovery_manager: self.discovery_manager.clone(),
             
             // New fields for peer discovery and management
-            discovery_socket: self.discovery_socket.clone(),
+            discovery_socket: None, // Cannot clone UdpSocket
             discovery_port: self.discovery_port,
             heartbeat_interval: self.heartbeat_interval,
             peer_timeout: self.peer_timeout,
@@ -2542,84 +2542,7 @@ impl Clone for NetworkManager {
     }
 }
 
-// Default message handler implementation
-pub struct DefaultMessageHandler {
-    pub node_id: String,
-    pub database_manager: Arc<Mutex<Database>>,
-}
 
-impl DefaultMessageHandler {
-    pub fn new(node_id: String, database_manager: Arc<Mutex<Database>>) -> Self {
-        Self { node_id, database_manager }
-    }
-}
-
-impl MessageHandler for DefaultMessageHandler {
-    fn handle_post(&self, post: &Post) -> Result<()> {
-        println!("📨 Neuer Post von {}: {}", post.pseudonym, post.content);
-        
-        // Enhanced duplicate detection using content hash and timestamp
-        let db = self.database_manager.lock().unwrap();
-        
-        // Check if post already exists using multiple criteria
-        if !self.is_duplicate_post(post, &db)? {
-            db.add_post(&post.clone())?;
-            println!("💾 Post in Datenbank gespeichert");
-            
-            // Broadcast to other peers to ensure network consistency
-            // This will be handled by the network manager
-        } else {
-            println!("⚠️  Duplikat-Post erkannt und ignoriert");
-        }
-        
-        Ok(())
-    }
-    
-    fn handle_config(&self, _config: &Config) -> Result<()> {
-        println!("⚙️  Konfiguration aktualisiert");
-        Ok(())
-    }
-    
-    fn handle_ping(&self, node_id: &str) -> Result<()> {
-        println!("🏓 Ping von Node: {}", node_id);
-        Ok(())
-    }
-    
-    fn handle_pong(&self, node_id: &str) -> Result<()> {
-        println!("🏓 Pong von Node: {}", node_id);
-        Ok(())
-    }
-
-    fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
-        let db = self.database_manager.lock().unwrap();
-        db.get_posts_with_conflicts(limit).map_err(|e| anyhow::anyhow!("Database error: {}", e))
-    }
-}
-
-impl DefaultMessageHandler {
-    /// Enhanced duplicate detection using content hash and timestamp
-    fn is_duplicate_post(&self, post: &Post, db: &Database) -> Result<bool> {
-        // Get recent posts to check for duplicates
-        let recent_posts = db.get_posts(100)?;
-        
-        for existing_post in recent_posts {
-            // Check if this is the same post (same content + pseudonym + similar timestamp)
-            if existing_post.content == post.content 
-                && existing_post.pseudonym == post.pseudonym
-                && (existing_post.timestamp as i64).abs_diff(post.timestamp as i64) < 300 {
-                return Ok(true);
-            }
-            
-            // Check if this is a duplicate from the same node within a short time
-            if existing_post.node_id == post.node_id 
-                && (existing_post.timestamp as i64).abs_diff(post.timestamp as i64) < 60 {
-                return Ok(true);
-            }
-        }
-        
-        Ok(false)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -3585,7 +3508,7 @@ mod tests {
             request_cooldowns: Arc::clone(&self.request_cooldowns),
             topology: Arc::clone(&self.topology),
             discovery_manager: self.discovery_manager.clone(),
-            discovery_socket: self.discovery_socket.clone(),
+            discovery_socket: None, // Cannot clone UdpSocket
             discovery_port: self.discovery_port,
             heartbeat_interval: self.heartbeat_interval,
             peer_timeout: self.peer_timeout,
@@ -3605,19 +3528,19 @@ mod tests {
 /// Default message handler implementation
 pub struct DefaultMessageHandler {
     node_id: String,
-    database: Arc<Mutex<Database>>,
+    database_manager: Arc<Mutex<Database>>,
 }
 
 impl DefaultMessageHandler {
     pub fn new(node_id: String, database: Arc<Mutex<Database>>) -> Self {
-        Self { node_id, database }
+        Self { node_id, database_manager: database }
     }
 }
 
 impl MessageHandler for DefaultMessageHandler {
     fn handle_post(&self, post: &Post) -> Result<()> {
         // Store post in database
-        if let Ok(mut db) = self.database.lock() {
+        if let Ok(mut db) = self.database_manager.lock() {
             if let Err(e) = db.insert_post(post) {
                 eprintln!("Failed to store post: {}", e);
             }
@@ -3644,7 +3567,7 @@ impl MessageHandler for DefaultMessageHandler {
     }
     
     fn get_recent_posts(&self, limit: usize) -> Result<Vec<Post>> {
-        if let Ok(db) = self.database.lock() {
+        if let Ok(db) = self.database_manager.lock() {
             db.get_recent_posts(limit)
         } else {
             Ok(Vec::new())

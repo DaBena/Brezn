@@ -46,7 +46,11 @@ fn generate_mobile_bindings() {
                     eprintln!("Warning: Failed to generate uniffi bindings");
                 }
             }
+        } else {
+            eprintln!("Warning: UDL file not found, skipping uniffi bindings generation");
         }
+    } else {
+        eprintln!("Warning: uniffi-bindgen not found, skipping mobile bindings generation");
     }
     
     // Generate C header file for direct FFI

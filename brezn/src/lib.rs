@@ -5,6 +5,19 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
+// Re-export modules
+pub mod types;
+pub mod network_simple;
+pub mod crypto;
+pub mod database;
+pub mod discovery;
+pub mod error;
+pub mod ffi;
+pub mod sync_metrics;
+pub mod tor;
+pub mod tor_tests;
+pub mod ui_extensions;
+
 // FFI types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
@@ -46,6 +59,8 @@ pub struct BreznApp {
     posts: Arc<Mutex<Vec<Post>>>,
     network_status: Arc<Mutex<NetworkStatus>>,
     is_initialized: Arc<Mutex<bool>>,
+    config: Arc<Mutex<types::Config>>,
+    network_manager: Arc<Mutex<network_simple::NetworkManager>>,
 }
 
 impl BreznApp {
@@ -61,12 +76,16 @@ impl BreznApp {
             tor_socks_port: 9050,
         }));
         let is_initialized = Arc::new(Mutex::new(false));
+        let config = Arc::new(Mutex::new(types::Config::default()));
+        let network_manager = Arc::new(Mutex::new(network_simple::NetworkManager::new(8888, 9050)));
 
         Ok(Self {
             runtime,
             posts,
             network_status,
             is_initialized,
+            config,
+            network_manager,
         })
     }
 
@@ -233,9 +252,31 @@ impl BreznApp {
         
         Ok(())
     }
+
+    // Network manager methods
+    pub fn get_network_manager(&self) -> Arc<Mutex<network_simple::NetworkManager>> {
+        self.network_manager.clone()
+    }
+
+    // Config methods
+    pub fn get_config(&self) -> Arc<Mutex<types::Config>> {
+        self.config.clone()
+    }
+
+    // P2P network methods
+    pub async fn sync_all_peers(&self) -> Result<()> {
+        let network_manager = self.network_manager.lock().unwrap();
+        network_manager.sync_all_peers().await
+    }
+
+    pub async fn enable_tor_async(&self) -> Result<bool> {
+        let mut network_manager = self.network_manager.lock().unwrap();
+        network_manager.enable_tor().await
+    }
 }
 
-// FFI bindings
+// FFI bindings - only include when uniffi scaffolding is available
+#[cfg(feature = "uniffi")]
 uniffi::include_scaffolding!("brezn");
 
 // Export FFI functions
