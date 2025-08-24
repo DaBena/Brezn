@@ -494,9 +494,12 @@ impl<K: Clone + Eq + std::hash::Hash, V> LRUCache<K, V> {
     }
     
     pub fn get(&mut self, key: &K) -> Option<&V> {
-        if let Some((value, _)) = self.cache.get(key) {
+        let exists = self.cache.contains_key(key);
+        if exists {
+            // Update access order first
             self.update_access_order(key);
-            Some(value)
+            // Now borrow the value immutably
+            self.cache.get(key).map(|(v, _)| v)
         } else {
             None
         }

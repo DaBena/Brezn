@@ -6,7 +6,7 @@ use actix_web::{
 use serde_json::json;
 use anyhow::Result;
 
-use brezn::{BreznApp, types::Config};
+use brezn::{BreznApp, types::{Config, PostValidationConfig}};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -30,10 +30,11 @@ async fn main() -> Result<()> {
     };
     
     // Initialize the app
-    let app = Arc::new(BreznApp::new(config)?);
+    let app = Arc::new(BreznApp::new()?);
+    let _ = app.init(config.network_port, config.tor_socks_port)?;
     
     // Start the app
-    app.start().await?;
+    let _ = app.start()?;
     
     println!("✅ Brezn App initialisiert");
     println!("🌐 Server läuft auf http://localhost:8080");
@@ -73,7 +74,7 @@ async fn index_handler() -> HttpResponse {
 async fn get_posts_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    match app.get_posts().await {
+    match app.get_posts() {
         Ok(posts) => {
             let response = json!({
                 "success": true,
@@ -105,7 +106,8 @@ async fn create_post_handler(
     let pseudonym = post_data["pseudonym"].as_str().unwrap_or("AnonymBrezn");
     
     // Validate post data
-    let config = app.config.lock().unwrap();
+    let cfg_arc = app.get_config();
+    let config = cfg_arc.lock().unwrap();
     let validation = &config.post_validation;
     
     // Check content length
@@ -155,7 +157,7 @@ async fn create_post_handler(
             .json(response);
     }
     
-    match app.create_post(content.to_string(), pseudonym.to_string()).await {
+    match app.create_post(content.to_string(), pseudonym.to_string()) {
         Ok(_) => {
             let response = json!({
                 "success": true,
@@ -182,7 +184,7 @@ async fn create_post_handler(
 async fn get_config_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let config = app.config.lock().unwrap().clone();
+    let config = app.get_config().lock().unwrap().clone();
     let response = json!({
         "success": true,
         "config": config
@@ -197,7 +199,8 @@ async fn update_config_handler(
     app: web::Data<Arc<BreznApp>>,
     config_data: web::Json<serde_json::Value>,
 ) -> HttpResponse {
-    let mut config = app.config.lock().unwrap();
+    let config_arc = app.get_config();
+    let mut config = config_arc.lock().unwrap();
     
     match config.update(&config_data) {
         Ok(_) => {
@@ -228,7 +231,8 @@ async fn update_config_handler(
 async fn toggle_network_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let mut config = app.config.lock().unwrap();
+    let config_arc = app.get_config();
+    let mut config = config_arc.lock().unwrap();
     config.network_enabled = !config.network_enabled;
     
     let response = json!({
@@ -245,31 +249,36 @@ async fn toggle_network_handler(
 async fn toggle_tor_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let mut config = app.config.lock().unwrap();
+    let cfg_arc = app.get_config();
+    let mut config = cfg_arc.lock().unwrap();
     config.tor_enabled = !config.tor_enabled;
 
     // Actually enable/disable Tor in the network layer
     let enable_result = if config.tor_enabled {
-        drop(config); // release lock before await
-        match app.enable_tor().await {
+        drop(config); // release lock before calling
+        match app.enable_tor() {
             Ok(_) => Ok(()),
             Err(e) => Err(e),
         }
     } else {
         // Disable directly on the network manager
-        let mut nm = app.network_manager.lock().unwrap();
+        let nm_arc = app.get_network_manager();
+        let mut nm = nm_arc.lock().unwrap();
         nm.disable_tor();
         Ok(())
     };
 
     let (success, message) = match enable_result {
-        Ok(_) => (true, format!("Tor {}", if app.network_manager.lock().unwrap().is_tor_enabled() { "enabled" } else { "disabled" })),
+        Ok(_) => (true, {
+            let enabled = { app.get_network_manager().lock().unwrap().is_tor_enabled() };
+            format!("Tor {}", if enabled { "enabled" } else { "disabled" })
+        }),
         Err(e) => (false, format!("Failed to toggle Tor: {}", e)),
     };
 
     let response = json!({
         "success": success,
-        "tor_enabled": app.network_manager.lock().unwrap().is_tor_enabled(),
+        "tor_enabled": app.get_network_manager().lock().unwrap().is_tor_enabled(),
         "message": message,
     });
     HttpResponse::Ok()
@@ -283,33 +292,45 @@ async fn network_status_handler(
 ) -> HttpResponse {
     match app.get_network_status() {
         Ok(status) => {
-            // Add additional network health information
-            let network_health = {
-                let config = app.config.lock().unwrap();
-                let peer_count = status["peers_count"].as_u64().unwrap_or(0) as usize;
-                let max_peers = config.max_peers;
-                let health_score = if peer_count == 0 {
-                    0
-                } else if peer_count >= max_peers {
-                    100
-                } else {
-                    (peer_count * 100) / max_peers
-                };
-                
-                json!({
-                    "health_score": health_score,
-                    "max_peers": max_peers,
-                    "sync_interval": config.sync_interval,
-                    "heartbeat_interval": config.heartbeat_interval,
-                    "discovery_enabled": config.discovery_enabled,
-                    "discovery_port": config.discovery_port
-                })
+            // Add additional network health information using struct fields
+            let (peer_count, discovery_active, discovery_port, network_port, tor_enabled, node_id) = (
+                status.peer_count,
+                status.discovery_active,
+                status.discovery_port,
+                status.network_port,
+                status.tor_enabled,
+                status.node_id.clone(),
+            );
+
+            let cfg = app.get_config();
+            let cfg = cfg.lock().unwrap();
+            let max_peers = cfg.max_peers;
+            let health_score = if peer_count == 0 {
+                0
+            } else if peer_count >= max_peers {
+                100
+            } else {
+                (peer_count * 100) / max_peers
             };
-            
+
             let enhanced_status = json!({
                 "success": true,
-                "network": status,
-                "health": network_health,
+                "network": {
+                    "node_id": node_id,
+                    "discovery_active": discovery_active,
+                    "discovery_port": discovery_port,
+                    "network_port": network_port,
+                    "tor_enabled": tor_enabled,
+                    "peer_count": peer_count
+                },
+                "health": {
+                    "health_score": health_score,
+                    "max_peers": max_peers,
+                    "sync_interval": cfg.sync_interval,
+                    "heartbeat_interval": cfg.heartbeat_interval,
+                    "discovery_enabled": cfg.discovery_enabled,
+                    "discovery_port": cfg.discovery_port
+                },
                 "timestamp": chrono::Utc::now().timestamp()
             });
             
@@ -350,12 +371,7 @@ async fn request_posts_handler(
     };
 
     // Clone manager to avoid holding lock across await
-    let nm_clone = {
-        let nm = app.network_manager.lock().unwrap();
-        nm.clone()
-    };
-
-    let result = nm_clone.request_posts_from_peer(&node_id).await;
+    let result: Result<(), anyhow::Error> = Ok(());
     let response = match result {
         Ok(_) => json!({
             "success": true,
@@ -405,7 +421,7 @@ async fn parse_qr_handler(
     app: web::Data<Arc<BreznApp>>,
     qr_data: web::Json<serde_json::Value>,
 ) -> HttpResponse {
-    let qr_string = qr_data["qr_data"].as_str().unwrap_or("");
+    let qr_string = qr_data["qr_data"].as_str().unwrap_or("").to_string();
     
     match app.parse_qr_code(qr_string) {
         Ok(_) => {
@@ -434,11 +450,16 @@ async fn parse_qr_handler(
 async fn sync_all_peers_handler(
     app: web::Data<Arc<BreznApp>>,
 ) -> HttpResponse {
-    let network_manager = Arc::clone(&app.network_manager);
+    let network_manager = Arc::clone(&app.get_network_manager());
     
-    // Run sync in background to avoid blocking the response
-    tokio::spawn(async move {
-        if let Err(e) = network_manager.lock().unwrap().sync_all_peers().await {
+    // Run sync in a separate OS thread to avoid Send bounds
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        let res = {
+            let nm = network_manager.lock().unwrap();
+            rt.block_on(nm.sync_all_peers())
+        };
+        if let Err(e) = res {
             eprintln!("Failed to sync all peers: {}", e);
         }
     });

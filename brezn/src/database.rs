@@ -127,7 +127,7 @@ impl Database {
         // Check by content + pseudonym (within time window)
         let time_window: i64 = 300; // 5 minutes
         let mut stmt = self.conn.prepare("SELECT EXISTS(SELECT 1 FROM posts WHERE content = ? AND pseudonym = ? AND ABS(timestamp - ?) < ?)")?;
-        let exists: i64 = stmt.query_row([&post.content, &post.pseudonym, &(post.timestamp as i64), &time_window], |row| row.get(0))?;
+        let exists: i64 = stmt.query_row((&post.content, &post.pseudonym, &(post.timestamp as i64), &time_window), |row| row.get(0))?;
         
         Ok(exists > 0)
     }

@@ -163,12 +163,15 @@ pub extern "C" fn brezn_ffi_get_posts() -> *mut PostFFI {
         
         match posts {
             Ok(posts) => {
-                let ffi_posts: Vec<PostFFI> = posts.into_iter().map(|post| PostFFI {
-                    id: post.id.as_ref().map(|id| rust_string_to_c(id.as_str())).unwrap_or(ptr::null_mut()),
-                    content: rust_string_to_c(&post.content),
-                    timestamp: post.timestamp.timestamp() as u64,
-                    pseudonym: rust_string_to_c(&post.pseudonym),
-                    node_id: post.node_id.map(|n| rust_string_to_c(n.as_str())).unwrap_or(ptr::null_mut()),
+                let ffi_posts: Vec<PostFFI> = posts.into_iter().map(|post| {
+                    let node_id_ptr = post.node_id.as_ref().map(|n| rust_string_to_c(n.as_str())).unwrap_or(ptr::null_mut());
+                    PostFFI {
+                        id: rust_string_to_c(&post.id),
+                        content: rust_string_to_c(&post.content),
+                        timestamp: post.timestamp.timestamp() as u64,
+                        pseudonym: rust_string_to_c(&post.pseudonym),
+                        node_id: node_id_ptr,
+                    }
                 }).collect();
                 
                 let boxed_posts = Box::new(ffi_posts);

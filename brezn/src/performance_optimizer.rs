@@ -1,4 +1,4 @@
-use crate::network::P2PNetworkManager;
+use crate::network_simple::NetworkManager as P2PNetworkManager;
 use crate::discovery::DiscoveryManager;
 use crate::discovery_network_bridge::DiscoveryNetworkBridge;
 use crate::error::Result;
@@ -338,7 +338,7 @@ impl PerformanceOptimizer {
     async fn optimize_peer_prioritization(
         network_manager: &Arc<P2PNetworkManager>,
         discovery_manager: &Arc<DiscoveryManager>,
-        peer_response_times: &Arc<Mutex<HashMap<String, Vec<u64>>>,
+        peer_response_times: &Arc<Mutex<HashMap<String, Vec<u64>>>>,
     ) -> Result<()> {
         let response_times = peer_response_times.lock().unwrap();
         
@@ -355,7 +355,7 @@ impl PerformanceOptimizer {
         
         if let Some((fastest_peer, fastest_time)) = peer_stats.first() {
             if let Some((slowest_peer, slowest_time)) = peer_stats.last() {
-                if slowest_time > fastest_time * 3 {
+                if *slowest_time > fastest_time * 3 {
                     println!("Optimizing: Peer {} is {}x slower than {}", 
                         slowest_peer, slowest_time / fastest_time, fastest_peer);
                 }
@@ -480,9 +480,9 @@ impl PerformanceOptimizer {
                 // Implementation would go here
             }
             _ => {
-                return Err(crate::error::BreznError::Generic(
-                    format!("Unknown optimization type: {}", optimization_type)
-                ).into());
+                return Err(crate::error::BreznError::Network(std::io::Error::new(
+                    std::io::ErrorKind::Other, format!("Unknown optimization type: {}", optimization_type)
+                )).into());
             }
         }
         

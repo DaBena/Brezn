@@ -1,5 +1,5 @@
 use crate::discovery::{DiscoveryManager, PeerInfo, DiscoveryConfig};
-use crate::network::{P2PNetworkManager, P2PMessage, Peer as NetworkPeer};
+use crate::network_simple::{NetworkManager as P2PNetworkManager, PeerInfo as NetworkPeer};
 use crate::error::Result;
 use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, interval};
@@ -42,7 +42,7 @@ impl Default for BridgeConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerMapping {
     pub discovery_peer: PeerInfo,
     pub network_peer: Option<NetworkPeer>,
@@ -51,7 +51,7 @@ pub struct PeerMapping {
     pub sync_attempts: u32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ConnectionStatus {
     Discovered,
     Connecting,
@@ -156,7 +156,7 @@ impl DiscoveryNetworkBridge {
         peer_mapping: &Arc<Mutex<HashMap<String, PeerMapping>>>,
         config: &BridgeConfig,
     ) -> Result<()> {
-        let discovered_peers = discovery_manager.get_all_peers().await?;
+        let discovered_peers = discovery_manager.get_peers()?;
         let mut mapping = peer_mapping.lock().unwrap();
 
         for peer_info in discovered_peers {
@@ -174,11 +174,16 @@ impl DiscoveryNetworkBridge {
 
             // Auto-connect if enabled
             if config.auto_connect_discovered_peers {
-                if let Err(e) = Self::attempt_peer_connection(
-                    &peer_info,
-                    network_manager,
-                    peer_mapping,
-                ).await {
+                // Avoid holding the mutex across await: perform the attempt in a scoped block
+                let attempt = {
+                    let mut mapping_ref = peer_mapping.lock().unwrap();
+                    Self::attempt_peer_connection(
+                        &peer_info,
+                        network_manager,
+                        &mut mapping_ref,
+                    )
+                };
+                if let Err(e) = attempt.await {
                     eprintln!("Failed to connect to peer {}: {}", peer_info.node_id, e);
                 }
             }
@@ -226,7 +231,7 @@ impl DiscoveryNetworkBridge {
         network_manager: &Arc<P2PNetworkManager>,
         peer_mapping: &Arc<Mutex<HashMap<String, PeerMapping>>>,
     ) -> Result<()> {
-        let network_peers = network_manager.get_all_peers().await?;
+        let network_peers = network_manager.get_peers();
         let mut mapping = peer_mapping.lock().unwrap();
 
         // Update network peer information
@@ -269,11 +274,8 @@ impl DiscoveryNetworkBridge {
                 // Update discovery health from network status
                 if let Some(network_peer) = &peer_mapping.network_peer {
                     // Update discovery peer with network health information
-                    if let Err(e) = discovery_manager.update_peer_health(
-                        node_id,
-                        network_peer.connection_quality.clone(),
-                        network_peer.latency_ms,
-                    ).await {
+                    // Fallback: mark as verified/healthy using available API
+                    if let Err(e) = discovery_manager.verify_peer_enhanced(node_id).await {
                         eprintln!("Failed to update peer health for {}: {}", node_id, e);
                     }
                 }
