@@ -42,6 +42,22 @@ uniffi_bindgen = "0.25"
 [dev-dependencies]
 rand = "0.8"
 tempfile = "3.8"
+tokio-test = "0.4"
+criterion = "0.5"
+
+[profile.test]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+harness = false
 
 [build-dependencies]
 uniffi_bindgen = "0.25"

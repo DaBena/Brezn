@@ -2201,4 +2201,201 @@ mod tests {
         assert_eq!(stats.average_latency_ms, 0);
         assert!(stats.connection_quality_distribution.is_empty());
     }
+    
+    // ========================================================================
+    // END-TO-END P2P NETWORK TESTS
+    // ========================================================================
+    
+    #[tokio::test]
+    async fn test_end_to_end_peer_discovery() {
+        // Create two network managers
+        let mut manager1 = P2PNetworkManager::new(8888, None);
+        let mut manager2 = P2PNetworkManager::new(8889, None);
+        
+        // Start both managers
+        manager1.start().await.unwrap();
+        manager2.start().await.unwrap();
+        
+        // Wait for discovery
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        
+        // Check if peers were discovered
+        let peers1 = manager1.get_peers();
+        let peers2 = manager2.get_peers();
+        
+        // At least one peer should be discovered
+        assert!(peers1.len() > 0 || peers2.len() > 0, "No peers discovered");
+        
+        // Cleanup
+        manager1.stop().await.unwrap();
+        manager2.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_post_synchronization() {
+        // Create network manager with database
+        let db = Database::new().unwrap();
+        let mut manager = P2PNetworkManager::new(8888, Some(db));
+        manager.start().await.unwrap();
+        
+        // Create test post
+        let test_post = Post::new(
+            "Test post content".to_string(),
+            "TestUser".to_string(),
+            Some("test-node".to_string())
+        );
+        
+        // Simulate post sync
+        let sync_result = manager.handle_post_sync(
+            vec![test_post.clone()],
+            chrono::Utc::now().timestamp() as u64,
+            "test-peer".to_string()
+        ).await;
+        
+        assert!(sync_result.is_ok(), "Post sync failed: {:?}", sync_result);
+        
+        // Verify post was stored
+        let stored_posts = db.get_posts_with_conflicts(10).unwrap();
+        let found_post = stored_posts.iter().find(|p| p.content == "Test post content");
+        assert!(found_post.is_some(), "Post was not stored");
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_conflict_resolution() {
+        // Create network manager with database
+        let db = Database::new().unwrap();
+        let mut manager = P2PNetworkManager::new(8888, Some(db));
+        manager.start().await.unwrap();
+        
+        // Create conflicting posts
+        let post1 = Post::new(
+            "Same content".to_string(),
+            "User1".to_string(),
+            Some("node1".to_string())
+        );
+        let post2 = Post::new(
+            "Same content".to_string(),
+            "User2".to_string(),
+            Some("node2".to_string())
+        );
+        
+        // Simulate conflict
+        let conflict = PostConflict {
+            post_id: "conflict-1".to_string(),
+            conflicting_posts: vec![post1, post2],
+            resolution_strategy: ConflictResolutionStrategy::LatestWins,
+            resolved_at: None,
+        };
+        
+        // Test conflict resolution
+        let resolution_result = manager.resolve_post_conflict(conflict).await;
+        assert!(resolution_result.is_ok(), "Conflict resolution failed: {:?}", resolution_result);
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_network_health() {
+        // Create network manager
+        let mut manager = P2PNetworkManager::new(8888, None);
+        manager.start().await.unwrap();
+        
+        // Wait for network to stabilize
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        
+        // Get network status
+        let status = manager.get_network_status();
+        
+        // Verify status fields
+        assert_eq!(status.node_id, manager.node_id);
+        assert!(status.peer_count >= 0);
+        assert!(status.network_uptime_seconds >= 0);
+        assert!(status.network_health_score >= 0.0 && status.network_health_score <= 1.0);
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_message_routing() {
+        // Create network manager
+        let mut manager = P2PNetworkManager::new(8888, None);
+        manager.start().await.unwrap();
+        
+        // Create test message
+        let test_message = P2PMessage::Ping {
+            node_id: "test-node".to_string(),
+            timestamp: chrono::Utc::now().timestamp() as u64,
+        };
+        
+        // Test message serialization/deserialization
+        let message_bytes = serde_json::to_vec(&test_message).unwrap();
+        let parsed_message: P2PMessage = serde_json::from_slice(&message_bytes).unwrap();
+        
+        match (test_message, parsed_message) {
+            (P2PMessage::Ping { node_id: id1, timestamp: ts1 }, 
+             P2PMessage::Ping { node_id: id2, timestamp: ts2 }) => {
+                assert_eq!(id1, id2);
+                assert_eq!(ts1, ts2);
+            }
+            _ => panic!("Message parsing failed"),
+        }
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_peer_management() {
+        // Create network manager
+        let mut manager = P2PNetworkManager::new(8888, None);
+        manager.start().await.unwrap();
+        
+        // Test peer addition
+        let peer_addr = "127.0.0.1:9999".parse().unwrap();
+        let add_result = manager.add_peer("test-peer".to_string(), peer_addr, "test-key".to_string()).await;
+        assert!(add_result.is_ok(), "Failed to add peer: {:?}", add_result);
+        
+        // Verify peer was added
+        let peers = manager.get_peers();
+        assert!(peers.iter().any(|p| p.node_id == "test-peer"), "Peer was not added");
+        
+        // Test peer removal
+        let remove_result = manager.remove_peer("test-peer").await;
+        assert!(remove_result.is_ok(), "Failed to remove peer: {:?}", remove_result);
+        
+        // Verify peer was removed
+        let peers_after = manager.get_peers();
+        assert!(!peers_after.iter().any(|p| p.node_id == "test-peer"), "Peer was not removed");
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
+    
+    #[tokio::test]
+    async fn test_end_to_end_heartbeat_system() {
+        // Create network manager
+        let mut manager = P2PNetworkManager::new(8888, None);
+        manager.start().await.unwrap();
+        
+        // Add a test peer
+        let peer_addr = "127.0.0.1:9999".parse().unwrap();
+        manager.add_peer("test-peer".to_string(), peer_addr, "test-key".to_string()).await.unwrap();
+        
+        // Wait for heartbeat
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        
+        // Check if peer is still active
+        let peers = manager.get_peers();
+        let test_peer = peers.iter().find(|p| p.node_id == "test-peer");
+        assert!(test_peer.is_some(), "Test peer not found");
+        assert!(test_peer.unwrap().is_active(Duration::from_secs(300)), "Peer became inactive");
+        
+        // Cleanup
+        manager.stop().await.unwrap();
+    }
 }
