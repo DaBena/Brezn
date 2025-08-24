@@ -4,11 +4,12 @@ name: 🤖 AI Development Agent - Brezn MVP
 on:
   workflow_dispatch:  # Manueller Start
   push:
-    branches: [ main, develop, 'ai-feature/**' ]  # Läuft auch auf Feature Branches
+    branches: [ 'ai-feature/**' ]  # Läuft NUR auf Feature Branches
     paths-ignore:
       - '**.md'
       - 'docs/**'
       - '.github/**'
+  # Erster Agent startet von main, alle anderen von Feature Branches
   # Kein schedule - Agenten laufen sequenziell
 
 # Verhindert parallele Ausführung - nur ein Agent gleichzeitig
