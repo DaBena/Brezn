@@ -2,14 +2,8 @@ name: 🤖 AI Development Agent - Brezn MVP
 
 # Läuft kontinuierlich - ein Agent wartet auf den anderen
 on:
-  workflow_dispatch:  # Manueller Start
-  push:
-    branches: [ main, develop, 'ai-feature/**' ]  # Läuft auf main UND Feature Branches
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/**'
-  # Automatischer Start bei jedem Push - Agenten laufen kontinuierlich
+  workflow_dispatch:  # Manuelle Ausführung möglich (Automatisierung deaktiviert)
+# Die vorherigen Trigger (push, schedule) wurden entfernt, um die automatische Ausführung zu deaktivieren
 
 # Verhindert parallele Ausführung - nur ein Agent gleichzeitig
 concurrency:
