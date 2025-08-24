@@ -1,0 +1,120 @@
+name: Email Protection Check
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  email-protection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install gitpython
+
+      - name: Check for private email addresses
+        id: email-check
+        run: |
+          python -c "
+          import git
+          import re
+          import sys
+          
+          # Private email patterns to block
+          blocked_patterns = [
+              r'[a-zA-Z0-9._%+-]+@gmail\.com',
+              r'[a-zA-Z0-9._%+-]+@web\.de',
+              r'[a-zA-Z0-9._%+-]+@gmx\.com',
+              r'[a-zA-Z0-9._%+-]+@t-online\.de',
+              r'[a-zA-Z0-9._%+-]+@freenet\.de',
+              r'[a-zA-Z0-9._%+-]+@arcor\.de',
+              r'[a-zA-Z0-9._%+-]+@1und1\.de',
+              r'[a-zA-Z0-9._%+-]+@vodafone\.de',
+              r'[a-zA-Z0-9._%+-]+@telekom\.de',
+              r'[a-zA-Z0-9._%+-]+@t-mobile\.de',
+              r'[a-zA-Z0-9._%+-]+@o2\.de',
+              r'[a-zA-Z0-9._%+-]+@eplus\.de',
+              r'[a-zA-Z0-9._%+-]+@aol\.com',
+              r'[a-zA-Z0-9._%+-]+@icloud\.com',
+              r'[a-zA-Z0-9._%+-]+@me\.com',
+              r'[a-zA-Z0-9._%+-]+@mac\.com',
+              r'[a-zA-Z0-9._%+-]+@protonmail\.com',
+              r'[a-zA-Z0-9._%+-]+@tutanota\.de',
+              r'[a-zA-Z0-9._%+-]+@posteo\.de',
+              r'[a-zA-Z0-9._%+-]+@mailbox\.org'
+          ]
+          
+          # Safe email patterns (allowed)
+          safe_patterns = [
+              r'brezn-dev@noreply\.github\.com',
+              r'[a-zA-Z0-9._%+-]+@placeholder\.com',
+              r'[a-zA-Z0-9._%+-]+@example\.com'
+          ]
+          
+          try:
+              repo = git.Repo('.')
+              found_private_emails = []
+              
+              # Check commit messages
+              for commit in repo.iter_commits():
+                  commit_msg = commit.message
+                  for pattern in blocked_patterns:
+                      matches = re.findall(pattern, commit_msg, re.IGNORECASE)
+                      for match in matches:
+                          if not any(re.search(safe, match, re.IGNORECASE) for safe in safe_patterns):
+                              found_private_emails.append(f'Commit {commit.hexsha[:8]}: {match}')
+              
+              # Check co-authored-by lines
+              for commit in repo.iter_commits():
+                  commit_msg = commit.message
+                  co_authored_matches = re.findall(r'Co-authored-by:\s*[^<]+<([^>]+)>', commit_msg)
+                  for email in co_authored_matches:
+                      for pattern in blocked_patterns:
+                          if re.search(pattern, email, re.IGNORECASE):
+                              if not any(re.search(safe, email, re.IGNORECASE) for safe in safe_patterns):
+                                  found_private_emails.append(f'Co-authored-by in {commit.hexsha[:8]}: {email}')
+              
+              if found_private_emails:
+                  print('::error::Private email addresses found in commits:')
+                  for email in found_private_emails:
+                      print(f'::error::{email}')
+                  sys.exit(1)
+              else:
+                  print('::notice::No private email addresses found. All commits are safe.')
+                  print('::set-output name=status::passed')
+                  
+          except Exception as e:
+              print(f'::error::Error during email check: {e}')
+              sys.exit(1)
+          "
+
+      - name: Check git configuration
+        run: |
+          echo "Checking git configuration..."
+          git config --list | grep -E "(user\.name|user\.email)" || echo "No git config found"
+          
+          # Verify safe configuration
+          if git config user.email | grep -q "brezn-dev@noreply.github.com"; then
+            echo "✅ Git email is correctly configured"
+          else
+            echo "⚠️ Git email configuration may need attention"
+          fi
+
+      - name: Email protection passed
+        if: steps.email-check.outputs.status == 'passed'
+        run: |
+          echo "✅ Email protection check passed successfully!"
+          echo "All commits are free of private email addresses."

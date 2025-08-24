@@ -92,42 +92,56 @@ jobs:
           cargo --version
 
           cd brezn
-          cargo build -vv --target ${{ matrix.target }} --${{ matrix.build_type }} --lib
+          cargo build -vv --target ${{ matrix.target }} --${{ matrix.build_type }} --lib --features mobile
+
+      - name: Check for Android project
+        id: check-android
+        run: |
+          if [ -f "brezn/mobile/android/gradlew" ]; then
+            echo "android_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "android_exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prepare jniLibs (if Android project exists)
-        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        if: steps.check-android.outputs.android_exists == 'true'
         run: |
           mkdir -p brezn/mobile/android/app/src/main/jniLibs/arm64-v8a
           mkdir -p brezn/mobile/android/app/src/main/jniLibs/armeabi-v7a
           mkdir -p brezn/mobile/android/app/src/main/jniLibs/x86
           mkdir -p brezn/mobile/android/app/src/main/jniLibs/x86_64
-          cp brezn/target/aarch64-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/arm64-v8a/ || true
-          cp brezn/target/armv7-linux-androideabi/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/armeabi-v7a/ || true
-          cp brezn/target/i686-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/x86/ || true
-          cp brezn/target/x86_64-linux-android/release/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/x86_64/ || true
+          
+          # Copy built libraries to appropriate directories
+          if [ "${{ matrix.target }}" = "aarch64-linux-android" ]; then
+            cp brezn/target/aarch64-linux-android/${{ matrix.build_type }}/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/arm64-v8a/ || echo "Library not found for aarch64"
+          elif [ "${{ matrix.target }}" = "armv7-linux-androideabi" ]; then
+            cp brezn/target/armv7-linux-androideabi/${{ matrix.build_type }}/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/armeabi-v7a/ || echo "Library not found for armv7"
+          elif [ "${{ matrix.target }}" = "x86_64-linux-android" ]; then
+            cp brezn/target/x86_64-linux-android/${{ matrix.build_type }}/libbrezn.so brezn/mobile/android/app/src/main/jniLibs/x86_64/ || echo "Library not found for x86_64"
+          fi
 
       - name: Install mobile dependencies
-        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        if: steps.check-android.outputs.android_exists == 'true'
         run: |
           cd brezn/mobile
           npm ci
 
       - name: Build Android APK
-        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        if: steps.check-android.outputs.android_exists == 'true'
         run: |
           cd brezn/mobile/android
           chmod +x gradlew
           ./gradlew assemble${{ matrix.build_type }}
 
       - name: Upload APK
-        if: ${{ hashFiles('brezn/mobile/android/gradlew') != '' }}
+        if: steps.check-android.outputs.android_exists == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: brezn-android-${{ matrix.target }}-${{ matrix.build_type }}
           path: brezn/mobile/android/app/build/outputs/apk/${{ matrix.build_type }}/*.apk
 
       - name: Skip - Android project not present
-        if: ${{ hashFiles('brezn/mobile/android/gradlew') == '' }}
+        if: steps.check-android.outputs.android_exists == 'false'
         run: |
           echo "Android project not found at brezn/mobile/android. Commit the React Native Android project to build APKs." 
           exit 0
