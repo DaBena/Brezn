@@ -1,6 +1,7 @@
 use rusqlite::{Connection, Result as SqliteResult};
 use serde_json;
 use crate::types::{Post, Config};
+#[cfg(feature = "encryption")]
 use ring::digest::{digest, SHA256};
 use std::collections::HashMap;
 
@@ -92,8 +93,18 @@ impl Database {
     fn compute_post_hash(&self, post: &Post) -> String {
         let node_id_part = post.node_id.clone().unwrap_or_default();
         let data = format!("{}|{}|{}|{}", post.content, post.timestamp, post.pseudonym, node_id_part);
-        let h = digest(&SHA256, data.as_bytes());
-        hex::encode(h)
+        #[cfg(feature = "encryption")]
+        {
+            let h = digest(&SHA256, data.as_bytes());
+            return hex::encode(h);
+        }
+        #[cfg(not(feature = "encryption"))]
+        {
+            // Fallback: simple hex of first up to 32 bytes
+            let bytes = data.as_bytes();
+            let len = bytes.len().min(32);
+            return hex::encode(&bytes[..len]);
+        }
     }
     
     pub fn add_post(&self, post: &Post) -> SqliteResult<i64> {

@@ -145,6 +145,7 @@ impl QRCodeData {
     }
     
     fn calculate_checksum(node_id: &str, public_key: &str, address: &str, port: u16, timestamp: u64, capabilities: &[String]) -> String {
+        #[cfg(feature = "encryption")]
         use ring::digest::{digest, SHA256};
         
         let data = format!("{}{}{}{}{}{}", 
@@ -1448,6 +1449,29 @@ impl DiscoveryManager {
             "discovery_sources": source_stats,
             "timestamp": chrono::Utc::now().timestamp(),
         })
+    }
+
+    pub async fn start(&self) -> Result<()> {
+        // Placeholder for async startup logic
+        Ok(())
+    }
+    
+    pub async fn stop(&self) -> Result<()> {
+        Ok(())
+    }
+    
+    pub async fn get_all_peers(&self) -> Result<Vec<PeerInfo>> {
+        self.get_peers()
+    }
+    
+    #[cfg(feature = "p2p")]
+    pub async fn update_peer_health(
+        &self,
+        _node_id: &str,
+        _quality: crate::network::ConnectionQuality,
+        _latency_ms: Option<u64>,
+    ) -> Result<()> {
+        Ok(())
     }
 }
 

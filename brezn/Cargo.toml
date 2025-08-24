@@ -16,15 +16,15 @@ name = "brezn-cli"
 path = "src/bin/cli.rs"
 
 [features]
-default = ["web", "mobile"]
+default = ["web"]
 full = ["web", "mobile", "p2p", "tor", "encryption"]
-minimal = ["core"]
-web = ["actix-web", "qrcode", "image", "base64"]
+minimal = []
+web = ["actix-web", "qrcode", "image", "base64", "bardecoder", "get_if_addrs"]
 mobile = ["uniffi", "uniffi_bindgen"]
 p2p = ["get_if_addrs", "sha2"]
-tor = ["sodiumoxide"]
+tor = []
 encryption = ["ring", "sodiumoxide"]
-core = ["rusqlite", "serde", "serde_json", "tokio", "uuid", "chrono", "anyhow", "thiserror"]
+p2p_e2e = []
 
 [dependencies]
 rusqlite = { version = "0.31", features = ["bundled"] }

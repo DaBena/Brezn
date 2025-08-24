@@ -11,10 +11,19 @@ pub struct PostId {
 
 impl PostId {
     pub fn new(post: &Post) -> Self {
+        #[cfg(feature = "p2p")]
         use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(format!("{}{}{}", post.content, post.timestamp, post.pseudonym).as_bytes());
-        let hash = format!("{:x}", hasher.finalize());
+        #[cfg(feature = "p2p")]
+        let hash = {
+            let mut hasher = Sha256::new();
+            hasher.update(format!("{}{}{}", post.content, post.timestamp, post.pseudonym).as_bytes());
+            format!("{:x}", hasher.finalize())
+        };
+        #[cfg(not(feature = "p2p"))]
+        let hash = {
+            let s = format!("{}{}{}", post.content, post.timestamp, post.pseudonym);
+            hex::encode(s.as_bytes())
+        };
         
         Self {
             hash,
