@@ -99,3 +99,89 @@
 - Check branch protection rules in repository settings
 - Contact repository administrators for access issues
 - Follow the exact workflow described above
+
+# ============================================================================
+# 🤖 CURSOR AGENT AUTOMATION RULES - BREZN MVP
+# ============================================================================
+
+## 🚀 AUTOMATED DEVELOPMENT WORKFLOW:
+
+### 📋 BEFORE STARTING ANY FEATURE:
+1. **ALWAYS** read `docs/PROJECT_STATUS_ACTUAL.md` first
+2. **CHECK** current MVP progress percentage
+3. **IDENTIFY** next pending feature from priority list
+4. **CREATE** feature branch: `feature/auto-{feature-name}`
+
+### 🔧 FEATURE IMPLEMENTATION RULES:
+- **REPLACE** all placeholders with functional code
+- **IMPLEMENT** complete features, not partial solutions
+- **ADD** comprehensive tests for every new feature
+- **UPDATE** documentation inline with code changes
+
+### 📊 PRIORITY SYSTEM (Follow strictly):
+1. **HIGH (MVP 0-50%)**: P2P-Network, Peer-Discovery
+2. **MEDIUM (MVP 50-70%)**: Tor-Integration, SOCKS5
+3. **LOW (MVP 70-100%)**: QR-Code, UI Polish
+
+### 🧪 QUALITY REQUIREMENTS:
+- **NO** `unwrap()` in production code - use proper error handling
+- **NO** TODO comments in final implementation
+- **NO** placeholder returns - implement real functionality
+- **ALWAYS** use async/await for network operations
+- **ALWAYS** validate input data
+- **ALWAYS** handle edge cases
+
+### 📝 CODE PATTERNS TO FOLLOW:
+```rust
+// ❌ WRONG - Placeholder
+pub fn connect_peer() -> Result<()> {
+    todo!("Implement peer connection")
+}
+
+// ✅ CORRECT - Functional
+pub async fn connect_peer(addr: SocketAddr) -> Result<Peer> {
+    let stream = TcpStream::connect(addr).await?;
+    let peer = Peer::new(stream, addr)?;
+    self.peers.lock().unwrap().insert(peer.id.clone(), peer.clone());
+    Ok(peer)
+}
+```
+
+### 🔄 AUTOMATED TASKS:
+- **ON SAVE**: Run `cargo fmt` and `cargo clippy`
+- **BEFORE COMMIT**: Run `cargo test`
+- **AFTER FEATURE**: Update PROJECT_STATUS_ACTUAL.md
+- **ON ERROR**: Rollback to last working state
+
+### 📈 PROGRESS TRACKING:
+- **UPDATE** percentage in PROJECT_STATUS_ACTUAL.md after each feature
+- **MARK** completed features in implementation status
+- **LOG** time spent on each feature for optimization
+- **REPORT** blockers or issues immediately
+
+### 🎯 SPECIFIC IMPLEMENTATION TARGETS:
+
+#### P2P Network (Priority: HIGH):
+- File: `src/network.rs`
+- Implement: UDP broadcast discovery
+- Add: Peer registry with heartbeat
+- Test: Multi-peer connectivity
+
+#### Tor Integration (Priority: MEDIUM):
+- File: `src/tor.rs`
+- Implement: SOCKS5 proxy connection
+- Add: Circuit management
+- Test: Anonymous routing
+
+#### QR Code (Priority: LOW):
+- File: `src/discovery.rs`
+- Implement: QR generation/parsing
+- Add: Peer join via QR scan
+- Test: Cross-platform compatibility
+
+## 🚫 AUTOMATION BOUNDARIES:
+- **NEVER** modify email protection rules
+- **NEVER** commit directly to main/develop
+- **NEVER** skip tests to save time
+- **NEVER** implement features not in PROJECT_STATUS_ACTUAL.md
+- **ALWAYS** respect the 3-week MVP timeline
