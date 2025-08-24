@@ -3,7 +3,7 @@
 ## 🎯 **Projektstatus: MVP 45% abgeschlossen (KORRIGIERT)**
 
 **Datum der Bewertung**: Dezember 2024  
-**Letzte Aktualisierung**: Heute  
+**Letzte Aktualisierung**: 19. Dezember 2024  
 **Bewertungsgrundlage**: Code-Analyse und Funktionalitätstests
 
 ---
@@ -199,3 +199,13 @@ Das Brezn-Projekt hat eine **solide technische Grundlage** und eine **gute Archi
 **Status**: MVP 45% abgeschlossen (KORRIGIERT)  
 **Nächster Meilenstein**: Funktionale P2P-Netzwerk (2 Wochen)  
 **Ziel**: Vollständiges MVP in 5 Wochen (KORRIGIERT)
+
+---
+
+## 🔗 **Verwandte Dokumentation**
+
+- [Detaillierte Roadmap](ROADMAP_DETAILED.md)
+- [Installationsanleitung](../INSTALL.md)
+- [API-Dokumentation](API.md)
+- [Architektur](architecture.md)
+- [Beitragen](../CONTRIBUTING.md)

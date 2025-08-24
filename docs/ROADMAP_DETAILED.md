@@ -2,6 +2,9 @@
 
 ## 🎯 **Projektstatus: MVP 45% abgeschlossen (KORRIGIERT)**
 
+**Letzte Aktualisierung**: 19. Dezember 2024  
+**Nächster Meilenstein**: Funktionale P2P-Netzwerk (2 Wochen)
+
 ### **✅ Abgeschlossene Komponenten**
 - [x] Rust-Backend mit SQLite-Datenbank
 - [x] Grundlegende Post-Funktionalität (CRUD)
