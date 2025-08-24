@@ -6,7 +6,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::{interval, sleep};
-use crate::types::{NetworkMessage, Post, Config};
 use crate::types::{
     NetworkMessage, Post, Config, PostId, PostConflict, ConflictResolutionStrategy,
     FeedState, PeerFeedState, SyncStatus, SyncRequest, SyncResponse, SyncMode,
@@ -16,6 +15,27 @@ use crate::types::{
 use crate::crypto::CryptoManager;
 use crate::database::Database;
 use crate::tor::{TorManager, TorStatus, CircuitInfo};
+
+#[derive(Debug, Clone)]
+pub struct TorHealthMonitor {
+    pub last_check: std::time::Instant,
+    pub health_score: f64,
+    pub circuit_count: usize,
+    pub connection_count: usize,
+    pub last_circuit_rotation: std::time::Instant,
+}
+
+impl Default for TorHealthMonitor {
+    fn default() -> Self {
+        Self {
+            last_check: std::time::Instant::now(),
+            health_score: 1.0,
+            circuit_count: 0,
+            connection_count: 0,
+            last_circuit_rotation: std::time::Instant::now(),
+        }
+    }
+}
 use sodiumoxide::crypto::box_;
 use uuid::Uuid;
 
@@ -66,6 +86,12 @@ pub struct NetworkManager {
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
     topology: Arc<Mutex<NetworkTopology>>,
     discovery_manager: Option<Arc<Mutex<crate::discovery::DiscoveryManager>>>,
+    tor_health_monitor: Arc<Mutex<TorHealthMonitor>>,
+    circuit_rotation_task: Option<tokio::task::JoinHandle<()>>,
+    broadcast_cache: Arc<Mutex<HashMap<String, u64>>>,
+    post_conflicts: Arc<Mutex<HashMap<String, PostConflict>>>,
+    feed_state: Arc<Mutex<HashMap<String, FeedState>>>,
+    post_order: Arc<Mutex<HashMap<String, PostOrder>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -78,9 +104,12 @@ pub struct PeerInfo {
     pub connection_quality: ConnectionQuality,
     pub capabilities: Vec<String>,
     pub latency_ms: Option<u64>,
+    pub is_tor_peer: bool,
+    pub circuit_id: Option<String>,
+    pub connection_health: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConnectionQuality {
     Excellent, // < 50ms latency, stable
     Good,      // 50-100ms latency, stable
@@ -146,6 +175,12 @@ impl NetworkManager {
                 topology_version: 0,
             })),
             discovery_manager: None,
+            tor_health_monitor: Arc::new(Mutex::new(TorHealthMonitor::default())),
+            circuit_rotation_task: None,
+            broadcast_cache: Arc::new(Mutex::new(HashMap::new())),
+            post_conflicts: Arc::new(Mutex::new(HashMap::new())),
+            feed_state: Arc::new(Mutex::new(HashMap::new())),
+            post_order: Arc::new(Mutex::new(HashMap::new())),
         }
     }
     
@@ -194,8 +229,7 @@ impl NetworkManager {
                         // Update failure count
                         {
                             if let Ok(mut monitor) = health_monitor.lock() {
-                                monitor.failure_count += 1;
-                                monitor.overall_health = (monitor.overall_health * 0.9).max(0.1);
+                                monitor.health_score = (monitor.health_score * 0.9).max(0.1);
                             }
                         }
                     } else {
@@ -204,10 +238,9 @@ impl NetworkManager {
                         {
                             if let Ok(mut monitor) = health_monitor.lock() {
                                 monitor.last_check = std::time::Instant::now();
-                                monitor.overall_health = status.circuit_health;
+                                monitor.health_score = status.circuit_health;
                                 monitor.circuit_count = status.active_circuits;
-                                monitor.active_connections = status.total_connections;
-                                monitor.failure_count = 0; // Reset on success
+                                monitor.connection_count = status.total_connections;
                             }
                         }
                     }
@@ -233,7 +266,7 @@ impl NetworkManager {
                     let should_rotate = {
                         if let Ok(monitor) = health_monitor.lock() {
                             let time_since_rotation = monitor.last_check.duration_since(monitor.last_circuit_rotation);
-                            monitor.overall_health < 0.5 || time_since_rotation > Duration::from_secs(600)
+                            monitor.health_score < 0.5 || time_since_rotation > Duration::from_secs(600)
                         } else {
                             false
                         }
@@ -272,9 +305,9 @@ impl NetworkManager {
         
         // Update health monitor
         if let Ok(mut monitor) = self.tor_health_monitor.lock() {
-            monitor.overall_health = 0.0;
+            monitor.health_score = 0.0;
             monitor.circuit_count = 0;
-            monitor.active_connections = 0;
+            monitor.connection_count = 0;
         }
         
         println!("🔓 Tor SOCKS5 Proxy deaktiviert");
@@ -1136,7 +1169,7 @@ impl NetworkManager {
                             // Try to rotate circuits if health is poor
                             let should_rotate = {
                                 if let Ok(health) = self.tor_health_monitor.lock() {
-                                    health.overall_health < 0.5
+                                    health.health_score < 0.5
                                 } else {
                                     false
                                 }
