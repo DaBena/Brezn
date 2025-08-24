@@ -97,32 +97,18 @@ impl Database {
         // Check by hash first (most reliable)
         let hash = self.compute_post_hash(post);
         let mut stmt = self.conn.prepare("SELECT EXISTS(SELECT 1 FROM posts WHERE hash = ?)")?;
-        let exists: i64 = stmt.query_row([hash], |row| row.get(0))?;
-        if exists != 0 {
+        let exists: i64 = stmt.query_row([&hash], |row| row.get(0))?;
+        
+        if exists > 0 {
             return Ok(true);
         }
         
-        // Check by content + pseudonym + similar timestamp (within 5 minutes)
-        let mut stmt = self.conn.prepare(
-            "SELECT EXISTS(SELECT 1 FROM posts WHERE content = ? AND pseudonym = ? AND ABS(timestamp - ?) < 300)"
-        )?;
-        let exists: i64 = stmt.query_row([&post.content, &post.pseudonym, &(post.timestamp as i64)], |row| row.get(0))?;
-        if exists != 0 {
-            return Ok(true);
-        }
+        // Check by content + pseudonym (within time window)
+        let time_window: i64 = 300; // 5 minutes
+        let mut stmt = self.conn.prepare("SELECT EXISTS(SELECT 1 FROM posts WHERE content = ? AND pseudonym = ? AND ABS(timestamp - ?) < ?)")?;
+        let exists: i64 = stmt.query_row([&post.content, &post.pseudonym, &(post.timestamp as i64), &time_window], |row| row.get(0))?;
         
-        // Check for rapid posting from same node (within 1 minute)
-        if let Some(ref node_id) = post.node_id {
-            let mut stmt = self.conn.prepare(
-                "SELECT EXISTS(SELECT 1 FROM posts WHERE node_id = ? AND ABS(timestamp - ?) < 60)"
-            )?;
-            let exists: i64 = stmt.query_row([node_id, &(post.timestamp as i64)], |row| row.get(0))?;
-            if exists != 0 {
-                return Ok(true);
-            }
-        }
-        
-        Ok(false)
+        Ok(exists > 0)
     }
 
     /// Gets posts with conflict resolution
@@ -165,7 +151,7 @@ impl Database {
                 // Keep the more recent post
                 if post.timestamp > existing_post.timestamp {
                     // Remove the old post from unique_posts and add the new one
-                    if let Some(pos) = unique_posts.iter().position(|p| p.id == existing_post.id) {
+                    if let Some(pos) = unique_posts.iter().position(|p: &Post| p.id == existing_post.id) {
                         unique_posts.remove(pos);
                     }
                     unique_posts.push(post.clone());
@@ -236,6 +222,62 @@ impl Database {
         
         Ok(())
     }
+    
+    /// Get posts since a specific timestamp for synchronization
+    pub fn get_posts_since_timestamp(&self, since_timestamp: u64) -> SqliteResult<Vec<Post>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, content, timestamp, pseudonym, node_id FROM posts WHERE timestamp > ? ORDER BY timestamp ASC"
+        )?;
+        
+        let post_iter = stmt.query_map([since_timestamp as i64], |row| {
+            Ok(Post {
+                id: Some(row.get(0)?),
+                content: row.get(1)?,
+                timestamp: row.get::<_, i64>(2)? as u64,
+                pseudonym: row.get(3)?,
+                node_id: row.get(4)?,
+                post_id: None,
+                parent_id: None,
+                signature: None,
+                version: 1,
+            })
+        })?;
+        
+        let mut posts = Vec::new();
+        for post in post_iter {
+            posts.push(post?);
+        }
+        
+        Ok(posts)
+    }
+    
+    /// Get posts by content for conflict detection
+    pub fn get_posts_by_content(&self, content: &str) -> SqliteResult<Vec<Post>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, content, timestamp, pseudonym, node_id FROM posts WHERE content = ? ORDER BY timestamp ASC"
+        )?;
+        
+        let post_iter = stmt.query_map([content], |row| {
+            Ok(Post {
+                id: Some(row.get(0)?),
+                content: row.get(1)?,
+                timestamp: row.get::<_, i64>(2)? as u64,
+                pseudonym: row.get(3)?,
+                node_id: row.get(4)?,
+                post_id: None,
+                parent_id: None,
+                signature: None,
+                version: 1,
+            })
+        })?;
+        
+        let mut posts = Vec::new();
+        for post in post_iter {
+            posts.push(post?);
+        }
+        
+        Ok(posts)
+    }
 }
 
 #[cfg(test)]
@@ -259,6 +301,10 @@ mod tests {
             timestamp: 1234567890,
             pseudonym: "TestUser".to_string(),
             node_id: Some("test-node".to_string()),
+            post_id: None,
+            parent_id: None,
+            signature: None,
+            version: 1,
         };
         
         let id = db.add_post(&post).unwrap();

@@ -353,16 +353,14 @@ impl NetworkManager {
         Ok(Some(message))
     }
 
-    async fn start_udp_discovery(&mut self, discovery_port: u16) -> Result<()> {
-        self.discovery_port = discovery_port;
-        
+    pub async fn start_udp_discovery(&mut self, discovery_port: u16) -> Result<()> {
         let socket = UdpSocket::bind(format!("0.0.0.0:{}", discovery_port)).await
             .context("Failed to bind discovery socket")?;
         
         self.discovery_socket = Some(socket);
         
         // Start discovery listener
-        let discovery_socket = self.discovery_socket.as_ref().unwrap().try_clone().await?;
+        let discovery_socket = self.discovery_socket.as_ref().unwrap().clone();
         
         tokio::spawn(async move {
             let mut buffer = [0u8; 1024];
