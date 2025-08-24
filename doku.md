@@ -4,6 +4,16 @@
 
 Nutzer posten anonyme Beiträge in einen öffentlichen Feed. Alle Netzwerk‑Teilnehmer sehen alle Posts. Komplett dezentral, keine Server, Open Source (Ziel: F‑Droid).
 
+## 🚨 **WICHTIG: Projektstatus korrigiert (Dezember 2024)**
+
+**Der ursprüngliche Fortschritt von 70% war irreführend.** Das Projekt ist tatsächlich zu **45% abgeschlossen**.
+
+**Grund**: Platzhalter-Implementierungen wurden als funktional bewertet, obwohl sie keine echte Funktionalität bieten.
+
+**Für den aktuellen, ehrlichen Projektstatus siehe**: `docs/PROJECT_STATUS_ACTUAL.md`
+
+---
+
 ## 🛠️ Tech‑Stack (aktuell)
 - Backend: Rust (Edition 2021)
 - HTTP/API: Actix‑Web (Port 8080)
@@ -56,6 +66,8 @@ curl -X POST http://localhost:8080/api/network/parse-qr \
   -d '{"qr_data":"..."}'
 ```
 
+**⚠️ Hinweis**: Netzwerk-Features (QR-Code, Tor, P2P) sind derzeit nur Platzhalter und nicht funktional.
+
 Hinweise:
 - HTTP UI/API läuft auf Port 8080.
 - Der P2P‑Port (Standard 8888) ist separat und wird für Peer‑Verbindungen genutzt.
@@ -69,8 +81,8 @@ brezn/
 │   ├── main.rs             # Actix-Web Server + API
 │   ├── database.rs         # SQLite-Operationen
 │   ├── crypto.rs           # Verschlüsselung
-│   ├── network.rs          # P2P-Netzwerk
-│   ├── discovery.rs        # Discovery (UDP/QR)
+│   ├── network.rs          # P2P-Netzwerk (PLATZHALTER)
+│   ├── discovery.rs        # Discovery (UDP/QR) (PLATZHALTER)
 │   └── types.rs            # Datenstrukturen (Post, Config, ...)
 ├── web/
 │   └── index.html          # Einfache Web-UI (wird ausgeliefert)
@@ -98,79 +110,77 @@ pub struct Config {
     pub network_port: u16,     // P2P-Port
     pub tor_enabled: bool,
     pub tor_socks_port: u16,   // i.d.R. 9050
+    pub discovery_enabled: bool,
+    pub discovery_port: u16,   // Discovery-Port
+    pub sync_interval: u64,    // Sync-Intervall in Sekunden
+    pub max_peers: usize,      // Maximale Peer-Anzahl
+    pub heartbeat_interval: u64, // Heartbeat-Intervall in Sekunden
+    pub post_validation: PostValidationConfig,
 }
 ```
 
-## 🔒 Rechtssicherheit & Anonymität
-- Optionaler Tor SOCKS5 Proxy (lokal, Standard 9050)
-- Keine Speicherung echter Identitäten; Pseudonyme sind wechselbar
-- Lokale Persistenz in SQLite; Transport‑Anonymisierung via Tor möglich
+## 🚨 **Aktuelle Einschränkungen (Dezember 2024)**
 
-## 🔐 Anonyme Entwicklung (Git)
-Ziel: Keine privaten E‑Mails in Commits/History.
+### **Funktional (45%)**
+- ✅ Posts erstellen und anzeigen
+- ✅ Lokale Datenbank
+- ✅ Web-UI
+- ✅ CLI-Interface
+- ✅ Krypto-Module
+- ✅ Konfigurationsmanagement
 
-Empfehlungen:
-- GitHub: Settings → Emails
-  - „Keep my email addresses private" aktivieren
-  - „Block command line pushes that expose my email" aktivieren
-- In diesem Repo (lokal):
-  ```bash
-  git config user.name "Anon Dev"
-  git config user.email "anonymous@placeholder.com"
-  git config user.useConfigOnly true
-  ```
-- Global (optional):
-  ```bash
-  git config --global user.name "Anon Dev"
-  git config --global user.email "anonymous@placeholder.com"
-  git config --global user.useConfigOnly true
-  git config --global core.hooksPath ~/.git-hooks
-  ```
-- Hooks (empfohlen):
-  - `commit-msg`: blockiert Nicht‑Noreply‑E‑Mails und entfernt unsichere Trailer (`Co-authored-by`, `Signed-off-by`, …)
-  - `pre-push`: verweigert Pushes, wenn in Autor/Committer oder Trailern Nicht‑Noreply‑E‑Mails vorkommen
-- Prüfen:
-  ```bash
-  git var GIT_AUTHOR_IDENT
-  git var GIT_COMMITTER_IDENT
-  git log -1 --pretty=fuller
-  ```
-- Historie bereinigen (falls nötig):
-  - `mailmap.txt` pflegen und ausführen: `git filter-repo --mailmap mailmap.txt --use-mailmap`
+### **Platzhalter (35%)**
+- ⚠️ P2P-Netzwerk: Nur Grundstruktur, keine echte Peer-Kommunikation
+- ⚠️ Tor-Integration: Nur Basis-Setup, keine funktionale SOCKS5-Integration
+- ⚠️ QR-Code: Nur Platzhalter, keine echte Funktionalität
+- ⚠️ Discovery: Nur Grundstruktur, keine echte Peer-Findung
 
-## 🚀 Entwicklungsprioritäten
-### MVP (aktuell)
-- [x] Rust Backend mit SQLite
-- [x] Tor SOCKS5 Integration (optional)
-- [x] P2P‑Netzwerk Grundlagen
-- [x] Einfache Web‑UI
-- [ ] QR‑Code Features (Parsing/Join weiter ausbauen)
-- [ ] Netzwerk‑Discovery (Automatisierung)
+### **Nicht implementiert (20%)**
+- ❌ Echte Peer-Discovery
+- ❌ Post-Synchronisation
+- ❌ Netzwerk-Traffic über Tor
+- ❌ QR-Code-Peer-Beitritt
 
-### Backlog (später)
-- [ ] Erweiterte Sicherheitsfeatures (Anti‑Spam, Rate‑Limiting)
-- [ ] React Native Frontend
-- [ ] Mobile Builds (Android/iOS)
-- [ ] F‑Droid Release
+## 📚 **Dokumentation**
 
-## 🧪 Erfolgs‑Kriterien
-- [ ] Zwei Instanzen tauschen Posts über Tor aus
-- [ ] Feed‑Konsistenz zwischen Peers
-- [ ] QR‑Code Netzwerkbeitritt funktional
-- [ ] Stabile Tor‑Verbindungen
+### **Aktuelle, ehrliche Bewertung**
+- `docs/PROJECT_STATUS_ACTUAL.md` - Ehrliche Projektbewertung
+- `docs/ROADMAP_DETAILED.md` - Korrigierte Roadmap (5 Wochen MVP)
+- `docs/PHASE2_PROGRESS.md` - Aktualisierter Fortschritt
 
-## 📚 Weiterführende Dokumente
-- Installation: `docs/INSTALL.md`
-- API‑Referenz: `docs/API.md`
-- Architektur: `docs/architecture.md`
-- Mobile Setup: `docs/mobile-setup.md`
-- Roadmap: `docs/ROADMAP_DETAILED.md`
+### **Technische Dokumentation**
+- `docs/API.md` - API-Referenz mit Funktionsstatus
+- `docs/architecture.md` - Netzwerkarchitektur
+- `docs/INSTALL.md` - Installationsanleitung
 
-## 🛠️ Entwickeln
-```bash
-cd brezn
-cargo build
-cargo test
-```
+### **Entwicklungsdokumentation**
+- `docs/REPOSITORY_SECURITY_SETUP.md` - Sicherheitssetup
+- `docs/mobile-setup.md` - Mobile-Entwicklung
+- `CONTRIBUTING.md` - Beitragsrichtlinien
 
-Lizenz: siehe `LICENSE`.
+## 🎯 **Nächste Schritte**
+
+### **Priorität 1: Platzhalter ersetzen (4-5 Wochen)**
+1. **P2P-Netzwerk** von Platzhalter zu funktional
+2. **Tor-Integration** von Basis-Setup zu funktional
+3. **QR-Code** von Platzhalter zu funktional
+4. **Discovery** von Platzhalter zu funktional
+
+### **Priorität 2: Produktionsreife (4-5 Wochen)**
+1. Sicherheit & Robustheit
+2. Mobile Foundation
+
+### **Priorität 3: Deployment (2-3 Wochen)**
+1. F-Droid Release
+2. Desktop-Distribution
+
+## 📊 **Projektstatus**
+
+- **MVP-Fortschritt**: 45% abgeschlossen (KORRIGIERT)
+- **Nächster Meilenstein**: Funktionale P2P-Netzwerk (2 Wochen)
+- **Ziel**: Vollständiges MVP in 5 Wochen (KORRIGIERT)
+- **Hauptproblem**: Platzhalter-Implementierungen müssen ersetzt werden
+
+---
+
+**Für detaillierte Informationen siehe die aktualisierten Dokumentationen in `docs/`**

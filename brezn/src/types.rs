@@ -1,5 +1,28 @@
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct PostId {
+    pub hash: String,
+    pub timestamp: u64,
+    pub node_id: String,
+}
+
+impl PostId {
+    pub fn new(post: &Post) -> Self {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(format!("{}{}{}", post.content, post.timestamp, post.pseudonym).as_bytes());
+        let hash = format!("{:x}", hasher.finalize());
+        
+        Self {
+            hash,
+            timestamp: post.timestamp,
+            node_id: post.node_id.clone().unwrap_or_else(|| "unknown".to_string()),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Post {
@@ -8,17 +31,30 @@ pub struct Post {
     pub timestamp: u64,
     pub pseudonym: String,
     pub node_id: Option<String>,
+    pub post_id: Option<PostId>,
+    pub parent_id: Option<String>, // For threaded conversations
+    pub signature: Option<String>, // Cryptographic signature for integrity
+    pub version: u32, // Post version for conflict resolution
 }
 
 impl Post {
     pub fn new(content: String, pseudonym: String, node_id: Option<String>) -> Self {
-        Self {
+        let mut post = Self {
             id: None,
             content,
             timestamp: Utc::now().timestamp() as u64,
             pseudonym,
             node_id,
-        }
+            post_id: None,
+            parent_id: None,
+            signature: None,
+            version: 1,
+        };
+        
+        // Generate post ID
+        post.post_id = Some(PostId::new(&post));
+        
+        post
     }
     
     pub fn get_formatted_time(&self) -> String {
@@ -37,6 +73,18 @@ impl Post {
         } else {
             format!("vor {} Tagen", duration.num_days())
         }
+    }
+    
+    pub fn get_post_id(&self) -> PostId {
+        self.post_id.clone().unwrap_or_else(|| PostId::new(self))
+    }
+    
+    pub fn is_valid(&self) -> bool {
+        !self.content.is_empty() 
+            && self.content.len() <= 1000
+            && !self.pseudonym.is_empty() 
+            && self.pseudonym.len() <= 50
+            && self.timestamp > 0
     }
 }
 
@@ -246,6 +294,110 @@ pub enum MessageType {
     Config(Config),
     Ping,
     Pong,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PostConflict {
+    pub post_id: PostId,
+    pub conflicting_posts: Vec<Post>,
+    pub resolution_strategy: ConflictResolutionStrategy,
+    pub resolved_at: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum ConflictResolutionStrategy {
+    LatestWins,      // Use the most recent post
+    FirstWins,       // Use the first post received
+    ContentHash,     // Use the post with the most unique content
+    Manual,          // Require manual resolution
+    Merged,          // Merge content if possible
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FeedState {
+    pub node_id: String,
+    pub last_sync_timestamp: u64,
+    pub post_count: usize,
+    pub last_post_id: Option<PostId>,
+    pub peer_states: HashMap<String, PeerFeedState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PeerFeedState {
+    pub node_id: String,
+    pub last_seen_timestamp: u64,
+    pub last_post_timestamp: u64,
+    pub post_count: usize,
+    pub sync_status: SyncStatus,
+    pub last_sync_attempt: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum SyncStatus {
+    Synchronized,
+    Pending,
+    Failed,
+    OutOfSync,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SyncRequest {
+    pub requesting_node: String,
+    pub last_known_timestamp: u64,
+    pub requested_post_count: usize,
+    pub sync_mode: SyncMode,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum SyncMode {
+    Full,           // Complete feed synchronization
+    Incremental,    // Only new posts since last sync
+    Conflict,       // Only posts with conflicts
+    Selective,      // Specific post range
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SyncResponse {
+    pub responding_node: String,
+    pub posts: Vec<Post>,
+    pub conflicts: Vec<PostConflict>,
+    pub feed_state: FeedState,
+    pub sync_timestamp: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PostBroadcast {
+    pub post: Post,
+    pub broadcast_id: String,
+    pub ttl: u32, // Time to live in network hops
+    pub origin_node: String,
+    pub broadcast_timestamp: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PostOrder {
+    pub post_id: PostId,
+    pub sequence_number: u64,
+    pub timestamp: u64,
+    pub node_id: String,
+    pub parent_sequence: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DataIntegrityCheck {
+    pub post_id: PostId,
+    pub content_hash: String,
+    pub signature: String,
+    pub public_key: String,
+    pub verification_status: VerificationStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum VerificationStatus {
+    Verified,
+    Failed,
+    Pending,
+    Unsupported,
 }
 
 #[cfg(test)]
