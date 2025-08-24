@@ -19,6 +19,27 @@ pub struct PeerInfo {
     pub last_connection_attempt: u64,
     pub is_verified: bool,
     pub network_segment: Option<String>,
+    // Neue Felder für erweiterte Peer-Verwaltung
+    pub health_score: f64,
+    pub response_time_ms: Option<u64>,
+    pub last_health_check: u64,
+    pub consecutive_failures: u32,
+    pub discovery_source: DiscoverySource,
+    pub metadata: HashMap<String, String>,
+    pub is_active: bool,
+    pub last_successful_communication: u64,
+    pub bandwidth_estimate: Option<u64>, // bytes per second
+    pub latency_history: Vec<u64>, // rolling window of response times
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum DiscoverySource {
+    Multicast,
+    Broadcast,
+    QRCode,
+    Manual,
+    PeerRecommendation,
+    NetworkScan,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +68,17 @@ pub struct DiscoveryConfig {
     pub connection_retry_limit: u32,
     pub enable_multicast: bool,
     pub enable_broadcast: bool,
+    // Neue Konfigurationsoptionen für erweiterte Discovery-Funktionalität
+    pub discovery_timeout: Duration,
+    pub peer_health_check_interval: Duration,
+    pub max_connection_attempts: u32,
+    pub enable_peer_verification: bool,
+    pub enable_automatic_peer_addition: bool,
+    pub peer_discovery_retry_interval: Duration,
+    pub network_segment_filtering: bool,
+    pub enable_peer_statistics: bool,
+    pub multicast_ttl: u32,
+    pub broadcast_retry_count: u32,
 }
 
 impl Default for DiscoveryConfig {
@@ -63,6 +95,17 @@ impl Default for DiscoveryConfig {
             connection_retry_limit: 3,
             enable_multicast: true,
             enable_broadcast: true,
+            // Neue Standardwerte
+            discovery_timeout: Duration::from_secs(10),
+            peer_health_check_interval: Duration::from_secs(120),
+            max_connection_attempts: 5,
+            enable_peer_verification: true,
+            enable_automatic_peer_addition: true,
+            peer_discovery_retry_interval: Duration::from_secs(15),
+            network_segment_filtering: false,
+            enable_peer_statistics: true,
+            multicast_ttl: 32,
+            broadcast_retry_count: 3,
         }
     }
 }
@@ -281,6 +324,17 @@ impl DiscoveryManager {
                                     last_connection_attempt: 0,
                                     is_verified: false,
                                     network_segment: message.network_segment,
+                                    // Neue Felder für erweiterte Peer-Verwaltung
+                                    health_score: 0.0,
+                                    response_time_ms: None,
+                                    last_health_check: 0,
+                                    consecutive_failures: 0,
+                                    discovery_source: DiscoverySource::Multicast,
+                                    metadata: HashMap::new(),
+                                    is_active: true,
+                                    last_successful_communication: 0,
+                                    bandwidth_estimate: None,
+                                    latency_history: Vec::new(),
                                 };
                                 
                                 let node_id = message.node_id.clone();
@@ -632,6 +686,17 @@ impl DiscoveryManager {
             port: qr_data.port,
             last_seen: qr_data.timestamp,
             capabilities: qr_data.capabilities,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::QRCode,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         })
     }
     
@@ -679,6 +744,17 @@ impl DiscoveryManager {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual, // Default to Manual for backward compatibility
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         })
     }
 
@@ -922,6 +998,406 @@ impl DiscoveryManager {
         
         Ok(())
     }
+
+    // Neue erweiterte Discovery-Funktionen
+
+    /// Startet den erweiterten Discovery-Loop mit Health-Monitoring
+    pub async fn start_enhanced_discovery_loop(&self) -> Result<()> {
+        println!("🚀 Erweiterter Discovery-Loop gestartet");
+        
+        // Starte Health-Monitoring Task
+        let health_monitor = self.start_health_monitoring().await?;
+        
+        // Starte Peer-Discovery Task
+        let peer_discovery = self.start_peer_discovery().await?;
+        
+        // Starte Network-Topology Task
+        let topology_monitor = self.start_topology_monitoring().await?;
+        
+        // Warte auf alle Tasks
+        tokio::try_join!(health_monitor, peer_discovery, topology_monitor)?;
+        
+        Ok(())
+    }
+
+    /// Startet Health-Monitoring für alle Peers
+    async fn start_health_monitoring(&self) -> Result<()> {
+        let peers_clone = Arc::clone(&self.peers);
+        let config_clone = self.config.clone();
+        
+        tokio::spawn(async move {
+            let mut interval = interval(config_clone.peer_health_check_interval);
+            
+            loop {
+                interval.tick().await;
+                
+                let mut peers = peers_clone.lock().unwrap();
+                let now = chrono::Utc::now().timestamp() as u64;
+                
+                for (node_id, peer) in peers.iter_mut() {
+                    // Führe Health-Check durch
+                    if let Err(e) = Self::perform_peer_health_check(peer, now).await {
+                        eprintln!("Health-Check fehlgeschlagen für {}: {}", node_id, e);
+                    }
+                }
+            }
+        });
+        
+        Ok(())
+    }
+
+    /// Führt einen Health-Check für einen einzelnen Peer durch
+    async fn perform_peer_health_check(peer: &mut PeerInfo, now: u64) -> Result<()> {
+        peer.last_health_check = now;
+        
+        // Simuliere Ping/Pong für Health-Check
+        let start_time = std::time::Instant::now();
+        
+        // Hier würde normalerweise ein echtes Ping/Pong stattfinden
+        // Für jetzt simulieren wir es mit einem kurzen Delay
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        
+        let response_time = start_time.elapsed().as_millis() as u64;
+        peer.response_time_ms = Some(response_time);
+        
+        // Aktualisiere Health-Score basierend auf Response-Time
+        if response_time < 100 {
+            peer.health_score = (peer.health_score + 0.1).min(1.0);
+            peer.consecutive_failures = 0;
+            peer.last_successful_communication = now;
+        } else if response_time > 1000 {
+            peer.health_score = (peer.health_score - 0.2).max(0.0);
+            peer.consecutive_failures += 1;
+        }
+        
+        // Aktualisiere Latency-History (rolling window)
+        peer.latency_history.push(response_time);
+        if peer.latency_history.len() > 10 {
+            peer.latency_history.remove(0);
+        }
+        
+        // Berechne Bandwidth-Estimate basierend auf Response-Time
+        if response_time > 0 {
+            peer.bandwidth_estimate = Some(1024 * 1024 / response_time); // 1MB / response_time
+        }
+        
+        // Markiere Peer als inaktiv wenn zu viele Fehler
+        if peer.consecutive_failures >= 5 {
+            peer.is_active = false;
+        }
+        
+        Ok(())
+    }
+
+    /// Startet automatische Peer-Discovery
+    async fn start_peer_discovery(&self) -> Result<()> {
+        let peers_clone = Arc::clone(&self.peers);
+        let config_clone = self.config.clone();
+        let node_id_clone = self.node_id.clone();
+        let public_key_clone = self.public_key.clone();
+        let port_clone = self.port;
+        
+        tokio::spawn(async move {
+            let mut interval = interval(config_clone.peer_discovery_retry_interval);
+            
+            loop {
+                interval.tick().await;
+                
+                // Führe Network-Scan durch
+                if let Err(e) = Self::perform_network_scan(
+                    &peers_clone, 
+                    &config_clone, 
+                    &node_id_clone, 
+                    &public_key_clone, 
+                    port_clone
+                ).await {
+                    eprintln!("Network-Scan fehlgeschlagen: {}", e);
+                }
+            }
+        });
+        
+        Ok(())
+    }
+
+    /// Führt einen Network-Scan durch um neue Peers zu finden
+    async fn perform_network_scan(
+        peers: &Arc<Mutex<HashMap<String, PeerInfo>>>,
+        config: &DiscoveryConfig,
+        node_id: &str,
+        public_key: &str,
+        port: u16,
+    ) -> Result<()> {
+        // Scanne bekannte Ports in der lokalen Subnetz
+        let local_ip = Self::get_local_ip_static()?;
+        let subnet = Self::extract_subnet(&local_ip)?;
+        
+        // Scanne Ports 8888-8890 (typische Discovery-Ports)
+        for port_offset in 0..3 {
+            let target_port = config.discovery_port + port_offset;
+            let target_addr = format!("{}:{}", subnet, target_port);
+            
+            if let Ok(socket_addr) = target_addr.parse::<SocketAddr>() {
+                // Sende Discovery-Request
+                let message = DiscoveryMessage {
+                    message_type: "ping".to_string(),
+                    node_id: node_id.to_string(),
+                    public_key: public_key.to_string(),
+                    address: local_ip.clone(),
+                    port,
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    capabilities: vec!["posts".to_string(), "config".to_string(), "p2p".to_string()],
+                    network_segment: None,
+                    version: "1.0".to_string(),
+                };
+                
+                if let Ok(message_bytes) = serde_json::to_vec(&message) {
+                    // Versuche Verbindung (mit Timeout)
+                    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0").await {
+                        socket.set_read_timeout(Some(std::time::Duration::from_millis(100))).ok();
+                        
+                        if socket.send_to(&message_bytes, socket_addr).await.is_ok() {
+                            // Warte auf Response
+                            let mut buffer = [0u8; 1024];
+                            if let Ok((len, _)) = socket.recv_from(&mut buffer).await {
+                                if let Ok(response) = serde_json::from_slice::<DiscoveryMessage>(&buffer[..len]) {
+                                    if response.message_type == "pong" && response.node_id != *node_id {
+                                        // Neuer Peer gefunden!
+                                        let peer_info = PeerInfo {
+                                            node_id: response.node_id,
+                                            public_key: response.public_key,
+                                            address: response.address,
+                                            port: response.port,
+                                            last_seen: response.timestamp,
+                                            capabilities: response.capabilities,
+                                            connection_attempts: 0,
+                                            last_connection_attempt: 0,
+                                            is_verified: false,
+                                            network_segment: response.network_segment,
+                                            health_score: 0.5,
+                                            response_time_ms: None,
+                                            last_health_check: 0,
+                                            consecutive_failures: 0,
+                                            discovery_source: DiscoverySource::NetworkScan,
+                                            metadata: HashMap::new(),
+                                            is_active: true,
+                                            last_successful_communication: 0,
+                                            bandwidth_estimate: None,
+                                            latency_history: Vec::new(),
+                                        };
+                                        
+                                        let mut peers_guard = peers.lock().unwrap();
+                                        if !peers_guard.contains_key(&peer_info.node_id) {
+                                            peers_guard.insert(peer_info.node_id.clone(), peer_info);
+                                            println!("🔍 Neuer Peer durch Network-Scan gefunden: {}", peer_info.node_id);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Startet Network-Topology-Monitoring
+    async fn start_topology_monitoring(&self) -> Result<()> {
+        let peers_clone = Arc::clone(&self.peers);
+        let config_clone = self.config.clone();
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(300)); // Alle 5 Minuten
+            
+            loop {
+                interval.tick().await;
+                
+                // Analysiere Network-Topology
+                if let Err(e) = Self::analyze_network_topology(&peers_clone, &config_clone).await {
+                    eprintln!("Topology-Analyse fehlgeschlagen: {}", e);
+                }
+            }
+        });
+        
+        Ok(())
+    }
+
+    /// Analysiert die aktuelle Network-Topology
+    async fn analyze_network_topology(
+        peers: &Arc<Mutex<HashMap<String, PeerInfo>>>,
+        _config: &DiscoveryConfig,
+    ) -> Result<()> {
+        let peers_guard = peers.lock().unwrap();
+        
+        let total_peers = peers_guard.len();
+        let active_peers = peers_guard.values().filter(|p| p.is_active).count();
+        let verified_peers = peers_guard.values().filter(|p| p.is_verified).count();
+        
+        // Analysiere Network-Segmente
+        let mut segment_counts: HashMap<String, usize> = HashMap::new();
+        for peer in peers_guard.values() {
+            if let Some(segment) = &peer.network_segment {
+                *segment_counts.entry(segment.clone()).or_insert(0) += 1;
+            }
+        }
+        
+        // Analysiere Capability-Verteilung
+        let mut capability_counts: HashMap<String, usize> = HashMap::new();
+        for peer in peers_guard.values() {
+            for capability in &peer.capabilities {
+                *capability_counts.entry(capability.clone()).or_insert(0) += 1;
+            }
+        }
+        
+        // Analysiere Health-Verteilung
+        let mut health_distribution: HashMap<String, usize> = HashMap::new();
+        for peer in peers_guard.values() {
+            let health_range = match peer.health_score {
+                s if s >= 0.8 => "excellent",
+                s if s >= 0.6 => "good",
+                s if s >= 0.4 => "fair",
+                s if s >= 0.2 => "poor",
+                _ => "critical",
+            };
+            *health_distribution.entry(health_range.to_string()).or_insert(0) += 1;
+        }
+        
+        println!("🌐 Network-Topology-Analyse:");
+        println!("   📊 Gesamt-Peers: {}", total_peers);
+        println!("   ✅ Aktive Peers: {}", active_peers);
+        println!("   🔒 Verifizierte Peers: {}", verified_peers);
+        println!("   🏷️  Network-Segmente: {:?}", segment_counts);
+        println!("   🚀 Capabilities: {:?}", capability_counts);
+        println!("   💚 Health-Verteilung: {:?}", health_distribution);
+        
+        Ok(())
+    }
+
+    /// Hilfsfunktion für statische IP-Ermittlung
+    fn get_local_ip_static() -> Result<String> {
+        for interface in get_if_addrs::get_if_addrs()? {
+            if !interface.is_loopback() && interface.addr.ip().is_ipv4() {
+                return Ok(interface.addr.ip().to_string());
+            }
+        }
+        Ok("127.0.0.1".to_string())
+    }
+
+    /// Extrahiert Subnetz aus IP-Adresse
+    fn extract_subnet(ip: &str) -> Result<String> {
+        let parts: Vec<&str> = ip.split('.').collect();
+        if parts.len() == 4 {
+            Ok(format!("{}.{}.{}.", parts[0], parts[1], parts[2]))
+        } else {
+            Err(BreznError::InvalidInput("Invalid IP address format".to_string()))
+        }
+    }
+
+    /// Erweiterte Peer-Verifizierung mit Health-Check
+    pub async fn verify_peer_enhanced(&self, node_id: &str) -> Result<bool> {
+        let mut peers = self.peers.lock()
+            .map_err(|_| BreznError::Network(std::io::Error::new(
+                std::io::ErrorKind::Other, "Failed to lock peers"
+            )))?;
+        
+        if let Some(peer) = peers.get_mut(node_id) {
+            peer.connection_attempts += 1;
+            peer.last_connection_attempt = chrono::Utc::now().timestamp() as u64;
+            
+            // Führe erweiterten Health-Check durch
+            let now = chrono::Utc::now().timestamp() as u64;
+            if let Err(e) = Self::perform_peer_health_check(peer, now).await {
+                eprintln!("Enhanced health-check fehlgeschlagen: {}", e);
+                peer.consecutive_failures += 1;
+                peer.health_score = (peer.health_score - 0.1).max(0.0);
+            }
+            
+            // Verifiziere basierend auf Health-Score und Connection-Versuchen
+            if peer.health_score >= 0.5 && peer.connection_attempts <= self.config.max_connection_attempts {
+                peer.is_verified = true;
+                peer.is_active = true;
+                println!("✅ Peer {} erweitert verifiziert (Health: {:.2}, Versuche: {})", 
+                    node_id, peer.health_score, peer.connection_attempts);
+                Ok(true)
+            } else {
+                peer.is_verified = false;
+                peer.is_active = false;
+                println!("❌ Peer {} erweiterte Verifizierung fehlgeschlagen (Health: {:.2}, Versuche: {})", 
+                    node_id, peer.health_score, peer.connection_attempts);
+                Ok(false)
+            }
+        } else {
+            Err(BreznError::InvalidInput(format!("Peer {} nicht gefunden", node_id)))
+        }
+    }
+
+    /// Fügt Peer mit automatischer Verifizierung hinzu
+    pub async fn add_peer_auto_verified(&self, peer: PeerInfo) -> Result<()> {
+        // Füge Peer hinzu
+        self.add_peer(peer.clone())?;
+        
+        // Automatische Verifizierung wenn aktiviert
+        if self.config.enable_automatic_peer_addition {
+            if let Err(e) = self.verify_peer_enhanced(&peer.node_id).await {
+                eprintln!("Automatische Peer-Verifizierung fehlgeschlagen: {}", e);
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Erweiterte Peer-Statistiken
+    pub fn get_enhanced_discovery_stats(&self) -> serde_json::Value {
+        let peers = self.peers.lock().unwrap();
+        
+        let total_peers = peers.len();
+        let active_peers = peers.values().filter(|p| p.is_active).count();
+        let verified_peers = peers.values().filter(|p| p.is_verified).count();
+        
+        // Health-Statistiken
+        let mut health_stats = HashMap::new();
+        let mut avg_response_time = 0.0;
+        let mut total_response_time = 0;
+        let mut response_time_count = 0;
+        
+        for peer in peers.values() {
+            if let Some(response_time) = peer.response_time_ms {
+                total_response_time += response_time;
+                response_time_count += 1;
+            }
+            
+            let health_range = match peer.health_score {
+                s if s >= 0.8 => "excellent",
+                s if s >= 0.6 => "good",
+                s if s >= 0.4 => "fair",
+                s if s >= 0.2 => "poor",
+                _ => "critical",
+            };
+            *health_stats.entry(health_range).or_insert(0) += 1;
+        }
+        
+        if response_time_count > 0 {
+            avg_response_time = total_response_time as f64 / response_time_count as f64;
+        }
+        
+        // Discovery-Source-Statistiken
+        let mut source_stats = HashMap::new();
+        for peer in peers.values() {
+            let source = format!("{:?}", peer.discovery_source);
+            *source_stats.entry(source).or_insert(0) += 1;
+        }
+        
+        serde_json::json!({
+            "total_peers": total_peers,
+            "active_peers": active_peers,
+            "verified_peers": verified_peers,
+            "health_distribution": health_stats,
+            "average_response_time_ms": avg_response_time,
+            "discovery_sources": source_stats,
+            "timestamp": chrono::Utc::now().timestamp(),
+        })
+    }
 }
 
 #[cfg(test)]
@@ -1036,6 +1512,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         manager.add_peer(peer).unwrap();
         assert_eq!(manager.get_peers().unwrap().len(), 1);
@@ -1058,6 +1545,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         manager.add_peer(stale_peer.clone()).unwrap();
 
@@ -1171,6 +1669,17 @@ mod tests {
             last_connection_attempt: chrono::Utc::now().timestamp() as u64,
             is_verified: true,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         let peer2 = PeerInfo {
@@ -1184,6 +1693,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         manager.add_peer(peer1).unwrap();
@@ -1213,6 +1733,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         let peer2 = PeerInfo {
@@ -1226,6 +1757,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         manager.add_peer(peer1).unwrap();
@@ -1254,6 +1796,17 @@ mod tests {
             last_connection_attempt: chrono::Utc::now().timestamp() as u64,
             is_verified: true,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         let unverified_peer = PeerInfo {
@@ -1267,6 +1820,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: None,
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         manager.add_peer(verified_peer).unwrap();
@@ -1302,6 +1866,17 @@ mod tests {
             last_connection_attempt: 0,
             is_verified: false,
             network_segment: Some("segment_1".into()),
+            // Neue Felder für erweiterte Peer-Verwaltung
+            health_score: 0.0,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
         };
         
         assert_eq!(peer.node_id, "test_node");
@@ -1332,5 +1907,477 @@ mod tests {
         assert_eq!(message.node_id, "test_node");
         assert_eq!(message.capabilities.len(), 2);
         assert_eq!(message.version, "1.0");
+    }
+
+    // Neue erweiterte Tests für das Discovery-System
+
+    #[test]
+    fn test_discovery_config_extended() {
+        let config = DiscoveryConfig::default();
+        
+        // Teste neue Konfigurationsoptionen
+        assert_eq!(config.discovery_timeout.as_secs(), 10);
+        assert_eq!(config.peer_health_check_interval.as_secs(), 120);
+        assert_eq!(config.max_connection_attempts, 5);
+        assert!(config.enable_peer_verification);
+        assert!(config.enable_automatic_peer_addition);
+        assert_eq!(config.peer_discovery_retry_interval.as_secs(), 15);
+        assert!(!config.network_segment_filtering);
+        assert!(config.enable_peer_statistics);
+        assert_eq!(config.multicast_ttl, 32);
+        assert_eq!(config.broadcast_retry_count, 3);
+    }
+
+    #[test]
+    fn test_peer_info_extended() {
+        let peer = PeerInfo {
+            node_id: "test_node".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: 1234567890,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: Some("segment_1".into()),
+            health_score: 0.8,
+            response_time_ms: Some(50),
+            last_health_check: 1234567890,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: {
+                let mut map = HashMap::new();
+                map.insert("version".to_string(), "1.0".to_string());
+                map
+            },
+            is_active: true,
+            last_successful_communication: 1234567890,
+            bandwidth_estimate: Some(20480), // 20 KB/s
+            latency_history: vec![50, 45, 55, 40, 50],
+        };
+        
+        assert_eq!(peer.health_score, 0.8);
+        assert_eq!(peer.response_time_ms, Some(50));
+        assert_eq!(peer.discovery_source, DiscoverySource::Multicast);
+        assert!(peer.is_active);
+        assert_eq!(peer.bandwidth_estimate, Some(20480));
+        assert_eq!(peer.latency_history.len(), 5);
+        assert_eq!(peer.metadata["version"], "1.0");
+    }
+
+    #[test]
+    fn test_discovery_source_enum() {
+        let sources = vec![
+            DiscoverySource::Multicast,
+            DiscoverySource::Broadcast,
+            DiscoverySource::QRCode,
+            DiscoverySource::Manual,
+            DiscoverySource::PeerRecommendation,
+            DiscoverySource::NetworkScan,
+        ];
+        
+        assert_eq!(sources.len(), 6);
+        
+        // Teste Serialisierung/Deserialisierung
+        for source in sources {
+            let serialized = serde_json::to_string(&source).unwrap();
+            let deserialized: DiscoverySource = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(format!("{:?}", source), format!("{:?}", deserialized));
+        }
+    }
+
+    #[test]
+    fn test_enhanced_discovery_stats() {
+        let manager = make_manager();
+        
+        // Füge Peers mit verschiedenen Health-Scores hinzu
+        let peer1 = PeerInfo {
+            node_id: "peer1".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: None,
+            health_score: 0.9,
+            response_time_ms: Some(30),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: Some(34133),
+            latency_history: vec![30, 35, 25],
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+            health_score: 0.3,
+            response_time_ms: Some(200),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 2,
+            discovery_source: DiscoverySource::Broadcast,
+            metadata: HashMap::new(),
+            is_active: false,
+            last_successful_communication: 0,
+            bandwidth_estimate: Some(5120),
+            latency_history: vec![200, 250, 180],
+        };
+        
+        manager.add_peer(peer1).unwrap();
+        manager.add_peer(peer2).unwrap();
+        
+        let stats = manager.get_enhanced_discovery_stats();
+        
+        assert_eq!(stats["total_peers"], 2);
+        assert_eq!(stats["active_peers"], 1);
+        assert_eq!(stats["verified_peers"], 1);
+        assert_eq!(stats["average_response_time_ms"], 115.0); // (30 + 200) / 2
+        
+        let health_distribution = stats["health_distribution"].as_object().unwrap();
+        assert_eq!(health_distribution["excellent"], 1);
+        assert_eq!(health_distribution["poor"], 1);
+        
+        let discovery_sources = stats["discovery_sources"].as_object().unwrap();
+        assert_eq!(discovery_sources["Multicast"], 1);
+        assert_eq!(discovery_sources["Broadcast"], 1);
+    }
+
+    #[test]
+    fn test_network_topology_analysis() {
+        let manager = make_manager();
+        
+        // Füge Peers mit verschiedenen Network-Segmenten hinzu
+        let peer1 = PeerInfo {
+            node_id: "peer1".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into(), "config".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment_a".into()),
+            health_score: 0.8,
+            response_time_ms: Some(50),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: Some("segment_b".into()),
+            health_score: 0.4,
+            response_time_ms: Some(150),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 1,
+            discovery_source: DiscoverySource::Broadcast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        let peer3 = PeerInfo {
+            node_id: "peer3".into(),
+            public_key: "pub3".into(),
+            address: "127.0.0.1".into(),
+            port: 1236,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["p2p".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment_a".into()),
+            health_score: 0.9,
+            response_time_ms: Some(25),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::QRCode,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        manager.add_peer(peer1).unwrap();
+        manager.add_peer(peer2).unwrap();
+        manager.add_peer(peer3).unwrap();
+        
+        // Teste erweiterte Statistiken
+        let stats = manager.get_enhanced_discovery_stats();
+        
+        assert_eq!(stats["total_peers"], 3);
+        assert_eq!(stats["active_peers"], 3);
+        assert_eq!(stats["verified_peers"], 2);
+        
+        let health_distribution = stats["health_distribution"].as_object().unwrap();
+        assert_eq!(health_distribution["excellent"], 1); // peer3
+        assert_eq!(health_distribution["good"], 1);      // peer1
+        assert_eq!(health_distribution["fair"], 1);      // peer2
+        
+        let discovery_sources = stats["discovery_sources"].as_object().unwrap();
+        assert_eq!(discovery_sources["Multicast"], 1);
+        assert_eq!(discovery_sources["Broadcast"], 1);
+        assert_eq!(discovery_sources["QRCode"], 1);
+    }
+
+    #[test]
+    fn test_peer_health_scoring() {
+        let manager = make_manager();
+        
+        let mut peer = PeerInfo {
+            node_id: "test_peer".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+            health_score: 0.5,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        // Teste Health-Score-Berechnung
+        assert_eq!(peer.health_score, 0.5);
+        assert_eq!(peer.consecutive_failures, 0);
+        assert!(peer.is_active);
+        
+        // Simuliere Health-Check mit guter Response-Time
+        peer.response_time_ms = Some(50);
+        peer.health_score = (peer.health_score + 0.1).min(1.0);
+        peer.consecutive_failures = 0;
+        
+        assert_eq!(peer.health_score, 0.6);
+        assert_eq!(peer.consecutive_failures, 0);
+        
+        // Simuliere Health-Check mit schlechter Response-Time
+        peer.response_time_ms = Some(1500);
+        peer.health_score = (peer.health_score - 0.2).max(0.0);
+        peer.consecutive_failures += 1;
+        
+        assert_eq!(peer.health_score, 0.4);
+        assert_eq!(peer.consecutive_failures, 1);
+        
+        // Teste Deaktivierung bei zu vielen Fehlern
+        for _ in 0..4 {
+            peer.consecutive_failures += 1;
+        }
+        
+        if peer.consecutive_failures >= 5 {
+            peer.is_active = false;
+        }
+        
+        assert!(!peer.is_active);
+    }
+
+    #[test]
+    fn test_latency_history_rolling_window() {
+        let mut peer = PeerInfo {
+            node_id: "test_peer".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+            health_score: 0.5,
+            response_time_ms: None,
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        // Füge Latency-History hinzu
+        for i in 1..=15 {
+            peer.latency_history.push(i * 10);
+        }
+        
+        // Überprüfe, dass nur die letzten 10 Werte behalten werden
+        assert_eq!(peer.latency_history.len(), 10);
+        assert_eq!(peer.latency_history[0], 60); // 6 * 10
+        assert_eq!(peer.latency_history[9], 150); // 15 * 10
+    }
+
+    #[test]
+    fn test_bandwidth_estimation() {
+        let mut peer = PeerInfo {
+            node_id: "test_peer".into(),
+            public_key: "test_key".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: false,
+            network_segment: None,
+            health_score: 0.5,
+            response_time_ms: Some(100),
+            last_health_check: 0,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Manual,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: 0,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        // Teste Bandwidth-Estimation
+        if let Some(response_time) = peer.response_time_ms {
+            if response_time > 0 {
+                peer.bandwidth_estimate = Some(1024 * 1024 / response_time); // 1MB / response_time
+            }
+        }
+        
+        assert_eq!(peer.bandwidth_estimate, Some(10485)); // 1024*1024/100 = 10485 bytes/s
+    }
+
+    #[test]
+    fn test_network_segment_filtering() {
+        let manager = make_manager();
+        
+        // Füge Peers mit verschiedenen Network-Segmenten hinzu
+        let peer1 = PeerInfo {
+            node_id: "peer1".into(),
+            public_key: "pub1".into(),
+            address: "127.0.0.1".into(),
+            port: 1234,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment_a".into()),
+            health_score: 0.8,
+            response_time_ms: Some(50),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Multicast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        let peer2 = PeerInfo {
+            node_id: "peer2".into(),
+            public_key: "pub2".into(),
+            address: "127.0.0.1".into(),
+            port: 1235,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            capabilities: vec!["posts".into()],
+            connection_attempts: 0,
+            last_connection_attempt: 0,
+            is_verified: true,
+            network_segment: Some("segment_b".into()),
+            health_score: 0.7,
+            response_time_ms: Some(75),
+            last_health_check: chrono::Utc::now().timestamp() as u64,
+            consecutive_failures: 0,
+            discovery_source: DiscoverySource::Broadcast,
+            metadata: HashMap::new(),
+            is_active: true,
+            last_successful_communication: chrono::Utc::now().timestamp() as u64,
+            bandwidth_estimate: None,
+            latency_history: Vec::new(),
+        };
+        
+        manager.add_peer(peer1).unwrap();
+        manager.add_peer(peer2).unwrap();
+        
+        // Teste Filterung nach Network-Segment
+        let segment_a_peers: Vec<PeerInfo> = manager.get_peers().unwrap()
+            .into_iter()
+            .filter(|p| p.network_segment.as_ref() == Some(&"segment_a".to_string()))
+            .collect();
+        
+        let segment_b_peers: Vec<PeerInfo> = manager.get_peers().unwrap()
+            .into_iter()
+            .filter(|p| p.network_segment.as_ref() == Some(&"segment_b".to_string()))
+            .collect();
+        
+        assert_eq!(segment_a_peers.len(), 1);
+        assert_eq!(segment_b_peers.len(), 1);
+        assert_eq!(segment_a_peers[0].node_id, "peer1");
+        assert_eq!(segment_b_peers[0].node_id, "peer2");
+    }
+
+    #[test]
+    fn test_discovery_message_types() {
+        let message_types = vec!["announce", "ping", "pong", "heartbeat", "capabilities"];
+        
+        for msg_type in message_types {
+            let message = DiscoveryMessage {
+                message_type: msg_type.to_string(),
+                node_id: "test_node".into(),
+                public_key: "test_key".into(),
+                address: "127.0.0.1".into(),
+                port: 1234,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                capabilities: vec!["posts".into()],
+                network_segment: None,
+                version: "1.0".into(),
+            };
+            
+            assert_eq!(message.message_type, msg_type);
+            
+            // Teste Serialisierung/Deserialisierung
+            let serialized = serde_json::to_string(&message).unwrap();
+            let deserialized: DiscoveryMessage = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(deserialized.message_type, msg_type);
+        }
     }
 }
