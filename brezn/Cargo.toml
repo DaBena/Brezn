@@ -33,6 +33,7 @@ base64 = "0.21"
 bardecoder = "0.4"
 hex = "0.4"
 get_if_addrs = "0.5"
+sha2 = "0.10"
 
 [dev-dependencies]
 rand = "0.8"

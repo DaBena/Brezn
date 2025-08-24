@@ -7,10 +7,17 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::{interval, sleep};
 use crate::types::{NetworkMessage, Post, Config};
+use crate::types::{
+    NetworkMessage, Post, Config, PostId, PostConflict, ConflictResolutionStrategy,
+    FeedState, PeerFeedState, SyncStatus, SyncRequest, SyncResponse, SyncMode,
+    PostBroadcast, PostOrder, DataIntegrityCheck, VerificationStatus
+};
+
 use crate::crypto::CryptoManager;
 use crate::database::Database;
 use crate::tor::{TorManager, TorStatus, CircuitInfo};
 use sodiumoxide::crypto::box_;
+use uuid::Uuid;
 
 pub struct NetworkManager {
     port: u16,
@@ -21,8 +28,16 @@ pub struct NetworkManager {
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
     tor_manager: Option<TorManager>,
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
+
     tor_health_monitor: Arc<Mutex<TorHealthMonitor>>,
     circuit_rotation_task: Option<tokio::task::JoinHandle<()>>,
+
+    // New fields for post synchronization
+    feed_state: Arc<Mutex<FeedState>>,
+    post_conflicts: Arc<Mutex<HashMap<String, PostConflict>>>,
+    post_order: Arc<Mutex<HashMap<String, PostOrder>>>,
+    broadcast_cache: Arc<Mutex<HashMap<String, PostBroadcast>>>,
+    sync_queue: Arc<Mutex<Vec<SyncRequest>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +85,15 @@ pub trait MessageHandler: Send + Sync {
 
 impl NetworkManager {
     pub fn new(port: u16, tor_socks_port: u16) -> Self {
+        let node_id = Uuid::new_v4().to_string();
+        let feed_state = FeedState {
+            node_id: node_id.clone(),
+            last_sync_timestamp: chrono::Utc::now().timestamp() as u64,
+            post_count: 0,
+            last_post_id: None,
+            peer_states: HashMap::new(),
+        };
+        
         Self {
             port,
             tor_enabled: false,
@@ -81,6 +105,11 @@ impl NetworkManager {
             request_cooldowns: Arc::new(Mutex::new(HashMap::new())),
             tor_health_monitor: Arc::new(Mutex::new(TorHealthMonitor::default())),
             circuit_rotation_task: None,
+            feed_state: Arc::new(Mutex::new(feed_state)),
+            post_conflicts: Arc::new(Mutex::new(HashMap::new())),
+            post_order: Arc::new(Mutex::new(HashMap::new())),
+            broadcast_cache: Arc::new(Mutex::new(HashMap::new())),
+            sync_queue: Arc::new(Mutex::new(Vec::new())),
         }
     }
     
@@ -391,6 +420,502 @@ impl NetworkManager {
     }
     
     async fn handle_message(&self, message: &NetworkMessage) -> Result<()> {
+        // Handle new message types
+        match message.message_type.as_str() {
+            "post_broadcast" => {
+                if let Ok(broadcast) = serde_json::from_value::<PostBroadcast>(message.payload.clone()) {
+                    self.handle_post_broadcast(&broadcast).await?;
+                }
+            }
+            "sync_request" => {
+                if let Ok(sync_request) = serde_json::from_value::<SyncRequest>(message.payload.clone()) {
+                    self.handle_sync_request(&sync_request, &message.node_id).await?;
+                }
+            }
+            "sync_response" => {
+                if let Ok(sync_response) = serde_json::from_value::<SyncResponse>(message.payload.clone()) {
+                    self.handle_sync_response(&sync_response).await?;
+                }
+            }
+            _ => {
+                // Fall back to existing message handling
+                self.handle_legacy_message(message).await?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Enhanced post broadcast with TTL and conflict detection
+    pub async fn broadcast_post(&self, post: &Post) -> Result<()> {
+        let broadcast = PostBroadcast {
+            post: post.clone(),
+            broadcast_id: Uuid::new_v4().to_string(),
+            ttl: 5, // 5 network hops
+            origin_node: self.get_node_id().await?,
+            broadcast_timestamp: chrono::Utc::now().timestamp() as u64,
+        };
+        
+        // Cache the broadcast
+        {
+            let mut cache = self.broadcast_cache.lock().unwrap();
+            cache.insert(broadcast.broadcast_id.clone(), broadcast.clone());
+        }
+        
+        // Check for conflicts before broadcasting
+        if let Some(conflict) = self.detect_post_conflict(post).await? {
+            self.resolve_post_conflict(conflict).await?;
+        }
+        
+        let message = NetworkMessage {
+            message_type: "post_broadcast".to_string(),
+            payload: serde_json::to_value(&broadcast)?,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            node_id: "local".to_string(),
+        };
+        
+        self.broadcast_message(&message).await
+    }
+    
+    /// Detects conflicts between posts
+    async fn detect_post_conflict(&self, post: &Post) -> Result<Option<PostConflict>> {
+        let post_id = post.get_post_id();
+        let mut conflicts = Vec::new();
+        
+        // Check if we already have a post with similar content/timestamp
+        {
+            let handlers = self.message_handlers.lock().unwrap();
+            for handler in handlers.iter() {
+                if let Ok(recent_posts) = handler.get_recent_posts(100) {
+                    for existing_post in recent_posts {
+                        if self.is_conflicting_post(post, &existing_post) {
+                            conflicts.push(existing_post);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if conflicts.is_empty() {
+            Ok(None)
+        } else {
+            let conflict = PostConflict {
+                post_id: post_id.clone(),
+                conflicting_posts: conflicts,
+                resolution_strategy: ConflictResolutionStrategy::LatestWins,
+                resolved_at: None,
+            };
+            
+            // Store conflict for resolution
+            {
+                let mut conflict_store = self.post_conflicts.lock().unwrap();
+                conflict_store.insert(post_id.hash.clone(), conflict.clone());
+            }
+            
+            Ok(Some(conflict))
+        }
+    }
+    
+    /// Determines if two posts are conflicting
+    fn is_conflicting_post(&self, post1: &Post, post2: &Post) -> bool {
+        // Same content, different timestamps (within 5 minutes)
+        if post1.content == post2.content 
+            && post1.pseudonym == post2.pseudonym
+            && (post1.timestamp as i64).abs_diff(post2.timestamp as i64) < 300 {
+            return true;
+        }
+        
+        // Same node, similar timestamp, different content (potential duplicate)
+        if post1.node_id == post2.node_id 
+            && (post1.timestamp as i64).abs_diff(post2.timestamp as i64) < 60 {
+            return true;
+        }
+        
+        false
+    }
+    
+    /// Resolves post conflicts using the specified strategy
+    async fn resolve_post_conflict(&self, mut conflict: PostConflict) -> Result<()> {
+        match conflict.resolution_strategy {
+            ConflictResolutionStrategy::LatestWins => {
+                let latest_post = conflict.conflicting_posts.iter()
+                    .max_by_key(|p| p.timestamp)
+                    .cloned();
+                
+                if let Some(post) = latest_post {
+                    self.update_feed_state(&post).await?;
+                    conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+                }
+            }
+            ConflictResolutionStrategy::FirstWins => {
+                let first_post = conflict.conflicting_posts.iter()
+                    .min_by_key(|p| p.timestamp)
+                    .cloned();
+                
+                if let Some(post) = first_post {
+                    self.update_feed_state(&post).await?;
+                    conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+                }
+            }
+            ConflictResolutionStrategy::ContentHash => {
+                // Use the post with the most unique content
+                let best_post = conflict.conflicting_posts.iter()
+                    .max_by_key(|p| p.content.len())
+                    .cloned();
+                
+                if let Some(post) = best_post {
+                    self.update_feed_state(&post).await?;
+                    conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+                }
+            }
+            ConflictResolutionStrategy::Manual => {
+                // Store conflict for manual resolution
+                println!("⚠️  Manuelle Konfliktauflösung erforderlich für Post: {}", conflict.post_id.hash);
+            }
+            ConflictResolutionStrategy::Merged => {
+                // Attempt to merge content if possible
+                if let Some(merged_post) = self.merge_conflicting_posts(&conflict.conflicting_posts) {
+                    self.update_feed_state(&merged_post).await?;
+                    conflict.resolved_at = Some(chrono::Utc::now().timestamp() as u64);
+                }
+            }
+        }
+        
+        // Update conflict store
+        {
+            let mut conflict_store = self.post_conflicts.lock().unwrap();
+            conflict_store.insert(conflict.post_id.hash.clone(), conflict);
+        }
+        
+        Ok(())
+    }
+    
+    /// Attempts to merge conflicting posts
+    fn merge_conflicting_posts(&self, posts: &[Post]) -> Option<Post> {
+        if posts.len() < 2 {
+            return posts.first().cloned();
+        }
+        
+        // Find the base post (earliest timestamp)
+        let base_post = posts.iter().min_by_key(|p| p.timestamp)?;
+        
+        // Merge content if they're similar
+        let mut merged_content = base_post.content.clone();
+        for post in posts.iter().skip(1) {
+            if !merged_content.contains(&post.content) {
+                merged_content.push_str(" | ");
+                merged_content.push_str(&post.content);
+            }
+        }
+        
+        let mut merged_post = base_post.clone();
+        merged_post.content = merged_content;
+        merged_post.version += 1;
+        
+        Some(merged_post)
+    }
+    
+    /// Updates the local feed state
+    async fn update_feed_state(&self, post: &Post) -> Result<()> {
+        let mut feed_state = self.feed_state.lock().unwrap();
+        feed_state.post_count += 1;
+        feed_state.last_sync_timestamp = chrono::Utc::now().timestamp() as u64;
+        feed_state.last_post_id = Some(post.get_post_id());
+        
+        // Update post order
+        {
+            let mut post_order_store = self.post_order.lock().unwrap();
+            let order = PostOrder {
+                post_id: post.get_post_id(),
+                sequence_number: feed_state.post_count as u64,
+                timestamp: post.timestamp,
+                node_id: post.node_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                parent_sequence: None,
+            };
+            post_order_store.insert(post.get_post_id().hash.clone(), order);
+        }
+        
+        Ok(())
+    }
+    
+    /// Ensures feed consistency between peers
+    pub async fn ensure_feed_consistency(&self) -> Result<()> {
+        let peers = self.get_peers();
+        let mut sync_tasks = Vec::new();
+        
+        for peer in peers {
+            let node_id = peer.node_id.clone();
+            let network_manager = Arc::new(Mutex::new(self.clone()));
+            
+            let task = tokio::spawn(async move {
+                if let Err(e) = network_manager.lock().unwrap().sync_feed_with_peer(&node_id).await {
+                    eprintln!("Feed consistency sync failed for peer {}: {}", node_id, e);
+                }
+            });
+            
+            sync_tasks.push(task);
+        }
+        
+        // Wait for all sync tasks to complete
+        for task in sync_tasks {
+            let _ = task.await;
+        }
+        
+        println!("🔄 Feed-Konsistenz zwischen allen Peers sichergestellt");
+        Ok(())
+    }
+    
+    /// Synchronizes feed with a specific peer
+    async fn sync_feed_with_peer(&self, node_id: &str) -> Result<()> {
+        let sync_request = SyncRequest {
+            requesting_node: self.get_node_id().await?,
+            last_known_timestamp: {
+                let feed_state = self.feed_state.lock().unwrap();
+                feed_state.last_sync_timestamp
+            },
+            requested_post_count: 100,
+            sync_mode: SyncMode::Incremental,
+        };
+        
+        let message = NetworkMessage {
+            message_type: "sync_request".to_string(),
+            payload: serde_json::to_value(&sync_request)?,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            node_id: "local".to_string(),
+        };
+        
+        if let Some(peer) = self.peers.lock().unwrap().get(node_id) {
+            self.send_message_to_peer(&message, peer).await?;
+            
+            // Update peer feed state
+            {
+                let mut feed_state = self.feed_state.lock().unwrap();
+                let peer_state = PeerFeedState {
+                    node_id: node_id.to_string(),
+                    last_seen_timestamp: chrono::Utc::now().timestamp() as u64,
+                    last_post_timestamp: 0, // Will be updated when we receive posts
+                    post_count: 0,
+                    sync_status: SyncStatus::Pending,
+                    last_sync_attempt: chrono::Utc::now().timestamp() as u64,
+                };
+                feed_state.peer_states.insert(node_id.to_string(), peer_state);
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Manages post ordering for consistent feed display
+    pub async fn get_ordered_posts(&self, limit: usize) -> Result<Vec<Post>> {
+        let mut ordered_posts = Vec::new();
+        
+        // Get posts from handlers
+        {
+            let handlers = self.message_handlers.lock().unwrap();
+            for handler in handlers.iter() {
+                if let Ok(posts) = handler.get_recent_posts(limit * 2) {
+                    ordered_posts.extend(posts);
+                }
+            }
+        }
+        
+        // Sort by timestamp and sequence number
+        ordered_posts.sort_by(|a, b| {
+            let time_cmp = a.timestamp.cmp(&b.timestamp);
+            if time_cmp == std::cmp::Ordering::Equal {
+                // Use sequence number for posts with same timestamp
+                let seq_a = self.get_post_sequence_number(&a.get_post_id()).unwrap_or(0);
+                let seq_b = self.get_post_sequence_number(&b.get_post_id()).unwrap_or(0);
+                seq_a.cmp(&seq_b)
+            } else {
+                time_cmp
+            }
+        });
+        
+        // Apply limit and return
+        ordered_posts.truncate(limit);
+        Ok(ordered_posts)
+    }
+    
+    /// Gets the sequence number for a post
+    fn get_post_sequence_number(&self, post_id: &PostId) -> Option<u64> {
+        let post_order_store = self.post_order.lock().unwrap();
+        post_order_store.get(&post_id.hash).map(|order| order.sequence_number)
+    }
+    
+    /// Performs data integrity checks on posts
+    pub async fn verify_post_integrity(&self, post: &Post) -> Result<DataIntegrityCheck> {
+        let post_id = post.get_post_id();
+        
+        // Verify content hash
+        let expected_hash = post_id.hash.clone();
+        let actual_hash = {
+            use sha2::{Sha256, Digest};
+            let mut hasher = Sha256::new();
+            hasher.update(format!("{}{}{}", post.content, post.timestamp, post.pseudonym).as_bytes());
+            format!("{:x}", hasher.finalize())
+        };
+        
+        let hash_valid = expected_hash == actual_hash;
+        
+        // Verify signature if present
+        let signature_valid = if let Some(signature) = &post.signature {
+            self.verify_post_signature(post, signature).await?
+        } else {
+            true // No signature to verify
+        };
+        
+        let verification_status = if hash_valid && signature_valid {
+            VerificationStatus::Verified
+        } else if !hash_valid {
+            VerificationStatus::Failed
+        } else {
+            VerificationStatus::Pending
+        };
+        
+        let integrity_check = DataIntegrityCheck {
+            post_id: post_id.clone(),
+            content_hash: actual_hash,
+            signature: post.signature.clone().unwrap_or_else(|| "none".to_string()),
+            public_key: "verification_key".to_string(), // Placeholder
+            verification_status,
+        };
+        
+        Ok(integrity_check)
+    }
+    
+    /// Verifies post signature
+    async fn verify_post_signature(&self, _post: &Post, _signature: &str) -> Result<bool> {
+        // TODO: Implement actual signature verification
+        // For now, return true as placeholder
+        Ok(true)
+    }
+    
+    /// Gets the current node ID
+    async fn get_node_id(&self) -> Result<String> {
+        let feed_state = self.feed_state.lock().unwrap();
+        Ok(feed_state.node_id.clone())
+    }
+    
+    /// Handles post broadcast messages
+    async fn handle_post_broadcast(&self, broadcast: &PostBroadcast) -> Result<()> {
+        // Check TTL
+        if broadcast.ttl == 0 {
+            return Ok(());
+        }
+        
+        // Check if we've already seen this broadcast
+        {
+            let cache = self.broadcast_cache.lock().unwrap();
+            if cache.contains_key(&broadcast.broadcast_id) {
+                return Ok(());
+            }
+        }
+        
+        // Process the post
+        let post = &broadcast.post;
+        if post.is_valid() {
+            // Check for conflicts
+            if let Some(conflict) = self.detect_post_conflict(post).await? {
+                self.resolve_post_conflict(conflict).await?;
+            }
+            
+            // Update feed state
+            self.update_feed_state(post).await?;
+            
+            // Re-broadcast with decremented TTL
+            let mut new_broadcast = broadcast.clone();
+            new_broadcast.ttl -= 1;
+            
+            if new_broadcast.ttl > 0 {
+                let message = NetworkMessage {
+                    message_type: "post_broadcast".to_string(),
+                    payload: serde_json::to_value(&new_broadcast)?,
+                    timestamp: chrono::Utc::now().timestamp() as u64,
+                    node_id: "local".to_string(),
+                };
+                
+                self.broadcast_message(&message).await?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Handles sync requests from peers
+    async fn handle_sync_request(&self, sync_request: &SyncRequest, requesting_node: &str) -> Result<()> {
+        let posts = self.get_ordered_posts(sync_request.requested_post_count).await?;
+        let conflicts = self.get_post_conflicts().await?;
+        
+        let sync_response = SyncResponse {
+            responding_node: self.get_node_id().await?,
+            posts,
+            conflicts,
+            feed_state: self.get_feed_state().await?,
+            sync_timestamp: chrono::Utc::now().timestamp() as u64,
+        };
+        
+        let message = NetworkMessage {
+            message_type: "sync_response".to_string(),
+            payload: serde_json::to_value(&sync_response)?,
+            timestamp: chrono::Utc::now().timestamp() as u64,
+            node_id: "local".to_string(),
+        };
+        
+        // Send response to requesting peer
+        if let Some(peer) = self.peers.lock().unwrap().get(requesting_node) {
+            self.send_message_to_peer(&message, peer).await?;
+        }
+        
+        Ok(())
+    }
+    
+    /// Handles sync responses from peers
+    async fn handle_sync_response(&self, sync_response: &SyncResponse) -> Result<()> {
+        // Process received posts
+        for post in &sync_response.posts {
+            if post.is_valid() {
+                if let Some(conflict) = self.detect_post_conflict(post).await? {
+                    self.resolve_post_conflict(conflict).await?;
+                } else {
+                    self.update_feed_state(post).await?;
+                }
+            }
+        }
+        
+        // Process conflicts
+        for conflict in &sync_response.conflicts {
+            let mut conflict_store = self.post_conflicts.lock().unwrap();
+            conflict_store.insert(conflict.post_id.hash.clone(), conflict.clone());
+        }
+        
+        // Update peer feed state
+        {
+            let mut feed_state = self.feed_state.lock().unwrap();
+            if let Some(peer_state) = feed_state.peer_states.get_mut(&sync_response.responding_node) {
+                peer_state.sync_status = SyncStatus::Synchronized;
+                peer_state.last_post_timestamp = sync_response.feed_state.last_sync_timestamp;
+                peer_state.post_count = sync_response.feed_state.post_count;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Gets post conflicts
+    async fn get_post_conflicts(&self) -> Result<Vec<PostConflict>> {
+        let conflict_store = self.post_conflicts.lock().unwrap();
+        Ok(conflict_store.values().cloned().collect())
+    }
+    
+    /// Gets current feed state
+    async fn get_feed_state(&self) -> Result<FeedState> {
+        let feed_state = self.feed_state.lock().unwrap();
+        Ok(feed_state.clone())
+    }
+    
+    /// Legacy message handling (existing functionality)
+    async fn handle_legacy_message(&self, message: &NetworkMessage) -> Result<()> {
         // Phase 1: notify handlers synchronously (no await while holding lock)
         {
             let handlers = self.message_handlers.lock().unwrap();
@@ -498,17 +1023,6 @@ impl NetworkManager {
         }
         
         true
-    }
-    
-    pub async fn broadcast_post(&self, post: &Post) -> Result<()> {
-        let message = NetworkMessage {
-            message_type: "post".to_string(),
-            payload: serde_json::to_value(post)?,
-            timestamp: chrono::Utc::now().timestamp() as u64,
-            node_id: "local".to_string(),
-        };
-        
-        self.broadcast_message(&message).await
     }
     
     pub async fn broadcast_config(&self, config: &Config) -> Result<()> {
@@ -770,6 +1284,11 @@ impl Clone for NetworkManager {
             request_cooldowns: Arc::clone(&self.request_cooldowns),
             tor_health_monitor: Arc::clone(&self.tor_health_monitor),
             circuit_rotation_task: None, // Don't clone the task handle
+            feed_state: Arc::clone(&self.feed_state),
+            post_conflicts: Arc::clone(&self.post_conflicts),
+            post_order: Arc::clone(&self.post_order),
+            broadcast_cache: Arc::clone(&self.broadcast_cache),
+            sync_queue: Arc::clone(&self.sync_queue),
         }
     }
 }
