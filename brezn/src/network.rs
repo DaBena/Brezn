@@ -4,10 +4,12 @@ use serde_json;
 use anyhow::{Result, Context};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tokio::time::{interval, sleep};
 use crate::types::{NetworkMessage, Post, Config};
 use crate::crypto::CryptoManager;
 use crate::database::Database;
-use crate::tor::TorManager;
+use crate::tor::{TorManager, TorStatus, CircuitInfo};
 use sodiumoxide::crypto::box_;
 
 pub struct NetworkManager {
@@ -19,6 +21,8 @@ pub struct NetworkManager {
     message_handlers: Arc<Mutex<Vec<Box<dyn MessageHandler>>>>,
     tor_manager: Option<TorManager>,
     request_cooldowns: Arc<Mutex<HashMap<String, u64>>>,
+    tor_health_monitor: Arc<Mutex<TorHealthMonitor>>,
+    circuit_rotation_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +33,31 @@ pub struct PeerInfo {
     pub port: u16,
     pub last_seen: u64,
     pub is_tor_peer: bool,
+    pub circuit_id: Option<String>,
+    pub connection_health: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct TorHealthMonitor {
+    pub last_check: std::time::Instant,
+    pub overall_health: f64,
+    pub circuit_count: usize,
+    pub active_connections: usize,
+    pub last_circuit_rotation: std::time::Instant,
+    pub failure_count: u32,
+}
+
+impl Default for TorHealthMonitor {
+    fn default() -> Self {
+        Self {
+            last_check: std::time::Instant::now(),
+            overall_health: 1.0,
+            circuit_count: 0,
+            active_connections: 0,
+            last_circuit_rotation: std::time::Instant::now(),
+            failure_count: 0,
+        }
+    }
 }
 
 pub trait MessageHandler: Send + Sync {
@@ -50,13 +79,21 @@ impl NetworkManager {
             message_handlers: Arc::new(Mutex::new(Vec::new())),
             tor_manager: None,
             request_cooldowns: Arc::new(Mutex::new(HashMap::new())),
+            tor_health_monitor: Arc::new(Mutex::new(TorHealthMonitor::default())),
+            circuit_rotation_task: None,
         }
     }
     
     pub async fn enable_tor(&mut self) -> Result<()> {
+        // Start circuit rotation task first
+        self.start_circuit_rotation_task().await?;
+        
         let mut tor_config = crate::tor::TorConfig::default();
         tor_config.socks_port = self.tor_socks_port;
         tor_config.enabled = true;
+        tor_config.max_connections = 20; // Increase for network manager
+        tor_config.health_check_interval = Duration::from_secs(30); // More frequent checks
+        tor_config.circuit_rotation_interval = Duration::from_secs(180); // More frequent rotation
         
         let mut tor_manager = TorManager::new(tor_config);
         tor_manager.enable().await?;
@@ -64,18 +101,134 @@ impl NetworkManager {
         self.tor_manager = Some(tor_manager);
         self.tor_enabled = true;
         
+        // Start Tor health monitoring
+        self.start_tor_health_monitoring().await?;
+        
+        // Start circuit rotation task
+        self.start_circuit_rotation_task().await?;
+        
         println!("🔒 Tor SOCKS5 Proxy aktiviert auf Port {}", self.tor_socks_port);
+        Ok(())
+    }
+    
+    async fn start_tor_health_monitoring(&self) -> Result<()> {
+        let tor_manager = self.tor_manager.clone();
+        let health_monitor = Arc::clone(&self.tor_health_monitor);
+        
+        tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(30));
+            
+            loop {
+                interval.tick().await;
+                
+                if let Some(ref tor_mgr) = tor_manager {
+                    // Perform health check
+                    if let Err(e) = tor_mgr.perform_health_check().await {
+                        eprintln!("Tor health check failed: {}", e);
+                        
+                        // Update failure count
+                        {
+                            if let Ok(mut monitor) = health_monitor.lock() {
+                                monitor.failure_count += 1;
+                                monitor.overall_health = (monitor.overall_health * 0.9).max(0.1);
+                            }
+                        }
+                    } else {
+                        // Update health monitor with current status
+                        let status = tor_mgr.get_status();
+                        {
+                            if let Ok(mut monitor) = health_monitor.lock() {
+                                monitor.last_check = std::time::Instant::now();
+                                monitor.overall_health = status.circuit_health;
+                                monitor.circuit_count = status.active_circuits;
+                                monitor.active_connections = status.total_connections;
+                                monitor.failure_count = 0; // Reset on success
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        Ok(())
+    }
+    
+    async fn start_circuit_rotation_task(&mut self) -> Result<()> {
+        let tor_manager = self.tor_manager.clone();
+        let health_monitor = Arc::clone(&self.tor_health_monitor);
+        
+        let handle = tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(180)); // Every 3 minutes
+            
+            loop {
+                interval.tick().await;
+                
+                if let Some(ref tor_mgr) = tor_manager {
+                    // Check if rotation is needed
+                    let should_rotate = {
+                        if let Ok(monitor) = health_monitor.lock() {
+                            let time_since_rotation = monitor.last_check.duration_since(monitor.last_circuit_rotation);
+                            monitor.overall_health < 0.5 || time_since_rotation > Duration::from_secs(600)
+                        } else {
+                            false
+                        }
+                    };
+                    
+                    if should_rotate {
+                        if let Err(e) = tor_mgr.rotate_circuits().await {
+                            eprintln!("Circuit rotation failed: {}", e);
+                        } else {
+                            // Update rotation timestamp
+                            {
+                                if let Ok(mut monitor) = health_monitor.lock() {
+                                    monitor.last_circuit_rotation = std::time::Instant::now();
+                                }
+                            }
+                            println!("🔄 Tor circuits rotated automatically");
+                        }
+                    }
+                }
+            }
+        });
+        
+        self.circuit_rotation_task = Some(handle);
         Ok(())
     }
     
     pub fn disable_tor(&mut self) {
         self.tor_enabled = false;
+        
+        // Stop circuit rotation task
+        if let Some(task) = self.circuit_rotation_task.take() {
+            task.abort();
+        }
+        
         self.tor_manager = None;
+        
+        // Update health monitor
+        if let Ok(mut monitor) = self.tor_health_monitor.lock() {
+            monitor.overall_health = 0.0;
+            monitor.circuit_count = 0;
+            monitor.active_connections = 0;
+        }
+        
         println!("🔓 Tor SOCKS5 Proxy deaktiviert");
     }
     
     pub fn is_tor_enabled(&self) -> bool {
         self.tor_enabled
+    }
+    
+    pub fn get_tor_status(&self) -> Option<TorStatus> {
+        self.tor_manager.as_ref().map(|tm| tm.get_status())
+    }
+    
+    pub fn get_tor_health(&self) -> TorHealthMonitor {
+        if let Ok(monitor) = self.tor_health_monitor.lock() {
+            monitor.clone()
+        } else {
+            TorHealthMonitor::default()
+        }
     }
     
     pub fn add_message_handler(&self, handler: Box<dyn MessageHandler>) {
@@ -97,8 +250,13 @@ impl NetworkManager {
             loop {
                 interval.tick().await;
                 
-                let nm = network_manager.lock().unwrap();
-                if let Err(e) = nm.check_peer_health().await {
+                // Clone the Arc to avoid holding the lock across await
+                let network_manager_clone = network_manager.clone();
+                let result = {
+                    let nm = network_manager_clone.lock().unwrap();
+                    nm.check_peer_health()
+                };
+                if let Err(e) = result.await {
                     eprintln!("Heartbeat error: {}", e);
                 }
             }
@@ -378,12 +536,8 @@ impl NetworkManager {
     
     async fn send_message_to_peer(&self, message: &NetworkMessage, peer: &PeerInfo) -> Result<()> {
         let stream = if peer.is_tor_peer && self.tor_enabled {
-            // Use Tor connection
-            if let Some(ref tor_manager) = self.tor_manager {
-                tor_manager.connect_through_tor(&peer.address, peer.port).await?
-            } else {
-                return Err(anyhow::anyhow!("Tor not available"));
-            }
+            // Use Tor connection with retry logic
+            self.connect_through_tor_with_retry(&peer.address, peer.port).await?
         } else {
             // Direct connection
             TcpStream::connect(format!("{}:{}", peer.address, peer.port)).await
@@ -402,6 +556,58 @@ impl NetworkManager {
         Ok(())
     }
     
+    async fn connect_through_tor_with_retry(&self, target_host: &str, target_port: u16) -> Result<TcpStream> {
+        if let Some(ref tor_manager) = self.tor_manager {
+            let mut attempts = 0;
+            let max_attempts = 3;
+            
+            while attempts < max_attempts {
+                match tor_manager.connect_through_tor(target_host, target_port).await {
+                    Ok(stream) => {
+                        // Update peer circuit information
+                        if let Some(circuit_id) = tor_manager.get_circuit_info() {
+                            if let Ok(mut peers) = self.peers.lock() {
+                                if let Some(peer) = peers.get_mut(&format!("{}:{}", target_host, target_port)) {
+                                    peer.circuit_id = Some(circuit_id);
+                                    peer.connection_health = 1.0;
+                                }
+                            }
+                        }
+                        return Ok(stream);
+                    }
+                    Err(e) => {
+                        attempts += 1;
+                        eprintln!("Tor connection attempt {} failed: {}", attempts, e);
+                        
+                        if attempts < max_attempts {
+                            // Wait before retry
+                            sleep(Duration::from_millis(100 * attempts as u64)).await;
+                            
+                            // Try to rotate circuits if health is poor
+                            let should_rotate = {
+                                if let Ok(health) = self.tor_health_monitor.lock() {
+                                    health.overall_health < 0.5
+                                } else {
+                                    false
+                                }
+                            };
+                            
+                            if should_rotate {
+                                if let Err(rotate_err) = tor_manager.rotate_circuits().await {
+                                    eprintln!("Circuit rotation failed during retry: {}", rotate_err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Err(anyhow::anyhow!("Failed to connect through Tor after {} attempts", max_attempts))
+        } else {
+            Err(anyhow::anyhow!("Tor not available"))
+        }
+    }
+    
     pub fn add_peer(&self, node_id: String, public_key: box_::PublicKey, address: String, port: u16, is_tor_peer: bool) {
         let mut peers = self.peers.lock().unwrap();
         peers.insert(node_id.clone(), PeerInfo {
@@ -411,6 +617,8 @@ impl NetworkManager {
             port,
             last_seen: chrono::Utc::now().timestamp() as u64,
             is_tor_peer,
+            circuit_id: None,
+            connection_health: 1.0,
         });
     }
     
@@ -435,6 +643,22 @@ impl NetworkManager {
     pub async fn get_external_ip(&self) -> Result<String> {
         if let Some(ref tor_manager) = self.tor_manager {
             tor_manager.get_external_ip().await.map_err(|e| anyhow::anyhow!("Tor IP failed: {}", e))
+        } else {
+            Err(anyhow::anyhow!("Tor not enabled"))
+        }
+    }
+    
+    pub async fn perform_tor_health_check(&self) -> Result<()> {
+        if let Some(ref tor_manager) = self.tor_manager {
+            tor_manager.perform_health_check().await.map_err(|e| anyhow::anyhow!("Tor health check failed: {}", e))
+        } else {
+            Err(anyhow::anyhow!("Tor not enabled"))
+        }
+    }
+    
+    pub async fn rotate_tor_circuits(&self) -> Result<()> {
+        if let Some(ref tor_manager) = self.tor_manager {
+            tor_manager.rotate_circuits().await.map_err(|e| anyhow::anyhow!("Tor circuit rotation failed: {}", e))
         } else {
             Err(anyhow::anyhow!("Tor not enabled"))
         }
@@ -504,12 +728,18 @@ impl NetworkManager {
         
         let mut sync_tasks = Vec::new();
         
-        for peer in peers {
+                for peer in peers {
             let node_id = peer.node_id.clone();
             let network_manager = Arc::new(Mutex::new(self.clone()));
             
             let task = tokio::spawn(async move {
-                if let Err(e) = network_manager.lock().unwrap().sync_posts_with_peer(&node_id).await {
+                // Clone the Arc to avoid holding the lock across await
+                let network_manager_clone = network_manager.clone();
+                let result = {
+                    let nm = network_manager_clone.lock().unwrap();
+                    nm.sync_posts_with_peer(&node_id)
+                };
+                if let Err(e) = result.await {
                     eprintln!("Failed to sync with peer {}: {}", node_id, e);
                 }
             });
@@ -538,6 +768,8 @@ impl Clone for NetworkManager {
             message_handlers: Arc::clone(&self.message_handlers),
             tor_manager: self.tor_manager.clone(),
             request_cooldowns: Arc::clone(&self.request_cooldowns),
+            tor_health_monitor: Arc::clone(&self.tor_health_monitor),
+            circuit_rotation_task: None, // Don't clone the task handle
         }
     }
 }

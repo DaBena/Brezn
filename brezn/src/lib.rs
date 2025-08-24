@@ -4,6 +4,7 @@ pub mod discovery;
 pub mod error;
 pub mod network;
 pub mod tor;
+pub mod tor_tests;
 pub mod types;
 pub mod ui_extensions;
 
