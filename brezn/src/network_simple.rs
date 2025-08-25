@@ -630,6 +630,136 @@ impl NetworkManager {
         
         Ok(())
     }
+    
+    // Additional MVP methods
+    pub fn add_peer(&self, node_id: String, address: String) {
+        let mut peers = self.peers.lock().unwrap();
+        
+        // Parse address to get host and port
+        let (host, port) = if let Some(colon_pos) = address.rfind(':') {
+            let host_part = &address[..colon_pos];
+            let port_part = address[colon_pos + 1..].parse::<u16>().unwrap_or(8888);
+            (host_part.to_string(), port_part)
+        } else {
+            (address.clone(), 8888)
+        };
+        
+        let peer_info = PeerInfo {
+            node_id: node_id.clone(),
+            public_key: box_::PublicKey::from_slice(&[0u8; 32]).unwrap_or_else(|| {
+                // Generate a default key if sodiumoxide is not available
+                let mut key = [0u8; 32];
+                key[0] = 1; // Mark as default
+                box_::PublicKey::from_slice(&key).unwrap()
+            }),
+            address: host,
+            port,
+            last_seen: chrono::Utc::now().timestamp() as u64,
+            connection_quality: ConnectionQuality::Unknown,
+            capabilities: vec!["posts".to_string(), "sync".to_string()],
+            latency_ms: None,
+            is_tor_peer: false,
+            circuit_id: None,
+            connection_health: 1.0,
+        };
+        
+        peers.insert(node_id.clone(), peer_info);
+        println!("➕ Peer hinzugefügt: {} ({})", node_id, address);
+    }
+    
+    pub fn cleanup(&self) {
+        println!("🧹 Bereinige NetworkManager-Ressourcen...");
+        
+        // Clear peers
+        let mut peers = self.peers.lock().unwrap();
+        peers.clear();
+        
+        // Clear message handlers
+        let mut handlers = self.message_handlers.lock().unwrap();
+        handlers.clear();
+        
+        // Clear request cooldowns
+        let mut cooldowns = self.request_cooldowns.lock().unwrap();
+        cooldowns.clear();
+        
+        // Clear topology
+        let mut topology = self.topology.lock().unwrap();
+        topology.connections.clear();
+        topology.routing_table.clear();
+        topology.network_segments.clear();
+        
+        // Clear feed state
+        let mut feed_state = self.feed_state.lock().unwrap();
+        feed_state.peer_states.clear();
+        
+        // Clear post conflicts
+        let mut conflicts = self.post_conflicts.lock().unwrap();
+        conflicts.clear();
+        
+        // Clear post order
+        let mut post_order = self.post_order.lock().unwrap();
+        post_order.clear();
+        
+        // Clear broadcast cache
+        let mut broadcast_cache = self.broadcast_cache.lock().unwrap();
+        broadcast_cache.clear();
+        
+        // Disable Tor
+        self.tor_enabled = false;
+        self.tor_manager = None;
+        
+        println!("✅ NetworkManager-Ressourcen bereinigt");
+    }
+    
+    pub fn get_peer_count(&self) -> usize {
+        let peers = self.peers.lock().unwrap();
+        peers.len()
+    }
+    
+    pub fn get_network_health(&self) -> f64 {
+        let peers = self.peers.lock().unwrap();
+        let peer_count = peers.len() as f64;
+        let max_peers = 50.0; // Default max peers
+        
+        if peer_count == 0.0 {
+            0.0
+        } else if peer_count >= max_peers {
+            100.0
+        } else {
+            (peer_count * 100.0) / max_peers
+        }
+    }
+    
+    pub fn get_connection_stats(&self) -> (usize, usize) {
+        let peers = self.peers.lock().unwrap();
+        let total_peers = peers.len();
+        let active_peers = peers.values()
+            .filter(|p| p.connection_health > 0.5)
+            .count();
+        
+        (total_peers, active_peers)
+    }
+    
+    pub fn update_peer_health(&self, node_id: &str, health: f64) {
+        let mut peers = self.peers.lock().unwrap();
+        if let Some(peer) = peers.get_mut(node_id) {
+            peer.connection_health = health.max(0.0).min(1.0);
+            peer.last_seen = chrono::Utc::now().timestamp() as u64;
+        }
+    }
+    
+    pub fn get_peer_health(&self, node_id: &str) -> Option<f64> {
+        let peers = self.peers.lock().unwrap();
+        peers.get(node_id).map(|p| p.connection_health)
+    }
+    
+    pub fn is_peer_online(&self, node_id: &str) -> bool {
+        if let Some(health) = self.get_peer_health(node_id) {
+            health > 0.3 // Consider peer online if health > 30%
+        } else {
+            false
+        }
+    }
 }
 
 pub struct DefaultMessageHandler {

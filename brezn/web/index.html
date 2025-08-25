@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brezn - Dezentrale Feed-App</title>
+    <link rel="stylesheet" href="brezn-mvp.css">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -907,6 +908,24 @@
                     </div>
                     <div class="connection-item">
                         <span class="connection-label">Verbindungsversuche:</span>
+                </div>
+            </div>
+            
+            <!-- P2P Status Container -->
+            <div class="p2p-status-section">
+                <h3>🌐 P2P-Netzwerk Status</h3>
+                <div id="p2p-status">
+                    <p>Lade P2P-Status...</p>
+                </div>
+            </div>
+            
+            <!-- Tor Status Container -->
+            <div class="tor-status-section">
+                <h3>🔒 Tor-Netzwerk Status</h3>
+                <div id="tor-status">
+                    <p>Lade Tor-Status...</p>
+                </div>
+            </div>
                         <span class="connection-value" id="connection-attempts">0</span>
                     </div>
                     <div class="connection-item">
@@ -1012,6 +1031,9 @@
     <script src="p2p-ui.js"></script>
     <link rel="stylesheet" href="p2p-realtime-status.css">
     <script src="p2p-realtime-status.js"></script>
+    
+    <!-- Brezn MVP JavaScript -->
+    <script src="brezn-mvp.js"></script>
     
     <script>
         function showTab(tabName) {
@@ -1347,14 +1369,20 @@
         
         // Load data when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            loadPosts();
-            loadConfig();
-            loadNetworkStatus();
-            loadP2PStatus();
-            loadTorStatus();
-            
-            // Start real-time updates
-            startRealTimeUpdates();
+            // Initialize MVP functionality
+            if (window.BreznMVP && window.BreznMVP.initializeMVP) {
+                window.BreznMVP.initializeMVP();
+            } else {
+                // Fallback to old initialization
+                loadPosts();
+                loadConfig();
+                loadNetworkStatus();
+                loadP2PStatus();
+                loadTorStatus();
+                
+                // Start real-time updates
+                startRealTimeUpdates();
+            }
         });
 
         // Real-time updates for posts and network status

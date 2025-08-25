@@ -161,6 +161,10 @@ impl BreznApp {
         let mut status = self.network_status.lock().unwrap();
         status.tor_enabled = true;
         
+        // Actually enable Tor in the network manager
+        let mut network_manager = self.network_manager.lock().unwrap();
+        network_manager.enable_tor().map_err(|e| anyhow::anyhow!("Failed to enable Tor: {}", e))?;
+        
         Ok(true)
     }
 
@@ -173,6 +177,10 @@ impl BreznApp {
         let mut status = self.network_status.lock().unwrap();
         status.tor_enabled = false;
         
+        // Actually disable Tor in the network manager
+        let mut network_manager = self.network_manager.lock().unwrap();
+        network_manager.disable_tor();
+        
         Ok(())
     }
 
@@ -182,8 +190,13 @@ impl BreznApp {
             return Err(anyhow::anyhow!("App not initialized"));
         }
 
-        // Generate a simple QR code data string
-        let qr_data = format!("brezn://peer/{}", Uuid::new_v4());
+        // Generate a simple QR code data string with actual network info
+        let network_status = self.network_status.lock().unwrap();
+        let qr_data = format!("brezn://peer/{}/{}:{}", 
+            network_status.node_id, 
+            "127.0.0.1", 
+            network_status.network_port
+        );
         Ok(qr_data)
     }
 
@@ -193,66 +206,27 @@ impl BreznApp {
             return Err(anyhow::anyhow!("App not initialized"));
         }
 
-        // Simple QR code parsing
+        // Parse QR code and add peer to network
         if qr_data.starts_with("brezn://peer/") {
+            // Extract peer information and add to network
+            let parts: Vec<&str> = qr_data.split('/').collect();
+            if parts.len() >= 4 {
+                let peer_info = parts[3];
+                let peer_parts: Vec<&str> = peer_info.split(':').collect();
+                if peer_parts.len() >= 2 {
+                    let node_id = peer_parts[0];
+                    let address = format!("{}:{}", peer_parts[1], peer_parts[2]);
+                    
+                    // Add peer to network manager
+                    let mut network_manager = self.network_manager.lock().unwrap();
+                    network_manager.add_peer(node_id.to_string(), address);
+                    return Ok(true);
+                }
+            }
             Ok(true)
         } else {
             Err(anyhow::anyhow!("Invalid QR code format"))
         }
-    }
-
-    pub fn get_performance_metrics(&self) -> Result<PerformanceMetrics> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        Ok(PerformanceMetrics {
-            memory_usage: std::process::id() as u64,
-            thread_count: 1,
-            timestamp: Utc::now(),
-        })
-    }
-
-    pub fn get_device_info(&self) -> Result<DeviceInfo> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        Ok(DeviceInfo {
-            platform: std::env::consts::OS.to_string(),
-            arch: std::env::consts::ARCH.to_string(),
-            rust_version: env!("CARGO_PKG_VERSION").to_string(),
-            build_time: env!("VERGEN_BUILD_TIMESTAMP").to_string(),
-        })
-    }
-
-    pub fn test_p2p_network(&self) -> Result<bool> {
-        let initialized = self.is_initialized.lock().unwrap();
-        if !*initialized {
-            return Err(anyhow::anyhow!("App not initialized"));
-        }
-
-        // Simulate P2P network test
-        Ok(true)
-    }
-
-    pub fn cleanup(&self) -> Result<()> {
-        let mut initialized = self.is_initialized.lock().unwrap();
-        *initialized = false;
-        
-        Ok(())
-    }
-
-    // Network manager methods
-    pub fn get_network_manager(&self) -> Arc<Mutex<network_simple::NetworkManager>> {
-        self.network_manager.clone()
-    }
-
-    // Config methods
-    pub fn get_config(&self) -> Arc<Mutex<types::Config>> {
-        self.config.clone()
     }
 
     // P2P network methods
@@ -269,6 +243,97 @@ impl BreznApp {
     pub fn get_network_status(&self) -> Result<network_simple::NetworkStatus> {
         let network_manager = self.network_manager.lock().unwrap();
         Ok(network_manager.get_network_status())
+    }
+    
+    // Additional MVP methods
+    pub fn get_network_manager(&self) -> Arc<Mutex<network_simple::NetworkManager>> {
+        self.network_manager.clone()
+    }
+    
+    pub fn get_config(&self) -> Arc<Mutex<types::Config>> {
+        self.config.clone()
+    }
+    
+    pub fn get_discovery_status(&self) -> Result<bool> {
+        let network_status = self.network_status.lock().unwrap();
+        Ok(network_status.discovery_active)
+    }
+    
+    pub fn toggle_discovery(&self) -> Result<bool> {
+        let mut network_status = self.network_status.lock().unwrap();
+        network_status.discovery_active = !network_status.discovery_active;
+        Ok(network_status.discovery_active)
+    }
+    
+    pub fn get_peer_count(&self) -> Result<usize> {
+        let network_status = self.network_status.lock().unwrap();
+        Ok(network_status.peer_count)
+    }
+    
+    pub fn get_network_health(&self) -> Result<f64> {
+        let network_status = self.network_status.lock().unwrap();
+        let peer_count = network_status.peer_count as f64;
+        let max_peers = 50.0; // Default max peers
+        
+        if peer_count == 0.0 {
+            Ok(0.0)
+        } else if peer_count >= max_peers {
+            Ok(100.0)
+        } else {
+            Ok((peer_count * 100.0) / max_peers)
+        }
+    }
+    
+    pub fn get_performance_metrics(&self) -> Result<PerformanceMetrics> {
+        let initialized = self.is_initialized.lock().unwrap();
+        if !*initialized {
+            return Err(anyhow::anyhow!("App not initialized"));
+        }
+
+        Ok(PerformanceMetrics {
+            memory_usage: std::process::id() as u64,
+            thread_count: std::thread::available_parallelism().map(|p| p.get() as u32).unwrap_or(1),
+            timestamp: Utc::now(),
+        })
+    }
+
+    pub fn get_device_info(&self) -> Result<DeviceInfo> {
+        let initialized = self.is_initialized.lock().unwrap();
+        if !*initialized {
+            return Err(anyhow::anyhow!("App not initialized"));
+        }
+
+        Ok(DeviceInfo {
+            platform: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
+            rust_version: env!("CARGO_PKG_VERSION").to_string(),
+            build_time: chrono::Utc::now().to_rfc3339(),
+        })
+    }
+
+    pub fn test_p2p_network(&self) -> Result<bool> {
+        let initialized = self.is_initialized.lock().unwrap();
+        if !*initialized {
+            return Err(anyhow::anyhow!("App not initialized"));
+        }
+
+        // Test P2P network functionality
+        let network_manager = self.network_manager.lock().unwrap();
+        let status = network_manager.get_network_status();
+        
+        // Basic network test
+        Ok(status.network_port > 0 && status.discovery_port > 0)
+    }
+
+    pub fn cleanup(&self) -> Result<()> {
+        let mut initialized = self.is_initialized.lock().unwrap();
+        *initialized = false;
+        
+        // Cleanup network resources
+        let mut network_manager = self.network_manager.lock().unwrap();
+        network_manager.cleanup();
+        
+        Ok(())
     }
 }
 
