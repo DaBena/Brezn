@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Dark-mode only baseline */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  /* hide browser scrollbars in main view while keeping scroll */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+
+body {
+  margin: 0;
+  /* pr0gramm "richtiges grau" */
+  background: #161618;
+  color: #f4f1ea;
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Slightly nicer tap highlights on mobile */
+* {
+  -webkit-tap-highlight-color: rgba(214, 178, 94, 0.18);
+}
+
+/* Hide scrollbars but keep scroll (Sheet/post detail) */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+

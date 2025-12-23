@@ -1,0 +1,311 @@
+import { useMemo, useState } from 'react'
+import type { Event } from 'nostr-tools'
+import { ComposerSheet } from './components/ComposerSheet'
+import { ConversationsSheet } from './components/ConversationsSheet'
+import { DMSheet } from './components/DMSheet'
+import { Feed } from './components/Feed'
+import { PwaUpdateToast } from './components/PwaUpdateToast'
+import { SettingsSheet } from './components/SettingsSheet'
+import { ThreadSheet } from './components/ThreadSheet'
+import { useIdentity } from './hooks/useIdentity'
+import { useLocalFeed } from './hooks/useLocalFeed'
+import { useNostrClient } from './hooks/useNostrClient'
+import { useReactions } from './hooks/useReactions'
+import { breznClientTag, NOSTR_KINDS } from './lib/breznNostr'
+
+export default function App() {
+  const client = useNostrClient()
+  const { identity } = useIdentity(client)
+
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [threadRoot, setThreadRoot] = useState<Event | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [dmOpen, setDmOpen] = useState(false)
+  const [dmTargetPubkey, setDmTargetPubkey] = useState<string | null>(null)
+  const [mutedTerms, setMutedTerms] = useState<string[]>(() => client.getMutedTerms())
+  const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>({})
+
+  const {
+    feedState,
+    requestLocationAndLoad,
+    geoCell,
+    sortedEvents,
+    viewerPoint,
+    radiusKm,
+    radiusKmMax,
+    geoLen,
+    initialTimedOut,
+    lastCloseReasons,
+    isLoadingMore,
+    loadMore,
+    isOffline,
+    applyRadiusKm,
+  } = useLocalFeed({ client, mutedTerms })
+
+  const { reactionsByNoteId } = useReactions({
+    client,
+    noteIds: sortedEvents.map(e => e.id),
+    viewerPubkey: identity.pubkey,
+    isOffline,
+  })
+
+  const mergedReactionsByNoteId = useMemo(() => {
+    if (!Object.keys(optimisticReactedByNoteId).length) return reactionsByNoteId
+    const merged: Record<string, { total: number; viewerReacted: boolean }> = { ...reactionsByNoteId }
+    for (const noteId of Object.keys(optimisticReactedByNoteId)) {
+      const cur = merged[noteId] ?? { total: 0, viewerReacted: false }
+      merged[noteId] = { ...cur, viewerReacted: true }
+    }
+    return merged
+  }, [optimisticReactedByNoteId, reactionsByNoteId])
+
+  async function publishPost(content: string) {
+    if (!geoCell) throw new Error('Standort fehlt (Feed neu laden).')
+    await client.publish({
+      kind: NOSTR_KINDS.note,
+      content,
+      tags: [
+        breznClientTag(),
+        ['g', geoCell],
+      ],
+    })
+  }
+
+  async function publishReply(opts: { root: Event; content: string }) {
+    const content = opts.content.trim()
+    if (!content) return
+    if (isOffline) throw new Error('Offline – Kommentare sind read-only.')
+
+    const root = opts.root
+    const rootGeo = root.tags.find(t => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
+    const g = rootGeo ?? geoCell
+
+    const tags: string[][] = [
+      breznClientTag(),
+      // NIP-10 threading (reply-to == root in our UI)
+      ['e', root.id, '', 'root'],
+      ['e', root.id, '', 'reply'],
+      ['p', root.pubkey],
+    ]
+    if (g) tags.push(['g', g])
+
+    await client.publish({ kind: 1, content, tags })
+  }
+
+  async function reactToPost(evt: Event) {
+    if (isOffline) return
+    if (mergedReactionsByNoteId[evt.id]?.viewerReacted) return
+    // Optimistically prevent double-like while relay echo is pending.
+    setOptimisticReactedByNoteId(prev => (prev[evt.id] ? prev : { ...prev, [evt.id]: true }))
+    try {
+      await client.publish({
+        kind: NOSTR_KINDS.reaction,
+        content: '+',
+        tags: [
+          breznClientTag(),
+          ['e', evt.id],
+          ['p', evt.pubkey],
+        ],
+      })
+    } catch (e) {
+      setOptimisticReactedByNoteId(prev => {
+        if (!prev[evt.id]) return prev
+        const next = { ...prev }
+        delete next[evt.id]
+        return next
+      })
+      window.alert(e instanceof Error ? e.message : 'Reaction failed.')
+    }
+  }
+
+  async function deletePost(evt: Event) {
+    if (isOffline) throw new Error('Offline – Deletion Event kann nicht gesendet werden.')
+    if (evt.pubkey !== identity.pubkey) throw new Error('Nur eigene Posts können mit Deletion Event markiert werden.')
+    // NIP-09: Event Deletion (kind 5)
+    await client.publish({
+      kind: NOSTR_KINDS.deletion,
+      content: '',
+      tags: [
+        breznClientTag(),
+        ['e', evt.id],
+      ],
+    })
+  }
+
+  return (
+    <div className="min-h-dvh bg-brezn-bg text-brezn-text">
+      <PwaUpdateToast />
+      <button
+        type="button"
+        onClick={() => setDmOpen(true)}
+        aria-label="Chat öffnen"
+        className={[
+          'fixed z-30',
+          // Fallback for browsers that don't support env(safe-area-inset-*)
+          'top-2 left-2',
+          // Prefer safe-area positioning when supported
+          'top-[calc(env(safe-area-inset-top)+0.25rem)] left-[calc(env(safe-area-inset-left)+0.25rem)]',
+          // Keep a good tap-target, but no circular button chrome.
+          'h-9 w-9 rounded-lg text-brezn-muted',
+          'grid place-items-center hover:text-brezn-text',
+          'focus:outline-none focus:ring-2 focus:ring-brezn-gold/40',
+        ].join(' ')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+          className="opacity-90"
+        >
+          <path
+            fill="currentColor"
+            d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
+          />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setFilterOpen(true)}
+        aria-label="Menü öffnen"
+        className={[
+          'fixed z-30',
+          // Fallback for browsers that don't support env(safe-area-inset-*)
+          'top-2 right-2',
+          // Prefer safe-area positioning when supported
+          'top-[calc(env(safe-area-inset-top)+0.25rem)] right-[calc(env(safe-area-inset-right)+0.25rem)]',
+          // Keep a good tap-target, but no circular button chrome.
+          'h-9 w-9 rounded-lg text-brezn-muted',
+          'grid place-items-center hover:text-brezn-text',
+          'focus:outline-none focus:ring-2 focus:ring-brezn-gold/40',
+        ].join(' ')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+          className="opacity-90"
+        >
+          <path
+            fill="currentColor"
+            d="M4 7h16v2H4V7zm0 6h16v2H4v-2zm0 6h16v2H4v-2z"
+          />
+        </svg>
+      </button>
+
+      <Feed
+        feedState={feedState}
+        geoCell={geoCell}
+        viewerPoint={viewerPoint}
+        isOffline={isOffline}
+        reactionsByNoteId={mergedReactionsByNoteId}
+        canReact={!isOffline}
+        events={sortedEvents}
+        initialTimedOut={initialTimedOut}
+        lastCloseReasons={lastCloseReasons}
+        isLoadingMore={isLoadingMore}
+        client={client}
+        onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
+        onLoadMore={loadMore}
+        onReact={evt => void reactToPost(evt)}
+        onOpenThread={evt => setThreadRoot(evt)}
+      />
+
+      {/* Always-visible compose button (esp. on mobile) */}
+      <button
+        type="button"
+        onClick={() => setIsComposerOpen(true)}
+        aria-label="Neuen Beitrag erstellen"
+        className={[
+          'fixed z-30',
+          // Fallback for browsers that don't support env(safe-area-inset-*)
+          'bottom-6 left-1/2 -translate-x-1/2',
+          // Prefer safe-area positioning when supported
+          'bottom-[calc(env(safe-area-inset-bottom)+1.5rem)]',
+          'h-10 w-10 rounded-full',
+          'bg-brezn-gold text-brezn-bg shadow-soft',
+          'grid place-items-center',
+          'hover:opacity-95 active:scale-[0.98]',
+          // subtle ring around the button
+          "before:content-[''] before:absolute before:-inset-2 before:rounded-full before:border before:border-brezn-gold/40 before:pointer-events-none",
+        ].join(' ')}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          aria-hidden="true"
+          className="block"
+        >
+          <path
+            d="M12 5v14M5 12h14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+
+      <ComposerSheet
+        open={isComposerOpen}
+        onClose={() => setIsComposerOpen(false)}
+        geoCell={geoCell}
+        onPublish={publishPost}
+        mediaUploadEndpoint={client.getMediaUploadEndpoint()}
+      />
+
+      {threadRoot ? (
+        <ThreadSheet
+          open
+          root={threadRoot}
+          client={client}
+          mutedTerms={mutedTerms}
+          isOffline={isOffline}
+          viewerPoint={viewerPoint}
+          onClose={() => setThreadRoot(null)}
+          onPublishReply={content => void publishReply({ root: threadRoot, content })}
+          onOpenDM={pubkey => {
+            setDmTargetPubkey(pubkey)
+            setDmOpen(true)
+          }}
+          onDelete={evt => void deletePost(evt)}
+        />
+      ) : null}
+
+      {filterOpen ? (
+        <SettingsSheet
+          open
+          onClose={() => setFilterOpen(false)}
+          client={client}
+          onModerationChanged={() => {
+            setMutedTerms(client.getMutedTerms())
+          }}
+          radiusKm={radiusKm}
+          radiusKmMax={radiusKmMax}
+          geoLen={geoLen}
+          geoCell={geoCell}
+          onRadiusKmChange={applyRadiusKm}
+        />
+      ) : null}
+
+      {dmOpen && dmTargetPubkey ? (
+        <DMSheet
+          open={dmOpen}
+          onClose={() => {
+            setDmOpen(false)
+            setDmTargetPubkey(null)
+          }}
+          client={client}
+          otherPubkey={dmTargetPubkey}
+        />
+      ) : dmOpen ? (
+        <ConversationsSheet open={dmOpen} onClose={() => setDmOpen(false)} client={client} />
+      ) : null}
+    </div>
+  )
+}
+
+
