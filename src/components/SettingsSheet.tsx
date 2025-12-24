@@ -34,6 +34,10 @@ export function SettingsSheet(props: {
   const [mutedTermsText, setMutedTermsText] = useState(() => client.getMutedTerms().join('\n'))
   const [mutedTermsMsg, setMutedTermsMsg] = useState<string | null>(null)
 
+  // --- Blocked users ---
+  const [blockedPubkeys, setBlockedPubkeys] = useState<string[]>(() => client.getBlockedPubkeys())
+  const [blockedMsg, setBlockedMsg] = useState<string | null>(null)
+
   // --- Relays ---
   const [relays, setRelays] = useState<string[]>(() => client.getRelays())
   const [newRelay, setNewRelay] = useState('')
@@ -70,12 +74,6 @@ export function SettingsSheet(props: {
     return client.getPrivateIdentity()
   }, [client])
 
-  function parseMutedTermsFromText(text: string): string[] {
-    return text
-      .split('\n')
-      .map(l => l.trim())
-      .filter(Boolean)
-  }
 
   async function copyToClipboard(text: string) {
     try {
@@ -101,6 +99,14 @@ export function SettingsSheet(props: {
     onModerationChanged?.()
   }
 
+  function unblockUser(pubkey: string) {
+    const next = blockedPubkeys.filter(p => p !== pubkey)
+    client.setBlockedPubkeys(next)
+    setBlockedPubkeys(client.getBlockedPubkeys())
+    setBlockedMsg('Nutzer entblockiert.')
+    onModerationChanged?.()
+  }
+
   // --- Open/close lifecycle ---
   useEffect(() => {
     if (!open) return
@@ -109,13 +115,16 @@ export function SettingsSheet(props: {
       if (typeof queueMicrotask === 'function') queueMicrotask(fn)
       else window.setTimeout(fn, 0)
     }
-    schedule(() => {
-      setClosing(false)
-      const nextTerms = client.getMutedTerms()
-      setMutedTerms(nextTerms)
-      setMutedTermsText(nextTerms.join('\n'))
-      setMutedTermsMsg(null)
-      setRelays(client.getRelays())
+      schedule(() => {
+        setClosing(false)
+        const nextTerms = client.getMutedTerms()
+        setMutedTerms(nextTerms)
+        setMutedTermsText(nextTerms.join('\n'))
+        setMutedTermsMsg(null)
+        const nextBlocked = client.getBlockedPubkeys()
+        setBlockedPubkeys(nextBlocked)
+        setBlockedMsg(null)
+        setRelays(client.getRelays())
       setNewRelay('')
       setRelayMsg(null)
       setShowPrivKey(false)
@@ -153,30 +162,19 @@ export function SettingsSheet(props: {
 
   // Keep relay status list in sync with current enabled relays.
   useEffect(() => {
-    // Avoid setState directly in effect body (eslint rule).
-    const schedule = (fn: () => void) => {
-      if (typeof queueMicrotask === 'function') queueMicrotask(fn)
-      else window.setTimeout(fn, 0)
-    }
-    schedule(() => {
-      setRelayStatusesByUrl(prev => {
-        const next: Record<string, RelayStatusLite> = {}
-        for (const url of relays) {
-          next[url] = prev[url] ?? { url, reachable: 'unknown' }
-        }
-        return next
-      })
+    setRelayStatusesByUrl(prev => {
+      const next: Record<string, RelayStatusLite> = {}
+      for (const url of relays) {
+        next[url] = prev[url] ?? { url, reachable: 'unknown' }
+      }
+      return next
     })
   }, [relays])
 
   function asErrorMessage(e: unknown): string {
     if (e instanceof Error) return e.message
     if (typeof e === 'string') return e
-    try {
-      return JSON.stringify(e)
-    } catch {
-      return 'Unknown error'
-    }
+    return String(e)
   }
 
   async function persistAndClose() {
@@ -345,6 +343,7 @@ export function SettingsSheet(props: {
             value={radiusKm}
             onChange={e => onRadiusKmChange(Number(e.target.value))}
             className="mt-3 w-full"
+            aria-label="Umkreis in Kilometern"
           />
           <div className="mt-1 text-xs text-brezn-muted">{radiusKm} km</div>
         </div>
@@ -355,11 +354,38 @@ export function SettingsSheet(props: {
           <textarea
             value={mutedTermsText}
             onChange={e => setMutedTermsText(e.target.value)}
-            onBlur={() => saveMutedTerms(parseMutedTermsFromText(mutedTermsText), 'Blockliste gespeichert.')}
+            onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blockliste gespeichert.')}
             placeholder={'z. B.\nspam\nkauf jetzt\ntelegram.me'}
             className="mt-2 h-28 w-full resize-none rounded-xl border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs outline-none focus:ring-2 focus:ring-brezn-gold/40"
           />
           {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
+        </div>
+
+        <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+          <div className="text-xs font-semibold text-brezn-muted">Blockierte Nutzer</div>
+          <div className="mt-1 text-xs text-brezn-muted">{blockedPubkeys.length} blockiert</div>
+          {blockedPubkeys.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {blockedPubkeys.map(pubkey => (
+                <div
+                  key={pubkey}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
+                >
+                  <div className="min-w-0 flex-1 truncate font-mono text-xs">{pubkey}</div>
+                  <button
+                    type="button"
+                    onClick={() => unblockUser(pubkey)}
+                    className="shrink-0 rounded-lg border border-brezn-border bg-brezn-panel2 px-3 py-1.5 text-[11px] font-semibold hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                  >
+                    Entblockieren
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-brezn-muted">Keine blockierten Nutzer</div>
+          )}
+          {blockedMsg ? <div className="mt-2 text-xs text-brezn-muted">{blockedMsg}</div> : null}
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
@@ -667,12 +693,11 @@ export function SettingsSheet(props: {
                       <label
                         htmlFor={profileFileInputId}
                         className={[
-                          'flex-1 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-center cursor-pointer',
+                          'flex-1 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-center',
                           'focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40',
-                          profileUploadState === 'uploading' ? 'opacity-60' : 'hover:bg-brezn-panel',
+                          profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-brezn-panel cursor-pointer',
                         ].join(' ')}
-                        aria-disabled={profileUploadState === 'uploading'}
-                        tabIndex={0}
+                        tabIndex={profileUploadState === 'uploading' ? -1 : 0}
                         role="button"
                         onKeyDown={e => {
                           if (profileUploadState === 'uploading') return

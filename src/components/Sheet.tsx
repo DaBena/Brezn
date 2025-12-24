@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
   const selector = [
@@ -35,6 +35,11 @@ export function Sheet(props: {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const lastActiveElementRef = useRef<HTMLElement | null>(null)
+  
+  // Swipe gesture state
+  const touchStartX = useRef<number | null>(null)
+  const touchStartTime = useRef<number | null>(null)
+  const [swipeOffset, setSwipeOffset] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -117,16 +122,64 @@ export function Sheet(props: {
     }
   }, [open, onClose, dismissible])
 
+  // Swipe gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!dismissible) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartTime.current = Date.now()
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!dismissible || touchStartX.current === null) return
+    
+    const currentX = e.touches[0].clientX
+    const deltaX = currentX - touchStartX.current
+    
+    // Only allow left swipes (negative deltaX)
+    if (deltaX < 0) {
+      setSwipeOffset(Math.abs(deltaX))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (!dismissible || touchStartX.current === null) {
+      setSwipeOffset(0)
+      return
+    }
+
+    const minSwipeDistance = 200 // Increased to prevent accidental closes (similar to Tinder)
+    const maxSwipeTime = 300
+    
+    const swipeTime = touchStartTime.current ? Date.now() - touchStartTime.current : Infinity
+    
+    if (swipeOffset > minSwipeDistance && swipeTime < maxSwipeTime) {
+      onClose()
+    }
+    
+    setSwipeOffset(0)
+    touchStartX.current = null
+    touchStartTime.current = null
+  }
+
   if (!open) return null
+
+  const opacity = swipeOffset > 0 ? Math.max(0, 1 - swipeOffset / 300) : 1
 
   return (
     <div className={`fixed inset-0 ${zIndexClassName ?? 'z-50'}`}>
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={dismissible ? onClose : undefined} />
+      <div 
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm" 
+        onClick={dismissible ? onClose : undefined}
+        style={{ opacity }}
+      />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className={[
           // mobile: bottom-sheet
           'absolute bottom-0 left-0 right-0 mx-auto w-full max-w-xl',
@@ -141,7 +194,12 @@ export function Sheet(props: {
           'rounded-t-3xl border border-brezn-border bg-brezn-panel shadow-soft',
           // spacing
           'p-4',
+          // swipe transition
+          'transition-transform duration-200 ease-out',
         ].join(' ')}
+        style={{
+          transform: swipeOffset > 0 ? `translateX(-${swipeOffset}px)` : undefined,
+        }}
       >
         <div className="flex items-center justify-between">
           {titleElement ? (

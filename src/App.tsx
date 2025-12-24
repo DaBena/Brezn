@@ -23,6 +23,7 @@ export default function App() {
   const [dmOpen, setDmOpen] = useState(false)
   const [dmTargetPubkey, setDmTargetPubkey] = useState<string | null>(null)
   const [mutedTerms, setMutedTerms] = useState<string[]>(() => client.getMutedTerms())
+  const [blockedPubkeys, setBlockedPubkeys] = useState<string[]>(() => client.getBlockedPubkeys())
   const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>({})
 
   const {
@@ -40,7 +41,7 @@ export default function App() {
     loadMore,
     isOffline,
     applyRadiusKm,
-  } = useLocalFeed({ client, mutedTerms })
+  } = useLocalFeed({ client, mutedTerms, blockedPubkeys })
 
   const { reactionsByNoteId } = useReactions({
     client,
@@ -210,7 +211,12 @@ export default function App() {
         onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
         onLoadMore={loadMore}
         onReact={evt => void reactToPost(evt)}
-        onOpenThread={evt => setThreadRoot(evt)}
+        onOpenThread={evt => {
+          // Don't open thread if user is blocked
+          if (!blockedPubkeys.includes(evt.pubkey)) {
+            setThreadRoot(evt)
+          }
+        }}
       />
 
       {/* Always-visible compose button (esp. on mobile) */}
@@ -263,15 +269,17 @@ export default function App() {
           root={threadRoot}
           client={client}
           mutedTerms={mutedTerms}
+          blockedPubkeys={blockedPubkeys}
           isOffline={isOffline}
           viewerPoint={viewerPoint}
           onClose={() => setThreadRoot(null)}
           onPublishReply={content => void publishReply({ root: threadRoot, content })}
-          onOpenDM={pubkey => {
-            setDmTargetPubkey(pubkey)
-            setDmOpen(true)
-          }}
           onDelete={evt => void deletePost(evt)}
+          onBlockUser={pubkey => {
+            const next = [...blockedPubkeys, pubkey]
+            client.setBlockedPubkeys(next)
+            setBlockedPubkeys(client.getBlockedPubkeys())
+          }}
         />
       ) : null}
 
@@ -282,6 +290,7 @@ export default function App() {
           client={client}
           onModerationChanged={() => {
             setMutedTerms(client.getMutedTerms())
+            setBlockedPubkeys(client.getBlockedPubkeys())
           }}
           radiusKm={radiusKm}
           radiusKmMax={radiusKmMax}

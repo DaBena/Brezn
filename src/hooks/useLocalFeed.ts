@@ -10,7 +10,7 @@ import {
   GEOHASH_LEN_MIN_UI,
   geohashCellsWithinRadiusKm,
   getBrowserLocation,
-  maxLocalRadiusKmForGeoLen,
+  LOCAL_RADIUS_MAX_KM,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJson, saveJson } from '../lib/storage'
@@ -39,8 +39,9 @@ function isReplyNote(evt: Event): boolean {
 export function useLocalFeed(params: {
   client: BreznNostrClient
   mutedTerms: string[]
+  blockedPubkeys: string[]
 }) {
-  const { client, mutedTerms } = params
+  const { client, mutedTerms, blockedPubkeys } = params
 
   const cached = loadJson<{ updatedAt: number; geoCell?: string; events: Event[] } | null>(FEED_CACHE_KEY, null)
   const savedLocation = loadJson<SavedLocation | null>(LAST_LOCATION_KEY, null)
@@ -82,10 +83,15 @@ export function useLocalFeed(params: {
   const unsubRef = useRef<null | (() => void)>(null)
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
 
+  const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
-    const filtered = events.filter(e => !(mutedTerms.length && contentMatchesMutedTerms(e.content ?? '', mutedTerms)))
+    const filtered = events.filter(e => {
+      if (blockedSet.has(e.pubkey)) return false
+      if (mutedTerms.length && contentMatchesMutedTerms(e.content ?? '', mutedTerms)) return false
+      return true
+    })
     return filtered.sort((a, b) => b.created_at - a.created_at)
-  }, [events, mutedTerms])
+  }, [events, mutedTerms, blockedSet])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -298,7 +304,7 @@ export function useLocalFeed(params: {
     viewerPoint,
     geoLen: LOCAL_GEO_LEN,
     radiusKm,
-    radiusKmMax: maxLocalRadiusKmForGeoLen(LOCAL_GEO_LEN),
+    radiusKmMax: LOCAL_RADIUS_MAX_KM,
     initialTimedOut,
     lastCloseReasons,
     isLoadingMore,

@@ -67,7 +67,7 @@ export function ComposerSheet(props: {
     <Sheet open={open} title="Neuen lokalen Post erstellen" onClose={onClose}>
       {geoCell ? (
         <div className="mt-2 text-xs text-brezn-muted">
-          in Cell <span className="font-mono">{geoCell}</span>.
+          in Cell <span className="font-mono">{geoCell}</span>
         </div>
       ) : null}
       <textarea
@@ -147,10 +147,9 @@ export function ComposerSheet(props: {
             className={[
               'rounded-2xl border border-brezn-border bg-brezn-panel2 px-4 py-3 text-sm font-semibold',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40',
-              uploadState === 'uploading' ? 'opacity-60' : 'hover:bg-brezn-panel',
+              uploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-brezn-panel cursor-pointer',
             ].join(' ')}
-            aria-disabled={uploadState === 'uploading'}
-            tabIndex={0}
+            tabIndex={uploadState === 'uploading' ? -1 : 0}
             role="button"
             onClick={e => {
               if (uploadState === 'uploading') e.preventDefault()
@@ -174,7 +173,7 @@ export function ComposerSheet(props: {
             aria-label="Beitrag posten"
             className="flex-1 rounded-2xl bg-brezn-gold px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
           >
-            {publishState === 'publishing' ? 'Sende…' : <span className="text-4xl font-black leading-none">+</span>}
+            {publishState === 'publishing' ? 'Sende…' : 'Posten'}
           </button>
           <button
             onClick={() => {

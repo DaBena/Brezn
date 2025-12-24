@@ -11,16 +11,10 @@ function ImagePreview(props: {
   failed?: boolean
   onFail?: (url: string) => void
 }) {
-  const { url, interactive, failed, onFail } = props
+  const { url, failed, onFail } = props
   if (failed) return null
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      onClick={interactive ? stop : undefined}
-      className="block overflow-hidden"
-    >
+    <div className="block overflow-hidden">
       <img
         src={url}
         alt=""
@@ -28,7 +22,7 @@ function ImagePreview(props: {
         className="block w-full"
         onError={() => onFail?.(url)}
       />
-    </a>
+    </div>
   )
 }
 

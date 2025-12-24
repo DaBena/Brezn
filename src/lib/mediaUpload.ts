@@ -85,10 +85,6 @@ function normalizeHttpUrl(input: string): URL {
   return new URL(trimmed)
 }
 
-function isLikelyServerBaseUrl(u: URL): boolean {
-  const p = u.pathname.replace(/\/+$/, '')
-  return p === '' || p === '/'
-}
 
 export function toNip96WellKnownUrl(serverBase: string): string {
   const u = normalizeHttpUrl(serverBase)
@@ -159,7 +155,8 @@ async function resolveUploadEndpoint(input: string, opts?: { signal?: AbortSigna
   }
 
   // If only a server base is provided, use discovery.
-  if (isLikelyServerBaseUrl(u)) {
+  const path = u.pathname.replace(/\/+$/, '')
+  if (path === '' || path === '/') {
     const { apiUrl, requiresNip98 } = await discoverNip96(u.origin, { signal: opts?.signal })
     return { url: apiUrl, requiresNip98 }
   }
@@ -215,13 +212,4 @@ export async function uploadMediaFile(opts: {
   return { url }
 }
 
-// Backwards compatible wrapper (older UI label was "Bild").
-export async function uploadImageFile(opts: {
-  endpoint: string
-  file: File
-  signal?: AbortSignal
-  nip98?: { skHex?: string }
-}): Promise<UploadResult> {
-  return uploadMediaFile(opts)
-}
 

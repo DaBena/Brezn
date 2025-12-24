@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
@@ -52,15 +52,16 @@ export function ThreadSheet(props: {
   root: Event
   client: BreznNostrClient
   mutedTerms: string[]
+  blockedPubkeys: string[]
   isOffline: boolean
   viewerPoint: GeoPoint | null
   onPublishReply: (content: string) => Promise<void> | void
-  onOpenDM?: (pubkey: string) => void
   onDelete?: (evt: Event) => Promise<void> | void
+  onBlockUser?: (pubkey: string) => void
 }) {
-  const { open, onClose, root, client, mutedTerms, isOffline, viewerPoint, onPublishReply, onOpenDM, onDelete } = props
+  const { open, onClose, root, client, mutedTerms, blockedPubkeys, isOffline, viewerPoint, onPublishReply, onDelete, onBlockUser } = props
 
-  const { replies } = useReplies({ client, rootId: root.id, mutedTerms, isOffline })
+  const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
 
   const replyCount = replies.length
 
@@ -93,9 +94,18 @@ export function ThreadSheet(props: {
 
   const identity = client.getPublicIdentity()
   const isOwnPost = root.pubkey === identity.pubkey
+  const isBlocked = blockedPubkeys.includes(root.pubkey)
+
+  // Automatically close thread if the user is blocked
+  useEffect(() => {
+    if (isBlocked && !isOwnPost) {
+      onClose()
+    }
+  }, [isBlocked, isOwnPost, onClose])
 
   const [deleteState, setDeleteState] = useState<'idle' | 'deleting' | 'error'>('idle')
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [blockState, setBlockState] = useState<'idle' | 'blocking'>('idle')
 
   async function handleDelete() {
     if (!onDelete) return
@@ -119,6 +129,24 @@ export function ThreadSheet(props: {
     }
   }
 
+  function handleBlockUser() {
+    if (!onBlockUser) return
+    if (isOwnPost) return
+    if (isBlocked) return
+    if (!window.confirm('Diesen Nutzer blockieren? Alle Posts von diesem Nutzer werden ausgeblendet.')) {
+      return
+    }
+    setBlockState('blocking')
+    try {
+      onBlockUser(root.pubkey)
+      setBlockState('idle')
+      onClose()
+    } catch (e) {
+      setBlockState('idle')
+      window.alert(e instanceof Error ? e.message : 'Blockieren fehlgeschlagen.')
+    }
+  }
+
   return (
     <Sheet
       open={open}
@@ -139,26 +167,22 @@ export function ThreadSheet(props: {
             </svg>
             <span>{deleteState === 'deleting' ? 'Sende…' : 'Deletion Event'}</span>
           </button>
-        ) : !isOwnPost && onOpenDM ? (
+        ) : !isOwnPost && onBlockUser && !isBlocked ? (
           <button
             type="button"
-            onClick={() => {
-              onOpenDM(root.pubkey)
-              onClose()
-            }}
-            aria-label="Direktnachricht an Autor senden"
-            className="flex items-center rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+            onClick={handleBlockUser}
+            disabled={blockState === 'blocking'}
+            aria-label="Nutzer blockieren"
+            className="flex items-center gap-1.5 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-brezn-danger hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+            title="Nutzer blockieren"
           >
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="opacity-90">
-              <path
-                fill="currentColor"
-                d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
-              />
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
             </svg>
+            <span>{blockState === 'blocking' ? '…' : 'Blockieren'}</span>
           </button>
-        ) : (
-          <div className="text-sm font-semibold">Kommentare</div>
-        )
+        ) : null
       }
       onClose={onClose}
     >

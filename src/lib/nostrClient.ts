@@ -7,6 +7,7 @@ import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
 import { loadJson, saveJson } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
+import { LOCAL_RADIUS_MAX_KM } from './geo'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them),
 // but globally distributed for robustness. Prefer relays that are not EU-jurisdiction where possible.
@@ -28,6 +29,7 @@ type StoredStateV1 = {
   pubkey?: string
   npub?: string
   mutedTerms: string[]
+  blockedPubkeys: string[]
   settings?: {
     localRadiusKm?: number
     mediaUploadEndpoint?: string
@@ -61,6 +63,8 @@ export type BreznNostrClient = {
   // local moderation
   getMutedTerms(): string[]
   setMutedTerms(terms: string[]): void
+  getBlockedPubkeys(): string[]
+  setBlockedPubkeys(pubkeys: string[]): void
 
   // local feed prefs (local-only app)
   getLocalRadiusKm(): number | undefined
@@ -86,7 +90,7 @@ function nowSec(): number {
 }
 
 function loadState(): StoredStateV1 {
-  return loadJson<StoredStateV1>(LS_KEY, { mutedTerms: [] })
+  return loadJson<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
 }
 
 function saveState(patch: Partial<StoredStateV1>) {
@@ -255,6 +259,25 @@ export function createNostrClient(): BreznNostrClient {
     saveState({ mutedTerms: norm })
   }
 
+  function getBlockedPubkeys(): string[] {
+    return loadState().blockedPubkeys ?? []
+  }
+
+  function setBlockedPubkeys(pubkeys: string[]) {
+    // Normalize: remove duplicates, filter invalid pubkeys, limit to reasonable size
+    const seen = new Set<string>()
+    const normalized: string[] = []
+    for (const p of pubkeys) {
+      const trimmed = p?.trim() ?? ''
+      if (!trimmed || trimmed.length !== 64) continue // Nostr pubkeys are 64 hex chars
+      if (seen.has(trimmed)) continue
+      seen.add(trimmed)
+      normalized.push(trimmed)
+      if (normalized.length >= 1000) break // Reasonable limit
+    }
+    saveState({ blockedPubkeys: normalized })
+  }
+
   function getLocalRadiusKm(): number | undefined {
     const v = loadState().settings?.localRadiusKm
     if (typeof v === 'number' && Number.isFinite(v) && v > 0) return Math.round(v)
@@ -262,7 +285,7 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   function setLocalRadiusKm(km: number) {
-    const clamped = Math.max(1, Math.min(10_000, Math.round(km)))
+    const clamped = Math.max(1, Math.min(LOCAL_RADIUS_MAX_KM, Math.round(km)))
     const s = loadState()
     saveState({ settings: { ...s.settings, localRadiusKm: clamped } })
   }
@@ -591,32 +614,14 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   async function updateProfile(metadata: { name?: string; picture?: string }): Promise<string> {
-    // Get existing profile to merge
-    let existing: Record<string, unknown> = {}
-    try {
-      const current = await getMyProfile()
-      if (current) {
-        existing = { name: current.name, picture: current.picture }
-      }
-    } catch {
-      // Ignore errors loading existing profile
+    // Nostr events are append-only, so we can just publish the new metadata
+    // Clients will use the latest event
+    const next: Record<string, unknown> = {}
+    if (metadata.name !== undefined && metadata.name.trim()) {
+      next.name = metadata.name.trim()
     }
-
-    // Merge with new metadata
-    const next: Record<string, unknown> = { ...existing }
-    if (metadata.name !== undefined) {
-      if (metadata.name.trim()) {
-        next.name = metadata.name.trim()
-      } else {
-        delete next.name
-      }
-    }
-    if (metadata.picture !== undefined) {
-      if (metadata.picture.trim()) {
-        next.picture = metadata.picture.trim()
-      } else {
-        delete next.picture
-      }
+    if (metadata.picture !== undefined && metadata.picture.trim()) {
+      next.picture = metadata.picture.trim()
     }
 
     return await publish({
@@ -638,6 +643,8 @@ export function createNostrClient(): BreznNostrClient {
     setRelays,
     getMutedTerms,
     setMutedTerms,
+    getBlockedPubkeys,
+    setBlockedPubkeys,
     getLocalRadiusKm,
     setLocalRadiusKm,
     getMediaUploadEndpoint,

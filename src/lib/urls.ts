@@ -48,18 +48,12 @@ function toNostrHref(display: string): string {
   const s = display.trim()
   if (!s) return s
   const lower = s.toLowerCase()
+  const NIP19_PREFIXES = ['nprofile1', 'npub1', 'note1', 'nevent1', 'naddr1']
+  
   if (lower.startsWith('nostr:')) {
-    const id = s.slice('nostr:'.length)
-    return `https://njump.me/${id}`
+    return `https://njump.me/${s.slice('nostr:'.length)}`
   }
-  // bare nip19 like nprofile1..., npub1...
-  if (
-    lower.startsWith('nprofile1') ||
-    lower.startsWith('npub1') ||
-    lower.startsWith('note1') ||
-    lower.startsWith('nevent1') ||
-    lower.startsWith('naddr1')
-  ) {
+  if (NIP19_PREFIXES.some(prefix => lower.startsWith(prefix))) {
     return `https://njump.me/${s}`
   }
   return s
@@ -113,37 +107,24 @@ export function uniqueUrls(urls: string[]): string[] {
   return out
 }
 
-export function isLikelyImageUrl(url: string): boolean {
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg']
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv']
+
+function hasExtension(url: string, extensions: string[]): boolean {
   try {
     const u = new URL(url)
     const path = u.pathname.toLowerCase()
-    // Common image extensions.
-    if (path.endsWith('.png')) return true
-    if (path.endsWith('.jpg')) return true
-    if (path.endsWith('.jpeg')) return true
-    if (path.endsWith('.gif')) return true
-    if (path.endsWith('.webp')) return true
-    if (path.endsWith('.avif')) return true
-    if (path.endsWith('.svg')) return true
-    return false
+    return extensions.some(ext => path.endsWith(ext))
   } catch {
     return false
   }
 }
 
+export function isLikelyImageUrl(url: string): boolean {
+  return hasExtension(url, IMAGE_EXTENSIONS)
+}
+
 export function isLikelyVideoUrl(url: string): boolean {
-  try {
-    const u = new URL(url)
-    const path = u.pathname.toLowerCase()
-    // Common video extensions.
-    if (path.endsWith('.mp4')) return true
-    if (path.endsWith('.webm')) return true
-    if (path.endsWith('.mov')) return true
-    if (path.endsWith('.m4v')) return true
-    if (path.endsWith('.ogv')) return true
-    return false
-  } catch {
-    return false
-  }
+  return hasExtension(url, VIDEO_EXTENSIONS)
 }
 

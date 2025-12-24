@@ -7,6 +7,9 @@ export const GEOHASH_LEN_MAX_UI = 6
 // We chunk the resulting cell list into multiple subscriptions (see useLocalFeed) to support very large radii.
 export const LOCAL_GEO_MAX_STEPS = 128
 
+// Maximum radius for local feed slider (in km)
+export const LOCAL_RADIUS_MAX_KM = 2000
+
 export type GeoPoint = { lat: number; lon: number }
 
 export function decodeGeohashCenter(hash: string): GeoPoint | null {
@@ -75,30 +78,9 @@ export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number
   return table[len] ?? null
 }
 
-export function maxLocalRadiusKmForGeoLen(len: number): number {
-  const size = geohashApproxCellSizeKm(len)
-  const stepKm = size ? Math.max(size.wKm, size.hKm) : 5
-  // round to a "nice" number for sliders
-  const max = stepKm * LOCAL_GEO_MAX_STEPS
-  if (max <= 20) return 20
-  if (max <= 60) return 60
-  if (max <= 100) return 100
-  if (max <= 250) return 250
-  if (max <= 500) return 500
-  if (max <= 600) return 600
-  if (max <= 1000) return 1000
-  if (max <= 1500) return 1500
-  if (max <= 2000) return 2000
-  if (max <= 2500) return 2500
-  if (max <= 3000) return 3000
-  if (max <= 4000) return 4000
-  if (max <= 5000) return 5000
-  return 10_000
-}
-
-export function clampLocalRadiusKm(len: number, radiusKm: number): number {
+export function clampLocalRadiusKm(_len: number, radiusKm: number): number {
   const min = 5
-  const max = maxLocalRadiusKmForGeoLen(len)
+  const max = LOCAL_RADIUS_MAX_KM
   const rounded = Math.round(radiusKm)
   return Math.max(min, Math.min(max, rounded))
 }
