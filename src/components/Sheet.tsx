@@ -147,7 +147,7 @@ export function Sheet(props: {
       return
     }
 
-    const minSwipeDistance = 200 // Increased to prevent accidental closes (similar to Tinder)
+    const minSwipeDistance = 100
     const maxSwipeTime = 300
     
     const swipeTime = touchStartTime.current ? Date.now() - touchStartTime.current : Infinity

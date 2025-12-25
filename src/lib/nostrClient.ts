@@ -10,7 +10,7 @@ import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import { LOCAL_RADIUS_MAX_KM } from './geo'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them),
-// but globally distributed for robustness. Prefer relays that are not EU-jurisdiction where possible.
+// but globally distributed for robustness.
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nostr-pub.wellorder.net',
@@ -166,10 +166,20 @@ export function createNostrClient(): BreznNostrClient {
       // ignore
     }
     const relays = getRelays()
+    console.log('[nostrClient] Starting subscription', { reason, filter: s.filter, relays })
     s.closer = pool.subscribeMany(relays, s.filter, {
-      onevent: evt => s.opts.onevent(evt),
-      oneose: () => s.opts.oneose?.(),
-      onclose: reasons => s.opts.onclose?.(reasons),
+      onevent: evt => {
+        console.log('[nostrClient] Event received', { kind: evt.kind, id: evt.id.slice(0, 8) + '...' })
+        s.opts.onevent(evt)
+      },
+      oneose: () => {
+        console.log('[nostrClient] EOSE received')
+        s.opts.oneose?.()
+      },
+      onclose: reasons => {
+        console.warn('[nostrClient] Subscription closed', { reasons })
+        s.opts.onclose?.(reasons)
+      },
       maxWait: 12_000,
       label: 'brezn',
     }) as unknown as SubCloser

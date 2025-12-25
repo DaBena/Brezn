@@ -16,7 +16,7 @@ Brezn ist nur eine Ansicht auf Nostr und kein eigenes soziales Netzwerk. Die App
 
 ## Rechtlicher Hinweis
 
-Der Entwickler von Brezn betreibt keine Nostr‑Relays, hostet keine Inhalte und speichert keine Beiträge serverseitig. Posts werden an die vom Nutzer konfigurierten Relays gesendet, die Inhalte nach ihren eigenen Regeln speichern und verteilen. Der Entwickler hat keinen Einfluss auf Inhalte im Nostr‑Netzwerk und keinen Zugriff auf fremde Relays. Brezn stellt nur client‑seitige Moderation (Wörter Blockliste) bereit. Nutzer sind selbst verantwortlich für ihre Nutzung, Schlüssel und Inhalte. Die Software hier wird unentgeltlich und quelloffen bereitgestellt ohne Gewährleistung.
+Der Entwickler von Brezn betreibt keine Nostr‑Relays, hostet keine Inhalte und speichert keine Beiträge serverseitig. Posts werden an die vom Nutzer konfigurierten Relays gesendet, die Inhalte nach ihren eigenen Regeln speichern und verteilen. Der Entwickler hat keinen Einfluss auf Inhalte im Nostr‑Netzwerk und keinen Zugriff auf fremde Relays. Brezn stellt nur client‑seitige Moderation (Wörter Blockliste) bereit. Nutzer sind selbst verantwortlich für ihre Nutzung, Schlüssel und Inhalte.
 
 ## Tech-Stack
 
@@ -24,12 +24,6 @@ Der Entwickler von Brezn betreibt keine Nostr‑Relays, hostet keine Inhalte und
 - Tailwind CSS (Dark Mode only)
 - `nostr-tools`
 - PWA: `vite-plugin-pwa` (Service Worker + Offline-Fallback)
-
-## Bild-Upload (NIP-96)
-
-Brezn nutzt standardmäßig einen **NIP-96** Upload-Server (Discovery via `/.well-known/nostr/nip96.json`). Der Endpoint kann in der App unter **Filter → Bild-Upload** geändert oder deaktiviert werden.
-
-Test: `node scripts/test-nip96-upload.mjs` (optional mit `MEDIA_SERVER` oder `MEDIA_FILE`).
 
 ## Entwicklung
 

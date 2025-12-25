@@ -24,7 +24,7 @@ export default defineConfig({
       manifest: {
         name: 'Brezn',
         short_name: 'Brezn',
-        description: 'Dezentraler, anonymer Nostr-Client für lokale Posts.',
+        description: 'Nostr-Client für lokale Posts.',
         start_url: base,
         scope: base,
         display: 'standalone',

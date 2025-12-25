@@ -175,25 +175,54 @@ export function useLocalFeed(params: {
     unsubRef.current?.()
 
     let didEose = false
+    let eventCount = 0
+    let filteredCount = 0
     const timeoutId = window.setTimeout(() => {
-      if (!didEose) setInitialTimedOut(true)
+      if (!didEose) {
+        console.warn('[useLocalFeed] Timeout: No EOSE after 12.5s', {
+          eventCount,
+          filteredCount,
+          geoCellsQueryLength: geoCellsQuery.length,
+          relays: client.getRelays(),
+        })
+        setInitialTimedOut(true)
+      }
     }, 12_500)
 
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 // last 24h
     const MAX_GEO_TAGS_PER_SUB = 500
 
+    console.log('[useLocalFeed] Starting subscription', {
+      geoCellsQueryLength: geoCellsQuery.length,
+      since: new Date(since * 1000).toISOString(),
+      relays: client.getRelays(),
+    })
+
     const onEvent = (evt: Event) => {
-      if (evt.kind !== 1) return
-      if (isReplyNote(evt)) return
+      eventCount++
+      if (evt.kind !== 1) {
+        filteredCount++
+        return
+      }
+      if (isReplyNote(evt)) {
+        filteredCount++
+        return
+      }
       // basic de-dupe
-      setEvents(prev => (prev.some(e => e.id === evt.id) ? prev : [evt, ...prev]))
+      setEvents(prev => {
+        if (prev.some(e => e.id === evt.id)) return prev
+        console.log('[useLocalFeed] New event received', { id: evt.id, pubkey: evt.pubkey.slice(0, 8) + '...' })
+        return [evt, ...prev]
+      })
     }
     const onEose = () => {
       didEose = true
       window.clearTimeout(timeoutId)
+      console.log('[useLocalFeed] EOSE received', { eventCount, filteredCount })
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
+      console.warn('[useLocalFeed] Subscription closed', { reasons, eventCount, filteredCount, didEose })
       setLastCloseReasons(reasons)
       if (!didEose) setInitialTimedOut(true)
     }
