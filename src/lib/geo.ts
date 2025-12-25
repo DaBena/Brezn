@@ -1,14 +1,10 @@
 import geohash from 'ngeohash'
 
-export const GEOHASH_LEN_MIN_UI = 3
+export const GEOHASH_LEN_MIN_UI = 1
 export const GEOHASH_LEN_MAX_UI = 5
 
-// Keep local queries bounded. Steps=1 => 9 cells, Steps=16 => 1089 cells, Steps=64 => 16641 cells, Steps=128 => 66049 cells.
-// We chunk the resulting cell list into multiple subscriptions (see useLocalFeed) to support very large radii.
-export const LOCAL_GEO_MAX_STEPS = 128
+export type GeohashLength = 1 | 2 | 3 | 4 | 5
 
-// Maximum radius for local feed slider (in km)
-export const LOCAL_RADIUS_MAX_KM = 2000
 
 export type GeoPoint = { lat: number; lon: number }
 
@@ -58,6 +54,9 @@ export function geohashPrecisionHint(len: number): string {
   // Very rough, but good enough for UI explanations.
   // Source: typical geohash cell sizes at equator (approx).
   const table: Record<number, { w: string; h: string }> = {
+    1: { w: '~5000 km', h: '~2500 km' },
+    2: { w: '~1250 km', h: '~625 km' },
+    3: { w: '~156 km', h: '~78 km' },
     4: { w: '~39 km', h: '~19 km' },
     5: { w: '~4.9 km', h: '~4.9 km' },
     6: { w: '~1.2 km', h: '~0.61 km' },
@@ -71,6 +70,8 @@ export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number
   // Approx typical geohash cell size at equator.
   // Values are intentionally rough (UI + coarse query planning).
   const table: Record<number, { wKm: number; hKm: number }> = {
+    1: { wKm: 5000, hKm: 2500 },
+    2: { wKm: 1250, hKm: 625 },
     3: { wKm: 156, hKm: 78 },
     4: { wKm: 39, hKm: 19 },
     5: { wKm: 4.9, hKm: 4.9 },
@@ -79,86 +80,34 @@ export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number
   return table[len] ?? null
 }
 
-/**
- * Determines the optimal geohash length for a given radius to minimize the number of cells.
- * Uses shorter (less precise) geohashes for larger radii to keep query sizes manageable.
- */
-export function optimalGeohashLengthForRadius(radiusKm: number): number {
-  // For very large radii (>=500km), use len=3 (very coarse, ~156km cells)
-  if (radiusKm >= 500) return 3
-  // For large radii (200-499km), use len=4 (coarse, ~39km cells)
-  if (radiusKm >= 200) return 4
-  // For medium radii (50-199km), use len=5 (medium precision, ~4.9km cells)
-  if (radiusKm >= 50) return 5
-  // For small radii (<50km), use len=6 (high precision, ~1.2km cells)
-  return 6
-}
-
-export function clampLocalRadiusKm(_len: number, radiusKm: number): number {
-  const min = 5
-  const max = LOCAL_RADIUS_MAX_KM
-  const rounded = Math.round(radiusKm)
-  return Math.max(min, Math.min(max, rounded))
-}
-
-export function geohashCellsWithinSteps(center: string, steps: number): string[] {
-  const s = Math.max(0, Math.round(steps))
-  const seen = new Set<string>()
-  let frontier: string[] = [center]
-  seen.add(center)
-
-  for (let i = 0; i < s; i++) {
-    const next: string[] = []
-    for (const cell of frontier) {
-      const neigh = geohash.neighbors(cell)
-      for (const n of neigh) {
-        if (!seen.has(n)) {
-          seen.add(n)
-          next.push(n)
-        }
-      }
-    }
-    frontier = next
-    if (!frontier.length) break
-  }
-
-  return Array.from(seen)
-}
-
-export function geohashCellsWithinRadiusKm(opts: { center: string; len: number; radiusKm: number; maxCells?: number }): string[] {
-  const { center, len } = opts
-  const clampedLen = Math.max(GEOHASH_LEN_MIN_UI, Math.min(GEOHASH_LEN_MAX_UI, Math.round(len)))
-  const radiusKm = clampLocalRadiusKm(clampedLen, opts.radiusKm)
-  const size = geohashApproxCellSizeKm(clampedLen)
-  const stepKm = size ? Math.max(size.wKm, size.hKm) : 5
-  const steps = Math.min(LOCAL_GEO_MAX_STEPS, Math.max(1, Math.ceil(radiusKm / stepKm)))
-  const cells = geohashCellsWithinSteps(center, steps)
-  
-  // Limit cells to prevent relay overload. Most relays can't handle >2000 #g tags efficiently.
-  const maxCells = opts.maxCells ?? 2000
-  if (cells.length <= maxCells) return cells
-  
-  // Warn if cells are being limited
-  if (typeof console !== 'undefined' && console.warn) {
-    console.warn(`[geo] Limiting geohash cells from ${cells.length} to ${maxCells} to prevent relay overload`)
-  }
-  
-  // Prioritize cells closest to center by sorting by distance
-  const centerPoint = decodeGeohashCenter(center)
-  if (!centerPoint) return cells.slice(0, maxCells)
-  
-  const cellsWithDistance = cells.map(cell => {
-    const cellPoint = decodeGeohashCenter(cell)
-    const distance = cellPoint ? haversineDistanceKm(centerPoint, cellPoint) : Infinity
-    return { cell, distance }
-  })
-  
-  cellsWithDistance.sort((a, b) => a.distance - b.distance)
-  return cellsWithDistance.slice(0, maxCells).map(c => c.cell)
-}
 
 export function encodeGeohash(p: GeoPoint, len = 4): string {
   return geohash.encode(p.lat, p.lon, len)
+}
+
+/**
+ * Generiert alle Geohash-Präfixe für einen gegebenen Geohash.
+ * Alle Längen von 1 bis zur tatsächlichen Länge werden generiert für maximale Auffindbarkeit.
+ * 
+ * @param geohash - Ein Geohash (mindestens 1 Zeichen, idealerweise 5 Zeichen)
+ * @returns Array von Geohash-Präfixen von Länge 1 bis zur tatsächlichen Länge
+ * 
+ * @example
+ * generateGeohashTags('u0m1x') // ['u', 'u0', 'u0m', 'u0m1', 'u0m1x']
+ * generateGeohashTags('u0m')   // ['u', 'u0', 'u0m']
+ */
+export function generateGeohashTags(geohash: string): string[] {
+  const hash = (geohash ?? '').trim()
+  if (!hash || hash.length < 1) return []
+  
+  // Generiere alle Präfixe von Länge 1 bis zur tatsächlichen Länge
+  // Kein Padding - nur echte Präfixe verwenden
+  const tags: string[] = []
+  for (let len = 1; len <= hash.length && len <= 5; len++) {
+    tags.push(hash.slice(0, len))
+  }
+  
+  return tags
 }
 
 export async function getBrowserLocation(opts?: {

@@ -35,11 +35,11 @@ describe('nostrClient identity (no accounts)', () => {
     expect(client2.getMutedTerms()).toEqual(['spam', 'telegram.me'])
   })
 
-  it('persists local radius setting', () => {
+  it('persists geohash length setting', () => {
     const client = createNostrClient()
-    client.setLocalRadiusKm(123)
+    client.setGeohashLength(3)
     const client2 = createNostrClient()
-    expect(client2.getLocalRadiusKm()).toBe(123)
+    expect(client2.getGeohashLength()).toBe(3)
   })
 })
 

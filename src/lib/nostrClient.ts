@@ -7,18 +7,19 @@ import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
 import { loadJson, saveJson } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
-import { LOCAL_RADIUS_MAX_KM } from './geo'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them),
 // but globally distributed for robustness.
+// Reduced to 4 relays to avoid "too many concurrent REQs" and "too many subscriptions" errors
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nostr-pub.wellorder.net',
   'wss://nos.lol',
   'wss://relay.snort.social',
-  'wss://relay.primal.net',
-  'wss://relay.nostr.com.au',
-  'wss://offchain.pub',
+  // Removed problematic relays that have strict limits:
+  // 'wss://relay.primal.net', // too many concurrent REQs
+  // 'wss://relay.nostr.com.au', // max 10 subscriptions limit
+  // 'wss://offchain.pub', // too many concurrent REQs
 ] as const
 
 const LS_KEY = 'brezn:v1'
@@ -31,7 +32,8 @@ type StoredStateV1 = {
   mutedTerms: string[]
   blockedPubkeys: string[]
   settings?: {
-    localRadiusKm?: number
+    localRadiusKm?: number // Deprecated: wird zu geohashLength migriert
+    geohashLength?: number // 1-5, default: 2
     mediaUploadEndpoint?: string
     relays?: string[]
   }
@@ -67,8 +69,8 @@ export type BreznNostrClient = {
   setBlockedPubkeys(pubkeys: string[]): void
 
   // local feed prefs (local-only app)
-  getLocalRadiusKm(): number | undefined
-  setLocalRadiusKm(km: number): void
+  getGeohashLength(): number // Returns 1-5, default: 2
+  setGeohashLength(length: number): void
 
   // optional media upload (local-only setting)
   getMediaUploadEndpoint(): string | undefined
@@ -141,6 +143,35 @@ export function createNostrClient(): BreznNostrClient {
 
   const activeSubs = new Map<string, ActiveSub>()
   let subSeq = 0
+  let pendingSubs: Array<{ id: string; s: ActiveSub; delay: number }> = []
+  let subSchedulerTimeout: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleSubscription(s: ActiveSub, delay: number) {
+    pendingSubs.push({ id: s.id, s, delay })
+    if (subSchedulerTimeout) return // Already scheduling
+    
+    // Sort by delay (earliest first)
+    pendingSubs.sort((a, b) => a.delay - b.delay)
+    
+    const processNext = () => {
+      if (pendingSubs.length === 0) {
+        subSchedulerTimeout = null
+        return
+      }
+      
+      const next = pendingSubs.shift()!
+      startOrRestartSub(next.s, 'subscribe')
+      
+      if (pendingSubs.length > 0) {
+        const nextDelay = pendingSubs[0].delay - next.delay
+        subSchedulerTimeout = setTimeout(processNext, Math.max(0, nextDelay))
+      } else {
+        subSchedulerTimeout = null
+      }
+    }
+    
+    subSchedulerTimeout = setTimeout(processNext, delay)
+  }
 
   function getRelays(): string[] {
     const s = loadState()
@@ -160,22 +191,30 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   function startOrRestartSub(s: ActiveSub, reason: string) {
-    try {
-      s.closer?.close(`brezn:${reason}`)
-    } catch {
-      // ignore
+    // Close old subscription first, but don't wait (non-blocking)
+    const oldCloser = s.closer
+    if (oldCloser) {
+      try {
+        oldCloser.close(`brezn:${reason}`)
+      } catch (err) {
+        // Ignore errors - WebSocket might already be closed
+        // This is a known race condition in SimplePool when EOSE and close happen simultaneously
+      }
+      // Clear immediately to avoid race conditions
+      s.closer = null
     }
-      const relays = getRelays()
-      s.closer = pool.subscribeMany(relays, s.filter, {
-        onevent: evt => {
-          s.opts.onevent(evt)
-        },
-        oneose: () => {
-          s.opts.oneose?.()
-        },
-        onclose: reasons => {
-          s.opts.onclose?.(reasons)
-        },
+    // Create new subscription
+    const relays = getRelays()
+    s.closer = pool.subscribeMany(relays, s.filter, {
+      onevent: evt => {
+        s.opts.onevent(evt)
+      },
+      oneose: () => {
+        s.opts.oneose?.()
+      },
+      onclose: reasons => {
+        s.opts.onclose?.(reasons)
+      },
       maxWait: 12_000,
       label: 'brezn',
     }) as unknown as SubCloser
@@ -185,12 +224,22 @@ export function createNostrClient(): BreznNostrClient {
     for (const s of activeSubs.values()) startOrRestartSub(s, reason)
   }
 
-  // best-effort: when user returns to tab or network comes back, restart subs
-  if (typeof document !== 'undefined' && typeof window !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') resubscribeAll('app-visible')
+  // best-effort: when network comes back, restart subs
+  // Note: We DON'T resubscribe on visibilitychange because:
+  // 1. SimplePool handles reconnection automatically
+  // 2. Resubscribing all subscriptions at once causes "too many concurrent REQs"
+  // 3. The subscriptions are still active, just paused
+  if (typeof window !== 'undefined') {
+    let resubscribeTimeout: ReturnType<typeof setTimeout> | null = null
+    window.addEventListener('online', () => {
+      // Only resubscribe when network comes back online
+      // Debounce to avoid multiple rapid online/offline events
+      if (resubscribeTimeout) clearTimeout(resubscribeTimeout)
+      resubscribeTimeout = setTimeout(() => {
+        resubscribeAll('online')
+        resubscribeTimeout = null
+      }, 2000)
     })
-    window.addEventListener('online', () => resubscribeAll('online'))
   }
 
   function ensureIdentity(): { skHex: string; pubkey: string; npub: string } {
@@ -245,13 +294,36 @@ export function createNostrClient(): BreznNostrClient {
     const id = `sub_${++subSeq}`
     const s: ActiveSub = { id, filter, opts, closer: null }
     activeSubs.set(id, s)
-    startOrRestartSub(s, 'subscribe')
+    
+    // Debug: Log active subscription count
+    if (activeSubs.size > 5) {
+      console.warn(`[nostrClient] High subscription count: ${activeSubs.size} active subscriptions`)
+    }
+    
+    // Stagger subscriptions to avoid "too many concurrent REQs"
+    // First subscription (usually feed) starts immediately
+    // Subsequent subscriptions are delayed by 200ms each
+    const delay = activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200
+    
+    if (delay === 0) {
+      startOrRestartSub(s, 'subscribe')
+    } else {
+      scheduleSubscription(s, delay)
+    }
+    
     return () => {
       activeSubs.delete(id)
-      try {
-        s.closer?.close('ui-unsubscribe')
-      } catch {
-        // ignore
+      // Remove from pending if not yet started
+      pendingSubs = pendingSubs.filter(p => p.id !== id)
+      // Safely close subscription - ignore errors from already-closed WebSockets
+      if (s.closer) {
+        try {
+          s.closer.close('ui-unsubscribe')
+        } catch (err) {
+          // Ignore errors - WebSocket might already be closed
+          // This is a known race condition in SimplePool when EOSE and close happen simultaneously
+        }
+        s.closer = null
       }
     }
   }
@@ -284,16 +356,43 @@ export function createNostrClient(): BreznNostrClient {
     saveState({ blockedPubkeys: normalized })
   }
 
-  function getLocalRadiusKm(): number | undefined {
-    const v = loadState().settings?.localRadiusKm
-    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return Math.round(v)
-    return undefined
+  /**
+   * Migriert alte localRadiusKm Werte zu geohashLength.
+   * Mapping: >=1000km → 1, >=500km → 2, >=200km → 3, >=50km → 4, <50km → 5
+   */
+  function migrateRadiusToGeohashLength(radiusKm: number): number {
+    if (radiusKm >= 1000) return 1
+    if (radiusKm >= 500) return 2
+    if (radiusKm >= 200) return 3
+    if (radiusKm >= 50) return 4
+    return 5
   }
 
-  function setLocalRadiusKm(km: number) {
-    const clamped = Math.max(1, Math.min(LOCAL_RADIUS_MAX_KM, Math.round(km)))
+  function getGeohashLength(): number {
     const s = loadState()
-    saveState({ settings: { ...s.settings, localRadiusKm: clamped } })
+    
+    // Prüfe zuerst, ob geohashLength bereits gesetzt ist
+    if (typeof s.settings?.geohashLength === 'number') {
+      const len = Math.round(s.settings.geohashLength)
+      if (len >= 1 && len <= 5) return len
+    }
+    
+    // Migration: Alte localRadiusKm Werte umwandeln
+    if (typeof s.settings?.localRadiusKm === 'number' && Number.isFinite(s.settings.localRadiusKm)) {
+      const migrated = migrateRadiusToGeohashLength(s.settings.localRadiusKm)
+      // Speichere migrierten Wert
+      saveState({ settings: { ...s.settings, geohashLength: migrated } })
+      return migrated
+    }
+    
+    // Default: 2 (für Apps mit wenigen Nutzern)
+    return 2
+  }
+
+  function setGeohashLength(length: number) {
+    const clamped = Math.max(1, Math.min(5, Math.round(length))) as 1 | 2 | 3 | 4 | 5
+    const s = loadState()
+    saveState({ settings: { ...s.settings, geohashLength: clamped } })
   }
 
   function getMediaUploadEndpoint(): string | undefined {
@@ -651,8 +750,8 @@ export function createNostrClient(): BreznNostrClient {
     setMutedTerms,
     getBlockedPubkeys,
     setBlockedPubkeys,
-    getLocalRadiusKm,
-    setLocalRadiusKm,
+    getGeohashLength,
+    setGeohashLength,
     getMediaUploadEndpoint,
     setMediaUploadEndpoint,
     sendDM,

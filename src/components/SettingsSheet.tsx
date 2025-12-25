@@ -19,13 +19,11 @@ export function SettingsSheet(props: {
   onClose: () => void
   client: BreznNostrClient
   onModerationChanged?: () => void
-  radiusKm: number
-  radiusKmMax: number
-  geoLen: number
+  geohashLength: number
   geoCell: string | null
-  onRadiusKmChange: (km: number) => void
+  onGeohashLengthChange: (length: number) => void
 }) {
-  const { open, onClose, client, onModerationChanged, radiusKm, radiusKmMax, geoLen, geoCell, onRadiusKmChange } = props
+  const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange } = props
 
   const identity = useMemo(() => client.getPublicIdentity(), [client])
 
@@ -323,9 +321,9 @@ export function SettingsSheet(props: {
     <Sheet open={open} title="Einstellungen" onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving && profileUploadState !== 'uploading'}>
       <div className="mt-4 space-y-3">
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Umkreis</div>
+          <div className="text-xs font-semibold text-brezn-muted">Suchradius</div>
           <div className="mt-1 text-xs text-brezn-muted">
-            GeoHash: {geoLen} • {geohashPrecisionHint(geoLen)}
+            GeoHash-Länge: {geohashLength} • {geohashPrecisionHint(geohashLength)}
           </div>
           {geoCell ? (
             <div className="mt-1 text-xs text-brezn-muted">
@@ -337,15 +335,17 @@ export function SettingsSheet(props: {
           )}
           <input
             type="range"
-            min={5}
-            max={radiusKmMax}
-            step={geoLen >= 6 ? 5 : geoLen >= 5 ? 10 : 25}
-            value={radiusKm}
-            onChange={e => onRadiusKmChange(Number(e.target.value))}
+            min={1}
+            max={5}
+            step={1}
+            value={geohashLength}
+            onChange={e => onGeohashLengthChange(Number(e.target.value))}
             className="mt-3 w-full"
-            aria-label="Umkreis in Kilometern"
+            aria-label="GeoHash-Länge"
           />
-          <div className="mt-1 text-xs text-brezn-muted">{radiusKm} km</div>
+          <div className="mt-1 text-xs text-brezn-muted">
+            Länge {geohashLength} ({geohashPrecisionHint(geohashLength)})
+          </div>
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">

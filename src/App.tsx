@@ -12,6 +12,7 @@ import { useLocalFeed } from './hooks/useLocalFeed'
 import { useNostrClient } from './hooks/useNostrClient'
 import { useReactions } from './hooks/useReactions'
 import { breznClientTag, NOSTR_KINDS } from './lib/breznNostr'
+import { generateGeohashTags } from './lib/geo'
 
 export default function App() {
   const client = useNostrClient()
@@ -30,17 +31,16 @@ export default function App() {
     feedState,
     requestLocationAndLoad,
     geoCell,
+    viewerGeo5, // Full 5-digit geohash for posting
     sortedEvents,
     viewerPoint,
-    radiusKm,
-    radiusKmMax,
-    geoLen,
+    geohashLength,
     initialTimedOut,
     lastCloseReasons,
     isLoadingMore,
     loadMore,
     isOffline,
-    applyRadiusKm,
+    applyGeohashLength,
   } = useLocalFeed({ client, mutedTerms, blockedPubkeys })
 
   const { reactionsByNoteId } = useReactions({
@@ -61,13 +61,19 @@ export default function App() {
   }, [optimisticReactedByNoteId, reactionsByNoteId])
 
   async function publishPost(content: string) {
-    if (!geoCell) throw new Error('Standort fehlt (Feed neu laden).')
+    // Use full 5-digit geohash for posting (not the shortened geoCell)
+    if (!viewerGeo5) throw new Error('Standort fehlt (Feed neu laden).')
+    
+    // Generiere alle Geohash-Tags (Präfixe 1-5) für maximale Auffindbarkeit
+    // viewerGeo5 ist immer 5-stellig, daher werden alle Präfixe generiert
+    const geoTags = generateGeohashTags(viewerGeo5).map(g => ['g', g] as [string, string])
+    
     await client.publish({
       kind: NOSTR_KINDS.note,
       content,
       tags: [
         breznClientTag(),
-        ['g', geoCell],
+        ...geoTags,
       ],
     })
   }
@@ -79,7 +85,8 @@ export default function App() {
 
     const root = opts.root
     const rootGeo = root.tags.find(t => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
-    const g = rootGeo ?? geoCell
+    // Use full 5-digit geohash for replies (not the shortened geoCell)
+    const g = rootGeo ?? viewerGeo5
 
     const tags: string[][] = [
       breznClientTag(),
@@ -88,7 +95,12 @@ export default function App() {
       ['e', root.id, '', 'reply'],
       ['p', root.pubkey],
     ]
-    if (g) tags.push(['g', g])
+    
+    // Generiere alle Geohash-Tags (Präfixe 1-5) für maximale Auffindbarkeit
+    if (g) {
+      const geoTags = generateGeohashTags(g).map(gh => ['g', gh] as [string, string])
+      tags.push(...geoTags)
+    }
 
     await client.publish({ kind: 1, content, tags })
   }
@@ -292,11 +304,9 @@ export default function App() {
             setMutedTerms(client.getMutedTerms())
             setBlockedPubkeys(client.getBlockedPubkeys())
           }}
-          radiusKm={radiusKm}
-          radiusKmMax={radiusKmMax}
-          geoLen={geoLen}
+          geohashLength={geohashLength}
           geoCell={geoCell}
-          onRadiusKmChange={applyRadiusKm}
+          onGeohashLengthChange={applyGeohashLength}
         />
       ) : null}
 
