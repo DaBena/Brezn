@@ -11,6 +11,7 @@ import {
   geohashCellsWithinRadiusKm,
   getBrowserLocation,
   LOCAL_RADIUS_MAX_KM,
+  optimalGeohashLengthForRadius,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJson, saveJson } from '../lib/storage'
@@ -21,11 +22,10 @@ export type FeedState =
   | { kind: 'live' }
   | { kind: 'error'; message: string }
 
-type SavedLocation = { geohash6: string; savedAt: number }
+type SavedLocation = { geohash5: string; savedAt: number }
 
 const FEED_CACHE_KEY = 'brezn:feed-cache:v1'
 const LAST_LOCATION_KEY = 'brezn:last-location:v1'
-const LOCAL_GEO_LEN = 5
 const LOCAL_RADIUS_DEFAULT_KM = 500
 const INITIAL_MIN_POSTS = 7
 const AUTO_BACKFILL_MAX_ATTEMPTS = 3
@@ -48,21 +48,34 @@ export function useLocalFeed(params: {
 
   const [isOffline, setIsOffline] = useState(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false))
 
-  const initialSavedGeo6 =
-    typeof savedLocation?.geohash6 === 'string' && savedLocation.geohash6.length >= GEOHASH_LEN_MIN_UI ? savedLocation.geohash6 : null
-
-  const initialLocalGeoCell =
-    !isOffline && initialSavedGeo6 ? initialSavedGeo6.slice(0, LOCAL_GEO_LEN) : null
+  const initialSavedGeo5 = (() => {
+    // Support migration from old geohash6 format
+    if (savedLocation && typeof (savedLocation as any).geohash6 === 'string') {
+      const geo6 = (savedLocation as any).geohash6.trim()
+      if (geo6.length >= 5) {
+        const geo5 = geo6.slice(0, 5)
+        saveJson(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: savedLocation.savedAt } satisfies SavedLocation)
+        return geo5
+      }
+    }
+    return typeof savedLocation?.geohash5 === 'string' && savedLocation.geohash5.length >= GEOHASH_LEN_MIN_UI
+      ? savedLocation.geohash5
+      : null
+  })()
 
   const initialRadiusKm = (() => {
     const v = client.getLocalRadiusKm()
     const raw = typeof v === 'number' && Number.isFinite(v) ? v : LOCAL_RADIUS_DEFAULT_KM
-    return clampLocalRadiusKm(LOCAL_GEO_LEN, raw)
+    return clampLocalRadiusKm(4, raw) // Use len=4 as default for clamping (will be adjusted per radius)
   })()
+
+  const initialGeoLen = optimalGeohashLengthForRadius(initialRadiusKm)
+  const initialLocalGeoCell =
+    !isOffline && initialSavedGeo5 ? initialSavedGeo5.slice(0, initialGeoLen) : null
 
   const initialLocalGeoCellsQuery =
     !isOffline && initialLocalGeoCell
-      ? geohashCellsWithinRadiusKm({ center: initialLocalGeoCell, len: LOCAL_GEO_LEN, radiusKm: initialRadiusKm })
+      ? geohashCellsWithinRadiusKm({ center: initialLocalGeoCell, len: initialGeoLen, radiusKm: initialRadiusKm })
       : []
 
   const [radiusKm, setRadiusKm] = useState<number>(initialRadiusKm)
@@ -76,9 +89,9 @@ export function useLocalFeed(params: {
   const [initialTimedOut, setInitialTimedOut] = useState(false)
   const [lastCloseReasons, setLastCloseReasons] = useState<string[] | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [viewerGeo6, setViewerGeo6] = useState<string | null>(() => initialSavedGeo6)
+  const [viewerGeo5, setViewerGeo5] = useState<string | null>(() => initialSavedGeo5)
 
-  const viewerPoint = useMemo(() => (viewerGeo6 ? decodeGeohashCenter(viewerGeo6) : null), [viewerGeo6])
+  const viewerPoint = useMemo(() => (viewerGeo5 ? decodeGeohashCenter(viewerGeo5) : null), [viewerGeo5])
 
   const unsubRef = useRef<null | (() => void)>(null)
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
@@ -113,17 +126,27 @@ export function useLocalFeed(params: {
     saveJson(FEED_CACHE_KEY, { updatedAt: Date.now(), geoCell: geoCell ?? undefined, events: top })
   }, [geoCell, sortedEvents])
 
-  function readSavedGeo6(): string | null {
+  function readSavedGeo5(): string | null {
     const v = loadJson<SavedLocation | null>(LAST_LOCATION_KEY, null)
-    if (!v || typeof v.geohash6 !== 'string') return null
-    const s = v.geohash6.trim()
+    // Support migration from old geohash6 format
+    if (v && typeof (v as any).geohash6 === 'string') {
+      const geo6 = (v as any).geohash6.trim()
+      if (geo6.length >= 5) {
+        const geo5 = geo6.slice(0, 5)
+        saveJson(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: v.savedAt } satisfies SavedLocation)
+        return geo5
+      }
+    }
+    if (!v || typeof v.geohash5 !== 'string') return null
+    const s = v.geohash5.trim()
     if (s.length < GEOHASH_LEN_MIN_UI) return null
     return s
   }
 
-  function setLocalQueryFromGeo6(geo6: string, rKm: number) {
-    const cell = geo6.slice(0, LOCAL_GEO_LEN)
-    const cells = geohashCellsWithinRadiusKm({ center: cell, len: LOCAL_GEO_LEN, radiusKm: rKm })
+  function setLocalQueryFromGeo5(geo5: string, rKm: number) {
+    const geoLen = optimalGeohashLengthForRadius(rKm)
+    const cell = geo5.slice(0, geoLen)
+    const cells = geohashCellsWithinRadiusKm({ center: cell, len: geoLen, radiusKm: rKm })
     setEvents([])
     setGeoCell(cell)
     setGeoCellsQuery(cells)
@@ -135,22 +158,22 @@ export function useLocalFeed(params: {
     setInitialTimedOut(false)
     setLastCloseReasons(null)
     try {
-      const rKm = clampLocalRadiusKm(LOCAL_GEO_LEN, radiusKm)
+      const rKm = clampLocalRadiusKm(4, radiusKm) // Use len=4 as default for clamping (will be adjusted per radius)
       // Prefer a stored last location to avoid prompting on every app open.
       if (!opts?.forceBrowser) {
-        const savedGeo6 = readSavedGeo6()
-        if (savedGeo6) {
-          setViewerGeo6(savedGeo6)
-          setLocalQueryFromGeo6(savedGeo6, rKm)
+        const savedGeo5 = readSavedGeo5()
+        if (savedGeo5) {
+          setViewerGeo5(savedGeo5)
+          setLocalQueryFromGeo5(savedGeo5, rKm)
           return
         }
       }
 
       const pos = await getBrowserLocation()
-      const geo6 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI)
-      saveJson(LAST_LOCATION_KEY, { geohash6: geo6, savedAt: Date.now() } satisfies SavedLocation)
-      setViewerGeo6(geo6)
-      setLocalQueryFromGeo6(geo6, rKm)
+      const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI)
+      saveJson(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
+      setViewerGeo5(geo5)
+      setLocalQueryFromGeo5(geo5, rKm)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Location error'
       setFeedState({ kind: 'error', message: msg })
@@ -192,11 +215,6 @@ export function useLocalFeed(params: {
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 // last 24h
     const MAX_GEO_TAGS_PER_SUB = 500
 
-    console.log('[useLocalFeed] Starting subscription', {
-      geoCellsQueryLength: geoCellsQuery.length,
-      since: new Date(since * 1000).toISOString(),
-      relays: client.getRelays(),
-    })
 
     const onEvent = (evt: Event) => {
       eventCount++
@@ -210,19 +228,18 @@ export function useLocalFeed(params: {
       }
       // basic de-dupe
       setEvents(prev => {
-        if (prev.some(e => e.id === evt.id)) return prev
-        console.log('[useLocalFeed] New event received', { id: evt.id, pubkey: evt.pubkey.slice(0, 8) + '...' })
+        if (prev.some(e => e.id === evt.id)) {
+          return prev
+        }
         return [evt, ...prev]
       })
     }
     const onEose = () => {
       didEose = true
       window.clearTimeout(timeoutId)
-      console.log('[useLocalFeed] EOSE received', { eventCount, filteredCount })
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
-      console.warn('[useLocalFeed] Subscription closed', { reasons, eventCount, filteredCount, didEose })
       setLastCloseReasons(reasons)
       if (!didEose) setInitialTimedOut(true)
     }
@@ -312,17 +329,19 @@ export function useLocalFeed(params: {
   }, [geoCellsQuery, isLoadingMore, isOffline, sortedEvents.length])
 
   function applyRadiusKm(nextRadiusKm: number) {
-    const clamped = clampLocalRadiusKm(LOCAL_GEO_LEN, nextRadiusKm)
+    const clamped = clampLocalRadiusKm(4, nextRadiusKm) // Use len=4 as default for clamping (will be adjusted per radius)
     client.setLocalRadiusKm(clamped)
     setRadiusKm(clamped)
 
     // If we already have a stored last location, rebuild the query without prompting.
-    const savedGeo6 = readSavedGeo6()
-    if (savedGeo6) {
-      setViewerGeo6(savedGeo6)
-      setLocalQueryFromGeo6(savedGeo6, clamped)
+    const savedGeo5 = readSavedGeo5()
+    if (savedGeo5) {
+      setViewerGeo5(savedGeo5)
+      setLocalQueryFromGeo5(savedGeo5, clamped)
     }
   }
+
+  const currentGeoLen = optimalGeohashLengthForRadius(radiusKm)
 
   return {
     feedState,
@@ -331,7 +350,7 @@ export function useLocalFeed(params: {
     isOffline,
     sortedEvents,
     viewerPoint,
-    geoLen: LOCAL_GEO_LEN,
+    geoLen: currentGeoLen,
     radiusKm,
     radiusKmMax: LOCAL_RADIUS_MAX_KM,
     initialTimedOut,
