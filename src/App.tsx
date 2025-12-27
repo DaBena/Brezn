@@ -5,6 +5,7 @@ import { ConversationsSheet } from './components/ConversationsSheet'
 import { DMSheet } from './components/DMSheet'
 import { Feed } from './components/Feed'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
+import { AdblockerWarning } from './components/AdblockerWarning'
 import { SettingsSheet } from './components/SettingsSheet'
 import { ThreadSheet } from './components/ThreadSheet'
 import { useIdentity } from './hooks/useIdentity'
@@ -148,6 +149,7 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-brezn-bg text-brezn-text">
       <PwaUpdateToast />
+      <AdblockerWarning />
       <button
         type="button"
         onClick={() => setDmOpen(true)}

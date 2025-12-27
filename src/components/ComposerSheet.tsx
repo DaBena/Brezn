@@ -65,7 +65,7 @@ export function ComposerSheet(props: {
   }
 
   return (
-    <Sheet open={open} title="Neuen lokalen Post erstellen" onClose={onClose}>
+    <Sheet open={open} title="Neuen lokalen Post erstellen" onClose={onClose} scrollable={false}>
       {viewerGeo5 ? (
         <div className="mt-2 text-xs text-brezn-muted">
           in Cell <span className="font-mono">{viewerGeo5}</span>

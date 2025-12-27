@@ -28,8 +28,9 @@ export function Sheet(props: {
   children: React.ReactNode
   zIndexClassName?: string
   dismissible?: boolean
+  scrollable?: boolean
 }) {
-  const { open, title, titleElement, onClose, children, zIndexClassName, dismissible = true } = props
+  const { open, title, titleElement, onClose, children, zIndexClassName, dismissible = true, scrollable = true } = props
   const reactId = useId()
   const titleId = `sheet-${reactId}`
   const dialogRef = useRef<HTMLDivElement | null>(null)
@@ -230,7 +231,10 @@ export function Sheet(props: {
             </button>
           ) : null}
         </div>
-        <div className="hide-scrollbar mt-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
+        <div className={[
+          'mt-3 flex-1 min-h-0 overflow-x-hidden pb-[env(safe-area-inset-bottom)]',
+          scrollable ? 'hide-scrollbar overflow-y-auto' : 'overflow-y-visible',
+        ].join(' ')}>
           {children}
         </div>
       </div>

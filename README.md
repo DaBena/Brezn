@@ -1,8 +1,15 @@
 # Brezn
 
-Live auf GitHub Pages: <https://dabena.github.io/Brezn/>
+Brezn ist wie CB‑Funk für das Internet: Lokale Kommunikation in deiner Nähe, ohne zentrale Kontrolle. Brezn ist ein PWA Client für das Nostr‑Protokoll und fokussiert sich auf lokale Vernetzung mittels fünfstelligem Geohash (4,9 × 4,9 km Zelle).
 
-**Brezn** ist ein PWA Client für das offene und dezentrale **Nostr‑Protokoll**. Die App verbindet sich mit öffentlichen Relays und zeigt bzw. erstellt Nostr‑Events – sie ist damit nur eine von vielen möglichen Nostr‑Ansichten. Im Unterschied zu anderen Nostr‑Clients fokussiert sich Brezn auf lokale Vernetzung mittels fünfstelligem Geohash (4,9 × 4,9 km Zelle).
+## Installation
+
+[Brezn](https://dabena.github.io/Brezn/) kann als Progressive Web App (PWA) installiert werden und läuft dann wie eine native App:
+
+- **Android**: Banner "Zum Startbildschirm hinzufügen" oder Menü → "Zum Startbildschirm hinzufügen"
+- **iOS Safari**: Teilen-Button → "Zum Home-Bildschirm"
+
+Nach der Installation erscheint Brezn mit dem Brezn-Icon auf dem Homebildschirm/Startmenü und öffnet sich als eigenständige App ohne Browser-UI.
 
 ## Was ist Nostr?
 
@@ -27,7 +34,7 @@ Der Entwickler von Brezn betreibt keine Nostr‑Relays, hostet keine Inhalte und
 ## Tech-Stack
 
 - React + Vite
-- Tailwind CSS (Dark Mode only)
+- Tailwind CSS
 - `nostr-tools`
 - PWA: `vite-plugin-pwa` (Service Worker + Offline-Fallback)
 
@@ -41,3 +48,7 @@ npm run preview    # Preview Build
 ```
 
 **GitHub Pages**: Automatisches Deploy bei Push auf `main` via `.github/workflows/deploy-pages.yml`.
+
+## Danksagung
+
+Vielen Dank an alle Betreiber von öffentlichen Nostr-Relays, die das alles erst möglich machen.
