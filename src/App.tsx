@@ -270,7 +270,7 @@ export default function App() {
       <ComposerSheet
         open={isComposerOpen}
         onClose={() => setIsComposerOpen(false)}
-        geoCell={geoCell}
+        viewerGeo5={viewerGeo5}
         onPublish={publishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
       />

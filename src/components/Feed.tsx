@@ -57,7 +57,7 @@ export function Feed(props: {
       const p = decodeGeohashCenter(g)
       if (!p) continue
       const km = haversineDistanceKm(viewerPoint, p)
-      const label = formatApproxDistance(km)
+      const label = formatApproxDistance(km, g.length)
       if (label) out[evt.id] = label
     }
     return out

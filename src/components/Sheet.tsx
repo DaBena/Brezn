@@ -40,6 +40,7 @@ export function Sheet(props: {
   const touchStartX = useRef<number | null>(null)
   const touchStartTime = useRef<number | null>(null)
   const [swipeOffset, setSwipeOffset] = useState(0)
+  const swipeDirection = useRef<'left' | 'right' | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -135,8 +136,12 @@ export function Sheet(props: {
     const currentX = e.touches[0].clientX
     const deltaX = currentX - touchStartX.current
     
-    // Only allow left swipes (negative deltaX)
-    if (deltaX < 0) {
+    // Allow swipes in both directions
+    if (Math.abs(deltaX) > 10) {
+      // Determine direction on first significant movement
+      if (swipeDirection.current === null) {
+        swipeDirection.current = deltaX < 0 ? 'left' : 'right'
+      }
       setSwipeOffset(Math.abs(deltaX))
     }
   }
@@ -144,6 +149,7 @@ export function Sheet(props: {
   const handleTouchEnd = () => {
     if (!dismissible || touchStartX.current === null) {
       setSwipeOffset(0)
+      swipeDirection.current = null
       return
     }
 
@@ -152,11 +158,13 @@ export function Sheet(props: {
     
     const swipeTime = touchStartTime.current ? Date.now() - touchStartTime.current : Infinity
     
+    // Close on swipe in either direction if threshold is met
     if (swipeOffset > minSwipeDistance && swipeTime < maxSwipeTime) {
       onClose()
     }
     
     setSwipeOffset(0)
+    swipeDirection.current = null
     touchStartX.current = null
     touchStartTime.current = null
   }
@@ -181,12 +189,12 @@ export function Sheet(props: {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={[
-          // mobile: bottom-sheet
-          'absolute bottom-0 left-0 right-0 mx-auto w-full max-w-xl',
+          // mobile: positioned higher to leave room for keyboard
+          'absolute top-4 left-0 right-0 mx-auto w-full max-w-xl',
           // desktop: centered modal
-          'sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl',
+          'sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl',
           // sizing / scrolling
-          'max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]',
+          'max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)]',
           'overflow-hidden',
           // layout
           'flex flex-col',
@@ -198,7 +206,9 @@ export function Sheet(props: {
           'transition-transform duration-200 ease-out',
         ].join(' ')}
         style={{
-          transform: swipeOffset > 0 ? `translateX(-${swipeOffset}px)` : undefined,
+          transform: swipeOffset > 0 
+            ? `translateX(${swipeDirection.current === 'left' ? '-' : ''}${swipeOffset}px)` 
+            : undefined,
         }}
       >
         <div className="flex items-center justify-between">

@@ -18,7 +18,7 @@ function approxDistanceForEvt(evt: Event, viewerPoint: GeoPoint | null): string 
   const p = decodeGeohashCenter(g)
   if (!p) return null
   const km = haversineDistanceKm(viewerPoint, p)
-  const label = formatApproxDistance(km)
+  const label = formatApproxDistance(km, g.length)
   return label || null
 }
 

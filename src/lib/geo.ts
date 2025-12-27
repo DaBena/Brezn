@@ -36,8 +36,23 @@ export function haversineDistanceKm(a: GeoPoint, b: GeoPoint): number {
   return R * c
 }
 
-export function formatApproxDistance(km: number): string {
+export function formatApproxDistance(km: number, geohashLength?: number): string {
   if (!Number.isFinite(km) || km < 0) return ''
+  
+  // For posts in the same cell (distance is 0 or very close to 0), show cell size instead
+  // Only show static values when distance is essentially zero (< 0.1 km = 100m)
+  if (km < 0.1) {
+    if (geohashLength === 5) {
+      return '~2 km'
+    }
+    if (geohashLength === 4) {
+      return '~10 km'
+    }
+    if (geohashLength === 3) {
+      return '~40 km'
+    }
+  }
+  
   if (km < 1) {
     const m = Math.max(0, Math.round((km * 1000) / 50) * 50)
     return `~${m} m`
