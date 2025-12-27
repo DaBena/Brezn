@@ -3,7 +3,7 @@ import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { decodeGeohashCenter, formatApproxDistance, haversineDistanceKm } from '../lib/geo'
-import { getTagValue } from '../lib/nostrUtils'
+import { getLongestGeohashTag } from '../lib/nostrUtils'
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles } from '../hooks/useProfiles'
 import { Sheet } from './Sheet'
@@ -12,7 +12,8 @@ import { PostIdentity } from './PostIdentity'
 
 function approxDistanceForEvt(evt: Event, viewerPoint: GeoPoint | null): string | null {
   if (!viewerPoint) return null
-  const g = getTagValue(evt, 'g')
+  // Use the longest (most precise) geohash tag for accurate distance calculation
+  const g = getLongestGeohashTag(evt)
   if (!g) return null
   const p = decodeGeohashCenter(g)
   if (!p) return null

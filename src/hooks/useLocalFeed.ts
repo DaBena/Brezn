@@ -43,15 +43,6 @@ export function useLocalFeed(params: {
 
   function readSavedGeo5(): string | null {
     const v = loadJson<SavedLocation | null>(LAST_LOCATION_KEY, null)
-    // Support migration from old geohash6 format (one-time migration)
-    if (v && typeof (v as any).geohash6 === 'string') {
-      const geo6 = (v as any).geohash6.trim()
-      if (geo6.length >= 5) {
-        const geo5 = geo6.slice(0, 5)
-        saveJson(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: v.savedAt } satisfies SavedLocation)
-        return geo5
-      }
-    }
     if (!v || typeof v.geohash5 !== 'string') return null
     const s = v.geohash5.trim()
     if (s.length < GEOHASH_LEN_MIN_UI) return null
@@ -174,10 +165,6 @@ export function useLocalFeed(params: {
     let didEose = false
     const timeoutId = window.setTimeout(() => {
       if (!didEose) {
-        console.warn('[useLocalFeed] Timeout: No EOSE after 12.5s', {
-          queryGeohash,
-          relays: client.getRelays(),
-        })
         setInitialTimedOut(true)
       }
     }, 12_500)

@@ -3,7 +3,7 @@ import type { Event } from 'nostr-tools'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { GeoPoint } from '../lib/geo'
 import { decodeGeohashCenter, formatApproxDistance, haversineDistanceKm } from '../lib/geo'
-import { getTagValue } from '../lib/nostrUtils'
+import { getLongestGeohashTag } from '../lib/nostrUtils'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
 import { useProfiles } from '../hooks/useProfiles'
@@ -51,7 +51,8 @@ export function Feed(props: {
     if (!viewerPoint) return {} as Record<string, string>
     const out: Record<string, string> = {}
     for (const evt of events) {
-      const g = getTagValue(evt, 'g')
+      // Use the longest (most precise) geohash tag for accurate distance calculation
+      const g = getLongestGeohashTag(evt)
       if (!g) continue
       const p = decodeGeohashCenter(g)
       if (!p) continue

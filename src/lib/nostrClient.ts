@@ -295,11 +295,6 @@ export function createNostrClient(): BreznNostrClient {
     const s: ActiveSub = { id, filter, opts, closer: null }
     activeSubs.set(id, s)
     
-    // Debug: Log active subscription count
-    if (activeSubs.size > 5) {
-      console.warn(`[nostrClient] High subscription count: ${activeSubs.size} active subscriptions`)
-    }
-    
     // Stagger subscriptions to avoid "too many concurrent REQs"
     // First subscription (usually feed) starts immediately
     // Subsequent subscriptions are delayed by 200ms each
