@@ -17,7 +17,7 @@ After installation, Brezn appears with the Brezn icon on the home screen/start m
 
 ## Network Architectures Compared
 
-![Network Architectures Compared](diagramm.svg)
+![Network Architectures Compared](diagramm.png)
 
 - **Classic social networks**: All users via a central server. The platform can censor content and exclude users.
 - **Federated networks** (e.g., Mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block other instances.
