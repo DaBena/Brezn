@@ -67,21 +67,21 @@ export function Feed(props: {
     <main className="mx-auto max-w-xl px-4 pb-28 pt-4">
       {isOffline ? (
         <div className="mb-3 rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-xs text-brezn-muted shadow-soft">
-          Offline – zeige zuletzt gesehene Posts (read-only).
+          Offline - showing last seen posts (read-only).
         </div>
       ) : null}
       {feedState.kind === 'need-location' && (
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel p-4 shadow-soft">
-          <div className="text-sm font-semibold">Standort für lokalen Feed</div>
+          <div className="text-sm font-semibold">Location for local feed</div>
           <div className="mt-1 text-sm text-brezn-muted">
-            Brezn nutzt einen groben GeoHash, um Posts in deiner Nähe zu laden.
+            Brezn uses a rough geohash to load posts near you.
           </div>
           <div className="mt-3 flex gap-2">
             <button
               onClick={onRequestLocation}
               className="rounded-xl bg-brezn-gold px-4 py-2 text-sm font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Standort erlauben
+              Allow location
             </button>
           </div>
         </div>
@@ -89,14 +89,14 @@ export function Feed(props: {
 
       {feedState.kind === 'error' && (
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel p-4 shadow-soft">
-          <div className="text-sm font-semibold">Fehler</div>
+          <div className="text-sm font-semibold">Error</div>
           <div className="mt-1 text-sm text-brezn-muted">{feedState.message}</div>
           <div className="mt-3 flex gap-2">
             <button
               onClick={onRequestLocation}
               className="rounded-xl bg-brezn-gold px-4 py-2 text-sm font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Erneut versuchen
+              Try again
             </button>
           </div>
         </div>
@@ -109,7 +109,7 @@ export function Feed(props: {
               {feedState.kind === 'loading' ? (
                 initialTimedOut ? (
                   <>
-                    Keine Antwort von Relays. Prüfe die Relay-Liste oder versuch es später erneut.
+                    No response from relays. Check the relay list or try again later.
                     {lastCloseReasons?.length ? (
                       <div className="mt-2 rounded-xl border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs">
                         {lastCloseReasons.join(' • ')}
@@ -117,10 +117,10 @@ export function Feed(props: {
                     ) : null}
                   </>
                 ) : (
-                  <>Noch keine Events empfangen (warte auf EOSE)…</>
+                  <>No events received yet (waiting for EOSE)…</>
                 )
               ) : (
-                <>Noch keine Posts gefunden. Versuch’s später erneut oder probiere andere Relays.</>
+                <>No posts found yet. Try again later or try different relays.</>
               )}
             </div>
           ) : (
@@ -139,14 +139,14 @@ export function Feed(props: {
                       }
                     }}
                     className="cursor-pointer rounded-2xl border border-brezn-border bg-brezn-panel p-4 shadow-soft hover:bg-brezn-panel/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
-                    aria-label="Post öffnen"
+                    aria-label="Open post"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <PostIdentity pubkey={evt.pubkey} profile={profilesByPubkey.get(evt.pubkey)} />
                       </div>
                       <div className="shrink-0 text-[11px] text-brezn-muted">
-                        {new Date(evt.created_at * 1000).toLocaleString('de-DE')}
+                        {new Date(evt.created_at * 1000).toLocaleString()}
                         {approxDistanceById[evt.id] ? <span> / {approxDistanceById[evt.id]}</span> : null}
                       </div>
                     </div>
@@ -170,7 +170,7 @@ export function Feed(props: {
                               : 'border-brezn-border bg-brezn-panel2 text-brezn-text hover:opacity-90',
                             !canReact || reactionsByNoteId[evt.id]?.viewerReacted ? 'opacity-60' : '',
                           ].join(' ')}
-                          aria-label={`Reaktion senden${reactionsByNoteId[evt.id]?.total ? ` (${reactionsByNoteId[evt.id]?.total})` : ''}`}
+                          aria-label={`Send reaction${reactionsByNoteId[evt.id]?.total ? ` (${reactionsByNoteId[evt.id]?.total})` : ''}`}
                         >
                           <span aria-hidden="true">👍</span>
                           <span className="font-mono">{reactionsByNoteId[evt.id]?.total ?? 0}</span>
@@ -186,7 +186,7 @@ export function Feed(props: {
                   disabled={isLoadingMore}
                   className="w-full rounded-2xl border border-brezn-border bg-brezn-panel px-4 py-3 text-sm font-semibold disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
                 >
-                  {isLoadingMore ? 'Lade mehr…' : 'Mehr laden'}
+                  {isLoadingMore ? 'Loading more…' : 'Load more'}
                 </button>
               </div>
             </>

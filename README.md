@@ -1,44 +1,44 @@
 # Brezn
 
-Brezn ist wie CB‑Funk für das Internet: Lokale Kommunikation in deiner Nähe, ohne zentrale Kontrolle. Brezn ist ein PWA Client für das Nostr‑Protokoll und fokussiert sich auf lokale Vernetzung mittels fünfstelligem Geohash (4,9 × 4,9 km Zelle).
+Brezn is like CB radio for the internet: local communication in your area, without central control. Brezn is a PWA client for the Nostr protocol and focuses on local networking using five-digit geohash (4.9 × 4.9 km cell).
 
 ## Installation
 
-[Brezn](https://dabena.github.io/Brezn/) kann als Progressive Web App (PWA) installiert werden und läuft dann wie eine native App:
+[Brezn](https://dabena.github.io/Brezn/) can be installed as a Progressive Web App (PWA) and then runs like a native app:
 
-- **Android**: Banner "Zum Startbildschirm hinzufügen" oder Menü → "Zum Startbildschirm hinzufügen"
-- **iOS Safari**: Teilen-Button → "Zum Home-Bildschirm"
+- **Android**: Banner "Add to Home Screen" or Menu → "Add to Home Screen"
+- **iOS Safari**: Share button → "Add to Home Screen"
 
-Nach der Installation erscheint Brezn mit dem Brezn-Icon auf dem Homebildschirm/Startmenü und öffnet sich als eigenständige App ohne Browser-UI.
+After installation, Brezn appears with the Brezn icon on the home screen/start menu and opens as a standalone app without browser UI.
 
-## Was ist Nostr?
+## What is Nostr?
 
-Nostr ist ein offenes Protokoll – vergleichbar mit E‑Mail, nur für soziale Netzwerke. Viele unabhängige Relays speichern und verteilen Nachrichten (Nostr‑Events). Verschiedene Nostr‑Apps sprechen dasselbe Protokoll und können auf dieselben Inhalte zugreifen. Deine Identität besteht aus einem Schlüsselpaar (npub/nsec) und ist nicht an einen Server gebunden – damit kannst du dich in unterschiedlichen Clients anmelden und behältst überall denselben Account und dieselben Posts. Wenn ein Relay blockiert oder offline geht, können Nutzer zu anderen wechseln, ohne ihre Identität oder Posts zu verlieren.
+Nostr is an open protocol for social networks. Many independent relays store and distribute messages (Nostr events). Different Nostr apps speak the same protocol and can access the same content. Your identity consists of a key pair (npub/nsec) and is not bound to a server – you can sign in to different clients and keep the same account and posts everywhere. If a relay is blocked or goes offline, users can switch to others without losing their identity or posts.
 
-## Netzwerkarchitekturen im Vergleich
+## Network Architectures Compared
 
-![Netzwerkarchitekturen im Vergleich](diagramm.svg)
+![Network Architectures Compared](diagramm.svg)
 
-- **Klassische soziale Netzwerke**: Alle Nutzer über einen zentralen Server. Die Plattform kann Inhalte zensieren und Nutzer ausschließen.
-- **Federierte Netzwerke** (z.B. Mastodon): Nutzer auf verschiedenen Instanzen, die über ein Instanz-Backbone kommunizieren. Jede Instanz kann eigene Regeln durchsetzen und andere blockieren.
-- **Nostr**: Nutzer verbinden sich mit mehreren Relays gleichzeitig. Relays kommunizieren **nicht** direkt miteinander – die Kommunikation läuft über die Clients. Für Zensur müssten **alle gemeinsam genutzten Relays** mitmachen – solange nur ein gemeinsam genutztes Relay nicht mitmacht, findet keine Zensur statt.
+- **Classic social networks**: All users via a central server. The platform can censor content and exclude users.
+- **Federated networks** (e.g., Mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block others.
+- **Nostr**: Users connect to multiple relays simultaneously. Relays do **not** communicate directly with each other – communication runs through clients. For censorship to occur, **all shared relays** would need to cooperate – as long as just one shared relay doesn't cooperate, no censorship happens.
 
-## Was macht Brezn genau?
+## What does Brezn do exactly?
 
-Brezn ist nur eine Ansicht auf Nostr und kein eigenes soziales Netzwerk. Die App lädt, zeigt und sendet Nostr‑Events, die auf Relays liegen. Mit denselben Relays und Schlüsseln siehst du in anderen Nostr‑Clients (z.B. Amethyst, Damus, Coracle) die gleichen Inhalte – nur in einer anderen Oberfläche.
+Brezn is just a view of Nostr and not its own social network. The app loads, displays, and sends Nostr events that are stored on relays. With the same relays and keys, you see the same content in other Nostr clients (e.g., Amethyst, Damus, Coracle) – just in a different interface.
 
-## Rechtlicher Hinweis
+## Legal Notice
 
-Der Entwickler von Brezn betreibt keine Nostr‑Relays, hostet keine Inhalte und speichert keine Beiträge serverseitig. Posts werden an die vom Nutzer konfigurierten Relays gesendet, die Inhalte nach ihren eigenen Regeln speichern und verteilen. Der Entwickler hat keinen Einfluss auf Inhalte im Nostr‑Netzwerk und keinen Zugriff auf fremde Relays. Brezn stellt nur client‑seitige Moderation (Wörter Blockliste) bereit. Nutzer sind selbst verantwortlich für ihre Nutzung, Schlüssel und Inhalte.
+The developer of Brezn does not operate Nostr relays, host content, or store posts server-side. Posts are sent to relays configured by the user, which store and distribute content according to their own rules. The developer has no influence on content in the Nostr network and no access to external relays. Brezn only provides client-side moderation (keyword blocklist). Users are responsible for their own usage, keys and content.
 
-## Tech-Stack
+## Tech Stack
 
 - React + Vite
 - Tailwind CSS
 - `nostr-tools`
-- PWA: `vite-plugin-pwa` (Service Worker + Offline-Fallback)
+- PWA: `vite-plugin-pwa` (Service Worker + Offline Fallback)
 
-## Entwicklung
+## Development
 
 ```bash
 npm install
@@ -47,8 +47,8 @@ npm run build      # Build
 npm run preview    # Preview Build
 ```
 
-**GitHub Pages**: Automatisches Deploy bei Push auf `main` via `.github/workflows/deploy-pages.yml`.
+**GitHub Pages**: Automatic deployment on push to `main` via `.github/workflows/deploy-pages.yml`.
 
-## Danksagung
+## Acknowledgments
 
-Vielen Dank an alle Betreiber von öffentlichen Nostr-Relays, die das alles erst möglich machen.
+Many thanks to operators of public Nostr relays who make all of this possible.

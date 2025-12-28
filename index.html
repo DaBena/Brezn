@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="de" class="dark">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%icons/brezn.svg" />
     <meta name="theme-color" content="#161618" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Content Security Policy: Protects against XSS attacks -->
+    <!-- Note: frame-ancestors only works as HTTP header, not in meta tag -->
+    <!-- Note: upgrade-insecure-requests removed as it can slow down image loading -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https: http:;
+        media-src 'self' https: http:;
+        font-src 'self' data:;
+        connect-src 'self' wss: ws: https: http:;
+        worker-src 'self' blob:;
+        base-uri 'self';
+        form-action 'self';
+      "
+    />
     <title>Brezn</title>
   </head>
   <body>

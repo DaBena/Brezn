@@ -28,14 +28,14 @@ export function ConversationsSheet(props: {
     // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       Promise.resolve().then(() => {
-        setError('Offline – Bitte prüfe deine Internetverbindung.')
+        setError('Offline - Please check your internet connection.')
         setLoading(false)
       })
       return
     }
 
     const timeout = setTimeout(() => {
-      setError('Timeout – Relays antworten nicht. Bitte prüfe deine Relay-Einstellungen.')
+      setError('Timeout - Relays are not responding. Please check your relay settings.')
       setLoading(false)
     }, 5000) // Reduced from 10000 to 5000
 
@@ -48,7 +48,7 @@ export function ConversationsSheet(props: {
       })
       .catch(err => {
         clearTimeout(timeout)
-        setError(err instanceof Error ? err.message : 'Fehler beim Laden der Konversationen')
+        setError(err instanceof Error ? err.message : 'Error loading conversations')
         setLoading(false)
       })
 
@@ -63,11 +63,11 @@ export function ConversationsSheet(props: {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'gerade eben'
-    if (diffMins < 60) return `vor ${diffMins} Min`
-    if (diffHours < 24) return `vor ${diffHours} Std`
-    if (diffDays < 7) return `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
 
   return (
@@ -75,11 +75,11 @@ export function ConversationsSheet(props: {
       <Sheet open={open && !selectedPubkey} title="Chat" onClose={onClose}>
         <div className="mt-4 space-y-2">
           {loading ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Lade Konversationen…</div>
+            <div className="text-center text-sm text-brezn-muted py-8">Loading conversations…</div>
           ) : error ? (
             <div className="text-center text-sm text-brezn-danger py-8">{error}</div>
           ) : conversations.length === 0 ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Noch keine Konversationen</div>
+            <div className="text-center text-sm text-brezn-muted py-8">No conversations yet</div>
           ) : (
             conversations.map(conv => (
               <button

@@ -31,14 +31,14 @@ export function DMSheet(props: {
 
     // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setError('Offline – Bitte prüfe deine Internetverbindung.')
+      setError('Offline - Please check your internet connection.')
       setLoading(false)
       return
     }
 
     const timeout = setTimeout(() => {
       if (mounted) {
-        setError('Timeout – Relays antworten nicht. Bitte prüfe deine Relay-Einstellungen.')
+        setError('Timeout - Relays are not responding. Please check your relay settings.')
         setLoading(false)
       }
     }, 5000) // Reduced from 10000 to 5000
@@ -55,7 +55,7 @@ export function DMSheet(props: {
       .catch(err => {
         if (mounted) {
           clearTimeout(timeout)
-          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Nachrichten')
+          setError(err instanceof Error ? err.message : 'Error loading messages')
           setLoading(false)
         }
       })
@@ -139,7 +139,7 @@ export function DMSheet(props: {
 
     // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setError('Offline – Nachricht kann nicht gesendet werden.')
+      setError('Offline - Message cannot be sent.')
       return
     }
 
@@ -155,7 +155,7 @@ export function DMSheet(props: {
         created_at: Math.floor(Date.now() / 1000),
         kind: 4,
         tags: [['p', otherPubkey]],
-        content: '[wird gesendet...]',
+        content: '[sending...]',
         sig: '',
       },
       decryptedContent: content,
@@ -171,7 +171,7 @@ export function DMSheet(props: {
     } catch (e) {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.event.id !== tempId))
-      setError(e instanceof Error ? e.message : 'Fehler beim Senden')
+      setError(e instanceof Error ? e.message : 'Error sending message')
     } finally {
       setSending(false)
     }
@@ -185,11 +185,11 @@ export function DMSheet(props: {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'gerade eben'
-    if (diffMins < 60) return `vor ${diffMins} Min`
-    if (diffHours < 24) return `vor ${diffHours} Std`
-    if (diffDays < 7) return `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
 
   return (
@@ -197,11 +197,11 @@ export function DMSheet(props: {
       <div className="flex flex-col" style={{ height: 'calc(100dvh - 8rem)' }}>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pb-4">
           {loading ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Lade Nachrichten…</div>
+            <div className="text-center text-sm text-brezn-muted py-8">Loading messages…</div>
           ) : error ? (
             <div className="text-center text-sm text-brezn-danger py-8">{error}</div>
           ) : messages.length === 0 ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Noch keine Nachrichten</div>
+            <div className="text-center text-sm text-brezn-muted py-8">No messages yet</div>
           ) : (
             messages.map(msg => (
               <div
@@ -243,14 +243,14 @@ export function DMSheet(props: {
                   void sendMessage()
                 }
               }}
-              placeholder="Nachricht schreiben…"
+              placeholder="Write message…"
               className="flex-1 h-20 resize-none rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
               disabled={sending}
             />
             <button
               onClick={sendMessage}
               disabled={sending || !messageText.trim()}
-              aria-label="Nachricht senden"
+              aria-label="Send message"
               className="rounded-2xl bg-brezn-gold px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
               {sending ? '…' : '→'}

@@ -9,7 +9,7 @@ import {
   getBrowserLocation,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
-import { loadJson, saveJson } from '../lib/storage'
+import { loadJsonSync, saveJsonSync } from '../lib/storage'
 
 export type FeedState =
   | { kind: 'need-location' }
@@ -37,12 +37,12 @@ export function useLocalFeed(params: {
 }) {
   const { client, mutedTerms, blockedPubkeys } = params
 
-  const cached = loadJson<{ updatedAt: number; geoCell?: string; events: Event[] } | null>(FEED_CACHE_KEY, null)
+  const cached = loadJsonSync<{ updatedAt: number; geoCell?: string; events: Event[] } | null>(FEED_CACHE_KEY, null)
 
   const [isOffline, setIsOffline] = useState(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false))
 
   function readSavedGeo5(): string | null {
-    const v = loadJson<SavedLocation | null>(LAST_LOCATION_KEY, null)
+    const v = loadJsonSync<SavedLocation | null>(LAST_LOCATION_KEY, null)
     if (!v || typeof v.geohash5 !== 'string') return null
     const s = v.geohash5.trim()
     if (s.length < GEOHASH_LEN_MIN_UI) return null
@@ -105,7 +105,7 @@ export function useLocalFeed(params: {
     if (!sortedEvents.length) return
     // Keep it small and recent.
     const top = sortedEvents.slice(0, 200)
-    saveJson(FEED_CACHE_KEY, { updatedAt: Date.now(), geoCell: geoCell ?? undefined, events: top })
+    saveJsonSync(FEED_CACHE_KEY, { updatedAt: Date.now(), geoCell: geoCell ?? undefined, events: top })
   }, [geoCell, sortedEvents])
 
   function setLocalQueryFromGeo5(geo5: string, len: number) {
@@ -133,7 +133,7 @@ export function useLocalFeed(params: {
 
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
-      saveJson(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
+      saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
       setViewerGeo5(geo5) // Update state with new 5-digit geohash
       setLocalQueryFromGeo5(geo5, geohashLength)
     } catch (e) {
@@ -256,7 +256,7 @@ export function useLocalFeed(params: {
   }
 
   // Auto-backfill: wenn zu wenig Posts da sind, automatisch ältere nachladen,
-  // damit der Feed ohne "Mehr laden" direkt sinnvoll gefüllt ist.
+  // so the feed is meaningfully filled without needing "Load more".
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return

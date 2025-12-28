@@ -224,7 +224,7 @@ export function Sheet(props: {
             <button
               ref={closeButtonRef}
               onClick={onClose}
-              aria-label="Schließen"
+              aria-label="Close"
               className="rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
               <span className="text-red-500">×</span>

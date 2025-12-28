@@ -28,7 +28,6 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: 'standalone',
-        // pr0gramm "richtiges grau"
         background_color: '#161618',
         theme_color: '#161618',
         icons: [

@@ -19,6 +19,7 @@ function ImagePreview(props: {
         src={url}
         alt=""
         loading="lazy"
+        decoding="async"
         className="block w-full"
         onError={() => onFail?.(url)}
       />

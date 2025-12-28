@@ -63,7 +63,7 @@ export default function App() {
 
   async function publishPost(content: string) {
     // Use full 5-digit geohash for posting (not the shortened geoCell)
-    if (!viewerGeo5) throw new Error('Standort fehlt (Feed neu laden).')
+    if (!viewerGeo5) throw new Error('Location missing (reload feed).')
     
     // Generiere alle Geohash-Tags (Präfixe 1-5) für maximale Auffindbarkeit
     // viewerGeo5 ist immer 5-stellig, daher werden alle Präfixe generiert
@@ -82,7 +82,7 @@ export default function App() {
   async function publishReply(opts: { root: Event; content: string }) {
     const content = opts.content.trim()
     if (!content) return
-    if (isOffline) throw new Error('Offline – Kommentare sind read-only.')
+    if (isOffline) throw new Error('Offline - Comments are read-only.')
 
     const root = opts.root
     const rootGeo = root.tags.find(t => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
@@ -133,8 +133,8 @@ export default function App() {
   }
 
   async function deletePost(evt: Event) {
-    if (isOffline) throw new Error('Offline – Deletion Event kann nicht gesendet werden.')
-    if (evt.pubkey !== identity.pubkey) throw new Error('Nur eigene Posts können mit Deletion Event markiert werden.')
+    if (isOffline) throw new Error('Offline - Deletion Event kann nicht gesendet werden.')
+    if (evt.pubkey !== identity.pubkey) throw new Error('Only your own posts can be marked with a deletion event.')
     // NIP-09: Event Deletion (kind 5)
     await client.publish({
       kind: NOSTR_KINDS.deletion,
@@ -153,7 +153,7 @@ export default function App() {
       <button
         type="button"
         onClick={() => setDmOpen(true)}
-        aria-label="Chat öffnen"
+        aria-label="Open chat"
         className={[
           'fixed z-30',
           // Fallback for browsers that don't support env(safe-area-inset-*)
@@ -183,7 +183,7 @@ export default function App() {
       <button
         type="button"
         onClick={() => setFilterOpen(true)}
-        aria-label="Menü öffnen"
+        aria-label="Open menu"
         className={[
           'fixed z-30',
           // Fallback for browsers that don't support env(safe-area-inset-*)

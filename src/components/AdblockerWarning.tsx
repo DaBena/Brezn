@@ -31,14 +31,14 @@ export function AdblockerWarning() {
       <div className="rounded-2xl border border-brezn-border bg-brezn-panel/95 p-3 shadow-soft backdrop-blur">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-semibold">Service Worker blockiert</div>
+            <div className="text-sm font-semibold">Service Worker blocked</div>
             <div className="mt-0.5 text-xs text-brezn-muted">
-              Ein Adblocker blockiert möglicherweise den Service Worker. Bitte deaktiviere den Adblocker für diese Seite oder füge eine Ausnahme hinzu.
+              An adblocker may be blocking the service worker. Please disable the adblocker for this site or add an exception.
             </div>
           </div>
           <button
             onClick={() => setShowWarning(false)}
-            aria-label="Schließen"
+            aria-label="Close"
             className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
           >
             <span className="text-red-500">×</span>

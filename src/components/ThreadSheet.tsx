@@ -36,7 +36,7 @@ function PostCard(props: {
           <PostIdentity pubkey={evt.pubkey} profile={profile} />
         </div>
         <div className="shrink-0 text-[11px] text-brezn-muted">
-          {new Date(evt.created_at * 1000).toLocaleString('de-DE')}
+          {new Date(evt.created_at * 1000).toLocaleString()}
           {dist ? <span> / {dist}</span> : null}
         </div>
       </div>
@@ -78,7 +78,7 @@ export function ThreadSheet(props: {
     if (!content) return
     if (isOffline) {
       setPublishState('error')
-      setPublishError('Offline – Kommentare sind read-only.')
+      setPublishError('Offline - Comments are read-only.')
       return
     }
     setPublishState('publishing')
@@ -112,10 +112,10 @@ export function ThreadSheet(props: {
     if (!onDelete) return
     if (isOffline) {
       setDeleteState('error')
-      setDeleteError('Offline – Deletion Event kann nicht gesendet werden.')
+      setDeleteError('Offline - Deletion event cannot be sent.')
       return
     }
-    if (!window.confirm('NIP-09 Deletion Event senden? Dies markiert den Post als gelöscht (Clients können ihn weiterhin anzeigen).')) {
+    if (!window.confirm('Send NIP-09 deletion event? This marks the post as deleted (clients may still display it).')) {
       return
     }
     setDeleteState('deleting')
@@ -126,7 +126,7 @@ export function ThreadSheet(props: {
       onClose()
     } catch (e) {
       setDeleteState('error')
-      setDeleteError(e instanceof Error ? e.message : 'Deletion Event fehlgeschlagen.')
+      setDeleteError(e instanceof Error ? e.message : 'Deletion event failed.')
     }
   }
 
@@ -134,7 +134,7 @@ export function ThreadSheet(props: {
     if (!onBlockUser) return
     if (isOwnPost) return
     if (isBlocked) return
-    if (!window.confirm('Diesen Nutzer blockieren? Alle Posts von diesem Nutzer werden ausgeblendet.')) {
+    if (!window.confirm('Block this user? All posts from this user will be hidden.')) {
       return
     }
     setBlockState('blocking')
@@ -144,7 +144,7 @@ export function ThreadSheet(props: {
       onClose()
     } catch (e) {
       setBlockState('idle')
-      window.alert(e instanceof Error ? e.message : 'Blockieren fehlgeschlagen.')
+      window.alert(e instanceof Error ? e.message : 'Blocking failed.')
     }
   }
 
@@ -157,7 +157,7 @@ export function ThreadSheet(props: {
             type="button"
             onClick={() => void handleDelete()}
             disabled={deleteState === 'deleting' || isOffline}
-            aria-label="NIP-09 Deletion Event senden"
+            aria-label="Send NIP-09 deletion event"
             className="flex items-center gap-2 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-brezn-danger hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="opacity-90">
@@ -166,22 +166,22 @@ export function ThreadSheet(props: {
                 d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
               />
             </svg>
-            <span>{deleteState === 'deleting' ? 'Sende…' : 'Deletion Event'}</span>
+            <span>{deleteState === 'deleting' ? 'Sending…' : 'Delete'}</span>
           </button>
         ) : !isOwnPost && onBlockUser && !isBlocked ? (
           <button
             type="button"
             onClick={handleBlockUser}
             disabled={blockState === 'blocking'}
-            aria-label="Nutzer blockieren"
+            aria-label="Block user"
             className="flex items-center gap-1.5 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-brezn-danger hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
-            title="Nutzer blockieren"
+            title="Block user"
           >
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
             </svg>
-            <span>{blockState === 'blocking' ? '…' : 'Blockieren'}</span>
+            <span>{blockState === 'blocking' ? '…' : 'Block'}</span>
           </button>
         ) : null
       }
@@ -199,7 +199,7 @@ export function ThreadSheet(props: {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs font-semibold text-brezn-muted">Antworten ({replyCount})</div>
+            <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
             {isOffline ? <div className="text-[11px] text-brezn-muted">Offline</div> : null}
           </div>
           {replies.length ? (
@@ -215,7 +215,7 @@ export function ThreadSheet(props: {
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Antwort schreiben…"
+            placeholder="Write reply…"
             className="mt-2 h-24 w-full resize-none rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
             disabled={isOffline}
           />
@@ -226,7 +226,7 @@ export function ThreadSheet(props: {
               disabled={publishState === 'publishing' || !text.trim() || isOffline}
               className="w-full rounded-2xl bg-brezn-gold px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              {publishState === 'publishing' ? 'Sende…' : 'Antworten'}
+              {publishState === 'publishing' ? 'Sending…' : 'Reply'}
             </button>
           </div>
         </div>

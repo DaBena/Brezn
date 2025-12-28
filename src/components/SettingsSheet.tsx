@@ -79,7 +79,7 @@ export function SettingsSheet(props: {
       return true
     } catch {
       try {
-        window.prompt('Kopieren (Strg/Cmd+C), dann OK:', text)
+        window.prompt('Copy (Ctrl/Cmd+C), then OK:', text)
       } catch {
         // ignore
       }
@@ -101,7 +101,7 @@ export function SettingsSheet(props: {
     const next = blockedPubkeys.filter(p => p !== pubkey)
     client.setBlockedPubkeys(next)
     setBlockedPubkeys(client.getBlockedPubkeys())
-    setBlockedMsg('Nutzer entblockiert.')
+    setBlockedMsg('User unblocked.')
     onModerationChanged?.()
   }
 
@@ -318,12 +318,12 @@ export function SettingsSheet(props: {
   }
 
   return (
-    <Sheet open={open} title="Einstellungen" onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving && profileUploadState !== 'uploading'}>
+    <Sheet open={open} title="Settings" onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving && profileUploadState !== 'uploading'}>
       <div className="mt-4 space-y-3">
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Suchradius</div>
+          <div className="text-xs font-semibold text-brezn-muted">Search radius</div>
           <div className="mt-1 text-xs text-brezn-muted">
-            GeoHash-Länge: {geohashLength} • {geohashPrecisionHint(geohashLength)}
+            Geohash length: {geohashLength} • {geohashPrecisionHint(geohashLength)}
           </div>
           {geoCell ? (
             <div className="mt-1 text-xs text-brezn-muted">
@@ -331,39 +331,50 @@ export function SettingsSheet(props: {
               <span className="rounded-lg border border-brezn-border bg-brezn-panel px-2 py-0.5 font-mono">{geoCell}</span>
             </div>
           ) : (
-            <div className="mt-1 text-xs text-brezn-muted">GeoHash: –</div>
+            <div className="mt-1 text-xs text-brezn-muted">GeoHash: -</div>
           )}
-          <input
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={geohashLength}
-            onChange={e => onGeohashLengthChange(Number(e.target.value))}
-            className="mt-3 w-full"
-            aria-label="GeoHash-Länge"
-          />
-          <div className="mt-1 text-xs text-brezn-muted">
-            Länge {geohashLength} ({geohashPrecisionHint(geohashLength)})
+          <div className="mt-3 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onGeohashLengthChange(Math.max(1, geohashLength - 1))}
+              disabled={geohashLength <= 1}
+              className="h-10 w-10 shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 text-lg font-semibold hover:bg-brezn-panel disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+              aria-label="Decrease radius"
+            >
+              -
+            </button>
+            <div className="px-2">
+              <div className="text-sm font-semibold">Length {geohashLength}</div>
+              <div className="text-xs text-brezn-muted">{geohashPrecisionHint(geohashLength)}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onGeohashLengthChange(Math.min(5, geohashLength + 1))}
+              disabled={geohashLength >= 5}
+              className="h-10 w-10 shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 text-lg font-semibold hover:bg-brezn-panel disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+              aria-label="Increase radius"
+            >
+              +
+            </button>
           </div>
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Blockliste</div>
-          <div className="mt-1 text-xs text-brezn-muted">1 Zeile = 1 Begriff ({mutedTerms.length}/200)</div>
+          <div className="text-xs font-semibold text-brezn-muted">Blocklist</div>
+          <div className="mt-1 text-xs text-brezn-muted">1 line = 1 term ({mutedTerms.length}/200)</div>
           <textarea
             value={mutedTermsText}
             onChange={e => setMutedTermsText(e.target.value)}
-            onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blockliste gespeichert.')}
-            placeholder={'z. B.\nspam\nkauf jetzt\ntelegram.me'}
+            onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blocklist saved.')}
+            placeholder={'e.g.\nspam\nbuy now\ntelegram.me'}
             className="mt-2 h-28 w-full resize-none rounded-xl border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs outline-none focus:ring-2 focus:ring-brezn-gold/40"
           />
           {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Blockierte Nutzer</div>
-          <div className="mt-1 text-xs text-brezn-muted">{blockedPubkeys.length} blockiert</div>
+          <div className="text-xs font-semibold text-brezn-muted">Blocked users</div>
+          <div className="mt-1 text-xs text-brezn-muted">{blockedPubkeys.length} blocked</div>
           {blockedPubkeys.length > 0 ? (
             <div className="mt-3 space-y-2">
               {blockedPubkeys.map(pubkey => (
@@ -377,19 +388,19 @@ export function SettingsSheet(props: {
                     onClick={() => unblockUser(pubkey)}
                     className="shrink-0 rounded-lg border border-brezn-border bg-brezn-panel2 px-3 py-1.5 text-[11px] font-semibold hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
                   >
-                    Entblockieren
+                    Unblock
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="mt-2 text-xs text-brezn-muted">Keine blockierten Nutzer</div>
+            <div className="mt-2 text-xs text-brezn-muted">No blocked users</div>
           )}
           {blockedMsg ? <div className="mt-2 text-xs text-brezn-muted">{blockedMsg}</div> : null}
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Identität</div>
+          <div className="text-xs font-semibold text-brezn-muted">Identity</div>
           <div className="mt-1 text-xs text-brezn-muted">
             <span className="font-mono">npub</span>:
           </div>
@@ -401,12 +412,12 @@ export function SettingsSheet(props: {
               type="button"
               onClick={() => {
                 void copyToClipboard(identity.npub).then(ok => {
-                  setKeyMsg(ok ? 'npub kopiert.' : 'npub anzeigen & kopieren.')
+                  setKeyMsg(ok ? 'npub copied.' : 'Show & copy npub.')
                 })
               }}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Kopieren
+              Copy
             </button>
           </div>
 
@@ -422,30 +433,30 @@ export function SettingsSheet(props: {
               onClick={() => setShowPrivKey(v => !v)}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              {showPrivKey ? 'Verbergen' : 'Anzeigen'}
+              {showPrivKey ? 'Hide' : 'Show'}
             </button>
             <button
               type="button"
               onClick={() => {
                 void copyToClipboard(privateIdentity.nsec).then(ok => {
-                  setKeyMsg(ok ? 'nsec kopiert.' : 'nsec anzeigen & kopieren.')
+                  setKeyMsg(ok ? 'nsec copied.' : 'Show & copy nsec.')
                 })
               }}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
               disabled={!showPrivKey}
             >
-              Kopieren
+              Copy
             </button>
           </div>
           <div className="mt-2 text-[11px] text-brezn-muted">
-            Teile deinen <span className="font-mono">nsec</span> nie.
+            Never share your <span className="font-mono">nsec</span>.
           </div>
           {keyMsg ? <div className="mt-2 text-xs text-brezn-muted">{keyMsg}</div> : null}
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
           <div className="text-xs font-semibold text-brezn-muted">Relays</div>
-          <div className="mt-1 text-xs text-brezn-muted">Relays für Laden & Posten.</div>
+          <div className="mt-1 text-xs text-brezn-muted">Relays for loading & posting.</div>
 
           <div className="mt-3 space-y-2">
             {[...new Set([...DEFAULT_RELAYS, ...relays])].map(r => {
@@ -463,7 +474,7 @@ export function SettingsSheet(props: {
                         const next = e.target.checked ? [...relays, r] : relays.filter(x => x !== r)
                         client.setRelays(next)
                         setRelays(client.getRelays())
-                        setRelayMsg('Relays gespeichert.')
+                        setRelayMsg('Relays saved.')
                       }}
                       className="h-4 w-4 accent-brezn-gold"
                     />
@@ -477,11 +488,11 @@ export function SettingsSheet(props: {
                         const next = relays.filter(x => x !== r)
                         client.setRelays(next)
                         setRelays(client.getRelays())
-                        setRelayMsg('Relay entfernt.')
+                        setRelayMsg('Relay removed.')
                       }}
                       className="shrink-0 rounded-lg border border-brezn-border bg-brezn-panel2 px-2 py-1 text-[11px] hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
                     >
-                      Entfernen
+                      Remove
                     </button>
                   ) : null}
                 </label>
@@ -499,7 +510,7 @@ export function SettingsSheet(props: {
               client.setRelays(next)
               setRelays(client.getRelays())
               setNewRelay('')
-              setRelayMsg('Relay hinzugefügt.')
+                setRelayMsg('Relay added.')
               setRelayTestTriggered(false)
             }}
           >
@@ -513,19 +524,19 @@ export function SettingsSheet(props: {
               type="submit"
               className="rounded-xl bg-brezn-gold px-3 py-2 text-xs font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Hinzufügen
+              Add
             </button>
             <button
               type="button"
               onClick={() => {
                 client.setRelays([...DEFAULT_RELAYS])
                 setRelays(client.getRelays())
-                setRelayMsg('Auf Standard-Relays zurückgesetzt.')
+                setRelayMsg('Reset to default relays.')
                 setRelayTestTriggered(false)
               }}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Standard
+              Default
             </button>
             <button
               type="button"
@@ -533,7 +544,7 @@ export function SettingsSheet(props: {
               disabled={relayTestState === 'running' || relays.length === 0}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              {relayTestState === 'running' ? 'Teste…' : 'Testen'}
+              {relayTestState === 'running' ? 'Testing…' : 'Test'}
             </button>
           </form>
 
@@ -572,9 +583,9 @@ export function SettingsSheet(props: {
         </div>
 
         <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
-          <div className="text-xs font-semibold text-brezn-muted">Medien-Upload</div>
+          <div className="text-xs font-semibold text-brezn-muted">Media Upload</div>
           <div className="mt-1 text-xs text-brezn-muted">
-            Direkt-URL oder NIP-96. Standard: <span className="font-mono">{DEFAULT_NIP96_SERVER}</span>. Leer = aus.
+            Direct URL or NIP-96. Default: <span className="font-mono">{DEFAULT_NIP96_SERVER}</span>. Empty = off.
           </div>
 
           <div className="mt-2 flex gap-2">
@@ -589,7 +600,7 @@ export function SettingsSheet(props: {
               onClick={() => setMediaEndpoint(DEFAULT_NIP96_SERVER)}
               className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
             >
-              Standard
+              Default
             </button>
           </div>
 
@@ -600,7 +611,7 @@ export function SettingsSheet(props: {
           <div className="text-xs font-semibold text-brezn-muted">Profil</div>
 
           {profileLoading ? (
-            <div className="mt-3 text-xs text-brezn-muted">Lade Profil…</div>
+            <div className="mt-3 text-xs text-brezn-muted">Loading profile…</div>
           ) : (
             <>
               <div className="mt-3">
@@ -612,7 +623,7 @@ export function SettingsSheet(props: {
                   type="text"
                   value={profileName}
                   onChange={e => setProfileName(e.target.value)}
-                  placeholder="Dein Name (optional)"
+                  placeholder="Your name (optional)"
                   maxLength={100}
                   className="w-full rounded-xl border border-brezn-border bg-brezn-panel p-2 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
                 />
@@ -620,13 +631,13 @@ export function SettingsSheet(props: {
 
               <div className="mt-3">
                 <label htmlFor="profile-picture" className="block text-xs text-brezn-muted mb-1">
-                  Profilbild
+                  Profile picture
                 </label>
                 <div className="flex items-center gap-3">
                   {profilePicture ? (
                     <img
                       src={profilePicture}
-                      alt="Profilbild"
+                      alt="Profile picture"
                       className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
                       onError={e => {
                         e.currentTarget.style.display = 'none'
@@ -660,20 +671,20 @@ export function SettingsSheet(props: {
 
                         if (!isImage) {
                           setProfileUploadState('error')
-                          setProfileUploadError('Nur Bilder werden unterstützt.')
+                          setProfileUploadError('Only images are supported.')
                           return
                         }
 
                         const maxBytes = 5 * 1024 * 1024 // 5 MB
                         if (file.size > maxBytes) {
                           setProfileUploadState('error')
-                          setProfileUploadError('Bild ist zu groß (max. 5 MB).')
+                          setProfileUploadError('Image is too large (max. 5 MB).')
                           return
                         }
 
                         if (!mediaEndpoint) {
                           setProfileUploadState('error')
-                          setProfileUploadError('Erst Medien-Upload-Endpunkt konfigurieren.')
+                          setProfileUploadError('Configure media upload endpoint first.')
                           return
                         }
 
@@ -685,7 +696,7 @@ export function SettingsSheet(props: {
                           setProfileUploadState('idle')
                         } catch (err) {
                           setProfileUploadState('error')
-                          setProfileUploadError(err instanceof Error ? err.message : 'Upload fehlgeschlagen.')
+                          setProfileUploadError(err instanceof Error ? err.message : 'Upload failed.')
                         }
                       }}
                     />
@@ -708,12 +719,12 @@ export function SettingsSheet(props: {
                           }
                         }}
                       >
-                        {profileUploadState === 'uploading' ? 'Upload…' : profilePicture ? 'Bild ändern' : 'Bild hochladen'}
+                        {profileUploadState === 'uploading' ? 'Uploading…' : profilePicture ? 'Change image' : 'Upload image'}
                       </label>
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!window.confirm('Profil wirklich zurücksetzen? Name und Bild werden entfernt.')) return
+                          if (!window.confirm('Really reset profile? Name and picture will be removed.')) return
                           setProfileSaving(true)
                           setProfileMsg(null)
                           try {
@@ -721,9 +732,9 @@ export function SettingsSheet(props: {
                             setProfileName('')
                             setProfilePicture('')
                             initialProfileRef.current = { name: '', picture: '' }
-                            setProfileMsg('Profil zurückgesetzt.')
+                            setProfileMsg('Profile reset.')
                           } catch (e) {
-                            setProfileMsg(e instanceof Error ? e.message : 'Fehler beim Zurücksetzen')
+                            setProfileMsg(e instanceof Error ? e.message : 'Error resetting profile')
                           } finally {
                             setProfileSaving(false)
                           }
@@ -731,7 +742,7 @@ export function SettingsSheet(props: {
                         disabled={profileSaving || profileUploadState === 'uploading'}
                         className="flex-1 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold hover:bg-brezn-panel disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
                       >
-                        Zurücksetzen
+                        Reset
                       </button>
                     </div>
                     {profilePicture ? (
@@ -740,7 +751,7 @@ export function SettingsSheet(props: {
                         onClick={() => setProfilePicture('')}
                         className="mt-1 w-full rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
                       >
-                        Bild entfernen
+                        Remove image
                       </button>
                     ) : null}
                   </div>

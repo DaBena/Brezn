@@ -77,8 +77,8 @@ export function geohashPrecisionHint(len: number): string {
     6: { w: '~1.2 km', h: '~0.61 km' },
   }
   const t = table[len]
-  if (!t) return 'Je höher, desto kleiner (präziser) – aber weniger Treffer.'
-  return `${t.w} × ${t.h} pro Zelle (grob)`
+  if (!t) return 'Higher = smaller (more precise) - but fewer results.'
+  return `${t.w} × ${t.h} per cell`
 }
 
 export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number } | null {

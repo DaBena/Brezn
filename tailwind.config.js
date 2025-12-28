@@ -6,7 +6,6 @@ export default {
     extend: {
       colors: {
         brezn: {
-          // pr0gramm "richtiges grau"
           bg: '#161618',
           panel: '#121216',
           panel2: '#17171d',

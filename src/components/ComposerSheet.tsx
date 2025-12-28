@@ -65,7 +65,7 @@ export function ComposerSheet(props: {
   }
 
   return (
-    <Sheet open={open} title="Neuen lokalen Post erstellen" onClose={onClose} scrollable={false}>
+    <Sheet open={open} title="Create new local post" onClose={onClose} scrollable={false}>
       {viewerGeo5 ? (
         <div className="mt-2 text-xs text-brezn-muted">
           in Cell <span className="font-mono">{viewerGeo5}</span>
@@ -83,7 +83,7 @@ export function ComposerSheet(props: {
               </span>
               <button
                 onClick={() => setMediaUrls(prev => prev.filter((_, i) => i !== idx))}
-                aria-label="Medien entfernen"
+                aria-label="Remove media"
                 className="shrink-0 rounded text-red-500 hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
               >
                 <span className="text-sm leading-none">×</span>
@@ -102,7 +102,7 @@ export function ComposerSheet(props: {
           el.style.height = 'auto'
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
-        placeholder="Was geht in deiner Gegend?"
+        placeholder="What's happening in your area?"
         className="mt-3 min-h-[120px] w-full resize-none rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-base sm:text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
         rows={5}
       />
@@ -122,7 +122,7 @@ export function ComposerSheet(props: {
               if (!file) return
               if (!mediaUploadEndpoint) {
                 setUploadState('error')
-                setUploadError('Kein Upload-Endpunkt konfiguriert (Filter → Medien-Upload).')
+                setUploadError('No upload endpoint configured (Settings → Media Upload).')
                 return
               }
 
@@ -146,14 +146,14 @@ export function ComposerSheet(props: {
                 name.endsWith('.ogv')
               if (!isImage && !isVideo) {
                 setUploadState('error')
-                setUploadError('Nur Bilder oder Videos werden unterstützt.')
+                setUploadError('Only images or videos are supported.')
                 return
               }
 
               const limit = isVideo ? maxVideoBytes : maxImageBytes
               if (file.size > limit) {
                 setUploadState('error')
-                setUploadError(isVideo ? 'Video ist zu groß (max. 25 MB).' : 'Bild ist zu groß (max. 12 MB).')
+                setUploadError(isVideo ? 'Video is too large (max. 25 MB).' : 'Image is too large (max. 12 MB).')
                 return
               }
 
@@ -165,7 +165,7 @@ export function ComposerSheet(props: {
                 setUploadState('idle')
               } catch (err) {
                 setUploadState('error')
-                setUploadError(err instanceof Error ? err.message : 'Upload fehlgeschlagen.')
+                setUploadError(err instanceof Error ? err.message : 'Upload failed.')
               }
             }}
           />
@@ -193,16 +193,16 @@ export function ComposerSheet(props: {
               }
             }}
           >
-            {uploadState === 'uploading' ? 'Upload…' : 'Medien'}
+            {uploadState === 'uploading' ? 'Uploading…' : 'Media'}
           </label>
 
           <button
             onClick={publishPost}
             disabled={publishState === 'publishing' || uploadState === 'uploading' || (!composerText.trim() && mediaUrls.length === 0)}
-            aria-label="Beitrag posten"
+            aria-label="Publish post"
             className="flex-1 rounded-2xl bg-brezn-gold px-4 py-3.5 text-sm font-semibold text-white min-h-[44px] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 active:opacity-90"
           >
-            {publishState === 'publishing' ? 'Sende…' : 'Posten'}
+            {publishState === 'publishing' ? 'Publishing…' : 'Publish'}
           </button>
           <button
             onClick={() => {
@@ -214,7 +214,7 @@ export function ComposerSheet(props: {
             }}
             className="rounded-2xl border border-brezn-border bg-brezn-panel2 px-4 py-3.5 text-sm min-h-[44px] hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 active:opacity-90 sm:hidden"
           >
-            Abbrechen
+            Cancel
           </button>
         </div>
       </div>

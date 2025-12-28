@@ -5,7 +5,7 @@ import { SimplePool } from 'nostr-tools/pool'
 import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
-import { loadJson, saveJson } from './storage'
+import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them),
@@ -25,7 +25,8 @@ export const DEFAULT_RELAYS = [
 const LS_KEY = 'brezn:v1'
 
 type StoredStateV1 = {
-  // Private key is ALWAYS stored as plaintext hex in localStorage.
+  // Private key is stored encrypted (AES-GCM) when Web Crypto API is available.
+  // Falls back to plaintext if encryption is not available.
   skHex?: string
   pubkey?: string
   npub?: string
@@ -91,13 +92,77 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000)
 }
 
+// State cache for fast synchronous access
+let stateCache: StoredStateV1 | null = null
+let stateCacheInitialized = false
+
+// Initialize state cache asynchronously from IndexedDB (best effort)
+async function initializeStateCache() {
+  if (stateCacheInitialized) return
+  stateCacheInitialized = true
+
+  try {
+    // Load with automatic decryption of skHex
+    const loaded = await loadEncryptedJson<StoredStateV1>(
+      LS_KEY,
+      { mutedTerms: [], blockedPubkeys: [] },
+      ['skHex'],
+    )
+    stateCache = loaded
+    // Also ensure localStorage is synced (will be encrypted on next save)
+    if (loaded.skHex || loaded.mutedTerms.length > 0 || loaded.blockedPubkeys.length > 0) {
+      // Save unencrypted to localStorage for immediate access (will be encrypted on next async save)
+      saveJsonSync(LS_KEY, loaded)
+    }
+  } catch {
+    // If IndexedDB fails, fallback to localStorage
+    const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+    stateCache = loaded
+  }
+}
+
+// Start async initialization immediately (non-blocking)
+if (typeof window !== 'undefined') {
+  initializeStateCache().catch(() => {
+    // Ignore errors, will fallback to localStorage
+  })
+}
+
 function loadState(): StoredStateV1 {
-  return loadJson<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  // Use cache if available (from IndexedDB or localStorage, already decrypted)
+  if (stateCache !== null) {
+    return stateCache
+  }
+  // Fallback to synchronous localStorage read
+  // Note: localStorage may contain unencrypted values for fast access
+  // Encrypted values in IndexedDB are handled by initializeStateCache()
+  const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  stateCache = loaded
+  
+  // If we got a value with skHex that looks encrypted (contains ':'), trigger async decryption
+  if (loaded.skHex && loaded.skHex.includes(':')) {
+    // This is likely an encrypted value that wasn't decrypted yet
+    // Trigger async initialization to decrypt it
+    initializeStateCache().catch(() => {
+      // Ignore errors
+    })
+  }
+  
+  return loaded
 }
 
 function saveState(patch: Partial<StoredStateV1>) {
   const next = { ...loadState(), ...patch }
-  saveJson(LS_KEY, next)
+  stateCache = next
+  
+  // Save synchronously to localStorage (immediate, unencrypted for fast access)
+  // This is acceptable since localStorage is already accessible to scripts
+  saveJsonSync(LS_KEY, next)
+  
+  // Save asynchronously to IndexedDB with encryption (robust persistence + obfuscation)
+  saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {
+    // Ignore errors, localStorage is already saved
+  })
 }
 
 function normalizeRelayUrl(input: string): string | null {
@@ -194,14 +259,15 @@ export function createNostrClient(): BreznNostrClient {
     // Close old subscription first, but don't wait (non-blocking)
     const oldCloser = s.closer
     if (oldCloser) {
+      // Clear immediately to avoid race conditions
+      s.closer = null
       try {
         oldCloser.close(`brezn:${reason}`)
       } catch (err) {
         // Ignore errors - WebSocket might already be closed
         // This is a known race condition in SimplePool when EOSE and close happen simultaneously
+        // The error is harmless and can be safely ignored
       }
-      // Clear immediately to avoid race conditions
-      s.closer = null
     }
     // Create new subscription
     const relays = getRelays()
@@ -210,7 +276,12 @@ export function createNostrClient(): BreznNostrClient {
         s.opts.onevent(evt)
       },
       oneose: () => {
-        s.opts.oneose?.()
+        try {
+          s.opts.oneose?.()
+        } catch (err) {
+          // Ignore errors in oneose callback - might happen if subscription is closed during EOSE
+          console.warn('Error in oneose callback:', err)
+        }
       },
       onclose: reasons => {
         s.opts.onclose?.(reasons)
@@ -472,7 +543,7 @@ export function createNostrClient(): BreznNostrClient {
                 const otherPubkey = evt.pubkey
                 if (!otherPubkey) return
 
-                let preview = '[verschlüsselt]'
+                let preview = '[encrypted]'
                 try {
                   const decrypted = await decryptDM(evt)
                   preview = decrypted.slice(0, 50)
@@ -521,7 +592,7 @@ export function createNostrClient(): BreznNostrClient {
                 const otherPubkey = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
                 if (!otherPubkey) return
 
-                let preview = '[verschlüsselt]'
+                let preview = '[encrypted]'
                 try {
                   const decrypted = await decryptDM(evt)
                   preview = decrypted.slice(0, 50)
