@@ -1,0 +1,143 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+
+export type ToastType = 'info' | 'success' | 'error' | 'warning'
+
+export type Toast = {
+  id: string
+  message: string
+  type: ToastType
+  duration?: number // in ms, default: 5000
+}
+
+type ToastContextValue = {
+  toasts: Toast[]
+  showToast: (message: string, type?: ToastType, duration?: number) => void
+  removeToast: (id: string) => void
+}
+
+export const ToastContext = React.createContext<ToastContextValue | null>(null)
+
+// Hook to use toast context
+export function useToast() {
+  const context = React.useContext(ToastContext)
+  if (!context) {
+    throw new Error('useToast must be used within ToastProvider')
+  }
+  return context
+}
+
+// Toast Provider Component
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
+
+  const showToast = useCallback((message: string, type: ToastType = 'info', duration = 5000) => {
+    const id = `toast-${Date.now()}-${Math.random()}`
+    const toast: Toast = { id, message, type, duration }
+    setToasts(prev => [...prev, toast])
+
+    // Auto-remove after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        removeToast(id)
+      }, duration)
+    }
+  }, [removeToast])
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({ toasts, showToast, removeToast }), [toasts, showToast, removeToast])
+
+  return (
+    <ToastContext.Provider value={contextValue}>
+      {children}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </ToastContext.Provider>
+  )
+}
+
+// Toast Container Component
+function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
+  if (toasts.length === 0) return null
+
+  return (
+    <div className="fixed left-1/2 top-3 z-[70] flex w-[calc(min(560px,100vw)-32px)] -translate-x-1/2 flex-col gap-2">
+      {toasts.map(toast => (
+        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
+      ))}
+    </div>
+  )
+}
+
+// Individual Toast Item
+function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
+  const [isExiting, setIsExiting] = useState(false)
+
+  const handleRemove = () => {
+    setIsExiting(true)
+    // Wait for animation before removing
+    setTimeout(() => {
+      onRemove(toast.id)
+    }, 200)
+  }
+
+  useEffect(() => {
+    if (toast.duration && toast.duration > 0) {
+      const timer = setTimeout(() => {
+        setIsExiting(true)
+        setTimeout(() => {
+          onRemove(toast.id)
+        }, 200)
+      }, toast.duration)
+      return () => clearTimeout(timer)
+    }
+  }, [toast.duration, toast.id, onRemove])
+
+  const typeStyles = {
+    info: 'border-brezn-border bg-brezn-panel/95',
+    success: 'border-green-500/50 bg-green-500/10',
+    error: 'border-brezn-danger/50 bg-brezn-danger/10',
+    warning: 'border-yellow-500/50 bg-yellow-500/10',
+  }
+
+  const iconStyles = {
+    info: 'text-brezn-muted',
+    success: 'text-green-400',
+    error: 'text-brezn-danger',
+    warning: 'text-yellow-400',
+  }
+
+  return (
+    <div
+      className={[
+        'rounded-2xl border p-3 shadow-soft backdrop-blur transition-all duration-200',
+        typeStyles[toast.type],
+        isExiting ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0',
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
+          <div className={['shrink-0 text-lg', iconStyles[toast.type]].join(' ')}>
+            {toast.type === 'success' && '✓'}
+            {toast.type === 'error' && '✕'}
+            {toast.type === 'warning' && '⚠'}
+            {toast.type === 'info' && 'ℹ'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-brezn-text">{toast.message}</div>
+          </div>
+        </div>
+        <button
+          onClick={handleRemove}
+          aria-label="Close"
+          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-2 py-1 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+        >
+          <span className="text-red-500">×</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+

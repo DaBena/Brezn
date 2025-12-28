@@ -8,6 +8,7 @@ import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { AdblockerWarning } from './components/AdblockerWarning'
 import { SettingsSheet } from './components/SettingsSheet'
 import { ThreadSheet } from './components/ThreadSheet'
+import { useToast } from './components/Toast'
 import { useIdentity } from './hooks/useIdentity'
 import { useLocalFeed } from './hooks/useLocalFeed'
 import { useNostrClient } from './hooks/useNostrClient'
@@ -18,6 +19,7 @@ import { generateGeohashTags } from './lib/geo'
 export default function App() {
   const client = useNostrClient()
   const { identity } = useIdentity(client)
+  const { showToast } = useToast()
 
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [threadRoot, setThreadRoot] = useState<Event | null>(null)
@@ -128,7 +130,7 @@ export default function App() {
         delete next[evt.id]
         return next
       })
-      window.alert(e instanceof Error ? e.message : 'Reaction failed.')
+      showToast(e instanceof Error ? e.message : 'Reaction failed.', 'error')
     }
   }
 

@@ -13,19 +13,19 @@ After installation, Brezn appears with the Brezn icon on the home screen/start m
 
 ## What is Nostr?
 
-Nostr is an open protocol for social networks. Many independent relays store and distribute messages (Nostr events). Different Nostr apps speak the same protocol and can access the same content. Your identity consists of a key pair (npub/nsec) and is not bound to a server – you can sign in to different clients and keep the same account and posts everywhere. If a relay is blocked or goes offline, users can switch to others without losing their identity or posts.
+"Notes and Other Stuff Transmitted by Relays" is an open protocol for social networks. Many independent relays store and distribute messages (Nostr events). Different Nostr apps speak the same protocol and can access the same content. Your identity consists of a key pair (npub/nsec) and is not bound to a server – you can sign in to different clients and keep the same account and posts everywhere. If a relay is blocked or goes offline, users can switch to others without losing their identity or posts.
 
 ## Network Architectures Compared
 
 ![Network Architectures Compared](diagramm.svg)
 
 - **Classic social networks**: All users via a central server. The platform can censor content and exclude users.
-- **Federated networks** (e.g., Mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block others.
-- **Nostr**: Users connect to multiple relays simultaneously. Relays do **not** communicate directly with each other – communication runs through clients. For censorship to occur, **all shared relays** would need to cooperate – as long as just one shared relay doesn't cooperate, no censorship happens.
+- **Federated networks** (e.g., Mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block other instances.
+- **Nostr**: Users connect to multiple relays simultaneously. Relays do **not** communicate directly with each other, communication runs through clients. For censorship to occur, **all shared relays** would need to cooperate. As long as just one shared relay doesn't cooperate, no censorship happens.
 
 ## What does Brezn do exactly?
 
-Brezn is just a view of Nostr and not its own social network. The app loads, displays, and sends Nostr events that are stored on relays. With the same relays and keys, you see the same content in other Nostr clients (e.g., Amethyst, Damus, Coracle) – just in a different interface.
+Brezn is just a view of Nostr and not its own social network. The app loads, displays, and sends Nostr events that are stored on relays. With the same relays and keys, you see the same content in other Nostr clients (e.g., Amethyst, Damus, Coracle), just in a different interface.
 
 ## Legal Notice
 

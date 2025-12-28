@@ -6,6 +6,7 @@ import { decodeGeohashCenter, formatApproxDistance, haversineDistanceKm } from '
 import { getLongestGeohashTag } from '../lib/nostrUtils'
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles } from '../hooks/useProfiles'
+import { useToast } from './Toast'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
@@ -61,6 +62,7 @@ export function ThreadSheet(props: {
   onBlockUser?: (pubkey: string) => void
 }) {
   const { open, onClose, root, client, mutedTerms, blockedPubkeys, isOffline, viewerPoint, onPublishReply, onDelete, onBlockUser } = props
+  const { showToast } = useToast()
 
   const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
 
@@ -144,7 +146,7 @@ export function ThreadSheet(props: {
       onClose()
     } catch (e) {
       setBlockState('idle')
-      window.alert(e instanceof Error ? e.message : 'Blocking failed.')
+      showToast(e instanceof Error ? e.message : 'Blocking failed.', 'error')
     }
   }
 

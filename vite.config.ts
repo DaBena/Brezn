@@ -52,12 +52,19 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,woff2}'],
-        navigateFallback: `${base}offline.html`,
-        navigateFallbackDenylist: [/^\/api\//],
+        // Only use globPatterns in production to avoid dev-dist warnings
+        ...(process.env.NODE_ENV === 'production' && {
+          globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,woff2}'],
+        }),
+        // Only use navigateFallback in production - in dev mode, let Vite handle routing
+        ...(process.env.NODE_ENV === 'production' && {
+          navigateFallback: `${base}offline.html`,
+          navigateFallbackDenylist: [/^\/api\//],
+        }),
       },
       devOptions: {
-        enabled: true,
+        enabled: false, // Disable Workbox in dev mode to avoid warnings about Vite dev resources
+        type: 'module', // Use module type if enabled
       },
     }),
   ],

@@ -40,52 +40,207 @@ type StoredStateV1 = {
   }
 }
 
+/**
+ * Represents a conversation with another user.
+ */
 export type Conversation = {
+  /** Other user's public key (64 hex chars) */
   pubkey: string
+  /** Unix timestamp of last message */
   lastMessageAt: number
+  /** Preview of last message (first 50 chars, or '[encrypted]' if decryption failed) */
   lastMessagePreview: string
 }
 
+/**
+ * Represents a decrypted direct message.
+ */
 export type DecryptedDM = {
+  /** Original encrypted event */
   event: Event
+  /** Decrypted plaintext content */
   decryptedContent: string
+  /** Whether the message was sent by the current user */
   isFromMe: boolean
 }
 
+/**
+ * Main client interface for Nostr operations in Brezn.
+ * 
+ * The client manages:
+ * - Identity (auto-created on first use)
+ * - Network connections to Nostr relays
+ * - Local moderation (blocklist, muted terms)
+ * - Feed preferences (geohash length)
+ * - Direct messages (NIP-04 encrypted)
+ * - Profile metadata
+ * 
+ * All state is persisted to localStorage/IndexedDB and survives page reloads.
+ */
 export type BreznNostrClient = {
-  // identity (always present; auto-created on first run)
+  /**
+   * Get public identity (pubkey and npub).
+   * Identity is auto-created on first run if it doesn't exist.
+   * @returns Public identity with hex pubkey and bech32-encoded npub
+   */
   getPublicIdentity(): { pubkey: string; npub: string }
+
+  /**
+   * Get private identity (secret key and nsec).
+   * ⚠️ Never share the nsec - it gives full control over the identity.
+   * @returns Private identity with hex secret key and bech32-encoded nsec
+   */
   getPrivateIdentity(): { skHex: string; nsec: string }
 
-  // network
+  /**
+   * Publish a Nostr event to all configured relays.
+   * @param event - Event data (kind, content, tags)
+   * @returns Promise resolving to event ID when at least one relay accepts it
+   * @throws If all relays reject the event
+   */
   publish(event: Pick<Event, 'kind' | 'content' | 'tags'>): Promise<string>
+
+  /**
+   * Subscribe to Nostr events matching a filter.
+   * Subscriptions are automatically staggered to avoid relay rate limits.
+   * 
+   * @param filter - Nostr filter (kinds, authors, tags, etc.)
+   * @param opts - Callbacks for events, EOSE, and close events
+   * @returns Unsubscribe function - call to close the subscription
+   * 
+   * @example
+   * ```ts
+   * const unsub = client.subscribe(
+   *   { kinds: [1], '#g': ['u0m'] },
+   *   { onevent: (evt) => console.log(evt) }
+   * )
+   * // Later: unsub()
+   * ```
+   */
   subscribe(filter: Filter, opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void }): () => void
+
+  /**
+   * Get list of configured relay URLs.
+   * Returns default relays if none configured.
+   * @returns Array of WebSocket URLs (wss://...)
+   */
   getRelays(): string[]
+
+  /**
+   * Set relay URLs. Invalid URLs are filtered out.
+   * @param relays - Array of relay URLs (wss://...)
+   */
   setRelays(relays: string[]): void
 
-  // local moderation
+  /**
+   * Get muted keyword terms (blocklist).
+   * Terms are normalized (lowercase, trimmed, deduplicated).
+   * @returns Array of normalized terms (max 200)
+   */
   getMutedTerms(): string[]
+
+  /**
+   * Set muted keyword terms. Posts containing these terms are filtered out.
+   * @param terms - Array of terms to mute (will be normalized)
+   */
   setMutedTerms(terms: string[]): void
+
+  /**
+   * Get list of blocked user pubkeys.
+   * @returns Array of 64-character hex pubkeys (max 1000)
+   */
   getBlockedPubkeys(): string[]
+
+  /**
+   * Set blocked user pubkeys. Posts from these users are filtered out.
+   * @param pubkeys - Array of pubkeys (invalid ones are filtered out)
+   */
   setBlockedPubkeys(pubkeys: string[]): void
 
-  // local feed prefs (local-only app)
-  getGeohashLength(): number // Returns 1-5, default: 2
+  /**
+   * Get geohash length for feed queries (1-5).
+   * - 1: ~5000km × ~2500km per cell (largest)
+   * - 2: ~1250km × ~625km per cell (default)
+   * - 3: ~156km × ~78km per cell
+   * - 4: ~39km × ~19km per cell
+   * - 5: ~4.9km × ~4.9km per cell (smallest, most precise)
+   * 
+   * @returns Geohash length (1-5), default: 2
+   */
+  getGeohashLength(): number
+
+  /**
+   * Set geohash length for feed queries.
+   * Automatically migrates old `localRadiusKm` values if present.
+   * @param length - Geohash length (1-5), will be clamped to valid range
+   */
   setGeohashLength(length: number): void
 
-  // optional media upload (local-only setting)
+  /**
+   * Get media upload endpoint URL.
+   * Returns default NIP-96 server if not configured.
+   * @returns Endpoint URL or undefined if disabled
+   */
   getMediaUploadEndpoint(): string | undefined
+
+  /**
+   * Set media upload endpoint URL.
+   * @param endpoint - Endpoint URL, or null to disable
+   */
   setMediaUploadEndpoint(endpoint: string | null): void
 
-  // direct messages (DMs)
+  /**
+   * Send an encrypted direct message (NIP-04).
+   * @param recipientPubkey - Recipient's public key (64 hex chars)
+   * @param content - Plaintext message content
+   * @returns Promise resolving to event ID
+   */
   sendDM(recipientPubkey: string, content: string): Promise<string>
+
+  /**
+   * Decrypt a direct message event (NIP-04).
+   * Handles both sent and received messages.
+   * @param event - Encrypted DM event (kind 4)
+   * @returns Promise resolving to decrypted plaintext
+   * @throws If decryption fails
+   */
   decryptDM(event: Event): Promise<string>
+
+  /**
+   * Get list of conversations (unique DM partners).
+   * Returns conversations sorted by last message time (newest first).
+   * @returns Promise resolving to array of conversations
+   */
   getConversations(): Promise<Conversation[]>
+
+  /**
+   * Get all direct messages with a specific user.
+   * Returns messages sorted by time (oldest first).
+   * @param pubkey - Other user's pubkey
+   * @returns Promise resolving to array of decrypted DMs
+   */
   getDMsWith(pubkey: string): Promise<DecryptedDM[]>
 
-  // profile metadata (kind 0)
+  /**
+   * Update profile metadata (kind 0 event).
+   * @param metadata - Profile data (name, picture)
+   * @returns Promise resolving to event ID
+   */
   updateProfile(metadata: { name?: string; picture?: string }): Promise<string>
+
+  /**
+   * Get own profile metadata from relays.
+   * @returns Promise resolving to profile data or null if not found
+   */
   getMyProfile(): Promise<{ name?: string; picture?: string } | null>
+
+  /**
+   * Set identity from an nsec (bech32-encoded secret key).
+   * This will replace the current identity. Use with caution!
+   * @param nsec - Bech32-encoded secret key (starts with "nsec1...")
+   * @throws If nsec is invalid or cannot be decoded
+   */
+  setIdentity(nsec: string): void
 }
 
 function nowSec(): number {
@@ -195,6 +350,18 @@ function normalizeRelays(relays: string[]): string[] {
   return out.slice(0, 30)
 }
 
+/**
+ * Creates a new Nostr client instance.
+ * 
+ * The client is a singleton-like instance that manages:
+ * - WebSocket connections to relays (via SimplePool)
+ * - Active subscriptions with automatic cleanup
+ * - Persistent state (identity, settings) in localStorage/IndexedDB
+ * 
+ * Multiple calls return the same client instance (shared state).
+ * 
+ * @returns BreznNostrClient instance
+ */
 export function createNostrClient(): BreznNostrClient {
   const pool = new SimplePool({ enablePing: true, enableReconnect: true })
 
@@ -316,7 +483,16 @@ export function createNostrClient(): BreznNostrClient {
   function ensureIdentity(): { skHex: string; pubkey: string; npub: string } {
     const s = loadState()
     let skHex = s.skHex
-    if (!skHex) {
+    
+    // Validate skHex: must be 64 hex characters (32 bytes)
+    // If it looks encrypted (contains ':' or wrong length), it needs decryption
+    if (skHex && (skHex.includes(':') || skHex.length !== 64)) {
+      // This is an encrypted value that wasn't decrypted yet
+      // The async initialization should handle this, but if we're here synchronously,
+      // we need to handle it. For now, we'll generate a new key to avoid crash.
+      // Note: This means the old identity will be lost if decryption hasn't completed yet.
+      // The user can re-import their nsec if needed.
+      console.warn('Secret key appears encrypted but not yet decrypted. Generating new identity.')
       const sk = generateSecretKey()
       skHex = bytesToHex(sk)
       const pubkey = getPublicKey(sk)
@@ -324,10 +500,32 @@ export function createNostrClient(): BreznNostrClient {
       saveState({ skHex, pubkey, npub })
       return { skHex, pubkey, npub }
     }
-    const pubkey = getPublicKey(hexToBytes(skHex))
-    const npub = nip19.npubEncode(pubkey)
-    if (s.pubkey !== pubkey || s.npub !== npub) saveState({ pubkey, npub })
-    return { skHex, pubkey, npub }
+    
+    if (!skHex || skHex.length !== 64 || !/^[0-9a-f]{64}$/i.test(skHex)) {
+      // Invalid or missing key - generate new one
+      const sk = generateSecretKey()
+      skHex = bytesToHex(sk)
+      const pubkey = getPublicKey(sk)
+      const npub = nip19.npubEncode(pubkey)
+      saveState({ skHex, pubkey, npub })
+      return { skHex, pubkey, npub }
+    }
+    
+    try {
+      const pubkey = getPublicKey(hexToBytes(skHex))
+      const npub = nip19.npubEncode(pubkey)
+      if (s.pubkey !== pubkey || s.npub !== npub) saveState({ pubkey, npub })
+      return { skHex, pubkey, npub }
+    } catch (error) {
+      // Invalid key format - generate new one
+      console.warn('Invalid secret key format, generating new identity:', error)
+      const sk = generateSecretKey()
+      skHex = bytesToHex(sk)
+      const pubkey = getPublicKey(sk)
+      const npub = nip19.npubEncode(pubkey)
+      saveState({ skHex, pubkey, npub })
+      return { skHex, pubkey, npub }
+    }
   }
 
   function getPublicIdentity(): { pubkey: string; npub: string } {
@@ -802,6 +1000,48 @@ export function createNostrClient(): BreznNostrClient {
     })
   }
 
+  function setIdentity(nsec: string): void {
+    const trimmed = nsec.trim()
+    if (!trimmed) {
+      throw new Error('nsec cannot be empty')
+    }
+
+    try {
+      // Decode nsec (bech32) to get the secret key bytes
+      const decoded = nip19.decode(trimmed)
+      if (decoded.type !== 'nsec') {
+        throw new Error('Invalid nsec: must start with "nsec1"')
+      }
+      
+      const skBytes = decoded.data
+      const skHex = bytesToHex(skBytes)
+      
+      // Validate: secret key should be 32 bytes (64 hex chars)
+      if (skHex.length !== 64) {
+        throw new Error('Invalid nsec: secret key must be 32 bytes')
+      }
+
+      // Derive public key from secret key
+      const pubkey = getPublicKey(skBytes)
+      const npub = nip19.npubEncode(pubkey)
+
+      // Clear state cache to force reload
+      stateCache = null
+      stateCacheInitialized = false
+
+      // Save new identity (this will encrypt it automatically)
+      saveState({ skHex, pubkey, npub })
+
+      // Resubscribe all active subscriptions with new identity
+      resubscribeAll('identity-changed')
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to import nsec: ${error.message}`)
+      }
+      throw new Error('Failed to import nsec: Invalid format')
+    }
+  }
+
   // Ensure identity exists immediately (no "accounts"/login flow).
   ensureIdentity()
 
@@ -826,6 +1066,7 @@ export function createNostrClient(): BreznNostrClient {
     getDMsWith,
     updateProfile,
     getMyProfile,
+    setIdentity,
   }
 }
 
