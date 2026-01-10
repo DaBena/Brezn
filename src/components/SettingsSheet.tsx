@@ -16,8 +16,9 @@ export function SettingsSheet(props: {
   geohashLength: number
   geoCell: string | null
   onGeohashLengthChange: (length: number) => void
+  onRelaysChanged?: () => void
 }) {
-  const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange } = props
+  const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange, onRelaysChanged } = props
 
   // Media endpoint state (needed for ProfileSettings)
   const [mediaEndpoint, setMediaEndpoint] = useState<string>(() => client.getMediaUploadEndpoint() ?? '')
@@ -26,6 +27,7 @@ export function SettingsSheet(props: {
   const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string } | null>(null)
   const initialProfileRef = useRef<{ name: string; picture: string } | null>(null)
   const initialMediaEndpointRef = useRef<string>('')
+  const initialRelaysRef = useRef<string[]>([])
 
   const [closing, setClosing] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
@@ -57,6 +59,8 @@ export function SettingsSheet(props: {
         initialMediaEndpointRef.current = ep
         setMediaEndpoint(ep)
       }
+      // Store initial relays when settings open
+      initialRelaysRef.current = [...client.getRelays()]
       setCurrentProfile(null) // Will be set by ProfileSettings when loaded
       setResetKey(prev => prev + 1) // Force reset of sub-components
     })
@@ -104,6 +108,14 @@ export function SettingsSheet(props: {
     } finally {
       setProfileSaving(false)
       }
+    }
+
+    // Check if relays changed
+    const currentRelays = client.getRelays()
+    const initialRelays = initialRelaysRef.current
+    const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...initialRelays].sort())
+    if (relaysChanged && onRelaysChanged) {
+      onRelaysChanged()
     }
 
     setClosing(false)

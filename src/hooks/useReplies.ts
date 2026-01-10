@@ -41,8 +41,8 @@ export function useReplies(params: {
     })
 
     return unsub
-    // queryKey captures all relevant deps.
-  }, [client, queryKey, rootId, mutedTerms, blockedPubkeys, isOffline])
+    // queryKey captures all relevant deps (rootId, mutedTerms, blockedPubkeys, isOffline)
+  }, [client, queryKey])
 
   const replies = useMemo(() => {
     return events.slice().sort((a, b) => a.created_at - b.created_at)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CloseIcon } from './CloseIcon'
 
 export function AdblockerWarning() {
   const [showWarning, setShowWarning] = useState(false)
@@ -28,7 +29,7 @@ export function AdblockerWarning() {
 
   return (
     <div className="fixed left-1/2 top-3 z-[70] w-[calc(min(560px,100vw)-32px)] -translate-x-1/2">
-      <div className="rounded-2xl border border-brezn-border bg-brezn-panel/95 p-3 shadow-soft backdrop-blur">
+      <div className="rounded-lg border border-brezn-border bg-brezn-panel/95 p-3 shadow-soft backdrop-blur">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-semibold">Service Worker blocked</div>
@@ -39,9 +40,9 @@ export function AdblockerWarning() {
           <button
             onClick={() => setShowWarning(false)}
             aria-label="Close"
-            className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+            className="shrink-0 hover:opacity-80 focus:outline-none"
           >
-            <span className="text-red-500">×</span>
+            <CloseIcon />
           </button>
         </div>
       </div>

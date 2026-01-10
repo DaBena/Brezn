@@ -85,7 +85,7 @@ export function ConversationsSheet(props: {
               <button
                 key={conv.pubkey}
                 onClick={() => setSelectedPubkey(conv.pubkey)}
-                className="w-full text-left rounded-2xl border border-brezn-border bg-brezn-panel2 p-4 hover:bg-brezn-panel transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                className="w-full text-left rounded-lg border border-brezn-border bg-brezn-panel2 p-4 hover:bg-brezn-panel transition-colors focus:outline-none"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">

@@ -49,6 +49,8 @@ export function useReactions(params: {
       scopeKeyRef.current = activeKey
       seenReactionIdsRef.current = new Set()
       countedPubkeysByNoteRef.current = new Map()
+      // Reset state when scope changes to ensure fresh data
+      setState({ key: activeKey, byNote: {} })
     }
 
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 14 // last 14d

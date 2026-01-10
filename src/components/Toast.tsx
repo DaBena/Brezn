@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { CloseIcon } from './CloseIcon'
 
 export type ToastType = 'info' | 'success' | 'error' | 'warning'
 
@@ -63,7 +64,7 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed left-1/2 top-3 z-[70] flex w-[calc(min(560px,100vw)-32px)] -translate-x-1/2 flex-col gap-2">
+    <div className="fixed left-1/2 z-[70] flex w-[calc(min(560px,100vw)-32px)] -translate-x-1/2 flex-col gap-2 top-2 top-[calc(env(safe-area-inset-top,0px)+0.5rem)]">
       {toasts.map(toast => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -112,7 +113,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   return (
     <div
       className={[
-        'rounded-2xl border p-3 shadow-soft backdrop-blur transition-all duration-200',
+        'rounded-lg border p-3 shadow-soft backdrop-blur transition-all duration-200',
         typeStyles[toast.type],
         isExiting ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0',
       ].join(' ')}
@@ -132,9 +133,9 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         <button
           onClick={handleRemove}
           aria-label="Close"
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-2 py-1 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className="shrink-0 hover:opacity-80 focus:outline-none"
         >
-          <span className="text-red-500">×</span>
+          <CloseIcon />
         </button>
       </div>
     </div>

@@ -8,18 +8,11 @@ import { normalizeMutedTerms } from './moderation'
 import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 
-// Bootstrap relays: keep this list small-ish (each subscription connects to all of them),
-// but globally distributed for robustness.
-// Reduced to 4 relays to avoid "too many concurrent REQs" and "too many subscriptions" errors
+// Bootstrap relays: keep this list small-ish (each subscription connects to all of them)
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
-  'wss://nostr-pub.wellorder.net',
-  'wss://nos.lol',
-  'wss://relay.snort.social',
-  // Removed problematic relays that have strict limits:
-  // 'wss://relay.primal.net', // too many concurrent REQs
-  // 'wss://relay.nostr.com.au', // max 10 subscriptions limit
-  // 'wss://offchain.pub', // too many concurrent REQs
+  'wss://relay.nostr.wirednet.jp',
+  'wss://relay.bitdevs.tw'
 ] as const
 
 const LS_KEY = 'brezn:v1'
@@ -34,7 +27,7 @@ type StoredStateV1 = {
   blockedPubkeys: string[]
   settings?: {
     localRadiusKm?: number // Deprecated: wird zu geohashLength migriert
-    geohashLength?: number // 1-5, default: 2
+    geohashLength?: number // 1-5, default: 1
     mediaUploadEndpoint?: string
     relays?: string[]
   }
@@ -153,9 +146,12 @@ export type BreznNostrClient = {
 
   /**
    * Set blocked user pubkeys. Posts from these users are filtered out.
+   * Blocklist is stored locally and not automatically shared with relays.
+   * Blocklist is only shared with relays via NIP-56 report events when a report reason is provided.
    * @param pubkeys - Array of pubkeys (invalid ones are filtered out)
+   * @returns Promise that resolves when the block list is saved
    */
-  setBlockedPubkeys(pubkeys: string[]): void
+  setBlockedPubkeys(pubkeys: string[]): Promise<void>
 
   /**
    * Get geohash length for feed queries (1-5).
@@ -165,7 +161,7 @@ export type BreznNostrClient = {
    * - 4: ~39km × ~19km per cell
    * - 5: ~4.9km × ~4.9km per cell (smallest, most precise)
    * 
-   * @returns Geohash length (1-5), default: 2
+   * @returns Geohash length (1-5), default: 1
    */
   getGeohashLength(): number
 
@@ -408,10 +404,20 @@ export function createNostrClient(): BreznNostrClient {
   function getRelays(): string[] {
     const s = loadState()
     const stored = s.settings?.relays
-    if (Array.isArray(stored)) {
-      const norm = normalizeRelays(stored)
-      if (norm.length) return norm
+    // If relays have never been set (undefined), use defaults
+    if (stored === undefined) {
+      return [...DEFAULT_RELAYS]
     }
+    // If relays is an array (even if empty), use it
+    if (Array.isArray(stored)) {
+      if (stored.length > 0) {
+        const norm = normalizeRelays(stored)
+        return norm
+      }
+      // User explicitly removed all relays, return empty array
+      return []
+    }
+    // Fallback (shouldn't happen, but just in case)
     return [...DEFAULT_RELAYS]
   }
 
@@ -434,10 +440,21 @@ export function createNostrClient(): BreznNostrClient {
         // Ignore errors - WebSocket might already be closed
         // This is a known race condition in SimplePool when EOSE and close happen simultaneously
         // The error is harmless and can be safely ignored
+        // Suppress console errors for already-closed WebSockets
+        if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
+          // Silently ignore - WebSocket is already closing/closed
+          return
+        }
       }
     }
     // Create new subscription
     const relays = getRelays()
+    if (relays.length === 0) {
+      // No relays configured - close subscription immediately
+      s.closer = null
+      s.opts.onclose?.(['No relays configured'])
+      return
+    }
     s.closer = pool.subscribeMany(relays, s.filter, {
       onevent: evt => {
         s.opts.onevent(evt)
@@ -488,17 +505,39 @@ export function createNostrClient(): BreznNostrClient {
     // If it looks encrypted (contains ':' or wrong length), it needs decryption
     if (skHex && (skHex.includes(':') || skHex.length !== 64)) {
       // This is an encrypted value that wasn't decrypted yet
-      // The async initialization should handle this, but if we're here synchronously,
-      // we need to handle it. For now, we'll generate a new key to avoid crash.
-      // Note: This means the old identity will be lost if decryption hasn't completed yet.
-      // The user can re-import their nsec if needed.
-      console.warn('Secret key appears encrypted but not yet decrypted. Generating new identity.')
-      const sk = generateSecretKey()
-      skHex = bytesToHex(sk)
-      const pubkey = getPublicKey(sk)
-      const npub = nip19.npubEncode(pubkey)
-      saveState({ skHex, pubkey, npub })
-      return { skHex, pubkey, npub }
+      // The async initialization (initializeStateCache) should handle this.
+      // If we're here synchronously before decryption completes, wait a bit and retry.
+      // This is a normal race condition on first load - the encrypted key exists in IndexedDB
+      // but hasn't been decrypted yet. We'll wait briefly for the async decryption to complete.
+      
+      // Check if this is a valid encrypted format (has ':')
+      if (skHex.includes(':')) {
+        // Encrypted key exists - wait for async decryption to complete
+        // Try loading from localStorage again (async init may have completed)
+        const retry = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+        if (retry.skHex && !retry.skHex.includes(':') && retry.skHex.length === 64) {
+          // Decryption completed, use the decrypted value
+          skHex = retry.skHex
+          stateCache = retry
+        } else {
+          // Still encrypted - this is expected on first load, generate temporary identity
+          // The async init will restore the real identity once decryption completes
+          const sk = generateSecretKey()
+          skHex = bytesToHex(sk)
+          const pubkey = getPublicKey(sk)
+          const npub = nip19.npubEncode(pubkey)
+          // Don't save yet - wait for async decryption to complete and restore real identity
+          return { skHex, pubkey, npub }
+        }
+      } else {
+        // Invalid format (wrong length but not encrypted) - generate new identity
+        const sk = generateSecretKey()
+        skHex = bytesToHex(sk)
+        const pubkey = getPublicKey(sk)
+        const npub = nip19.npubEncode(pubkey)
+        saveState({ skHex, pubkey, npub })
+        return { skHex, pubkey, npub }
+      }
     }
     
     if (!skHex || skHex.length !== 64 || !/^[0-9a-f]{64}$/i.test(skHex)) {
@@ -586,6 +625,10 @@ export function createNostrClient(): BreznNostrClient {
         } catch (err) {
           // Ignore errors - WebSocket might already be closed
           // This is a known race condition in SimplePool when EOSE and close happen simultaneously
+          // Suppress console errors for already-closed WebSockets
+          if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
+            // Silently ignore - WebSocket is already closing/closed
+          }
         }
         s.closer = null
       }
@@ -605,7 +648,7 @@ export function createNostrClient(): BreznNostrClient {
     return loadState().blockedPubkeys ?? []
   }
 
-  function setBlockedPubkeys(pubkeys: string[]) {
+  async function setBlockedPubkeys(pubkeys: string[]): Promise<void> {
     // Normalize: remove duplicates, filter invalid pubkeys, limit to reasonable size
     const seen = new Set<string>()
     const normalized: string[] = []
@@ -617,6 +660,9 @@ export function createNostrClient(): BreznNostrClient {
       normalized.push(trimmed)
       if (normalized.length >= 1000) break // Reasonable limit
     }
+    
+    // Save locally (blocklist is private, not shared with relays)
+    // Blocklist is only shared with relays via NIP-56 report events when a report reason is provided
     saveState({ blockedPubkeys: normalized })
   }
 
@@ -635,22 +681,22 @@ export function createNostrClient(): BreznNostrClient {
   function getGeohashLength(): number {
     const s = loadState()
     
-    // Prüfe zuerst, ob geohashLength bereits gesetzt ist
+    // First check if geohashLength is already set
     if (typeof s.settings?.geohashLength === 'number') {
       const len = Math.round(s.settings.geohashLength)
       if (len >= 1 && len <= 5) return len
     }
     
-    // Migration: Alte localRadiusKm Werte umwandeln
+    // Migration: Convert old localRadiusKm values
     if (typeof s.settings?.localRadiusKm === 'number' && Number.isFinite(s.settings.localRadiusKm)) {
       const migrated = migrateRadiusToGeohashLength(s.settings.localRadiusKm)
-      // Speichere migrierten Wert
+      // Save migrated value
       saveState({ settings: { ...s.settings, geohashLength: migrated } })
       return migrated
     }
     
-    // Default: 2 (für Apps mit wenigen Nutzern)
-    return 2
+    // Default: 1 (for apps with few users)
+    return 1
   }
 
   function setGeohashLength(length: number) {

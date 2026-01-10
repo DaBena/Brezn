@@ -1,4 +1,5 @@
 import React, { Component, type ReactNode } from 'react'
+import { buttonBase } from '../lib/buttonStyles'
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -26,9 +27,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to console in development
+    // Log detailed error information
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+    }
+    
+    console.error('ErrorBoundary caught an error:', errorDetails)
+    
+    // In development, log full details
     if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo)
+      console.error('Full error object:', error)
+      console.error('Full error info:', errorInfo)
     }
 
     this.setState({
@@ -53,7 +67,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-dvh bg-brezn-bg text-brezn-text flex items-center justify-center p-4">
-          <div className="max-w-xl w-full rounded-2xl border border-brezn-border bg-brezn-panel p-6 shadow-soft">
+          <div className="max-w-xl w-full rounded-lg border border-brezn-border bg-brezn-panel p-6 shadow-soft">
             <div className="text-lg font-semibold text-brezn-danger mb-2">Something went wrong</div>
             <div className="text-sm text-brezn-muted mb-4">
               An unexpected error occurred. Please try refreshing the page.
@@ -63,14 +77,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <summary className="text-xs text-brezn-muted cursor-pointer hover:text-brezn-text mb-2">
                   Error details
                 </summary>
-                <div className="rounded-xl border border-brezn-border bg-brezn-panel2 p-3 font-mono text-xs text-brezn-muted overflow-auto">
+                <div className="rounded-xl border border-brezn-border bg-brezn-panel2 p-3 font-mono text-xs text-brezn-muted overflow-auto max-h-64">
                   <div className="mb-2">
                     <strong>Error:</strong> {this.state.error.message}
                   </div>
+                  {this.state.error.stack && (
+                    <div className="mb-2">
+                      <strong>Stack trace:</strong>
+                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.error.stack}</pre>
+                    </div>
+                  )}
                   {this.state.errorInfo && (
                     <div>
-                      <strong>Stack:</strong>
-                      <pre className="mt-1 whitespace-pre-wrap">{this.state.errorInfo.componentStack}</pre>
+                      <strong>Component stack:</strong>
+                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.errorInfo.componentStack}</pre>
                     </div>
                   )}
                 </div>
@@ -79,13 +99,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="flex gap-2">
               <button
                 onClick={this.handleReset}
-                className="rounded-xl bg-brezn-gold px-4 py-2 text-sm font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${buttonBase}`}
               >
                 Try again
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="rounded-xl border border-brezn-border bg-brezn-panel2 px-4 py-2 text-sm font-semibold hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${buttonBase}`}
               >
                 Reload page
               </button>

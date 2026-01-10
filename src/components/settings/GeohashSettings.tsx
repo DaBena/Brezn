@@ -1,3 +1,4 @@
+import { buttonBase } from '../../lib/buttonStyles'
 import { geohashPrecisionHint } from '../../lib/geo'
 
 type GeohashSettingsProps = {
@@ -8,7 +9,7 @@ type GeohashSettingsProps = {
 
 export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange }: GeohashSettingsProps) {
   return (
-    <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+    <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">Search radius</div>
       <div className="mt-1 text-xs text-brezn-muted">
         Geohash length: {geohashLength} • {geohashPrecisionHint(geohashLength)}
@@ -16,7 +17,7 @@ export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange 
       {geoCell ? (
         <div className="mt-1 text-xs text-brezn-muted">
           GeoHash:{' '}
-          <span className="rounded-lg border border-brezn-border bg-brezn-panel px-2 py-0.5 font-mono">{geoCell}</span>
+          <span className="rounded-lg bg-brezn-panel px-2 py-0.5 font-mono">{geoCell}</span>
         </div>
       ) : (
         <div className="mt-1 text-xs text-brezn-muted">GeoHash: -</div>
@@ -26,7 +27,7 @@ export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange 
           type="button"
           onClick={() => onGeohashLengthChange(Math.max(1, geohashLength - 1))}
           disabled={geohashLength <= 1}
-          className="h-10 w-10 shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 text-lg font-semibold hover:bg-brezn-panel disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`h-10 w-10 shrink-0 rounded-xl text-lg font-semibold disabled:cursor-not-allowed ${buttonBase}`}
           aria-label="Decrease radius"
         >
           -
@@ -39,7 +40,7 @@ export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange 
           type="button"
           onClick={() => onGeohashLengthChange(Math.min(5, geohashLength + 1))}
           disabled={geohashLength >= 5}
-          className="h-10 w-10 shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 text-lg font-semibold hover:bg-brezn-panel disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`h-10 w-10 shrink-0 rounded-xl text-lg font-semibold disabled:cursor-not-allowed ${buttonBase}`}
           aria-label="Increase radius"
         >
           +

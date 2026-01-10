@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { buttonBase } from '../lib/buttonStyles'
 import type { BreznNostrClient, DecryptedDM } from '../lib/nostrClient'
 import { shortHex } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
@@ -65,8 +66,9 @@ export function DMSheet(props: {
     }
 
     // Subscribe to new messages I sent
+    const since = Math.floor(Date.now() / 1000) - 60 // last minute to catch just-sent messages
     const unsub1 = client.subscribe(
-      { kinds: [4], authors: [identity.pubkey], '#p': [otherPubkey] },
+      { kinds: [4], authors: [identity.pubkey], '#p': [otherPubkey], since },
       {
         onevent: async evt => {
           try {
@@ -80,10 +82,13 @@ export function DMSheet(props: {
               setMessages(prev => {
                 // Avoid duplicates
                 if (prev.some(m => m.event.id === evt.id)) return prev
-                return [...prev, newMessage].sort((a, b) => a.event.created_at - b.event.created_at)
+                // Remove any optimistic messages with matching content
+                const filtered = prev.filter(m => !(m.event.id.startsWith('temp-') && m.decryptedContent === decryptedContent && m.isFromMe))
+                return [...filtered, newMessage].sort((a, b) => a.event.created_at - b.event.created_at)
               })
             }
-          } catch {
+          } catch (e) {
+            console.error('Failed to decrypt DM:', e)
             // Skip messages that can't be decrypted
           }
         },
@@ -92,7 +97,7 @@ export function DMSheet(props: {
 
     // Subscribe to new messages I received
     const unsub2 = client.subscribe(
-      { kinds: [4], authors: [otherPubkey], '#p': [identity.pubkey] },
+      { kinds: [4], authors: [otherPubkey], '#p': [identity.pubkey], since },
       {
         onevent: async evt => {
           try {
@@ -109,7 +114,8 @@ export function DMSheet(props: {
                 return [...prev, newMessage].sort((a, b) => a.event.created_at - b.event.created_at)
               })
             }
-          } catch {
+          } catch (e) {
+            console.error('Failed to decrypt DM:', e)
             // Skip messages that can't be decrypted
           }
         },
@@ -166,8 +172,24 @@ export function DMSheet(props: {
     try {
       await client.sendDM(otherPubkey, content)
       setMessageText('')
-      // Remove optimistic message - real one will appear via subscription
-      setMessages(prev => prev.filter(m => m.event.id !== tempId))
+      // Don't remove optimistic message - subscription will replace it with real one
+      // Fallback: remove optimistic message after 5 seconds if real one hasn't arrived
+      setTimeout(() => {
+        setMessages(prev => {
+          // Check if we have a real message with the same content from us
+          const hasRealMessage = prev.some(m => 
+            m.event.id !== tempId && 
+            m.isFromMe && 
+            m.decryptedContent === content
+          )
+          if (!hasRealMessage) {
+            // Real message hasn't arrived - keep optimistic for now
+            return prev
+          }
+          // Real message arrived - remove optimistic
+          return prev.filter(m => m.event.id !== tempId)
+        })
+      }, 5000)
     } catch (e) {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.event.id !== tempId))
@@ -209,7 +231,7 @@ export function DMSheet(props: {
                 className={`flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                  className={`max-w-[75%] rounded-lg px-4 py-2 ${
                     msg.isFromMe
                       ? 'bg-brezn-gold text-brezn-bg'
                       : 'bg-brezn-panel2 border border-brezn-border'
@@ -244,14 +266,14 @@ export function DMSheet(props: {
                 }
               }}
               placeholder="Write message…"
-              className="flex-1 h-20 resize-none rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
+              className="flex-1 h-20 resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
               disabled={sending}
             />
             <button
               onClick={sendMessage}
               disabled={sending || !messageText.trim()}
               aria-label="Send message"
-              className="rounded-2xl bg-brezn-gold px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+              className={`rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
             >
               {sending ? '…' : '→'}
             </button>

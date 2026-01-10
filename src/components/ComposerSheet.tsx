@@ -1,6 +1,10 @@
+
 import { useEffect, useId, useRef, useState } from 'react'
+import { buttonBase } from '../lib/buttonStyles'
+import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
 import { uploadMediaFile } from '../lib/mediaUpload'
+import { isLikelyImageUrl, isLikelyVideoUrl } from '../lib/urls'
 
 export function ComposerSheet(props: {
   open: boolean
@@ -65,31 +69,83 @@ export function ComposerSheet(props: {
   }
 
   return (
-    <Sheet open={open} title="Create new local post" onClose={onClose} scrollable={false}>
-      {viewerGeo5 ? (
-        <div className="mt-2 text-xs text-brezn-muted">
-          in Cell <span className="font-mono">{viewerGeo5}</span>
+    <Sheet
+      open={open}
+      titleElement={
+        <div className="text-xs font-semibold">
+          {viewerGeo5 ? `create new post in cell ${viewerGeo5}` : 'create new post'}
         </div>
-      ) : null}
+      }
+      onClose={onClose}
+      scrollable={false}
+    >
       {mediaUrls.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {mediaUrls.map((url, idx) => (
-            <div
-              key={idx}
-              className="group flex items-center gap-1.5 rounded-xl border border-brezn-border bg-brezn-panel2 px-2.5 py-1.5"
-            >
-              <span className="text-xs text-brezn-muted truncate max-w-[200px]" title={url}>
-                {url.length > 30 ? `${url.slice(0, 30)}...` : url}
-              </span>
-              <button
-                onClick={() => setMediaUrls(prev => prev.filter((_, i) => i !== idx))}
-                aria-label="Remove media"
-                className="shrink-0 rounded text-red-500 hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {mediaUrls.map((url, idx) => {
+            const isImage = isLikelyImageUrl(url)
+            const isVideo = isLikelyVideoUrl(url)
+            return (
+              <div
+                key={idx}
+                className="group relative aspect-square overflow-hidden border border-brezn-border bg-brezn-panel2"
               >
-                <span className="text-sm leading-none">×</span>
-              </button>
-            </div>
-          ))}
+                {isImage ? (
+                  <img
+                    src={url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={e => {
+                      // Fallback to text if image fails to load
+                      const target = e.currentTarget
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        const fallback = document.createElement('div')
+                        fallback.className = 'flex h-full items-center justify-center p-2'
+                        fallback.innerHTML = `<span class="text-xs text-brezn-muted truncate">${url.length > 30 ? `${url.slice(0, 30)}...` : url}</span>`
+                        parent.appendChild(fallback)
+                      }
+                    }}
+                  />
+                ) : isVideo ? (
+                  <video
+                    src={url}
+                    className="h-full w-full object-cover"
+                    preload="metadata"
+                    muted
+                    onError={e => {
+                      // Fallback to text if video fails to load
+                      const target = e.currentTarget
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        const fallback = document.createElement('div')
+                        fallback.className = 'flex h-full items-center justify-center p-2'
+                        fallback.innerHTML = `<span class="text-xs text-brezn-muted truncate">${url.length > 30 ? `${url.slice(0, 30)}...` : url}</span>`
+                        parent.appendChild(fallback)
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center p-2">
+                    <span className="text-xs text-brezn-muted truncate" title={url}>
+                      {url.length > 30 ? `${url.slice(0, 30)}...` : url}
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={e => {
+                    e.stopPropagation()
+                    setMediaUrls(prev => prev.filter((_, i) => i !== idx))
+                  }}
+                  aria-label="Remove media"
+                  className="absolute right-0.5 top-0.5 rounded p-0.5 focus:outline-none"
+                >
+                  <CloseIcon size={14} />
+                </button>
+              </div>
+            )
+          })}
         </div>
       ) : null}
       <textarea
@@ -103,12 +159,12 @@ export function ComposerSheet(props: {
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
         placeholder="What's happening in your area?"
-        className="mt-3 min-h-[120px] w-full resize-none rounded-2xl border border-brezn-border bg-brezn-panel2 p-3 text-base sm:text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
+        className="mt-3 min-h-[120px] w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base sm:text-sm outline-none"
         rows={5}
       />
       {publishState === 'error' && publishError ? <div className="mt-2 text-sm text-brezn-danger">{publishError}</div> : null}
       {uploadState === 'error' && uploadError ? <div className="mt-2 text-sm text-brezn-danger">{uploadError}</div> : null}
-      <div className="sticky bottom-0 -mx-4 mt-3 border-t border-brezn-border bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
+      <div className="sticky bottom-0 -mx-4 mt-3 bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id={fileInputId}
@@ -172,12 +228,7 @@ export function ComposerSheet(props: {
 
           <label
             htmlFor={fileInputId}
-            className={[
-              'rounded-2xl border border-brezn-border bg-brezn-panel2 px-4 py-3.5 text-sm font-semibold',
-              'min-h-[44px] flex items-center justify-center',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40',
-              uploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-brezn-panel cursor-pointer active:opacity-90',
-            ].join(' ')}
+            className={`rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] flex items-center justify-center ${buttonBase} ${uploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
             tabIndex={uploadState === 'uploading' ? -1 : 0}
             role="button"
             onClick={e => {
@@ -200,7 +251,7 @@ export function ComposerSheet(props: {
             onClick={publishPost}
             disabled={publishState === 'publishing' || uploadState === 'uploading' || (!composerText.trim() && mediaUrls.length === 0)}
             aria-label="Publish post"
-            className="flex-1 rounded-2xl bg-brezn-gold px-4 py-3.5 text-sm font-semibold text-white min-h-[44px] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 active:opacity-90"
+            className={`w-1/2 mx-auto rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] ${buttonBase}`}
           >
             {publishState === 'publishing' ? 'Publishing…' : 'Publish'}
           </button>
@@ -212,7 +263,7 @@ export function ComposerSheet(props: {
               setUploadError(null)
               onClose()
             }}
-            className="rounded-2xl border border-brezn-border bg-brezn-panel2 px-4 py-3.5 text-sm min-h-[44px] hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 active:opacity-90 sm:hidden"
+            className={`rounded-lg px-4 py-3.5 text-sm min-h-[44px] active:opacity-90 sm:hidden ${buttonBase}`}
           >
             Cancel
           </button>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { CloseIcon } from './CloseIcon'
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
   const selector = [
@@ -190,19 +191,19 @@ export function Sheet(props: {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={[
-          // mobile: positioned higher to leave room for keyboard
-          'absolute top-4 left-0 right-0 mx-auto w-full max-w-xl',
+          // mobile: positioned at top to avoid keyboard, with small margin
+          'absolute top-2 top-[calc(env(safe-area-inset-top,0px)+0.5rem)] left-0 right-0 mx-auto w-full max-w-xl',
           // desktop: centered modal
-          'sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl',
+          'sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl',
           // sizing / scrolling
-          'max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)]',
+          'max-h-[calc(100dvh-env(safe-area-inset-top,0px))] sm:max-h-[calc(100dvh-2rem)]',
           'overflow-hidden',
           // layout
           'flex flex-col',
           // visuals
-          'rounded-t-3xl border border-brezn-border bg-brezn-panel shadow-soft',
+          'rounded-t-xl border border-brezn-border bg-brezn-panel shadow-soft',
           // spacing
-          'p-4',
+          'p-2',
           // swipe transition
           'transition-transform duration-200 ease-out',
         ].join(' ')}
@@ -213,26 +214,28 @@ export function Sheet(props: {
         }}
       >
         <div className="flex items-center justify-between">
-          {titleElement ? (
-            <div id={titleId}>{titleElement}</div>
-          ) : title ? (
-            <div id={titleId} className="text-sm font-semibold">
-              {title}
-            </div>
-          ) : null}
+          <div className="flex-1">
+            {titleElement ? (
+              <div id={titleId}>{titleElement}</div>
+            ) : title ? (
+              <div id={titleId} className="text-sm font-semibold">
+                {title}
+              </div>
+            ) : null}
+          </div>
           {dismissible ? (
             <button
               ref={closeButtonRef}
               onClick={onClose}
               aria-label="Close"
-              className="rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-lg font-semibold leading-none hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+              className={`ml-auto shrink-0 rounded-xl p-2 hover:opacity-80 focus:outline-none bg-[#4a4a52]`}
             >
-              <span className="text-red-500">×</span>
+              <CloseIcon size={24} />
             </button>
           ) : null}
         </div>
         <div className={[
-          'mt-3 flex-1 min-h-0 overflow-x-hidden pb-[env(safe-area-inset-bottom)]',
+          'mt-1.5 flex-1 min-h-0 overflow-x-hidden pb-[env(safe-area-inset-bottom)]',
           scrollable ? 'hide-scrollbar overflow-y-auto' : 'overflow-y-visible',
         ].join(' ')}>
           {children}

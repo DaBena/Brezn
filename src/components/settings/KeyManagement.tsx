@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { useToast } from '../Toast'
 
@@ -31,13 +32,13 @@ export function KeyManagement({ client }: KeyManagementProps) {
   const [isImporting, setIsImporting] = useState(false)
 
   return (
-    <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+    <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">Identity</div>
       <div className="mt-1 text-xs text-brezn-muted">
         <span className="font-mono">npub</span>:
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <div className="min-w-0 flex-1 truncate rounded-xl border border-brezn-border bg-brezn-panel p-2 font-mono text-xs">
+        <div className="min-w-0 flex-1 truncate rounded-xl bg-brezn-panel p-2 font-mono text-xs">
           {identity.npub}
         </div>
         <button
@@ -47,7 +48,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
               setKeyMsg(ok ? 'npub copied.' : 'Show & copy npub.')
             })
           }}
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
           Copy
         </button>
@@ -57,13 +58,13 @@ export function KeyManagement({ client }: KeyManagementProps) {
         <span className="font-mono">nsec</span>:
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <div className="min-w-0 flex-1 truncate rounded-xl border border-brezn-border bg-brezn-panel p-2 font-mono text-xs">
+        <div className="min-w-0 flex-1 truncate rounded-xl bg-brezn-panel p-2 font-mono text-xs">
           {showPrivKey ? privateIdentity.nsec : '••••••••••••••••••••••••••••••••'}
         </div>
         <button
           type="button"
           onClick={() => setShowPrivKey(v => !v)}
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
           {showPrivKey ? 'Hide' : 'Show'}
         </button>
@@ -74,7 +75,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
               setKeyMsg(ok ? 'nsec copied.' : 'Show & copy nsec.')
             })
           }}
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
           disabled={!showPrivKey}
         >
           Copy
@@ -85,27 +86,27 @@ export function KeyManagement({ client }: KeyManagementProps) {
       </div>
       {keyMsg ? <div className="mt-2 text-xs text-brezn-muted">{keyMsg}</div> : null}
 
-      <div className="mt-4 border-t border-brezn-border pt-3">
-        <div className="text-xs font-semibold text-brezn-muted mb-2">Import Identity</div>
-        <div className="text-[11px] text-brezn-muted mb-2">
-          Import an existing <span className="font-mono">nsec</span> to restore your identity. This will replace your current identity.
+      <div className="mt-4 pt-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="text-xs font-semibold text-brezn-muted">Import Identity</div>
+          {!showImport ? (
+            <button
+              type="button"
+              onClick={() => setShowImport(true)}
+              className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
+            >
+              Import nsec
+            </button>
+          ) : null}
         </div>
-        {!showImport ? (
-          <button
-            type="button"
-            onClick={() => setShowImport(true)}
-            className="w-full rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
-          >
-            Import nsec
-          </button>
-        ) : (
+        {showImport ? (
           <div className="space-y-2">
             <input
               type="text"
               value={importNsec}
               onChange={e => setImportNsec(e.target.value)}
               placeholder="nsec1..."
-              className="w-full rounded-xl border border-brezn-border bg-brezn-panel p-2 font-mono text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+              className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-xs focus:outline-none"
               disabled={isImporting}
             />
             <div className="flex gap-2">
@@ -135,7 +136,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                   }
                 }}
                 disabled={isImporting || !importNsec.trim()}
-                className="flex-1 rounded-xl bg-brezn-gold px-3 py-2 text-xs font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 disabled:opacity-50"
+                className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
               >
                 {isImporting ? 'Importing...' : 'Import'}
               </button>
@@ -146,13 +147,13 @@ export function KeyManagement({ client }: KeyManagementProps) {
                   setImportNsec('')
                 }}
                 disabled={isImporting}
-                className="rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40 disabled:opacity-50"
+                className={`rounded-xl px-3 py-2 text-xs ${buttonBase}`}
               >
                 Cancel
               </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

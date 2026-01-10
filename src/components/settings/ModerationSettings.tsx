@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 
 type ModerationSettingsProps = {
@@ -35,9 +36,9 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
     onModerationChanged?.()
   }
 
-  function unblockUser(pubkey: string) {
+  async function unblockUser(pubkey: string) {
     const next = blockedPubkeys.filter(p => p !== pubkey)
-    client.setBlockedPubkeys(next)
+    await client.setBlockedPubkeys(next)
     setBlockedPubkeys(client.getBlockedPubkeys())
     setBlockedMsg('User unblocked.')
     onModerationChanged?.()
@@ -48,7 +49,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
 
   return (
     <>
-      <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+      <div className="p-3">
         <div className="text-xs font-semibold text-brezn-muted">Blocklist</div>
         <div className="mt-1 text-xs text-brezn-muted">1 line = 1 term ({mutedTerms.length}/200)</div>
         <textarea
@@ -56,12 +57,12 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
           onChange={e => setMutedTermsText(e.target.value)}
           onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blocklist saved.')}
           placeholder={'e.g.\nspam\nbuy now\ntelegram.me'}
-          className="mt-2 h-28 w-full resize-none rounded-xl border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs outline-none focus:ring-2 focus:ring-brezn-gold/40"
+          className="mt-2 h-28 w-full resize-none border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs outline-none"
         />
         {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
       </div>
 
-      <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+      <div className="p-3">
         <div className="text-xs font-semibold text-brezn-muted">Blocked users</div>
         <div className="mt-1 text-xs text-brezn-muted">{blockedPubkeys.length} blocked</div>
         {blockedPubkeys.length > 0 ? (
@@ -75,7 +76,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
                 <button
                   type="button"
                   onClick={() => unblockUser(pubkey)}
-                  className="shrink-0 rounded-lg border border-brezn-border bg-brezn-panel2 px-3 py-1.5 text-[11px] font-semibold hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold ${buttonBase}`}
                 >
                   Unblock
                 </button>

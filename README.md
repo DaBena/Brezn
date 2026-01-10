@@ -20,21 +20,25 @@ After installation, Brezn appears with the Brezn icon on the home screen/start m
 ![Network Architectures Compared](diagramm.png)
 
 - **Classic social networks**: All users via a central server. The platform can censor content and exclude users.
-- **Federated networks** (e.g., Mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block other instances.
+- **Federated networks** (e.g. email, mastodon): Users on different instances that communicate via an instance backbone. Each instance can enforce its own rules and block other instances.
 - **Nostr**: Users connect to multiple relays simultaneously. Relays do **not** communicate directly with each other, communication runs through clients. For censorship to occur, **all shared relays** would need to cooperate. As long as just one shared relay doesn't cooperate, no censorship happens.
 
 ## What does Brezn do exactly?
 
-Brezn is just a view of Nostr and not its own social network. The app loads, displays, and sends Nostr events that are stored on relays. With the same relays and keys, you see the same content in other Nostr clients (e.g., Amethyst, Damus, Coracle), just in a different interface.
+Brezn is just one view of Nostr and not its own social network. The app loads, displays, and sends Nostr events that are stored on relays. With the same relays and keys, you see the same content in other Nostr clients (e.g., Amethyst, Damus, Coracle), just in a different interface.
 
 ## Legal Notice
 
-The developer of Brezn does not operate Nostr relays, host content, or store posts server-side. Posts are sent to relays configured by the user, which store and distribute content according to their own rules. The developer has no influence on content in the Nostr network and no access to external relays. Brezn only provides client-side moderation (keyword blocklist). Users are responsible for their own usage, keys and content.
+Brezn is a client application that connects to the Nostr network. The developer of Brezn does not operate any Nostr relays, host content, or process any personal data. All posts are sent directly to relays configured by the user. These relays store and distribute content according to their own policies. The developer has no control over content published on the Nostr network and no access to external relays. Brezn is provided "as is" without any warranties. The developer disclaims all liability for any damages arising from the use of the software or the Nostr protocol.
+
+Brezn provides optional client-side content filtering features for convenience, such as private keyword blocklist and user blocklists. When a report reason is provided by the user, Brezn sends a NIP-56 report event to relays. Relay operators may use this information to help maintain a healthy community, but they are under no obligation to act on reports. Relay operators are volunteers who provide a valuable service free of charge to the Nostr ecosystem and users should be respectful when contacting them.
+
+Users are responsible for managing their private keys and the content they publish. Published content may remain permanently on the network and cannot be guaranteed to be deleted. For illegal content, users should contact the respective relay operators and, if necessary, law enforcement authorities directly.
 
 ## Tech Stack
 
-- React + Vite
-- Tailwind CSS
+- `React` + `Vite`
+- `Tailwind CSS`
 - `nostr-tools`
 - PWA: `vite-plugin-pwa` (Service Worker + Offline Fallback)
 

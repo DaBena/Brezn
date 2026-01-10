@@ -100,6 +100,20 @@ export function useLocalFeed(params: {
     }
   }, [])
 
+  // Clear events when relays change
+  const relaysRef = useRef<string[]>([])
+  useEffect(() => {
+    const currentRelays = client.getRelays()
+    const prevRelays = relaysRef.current
+    // Check if relays have changed (by comparing sorted arrays)
+    const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...prevRelays].sort())
+    if (relaysChanged && prevRelays.length > 0) {
+      // Relays changed - clear events to avoid showing posts from removed relays
+      setEvents([])
+    }
+    relaysRef.current = currentRelays
+  }, [client])
+
   // Persist a small "last seen" cache for offline read-only mode.
   useEffect(() => {
     if (!sortedEvents.length) return
@@ -157,9 +171,14 @@ export function useLocalFeed(params: {
   // Simple query: use the selected geohash length
   // New posts have tuple tags (1-5), so they'll be found regardless of query length
   // Old posts without tuple tags will only be found if query matches exactly
+  const currentRelays = client.getRelays()
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return
+    if (currentRelays.length === 0) {
+      setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
+      return
+    }
     unsubRef.current?.()
 
     let didEose = false
@@ -206,11 +225,16 @@ export function useLocalFeed(params: {
       window.clearTimeout(timeoutId)
       unsub()
     }
-  }, [client, queryGeohash, isOffline])
+  }, [client, queryGeohash, isOffline, currentRelays.join(',')])
 
   function loadMore() {
     if (isLoadingMore) return
     if (!queryGeohash) return
+    const relays = client.getRelays()
+    if (relays.length === 0) {
+      setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
+      return
+    }
 
     const oldest = events.reduce((min, e) => Math.min(min, e.created_at), Number.POSITIVE_INFINITY)
     if (!Number.isFinite(oldest) || oldest <= 0) return
@@ -255,7 +279,7 @@ export function useLocalFeed(params: {
     }, 12_500)
   }
 
-  // Auto-backfill: wenn zu wenig Posts da sind, automatisch ältere nachladen,
+  // Auto-backfill: if there are too few posts, automatically load older ones,
   // so the feed is meaningfully filled without needing "Load more".
   useEffect(() => {
     if (isOffline) return

@@ -1,4 +1,6 @@
 import geohash from 'ngeohash'
+import type { Event } from 'nostr-tools'
+import { getLongestGeohashTag } from './nostrUtils'
 
 export const GEOHASH_LEN_MIN_UI = 1
 export const GEOHASH_LEN_MAX_UI = 5
@@ -128,11 +130,11 @@ export function encodeGeohash(p: GeoPoint, len = 4): string {
 }
 
 /**
- * Generiert alle Geohash-Präfixe für einen gegebenen Geohash.
- * Alle Längen von 1 bis zur tatsächlichen Länge werden generiert für maximale Auffindbarkeit.
+ * Generates all geohash prefixes for a given geohash.
+ * All lengths from 1 to the actual length are generated for maximum discoverability.
  * 
- * @param geohash - Ein Geohash (mindestens 1 Zeichen, idealerweise 5 Zeichen)
- * @returns Array von Geohash-Präfixen von Länge 1 bis zur tatsächlichen Länge
+ * @param geohash - A geohash (at least 1 character, ideally 5 characters)
+ * @returns Array of geohash prefixes from length 1 to the actual length
  * 
  * @example
  * generateGeohashTags('u0m1x') // ['u', 'u0', 'u0m', 'u0m1', 'u0m1x']
@@ -142,8 +144,8 @@ export function generateGeohashTags(geohash: string): string[] {
   const hash = (geohash ?? '').trim()
   if (!hash || hash.length < 1) return []
   
-  // Generiere alle Präfixe von Länge 1 bis zur tatsächlichen Länge
-  // Kein Padding - nur echte Präfixe verwenden
+  // Generate all prefixes from length 1 to the actual length
+  // No padding - only use real prefixes
   const tags: string[] = []
   for (let len = 1; len <= hash.length && len <= 5; len++) {
     tags.push(hash.slice(0, len))
@@ -187,3 +189,21 @@ export async function getBrowserLocation(opts?: {
   })
 }
 
+/**
+ * Calculates the approximate distance from a viewer point to an event's geohash location.
+ * Uses the longest (most precise) geohash tag from the event for accurate distance calculation.
+ * @param evt - Nostr event with geohash tags
+ * @param viewerPoint - Viewer's geographic location
+ * @returns Formatted distance string (e.g., "~2.3 km") or null if calculation not possible
+ */
+export function calculateApproxDistance(evt: Event, viewerPoint: GeoPoint | null): string | null {
+  if (!viewerPoint) return null
+  // Use the longest (most precise) geohash tag for accurate distance calculation
+  const g = getLongestGeohashTag(evt)
+  if (!g) return null
+  const p = decodeGeohashCenter(g)
+  if (!p) return null
+  const km = haversineDistanceKm(viewerPoint, p)
+  const label = formatApproxDistance(km, g.length)
+  return label || null
+}

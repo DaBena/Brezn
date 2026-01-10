@@ -1,7 +1,5 @@
-export const BREZN_CLIENT_NAME = 'brezn'
-
 export function breznClientTag(): string[] {
-  return ['client', BREZN_CLIENT_NAME]
+  return ['client', 'brezn']
 }
 
 export const NOSTR_KINDS = {
@@ -9,5 +7,6 @@ export const NOSTR_KINDS = {
   note: 1,
   deletion: 5,
   reaction: 7,
+  report: 1984, // NIP-56: Reporting content
 } as const
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { DEFAULT_RELAYS } from '../../lib/nostrClient'
+import { CloseIcon } from '../CloseIcon'
 
 type RelayStatusLite = {
   url: string
@@ -131,48 +133,39 @@ export function RelaySettings({ client }: RelaySettingsProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+    <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">Relays</div>
       <div className="mt-1 text-xs text-brezn-muted">Relays for loading & posting.</div>
 
+      {relays.length === 0 ? (
+        <div className="mt-3 rounded-xl border border-brezn-border bg-brezn-panel2 p-3 text-xs text-brezn-muted">
+          No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the "Default" button to restore default relays.
+        </div>
+      ) : null}
+
       <div className="mt-3 space-y-2">
-        {[...new Set([...DEFAULT_RELAYS, ...relays])].map(r => {
-          const enabled = relays.includes(r)
+        {relays.map(r => {
           return (
-            <label
+            <div
               key={r}
-              className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
+              className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
             >
-              <div className="min-w-0 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={e => {
-                    const next = e.target.checked ? [...relays, r] : relays.filter(x => x !== r)
-                    client.setRelays(next)
-                    setRelays(client.getRelays())
-                    setRelayMsg('Relays saved.')
-                  }}
-                  className="h-4 w-4 accent-brezn-gold"
-                />
-                <span className="min-w-0 truncate font-mono text-xs">{r}</span>
-              </div>
-              {!DEFAULT_RELAYS.includes(r as (typeof DEFAULT_RELAYS)[number]) ? (
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.preventDefault()
-                    const next = relays.filter(x => x !== r)
-                    client.setRelays(next)
-                    setRelays(client.getRelays())
-                    setRelayMsg('Relay removed.')
-                  }}
-                  className="shrink-0 rounded-lg border border-brezn-border bg-brezn-panel2 px-2 py-1 text-[11px] hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
-                >
-                  Remove
-                </button>
-              ) : null}
-            </label>
+              <span className="min-w-0 truncate font-mono text-xs">{r}</span>
+              <button
+                type="button"
+                onClick={e => {
+                  e.preventDefault()
+                  const next = relays.filter(x => x !== r)
+                  client.setRelays(next)
+                  setRelays(next)
+                  setRelayMsg('Relay removed.')
+                }}
+                className="shrink-0 hover:opacity-80 focus:outline-none"
+                aria-label="Remove relay"
+              >
+                <CloseIcon />
+              </button>
+            </div>
           )
         })}
       </div>
@@ -195,11 +188,12 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           value={newRelay}
           onChange={e => setNewRelay(e.target.value)}
           placeholder="wss://relay.example"
-          className="w-full rounded-xl border border-brezn-border bg-brezn-panel p-2 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
+          className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
         />
         <button
           type="submit"
-          className="rounded-xl bg-brezn-gold px-3 py-2 text-xs font-semibold text-brezn-bg hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          disabled={!newRelay.trim()}
+          className={`rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
         >
           Add
         </button>
@@ -211,7 +205,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
             setRelayMsg('Reset to default relays.')
             setRelayTestTriggered(false)
           }}
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
           Default
         </button>
@@ -219,7 +213,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           type="button"
           onClick={() => void runRelayTests()}
           disabled={relayTestState === 'running' || relays.length === 0}
-          className="shrink-0 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
           {relayTestState === 'running' ? 'Testing…' : 'Test'}
         </button>

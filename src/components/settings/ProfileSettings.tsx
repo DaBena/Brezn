@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 
@@ -60,7 +61,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   // 2. User explicitly saves the profile (in SettingsSheet.persistAndClose)
 
   return (
-    <div className="rounded-2xl border border-brezn-border bg-brezn-panel2 p-3">
+    <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">Profil</div>
 
       {profileLoading ? (
@@ -78,7 +79,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               onChange={e => setProfileName(e.target.value)}
               placeholder="Your name (optional)"
               maxLength={100}
-              className="w-full rounded-xl border border-brezn-border bg-brezn-panel p-2 text-sm outline-none focus:ring-2 focus:ring-brezn-gold/40"
+              className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
             />
           </div>
 
@@ -93,11 +94,25 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   alt="Profile picture"
                   className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
                   onError={e => {
-                    e.currentTarget.style.display = 'none'
+                    // Replace image with placeholder icon on error
+                    const target = e.currentTarget
+                    const parent = target.parentElement
+                    if (parent) {
+                      target.style.display = 'none'
+                      const placeholder = document.createElement('div')
+                      placeholder.className = 'h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center'
+                      placeholder.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>'
+                      parent.appendChild(placeholder)
+                    }
                   }}
                 />
               ) : (
-                <div className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel" />
+                <div className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-muted">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
               )}
               <div className="flex-1">
                 <input
@@ -157,9 +172,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   <label
                     htmlFor={profileFileInputId}
                     className={[
-                      'flex-1 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold text-center',
-                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40',
-                      profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:bg-brezn-panel cursor-pointer',
+                      `flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-center ${buttonBase}`,
+                      'focus:outline-none',
+                      profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90 cursor-pointer',
                     ].join(' ')}
                     tabIndex={profileUploadState === 'uploading' ? -1 : 0}
                     role="button"
@@ -194,7 +209,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       }
                     }}
                     disabled={profileSaving || profileUploadState === 'uploading'}
-                    className="flex-1 rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs font-semibold hover:bg-brezn-panel disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                    className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
                   >
                     Reset
                   </button>
@@ -203,7 +218,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   <button
                     type="button"
                     onClick={() => setProfilePicture('')}
-                    className="mt-1 w-full rounded-xl border border-brezn-border bg-brezn-panel2 px-3 py-2 text-xs hover:bg-brezn-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-gold/40"
+                    className={`mt-1 w-full rounded-xl px-3 py-2 text-xs ${buttonBase}`}
                   >
                     Remove image
                   </button>
@@ -219,8 +234,8 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   type="text"
                   value={profilePicture}
                   onChange={e => setProfilePicture(e.target.value)}
-                  placeholder="Oder URL direkt eingeben"
-                  className="w-full rounded-xl border border-brezn-border bg-brezn-panel p-2 text-xs font-mono outline-none focus:ring-2 focus:ring-brezn-gold/40"
+                  placeholder="Or enter URL directly"
+                  className="w-full border border-brezn-border bg-brezn-panel p-2 text-xs font-mono outline-none"
                 />
               </div>
             ) : null}
