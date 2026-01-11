@@ -12,25 +12,14 @@ function ImagePreview(props: {
   onFail?: (url: string) => void
   compact?: boolean
   linkMedia?: boolean
-  loadDelay?: number
 }) {
-  const { url, interactive, failed, onFail, compact = false, linkMedia = false, loadDelay = 0 } = props
-  const [shouldLoad, setShouldLoad] = useState(loadDelay === 0)
-  
-  useEffect(() => {
-    if (loadDelay > 0 && !shouldLoad) {
-      const timer = setTimeout(() => {
-        setShouldLoad(true)
-      }, loadDelay)
-      return () => clearTimeout(timer)
-    }
-  }, [loadDelay, shouldLoad])
+  const { url, interactive, failed, onFail, compact = false, linkMedia = false } = props
   
   if (failed) return null
   
   const image = (
       <img
-        src={shouldLoad ? url : undefined}
+        src={url}
         alt=""
         loading="lazy"
         decoding="async"
@@ -204,7 +193,7 @@ export const PostContent = memo(function PostContent(props: {
             ? (imageUrls.length === 1 ? 'grid-cols-1' : imageUrls.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
             : (imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
         ].join(' ')}>
-          {imageUrls.map((u, idx) => (
+          {imageUrls.map(u => (
             <div key={u} className="overflow-hidden">
               <ImagePreview
                 url={u}
@@ -213,7 +202,6 @@ export const PostContent = memo(function PostContent(props: {
                 onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
                 compact={compact}
                 linkMedia={linkMedia}
-                loadDelay={idx * 100} // Stagger loading: 0ms, 100ms, 200ms, etc.
               />
             </div>
           ))}

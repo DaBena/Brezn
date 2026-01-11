@@ -9,7 +9,7 @@ import { PostIdentity } from './PostIdentity'
 import { useProfiles } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
 
-const INITIAL_DISPLAY_LIMIT = 21
+const INITIAL_DISPLAY_LIMIT = 7
 
 export function Feed(props: {
   feedState: FeedState
