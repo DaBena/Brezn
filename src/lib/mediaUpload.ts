@@ -165,6 +165,74 @@ async function resolveUploadEndpoint(input: string, opts?: { signal?: AbortSigna
   return { url: u.toString(), requiresNip98: false }
 }
 
+/**
+ * Compresses and resizes an image file to reduce file size.
+ * @param file Original image file
+ * @param maxWidth Maximum width in pixels (default: 1920)
+ * @param maxHeight Maximum height in pixels (default: 1920)
+ * @param quality JPEG quality 0-1 (default: 0.85)
+ * @returns Compressed File object
+ */
+export async function compressImage(
+  file: File,
+  maxWidth = 1920,
+  maxHeight = 1920,
+  quality = 0.85
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+        
+        // Create canvas and draw resized image
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Canvas context not available'))
+          return
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Convert to blob and then to File
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to compress image'))
+              return
+            }
+            // Keep original filename but change extension to .jpg for better compression
+            const fileName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
+            const compressedFile = new File([blob], fileName, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            })
+            resolve(compressedFile)
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export async function uploadMediaFile(opts: {
   endpoint: string
   file: File

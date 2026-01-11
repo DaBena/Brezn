@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import * as nip19 from 'nostr-tools/nip19'
 import type { BreznNostrClient, Conversation } from '../lib/nostrClient'
-import { shortHex } from '../lib/nostrUtils'
+import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
 import { DMSheet } from './DMSheet'
 
@@ -89,7 +90,7 @@ export function ConversationsSheet(props: {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-sm font-semibold truncate">{shortHex(conv.pubkey, 12, 8)}</div>
+                    <div className="font-mono text-sm font-semibold truncate">{shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}</div>
                     <div className="mt-1 text-xs text-brezn-muted truncate">{conv.lastMessagePreview}</div>
                   </div>
                   <div className="shrink-0 text-[10px] text-brezn-muted">{formatTime(conv.lastMessageAt)}</div>
@@ -100,14 +101,17 @@ export function ConversationsSheet(props: {
         </div>
       </Sheet>
 
-      {selectedPubkey ? (
+      {selectedPubkey && (
         <DMSheet
           open={!!selectedPubkey}
-          onClose={() => setSelectedPubkey(null)}
+          onClose={() => {
+            setSelectedPubkey(null)
+            onClose()
+          }}
           client={client}
           otherPubkey={selectedPubkey}
         />
-      ) : null}
+      )}
     </>
   )
 }

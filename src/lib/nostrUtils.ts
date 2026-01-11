@@ -12,6 +12,17 @@ export function shortHex(hex: string, head = 8, tail = 4): string {
   return `${v.slice(0, h)}…${v.slice(-t)}`
 }
 
+// Shorten npub by removing "npub" prefix (first 4 chars) and then shortening the rest
+export function shortNpub(npub: string, head = 8, tail = 4): string {
+  const v = (npub ?? '').toString()
+  if (!v) return ''
+  // Remove "npub" prefix if present
+  const withoutPrefix = v.startsWith('npub') ? v.slice(4) : v
+  if (!withoutPrefix) return v
+  // Shorten the part after "npub"
+  return shortHex(withoutPrefix, head, tail)
+}
+
 export function getTagValue(evt: Event, key: string): string | undefined {
   const found = evt.tags.find(t => t[0] === key && typeof t[1] === 'string')
   return found?.[1]

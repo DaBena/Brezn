@@ -1,6 +1,7 @@
 import { memo } from 'react'
+import * as nip19 from 'nostr-tools/nip19'
 import type { Profile } from '../hooks/useProfiles'
-import { shortHex } from '../lib/nostrUtils'
+import { shortNpub } from '../lib/nostrUtils'
 
 export const PostIdentity = memo(function PostIdentity(props: { pubkey: string; profile?: Profile; onClick?: () => void }) {
   const { pubkey, profile, onClick } = props
@@ -60,7 +61,7 @@ export const PostIdentity = memo(function PostIdentity(props: { pubkey: string; 
           <div className="truncate text-sm font-semibold text-brezn-text">{displayName}</div>
         ) : null}
         <div className={`truncate font-mono text-[11px] ${displayName ? 'text-brezn-muted' : 'text-brezn-text'}`}>
-          {shortHex(pubkey, 8, 4)}
+          {shortNpub(nip19.npubEncode(pubkey), 8, 4)}
         </div>
       </div>
     </div>

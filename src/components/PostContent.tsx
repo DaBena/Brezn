@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from '../lib/urls'
+import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls, isSafeUrl } from '../lib/urls'
 
 function stop(e: React.SyntheticEvent) {
   e.stopPropagation()
@@ -11,13 +11,13 @@ function ImagePreview(props: {
   failed?: boolean
   onFail?: (url: string) => void
   compact?: boolean
+  linkMedia?: boolean
 }) {
-  const { url, failed, onFail, compact = false } = props
+  const { url, interactive, failed, onFail, compact = false, linkMedia = false } = props
   
   if (failed) return null
   
-  return (
-    <div className="block overflow-hidden">
+  const image = (
       <img
         src={url}
         alt=""
@@ -26,6 +26,25 @@ function ImagePreview(props: {
         className={`block w-full object-cover ${compact ? 'max-h-64' : ''}`}
         onError={() => onFail?.(url)}
       />
+  )
+  
+  if (linkMedia) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={interactive ? stop : undefined}
+        className="block overflow-hidden"
+      >
+        {image}
+      </a>
+    )
+  }
+  
+  return (
+    <div className="block overflow-hidden">
+      {image}
     </div>
   )
 }
@@ -36,11 +55,12 @@ function VideoPreview(props: {
   failed?: boolean
   onFail?: (url: string) => void
   compact?: boolean
+  linkMedia?: boolean
 }) {
-  const { url, interactive, failed, onFail, compact = false } = props
+  const { url, interactive, failed, onFail, compact = false, linkMedia = false } = props
   if (failed) return null
-  return (
-    <div className="overflow-hidden" onClick={interactive ? stop : undefined}>
+  
+  const video = (
       <video
         src={url}
         controls
@@ -49,6 +69,25 @@ function VideoPreview(props: {
         className={`block w-full ${compact ? 'max-h-64' : ''}`}
         onError={() => onFail?.(url)}
       />
+  )
+  
+  if (linkMedia) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={interactive ? stop : undefined}
+        className="block overflow-hidden"
+      >
+        {video}
+      </a>
+    )
+  }
+  
+  return (
+    <div className="overflow-hidden" onClick={interactive ? stop : undefined}>
+      {video}
     </div>
   )
 }
@@ -58,8 +97,9 @@ export const PostContent = memo(function PostContent(props: {
   interactive?: boolean
   compact?: boolean
   reactionButton?: React.ReactNode
+  linkMedia?: boolean
 }) {
-  const { content, interactive, compact = false, reactionButton } = props
+  const { content, interactive, compact = false, reactionButton, linkMedia = false } = props
 
   const { parts, imageUrls, videoUrls } = useMemo(() => {
     const links = extractLinks(content)
@@ -99,6 +139,13 @@ export const PostContent = memo(function PostContent(props: {
       <div className="break-words">
         {parts.map((p, idx) => {
           if (p.kind === 'text') return <span key={idx}>{p.value}</span>
+          
+          // Validate URL safety before rendering as link
+          if (!isSafeUrl(p.href)) {
+            // Render unsafe URLs as plain text
+            return <span key={idx}>{p.display}</span>
+          }
+          
           const isMediaUrl = mediaUrlSet.has(p.href)
           const isFailedMedia = Boolean(failedMedia[p.href])
           if (isMediaUrl && !isFailedMedia) return null
@@ -132,6 +179,7 @@ export const PostContent = memo(function PostContent(props: {
                 failed={Boolean(failedMedia[u])}
                 onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
                 compact={compact}
+                linkMedia={linkMedia}
               />
             </div>
           ))}
@@ -153,6 +201,7 @@ export const PostContent = memo(function PostContent(props: {
                 failed={Boolean(failedMedia[u])}
                 onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
                 compact={compact}
+                linkMedia={linkMedia}
               />
             </div>
           ))}

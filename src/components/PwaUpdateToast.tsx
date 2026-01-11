@@ -33,7 +33,20 @@ export function PwaUpdateToast() {
           </div>
           <div className="flex shrink-0 gap-2">
             <button
-              onClick={() => void updateServiceWorkerRef.current?.(true)}
+              onClick={async () => {
+                try {
+                  if (updateServiceWorkerRef.current) {
+                    await updateServiceWorkerRef.current(true)
+                  } else {
+                    // Fallback: reload page manually if update function is not available
+                    window.location.reload()
+                  }
+                } catch (error) {
+                  // If update fails, reload page manually
+                  console.error('Failed to update service worker:', error)
+                  window.location.reload()
+                }
+              }}
               className={`rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
             >
               Reload

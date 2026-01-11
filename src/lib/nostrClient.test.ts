@@ -101,37 +101,13 @@ describe('nostrClient geohash length', () => {
   it('clamps geohash length to valid range', () => {
     const client = createNostrClient()
     client.setGeohashLength(0)
-    expect(client.getGeohashLength()).toBe(1)
+    expect(client.getGeohashLength()).toBe(0) // 0 is now a valid value (queries current + east/west)
     
     client.setGeohashLength(10)
     expect(client.getGeohashLength()).toBe(5)
     
     client.setGeohashLength(3.7)
     expect(client.getGeohashLength()).toBe(4) // rounded
-  })
-
-  it('migrates old localRadiusKm to geohashLength', () => {
-    // Simulate old state with localRadiusKm
-    const oldState = {
-      mutedTerms: [],
-      blockedPubkeys: [],
-      settings: {
-        localRadiusKm: 300, // Should map to geohashLength 3 (>=200km)
-      },
-    }
-    localStorage.setItem('brezn:v1', JSON.stringify(oldState))
-    
-    const client = createNostrClient()
-    const length = client.getGeohashLength()
-    // 300km should map to 3, but let's check it's in the right range
-    expect(length).toBeGreaterThanOrEqual(1)
-    expect(length).toBeLessThanOrEqual(5)
-    
-    // Verify migration saved the new value (should be 3 for 300km)
-    const stored = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}')
-    if (stored.settings?.geohashLength) {
-      expect(stored.settings.geohashLength).toBe(3)
-    }
   })
 })
 

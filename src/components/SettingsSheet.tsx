@@ -54,11 +54,11 @@ export function SettingsSheet(props: {
     }
       schedule(() => {
         setClosing(false)
-      {
-        const ep = client.getMediaUploadEndpoint() ?? ''
-        initialMediaEndpointRef.current = ep
-        setMediaEndpoint(ep)
-      }
+        {
+          const ep = client.getMediaUploadEndpoint() ?? ''
+          initialMediaEndpointRef.current = ep
+          setMediaEndpoint(ep)
+        }
       // Store initial relays when settings open
       initialRelaysRef.current = [...client.getRelays()]
       setCurrentProfile(null) // Will be set by ProfileSettings when loaded

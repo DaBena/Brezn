@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
-import { uploadMediaFile } from '../lib/mediaUpload'
+import { uploadMediaFile, compressImage } from '../lib/mediaUpload'
 import { isLikelyImageUrl, isLikelyVideoUrl } from '../lib/urls'
 
 export function ComposerSheet(props: {
@@ -206,17 +206,31 @@ export function ComposerSheet(props: {
                 return
               }
 
+              // Set uploading state early so compression happens in background
+              setUploadState('uploading')
+              setUploadError(null)
+
+              // Compress images before checking size limit (skip SVG as it's vector graphics)
+              let fileToUpload = file
+              if (isImage && !name.endsWith('.svg')) {
+                try {
+                  fileToUpload = await compressImage(file, 1920, 1920, 0.85)
+                } catch (err) {
+                  setUploadState('error')
+                  setUploadError(err instanceof Error ? err.message : 'Failed to compress image.')
+                  return
+                }
+              }
+
               const limit = isVideo ? maxVideoBytes : maxImageBytes
-              if (file.size > limit) {
+              if (fileToUpload.size > limit) {
                 setUploadState('error')
                 setUploadError(isVideo ? 'Video is too large (max. 25 MB).' : 'Image is too large (max. 12 MB).')
                 return
               }
 
-              setUploadState('uploading')
-              setUploadError(null)
               try {
-                const { url } = await uploadMediaFile({ endpoint: mediaUploadEndpoint, file })
+                const { url } = await uploadMediaFile({ endpoint: mediaUploadEndpoint, file: fileToUpload })
                 setMediaUrls(prev => [...prev, url])
                 setUploadState('idle')
               } catch (err) {

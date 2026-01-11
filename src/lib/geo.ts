@@ -155,6 +155,27 @@ export function generateGeohashTags(geohash: string): string[] {
 }
 
 /**
+ * Gets the east and west neighboring geohash cells.
+ * @param hash - Geohash string
+ * @returns Object with east and west neighbor hashes, or null if invalid
+ */
+export function getEastWestNeighbors(hash: string): { east: string; west: string } | null {
+  const h = (hash ?? '').trim()
+  if (!h) return null
+  try {
+    const allNeighbors = geohash.neighbors(h)
+    // neighbors() returns [n, ne, e, se, s, sw, w, nw]
+    // We need east (index 2) and west (index 6)
+    if (allNeighbors.length >= 7) {
+      return { east: allNeighbors[2], west: allNeighbors[6] }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Gets the current browser location using the Geolocation API.
  * @param opts - Options for geolocation
  * @param opts.timeoutMs - Maximum time to wait (default: 8000ms)

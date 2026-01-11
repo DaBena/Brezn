@@ -26,7 +26,6 @@ type StoredStateV1 = {
   mutedTerms: string[]
   blockedPubkeys: string[]
   settings?: {
-    localRadiusKm?: number // Deprecated: wird zu geohashLength migriert
     geohashLength?: number // 1-5, default: 1
     mediaUploadEndpoint?: string
     relays?: string[]
@@ -154,21 +153,21 @@ export type BreznNostrClient = {
   setBlockedPubkeys(pubkeys: string[]): Promise<void>
 
   /**
-   * Get geohash length for feed queries (1-5).
+   * Get geohash length for feed queries (0-5).
+   * - 0: Query current cell + east/west neighbors (3 queries total)
    * - 1: ~5000km × ~2500km per cell (largest)
    * - 2: ~1250km × ~625km per cell (default)
    * - 3: ~156km × ~78km per cell
    * - 4: ~39km × ~19km per cell
    * - 5: ~4.9km × ~4.9km per cell (smallest, most precise)
    * 
-   * @returns Geohash length (1-5), default: 1
+   * @returns Geohash length (0-5), default: 1
    */
   getGeohashLength(): number
 
   /**
    * Set geohash length for feed queries.
-   * Automatically migrates old `localRadiusKm` values if present.
-   * @param length - Geohash length (1-5), will be clamped to valid range
+   * @param length - Geohash length (0-5), will be clamped to valid range. 0 = query current + east/west neighbors.
    */
   setGeohashLength(length: number): void
 
@@ -666,33 +665,14 @@ export function createNostrClient(): BreznNostrClient {
     saveState({ blockedPubkeys: normalized })
   }
 
-  /**
-   * Migriert alte localRadiusKm Werte zu geohashLength.
-   * Mapping: >=1000km → 1, >=500km → 2, >=200km → 3, >=50km → 4, <50km → 5
-   */
-  function migrateRadiusToGeohashLength(radiusKm: number): number {
-    if (radiusKm >= 1000) return 1
-    if (radiusKm >= 500) return 2
-    if (radiusKm >= 200) return 3
-    if (radiusKm >= 50) return 4
-    return 5
-  }
-
   function getGeohashLength(): number {
     const s = loadState()
     
-    // First check if geohashLength is already set
+    // Check if geohashLength is set
     if (typeof s.settings?.geohashLength === 'number') {
       const len = Math.round(s.settings.geohashLength)
+      if (len === 0) return 0
       if (len >= 1 && len <= 5) return len
-    }
-    
-    // Migration: Convert old localRadiusKm values
-    if (typeof s.settings?.localRadiusKm === 'number' && Number.isFinite(s.settings.localRadiusKm)) {
-      const migrated = migrateRadiusToGeohashLength(s.settings.localRadiusKm)
-      // Save migrated value
-      saveState({ settings: { ...s.settings, geohashLength: migrated } })
-      return migrated
     }
     
     // Default: 1 (for apps with few users)
@@ -700,9 +680,13 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   function setGeohashLength(length: number) {
-    const clamped = Math.max(1, Math.min(5, Math.round(length))) as 1 | 2 | 3 | 4 | 5
     const s = loadState()
-    saveState({ settings: { ...s.settings, geohashLength: clamped } })
+    if (length === 0) {
+      saveState({ settings: { ...s.settings, geohashLength: 0 } })
+    } else {
+      const clamped = Math.max(1, Math.min(5, Math.round(length))) as 1 | 2 | 3 | 4 | 5
+      saveState({ settings: { ...s.settings, geohashLength: clamped } })
+    }
   }
 
   function getMediaUploadEndpoint(): string | undefined {

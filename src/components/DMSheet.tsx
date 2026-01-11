@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import * as nip19 from 'nostr-tools/nip19'
 import { buttonBase } from '../lib/buttonStyles'
 import type { BreznNostrClient, DecryptedDM } from '../lib/nostrClient'
-import { shortHex } from '../lib/nostrUtils'
+import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
 
 export function DMSheet(props: {
@@ -215,7 +216,7 @@ export function DMSheet(props: {
   }
 
   return (
-    <Sheet open={open} title={`DM: ${shortHex(otherPubkey)}`} onClose={onClose}>
+    <Sheet open={open} title={`DM: ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`} onClose={onClose}>
       <div className="flex flex-col" style={{ height: 'calc(100dvh - 8rem)' }}>
         <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pb-4">
           {loading ? (

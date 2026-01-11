@@ -11,7 +11,8 @@ import { useToast } from './Toast'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
-
+import { shortNpub } from '../lib/nostrUtils'
+import * as nip19 from 'nostr-tools/nip19'
 
 function PostCard(props: {
   evt: Event
@@ -37,7 +38,7 @@ function PostCard(props: {
         </div>
       </div>
       <div className="mt-2">
-        <PostContent content={evt.content} />
+        <PostContent content={evt.content} linkMedia />
       </div>
     </article>
   )
@@ -263,10 +264,6 @@ export function ThreadSheet(props: {
             </svg>
             <span>{blockState === 'blocking' ? '…' : 'Block'}</span>
           </button>
-        ) : showReportField && !isOwnPost && onBlockUser && !isBlocked ? (
-          <div className="text-xs font-semibold text-brezn-text">
-            Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.
-          </div>
         ) : null
       }
       onClose={onClose}
@@ -280,6 +277,12 @@ export function ThreadSheet(props: {
         {/* Show post and interactions, or show report field */}
         {showReportField && !isOwnPost && onBlockUser && !isBlocked ? (
           <div className="space-y-2">
+            <div className="text-xs font-semibold text-brezn-muted">
+              Block {shortNpub(nip19.npubEncode(root.pubkey), 8, 4)}
+            </div>
+            <div className="text-xs text-brezn-text">
+              Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.
+            </div>
             <textarea
               ref={reportTextareaRef}
               value={reportReason}
@@ -288,13 +291,15 @@ export function ThreadSheet(props: {
               className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
               disabled={blockState === 'blocking' || isOffline}
             />
-            <button
-              onClick={() => void handleBlock()}
-              disabled={blockState === 'blocking' || isOffline}
-              className={`w-1/2 mx-auto rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-            >
-              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={() => void handleBlock()}
+                disabled={blockState === 'blocking' || isOffline}
+                className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
+              >
+                {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+              </button>
+            </div>
           </div>
         ) : (
           <div>
@@ -338,7 +343,10 @@ export function ThreadSheet(props: {
                       <div key={r.id} className="space-y-2">
                         {isReportingReply && !isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
                           <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel2 p-3">
-                            <div className="text-xs text-brezn-muted">
+                            <div className="text-xs font-semibold text-brezn-muted">
+                              Block {shortNpub(nip19.npubEncode(r.pubkey), 8, 4)}
+                            </div>
+                            <div className="text-xs text-brezn-text">
                               Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.
                             </div>
                             <textarea
@@ -349,13 +357,15 @@ export function ThreadSheet(props: {
                               className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
                               disabled={blockState === 'blocking' || isOffline}
                             />
-                            <button
-                              onClick={() => void handleBlockReplyWithReport(r)}
-                              disabled={blockState === 'blocking' || isOffline}
-                              className={`w-1/2 mx-auto rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-                            >
-                              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
-                            </button>
+                            <div className="flex justify-center">
+                              <button
+                                onClick={() => void handleBlockReplyWithReport(r)}
+                                disabled={blockState === 'blocking' || isOffline}
+                                className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
+                              >
+                                {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <>

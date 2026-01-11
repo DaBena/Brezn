@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { Event } from 'nostr-tools'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { GeoPoint } from '../lib/geo'
@@ -8,6 +8,8 @@ import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
 import { useProfiles } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
+
+const INITIAL_DISPLAY_LIMIT = 21
 
 export function Feed(props: {
   feedState: FeedState
@@ -43,18 +45,36 @@ export function Feed(props: {
     onOpenChat,
   } = props
 
-  const pubkeys = useMemo(() => events.map(e => e.pubkey), [events])
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT)
+  
+  // Reset display limit when events change (new feed loaded)
+  useEffect(() => {
+    setDisplayLimit(INITIAL_DISPLAY_LIMIT)
+  }, [events.length > 0 ? events[0].id : null])
+
+  const displayedEvents = useMemo(() => events.slice(0, displayLimit), [events, displayLimit])
+  const hasMore = events.length > displayLimit
+
+  const pubkeys = useMemo(() => displayedEvents.map(e => e.pubkey), [displayedEvents])
   const { profilesByPubkey } = useProfiles({ client, pubkeys, isOffline })
 
   const approxDistanceById = useMemo(() => {
     if (!viewerPoint) return {} as Record<string, string>
     const out: Record<string, string> = {}
-    for (const evt of events) {
+    for (const evt of displayedEvents) {
       const label = calculateApproxDistance(evt, viewerPoint)
       if (label) out[evt.id] = label
     }
     return out
-  }, [events, viewerPoint])
+  }, [displayedEvents, viewerPoint])
+
+  const handleLoadMore = () => {
+    if (hasMore) {
+      setDisplayLimit(prev => prev + INITIAL_DISPLAY_LIMIT)
+    } else {
+      onLoadMore()
+    }
+  }
 
   return (
     <main className="mx-auto max-w-xl px-3 pb-14 pt-12">
@@ -100,7 +120,7 @@ export function Feed(props: {
 
       {(feedState.kind === 'loading' || feedState.kind === 'live') && Boolean(geoCell) && (
         <>
-          {events.length === 0 ? (
+          {displayedEvents.length === 0 ? (
             <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted shadow-soft">
               {feedState.kind === 'loading' ? (
                 initialTimedOut ? (
@@ -122,12 +142,12 @@ export function Feed(props: {
           ) : (
             <>
               <div className="space-y-2">
-                {events.length === 0 ? (
+                {displayedEvents.length === 0 ? (
                   <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted shadow-soft">
                     No posts found
                   </div>
                 ) : (
-                  events.map(evt => (
+                  displayedEvents.map(evt => (
                   <article
                     key={evt.id}
                     role="button"
@@ -151,7 +171,13 @@ export function Feed(props: {
                         />
                       </div>
                       <div className="shrink-0 text-[11px] text-brezn-muted">
-                        {new Date(evt.created_at * 1000).toLocaleString()}
+                        {new Date(evt.created_at * 1000).toLocaleString(undefined, {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                         {approxDistanceById[evt.id] ? <span> / {approxDistanceById[evt.id]}</span> : null}
                       </div>
                     </div>
@@ -168,11 +194,11 @@ export function Feed(props: {
               </div>
               <div className="mt-3">
                 <button
-                  onClick={onLoadMore}
-                  disabled={isLoadingMore}
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore && !hasMore}
                   className={`w-full rounded-lg px-3 py-2 text-sm font-semibold ${buttonBase}`}
                 >
-                  {isLoadingMore ? 'Loading more…' : 'Load more'}
+                  {isLoadingMore && !hasMore ? 'Loading more…' : hasMore ? 'Show more' : 'Load more'}
                 </button>
               </div>
             </>

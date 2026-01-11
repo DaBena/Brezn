@@ -7,6 +7,7 @@ import {
   GEOHASH_LEN_MAX_UI,
   GEOHASH_LEN_MIN_UI,
   getBrowserLocation,
+  getEastWestNeighbors,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJsonSync, saveJsonSync } from '../lib/storage'
@@ -52,7 +53,9 @@ export function useLocalFeed(params: {
   const initialSavedGeo5 = readSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
   const initialQueryGeohash =
-    !isOffline && initialSavedGeo5 ? initialSavedGeo5.slice(0, initialGeohashLength) : null
+    !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
+      ? initialSavedGeo5.slice(0, initialGeohashLength)
+      : initialSavedGeo5 // Use full 5-digit geohash when length is 0
 
   const [geohashLength, setGeohashLength] = useState<number>(initialGeohashLength)
   const [feedState, setFeedState] = useState<FeedState>(() => {
@@ -123,10 +126,14 @@ export function useLocalFeed(params: {
   }, [geoCell, sortedEvents])
 
   function setLocalQueryFromGeo5(geo5: string, len: number) {
-    const clampedLen = Math.max(1, Math.min(5, Math.round(len))) as 1 | 2 | 3 | 4 | 5
-    const queryHash = geo5.slice(0, clampedLen)
     setEvents([])
-    setQueryGeohash(queryHash)
+    if (len === 0) {
+      // Use full 5-digit geohash when len is 0 (will query current + east/west)
+      setQueryGeohash(geo5)
+    } else {
+      const clampedLen = Math.max(1, Math.min(5, Math.round(len))) as 1 | 2 | 3 | 4 | 5
+      setQueryGeohash(geo5.slice(0, clampedLen))
+    }
     setFeedState({ kind: 'loading' })
   }
 
@@ -181,6 +188,9 @@ export function useLocalFeed(params: {
     }
     unsubRef.current?.()
 
+    // Clear events when starting a new query to avoid duplicates
+    setEvents([])
+
     let didEose = false
     const timeoutId = window.setTimeout(() => {
       if (!didEose) {
@@ -213,19 +223,87 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // Single query with the selected geohash length
+    // If geohashLength is 0, query current cell + east/west neighbors (3 queries sequentially)
+    // Otherwise, single query with the selected geohash length
     // No 'since' filter - find all posts regardless of age (important for apps with few users)
-    const unsub = client.subscribe(
-      { kinds: [1], '#g': [queryGeohash], limit: 200 },
-      { onevent: onEvent, oneose: onEose, onclose: onClose },
-    )
     
-    unsubRef.current = unsub
+    if (geohashLength === 0 && queryGeohash.length === 5) {
+      // Use 1-character geohash and query its east/west neighbors
+      const oneCharHash = queryGeohash.slice(0, 1)
+      const neighbors = getEastWestNeighbors(oneCharHash)
+      if (neighbors) {
+        const cellsToQuery = [oneCharHash, neighbors.east, neighbors.west]
+        let currentIndex = 0
+        const totalQueries = cellsToQuery.length
+        let eoseCount = 0
+        const unsubs: (() => void)[] = []
+        
+        const checkAllComplete = () => {
+          if (eoseCount >= totalQueries) {
+            // All queries completed
+            didEose = true
+            window.clearTimeout(timeoutId)
+            setFeedState({ kind: 'live' })
+          }
+        }
+        
+        const runNextQuery = () => {
+          if (currentIndex >= totalQueries) {
+            checkAllComplete()
+            return
+          }
+          
+          const cell = cellsToQuery[currentIndex]
+          currentIndex++
+          
+          const unsub = client.subscribe(
+            { kinds: [1], '#g': [cell], limit: 200 },
+            {
+              onevent: onEvent,
+              oneose: () => {
+                eoseCount++
+                checkAllComplete()
+                // Wait a bit before starting next query to avoid overwhelming relays
+                if (currentIndex < totalQueries) {
+                  setTimeout(runNextQuery, 100)
+                }
+              },
+              onclose: onClose,
+            },
+          )
+          
+          unsubs.push(unsub)
+          
+          // Store a function that unsubscribes from all queries
+          unsubRef.current = () => {
+            unsubs.forEach(u => u())
+          }
+        }
+        
+        runNextQuery()
+      } else {
+        // Fallback: if neighbors can't be calculated, query with 1-character prefix
+        // This should find posts in a wider area
+        const fallbackHash = queryGeohash.slice(0, 1)
+        const unsub = client.subscribe(
+          { kinds: [1], '#g': [fallbackHash], limit: 200 },
+          { onevent: onEvent, oneose: onEose, onclose: onClose },
+        )
+        unsubRef.current = unsub
+      }
+    } else {
+      // Single query with the selected geohash length
+      const unsub = client.subscribe(
+        { kinds: [1], '#g': [queryGeohash], limit: 200 },
+        { onevent: onEvent, oneose: onEose, onclose: onClose },
+      )
+      unsubRef.current = unsub
+    }
     return () => {
       window.clearTimeout(timeoutId)
-      unsub()
+      unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, currentRelays.join(',')])
+  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength])
 
   function loadMore() {
     if (isLoadingMore) return
@@ -288,26 +366,25 @@ export function useLocalFeed(params: {
     if (sortedEvents.length >= INITIAL_MIN_POSTS) return
     if (isLoadingMore) return
 
-    // Versuche pro Geo-Query nur ein paar Mal nachzuladen.
+    // Only try to backfill a few times per geo-query.
     const key = queryGeohash
     if (autoBackfillRef.current.key !== key) autoBackfillRef.current = { key, attempts: 0 }
     if (autoBackfillRef.current.attempts >= AUTO_BACKFILL_MAX_ATTEMPTS) return
 
     autoBackfillRef.current.attempts++
     loadMore()
-    // Intentionally omit loadMore from deps; wir brauchen nur die aktuellen Render-Werte.
+    // Intentionally omit loadMore from deps; we only need the current render values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryGeohash, isLoadingMore, isOffline, sortedEvents.length])
 
   function applyGeohashLength(nextLength: number) {
-    const clamped = Math.max(1, Math.min(5, Math.round(nextLength))) as 1 | 2 | 3 | 4 | 5
-    client.setGeohashLength(clamped)
-    setGeohashLength(clamped)
+    client.setGeohashLength(nextLength)
+    setGeohashLength(nextLength)
 
     // If we already have a stored last location, rebuild the query without prompting.
     const savedGeo5 = readSavedGeo5()
     if (savedGeo5) {
-      setLocalQueryFromGeo5(savedGeo5, clamped)
+      setLocalQueryFromGeo5(savedGeo5, nextLength)
     }
   }
 

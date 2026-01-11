@@ -128,3 +128,31 @@ export function isLikelyVideoUrl(url: string): boolean {
   return hasExtension(url, VIDEO_EXTENSIONS)
 }
 
+// Validate that a URL is safe to use in href attributes
+export function isSafeUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false
+  
+  const trimmed = url.trim()
+  if (!trimmed) return false
+  
+  // Allow Nostr identifiers (npub, nprofile, note, nevent, naddr)
+  // These are converted to https://njump.me/ links in extractLinks
+  if (/^(npub1|nprofile1|note1|nevent1|naddr1)[02-9ac-hj-np-z]+$/i.test(trimmed)) {
+    return true
+  }
+  
+  // Allow nostr: protocol
+  if (trimmed.toLowerCase().startsWith('nostr:')) {
+    return true
+  }
+  
+  // Only allow http and https protocols
+  try {
+    const parsed = new URL(trimmed)
+    const protocol = parsed.protocol.toLowerCase()
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    // Invalid URL format
+    return false
+  }
+}

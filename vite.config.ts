@@ -50,6 +50,8 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
+        orientation: 'portrait',
+        categories: ['social', 'utilities'],
       },
       workbox: {
         // Only use globPatterns in production to avoid dev-dist warnings

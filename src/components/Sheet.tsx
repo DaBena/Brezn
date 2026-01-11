@@ -155,7 +155,7 @@ export function Sheet(props: {
       return
     }
 
-    const minSwipeDistance = 100
+    const minSwipeDistance = 50
     const maxSwipeTime = 300
     
     const swipeTime = touchStartTime.current ? Date.now() - touchStartTime.current : Infinity
