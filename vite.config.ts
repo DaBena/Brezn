@@ -83,7 +83,7 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg|avif)$/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate', // Better for iOS - serves cache immediately, updates in background
             options: {
               cacheName: 'images-cache',
               expiration: {
