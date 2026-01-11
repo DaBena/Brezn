@@ -30,8 +30,6 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#161618',
         theme_color: '#161618',
-        lang: 'en',
-        dir: 'ltr',
         icons: [
           {
             src: `${base}icons/brezn.svg`,
