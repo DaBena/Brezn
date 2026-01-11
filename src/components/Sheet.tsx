@@ -40,9 +40,14 @@ export function Sheet(props: {
   
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
   const touchStartTime = useRef<number | null>(null)
+  const touchStartElementY = useRef<number | null>(null)
   const [swipeOffset, setSwipeOffset] = useState(0)
   const swipeDirection = useRef<'left' | 'right' | null>(null)
+  const isScrolling = useRef<boolean>(false)
+  const scrollableElementRef = useRef<HTMLElement | null>(null)
+  const headerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -51,6 +56,13 @@ export function Sheet(props: {
     // Best-effort scroll lock while modal is open.
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+
+    // Find scrollable element
+    const dialog = dialogRef.current
+    if (dialog) {
+      const scrollableEl = dialog.querySelector<HTMLElement>('.hide-scrollbar, [class*="overflow-y-auto"]')
+      scrollableElementRef.current = scrollableEl ?? null
+    }
 
     // Initial focus: close button first (consistent), otherwise first focusable in dialog.
     const focusTimer = window.setTimeout(() => {
@@ -125,26 +137,81 @@ export function Sheet(props: {
     }
   }, [open, onClose, dismissible])
 
+  // Check if element is scrollable and at top/bottom
+  const isScrollableAtEdge = (element: HTMLElement | null, deltaY: number): boolean => {
+    if (!element) return false
+    const { scrollTop, scrollHeight, clientHeight } = element
+    const isAtTop = scrollTop === 0
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+    // Only allow swipe if at edge and scrolling in that direction
+    if (deltaY < 0 && isAtTop) return true
+    if (deltaY > 0 && isAtBottom) return true
+    return false
+  }
+
   // Swipe gesture handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!dismissible) return
-    touchStartX.current = e.touches[0].clientX
+    
+    const touch = e.touches[0]
+    const target = e.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+    
+    // Get Y position relative to the dialog element
+    const elementY = touch.clientY - rect.top
+    
+    touchStartX.current = touch.clientX
+    touchStartY.current = touch.clientY
+    touchStartElementY.current = elementY
     touchStartTime.current = Date.now()
+    isScrolling.current = false
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!dismissible || touchStartX.current === null) return
+    if (!dismissible || touchStartX.current === null || touchStartY.current === null || touchStartElementY.current === null) return
     
     const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
     const deltaX = currentX - touchStartX.current
+    const deltaY = currentY - touchStartY.current
     
-    // Allow swipes in both directions
-    if (Math.abs(deltaX) > 10) {
+    // Check if user is primarily scrolling vertically
+    const absDeltaX = Math.abs(deltaX)
+    const absDeltaY = Math.abs(deltaY)
+    
+    // If vertical movement is significantly more than horizontal, treat as scroll
+    if (absDeltaY > absDeltaX * 1.5) {
+      isScrolling.current = true
+      setSwipeOffset(0)
+      swipeDirection.current = null
+      return
+    }
+    
+    // Only allow swipe if touch started in header area (first ~80px) or at scroll edge
+    const headerHeight = 80 // Approximate header height including padding
+    const startedInHeader = touchStartElementY.current < headerHeight
+    
+    // Only allow horizontal swipe if:
+    // 1. Horizontal movement is dominant, AND
+    // 2. Either started in header, or at scroll edge in the direction of movement
+    if (absDeltaX > 10 && absDeltaX > absDeltaY) {
+      // If not in header, check if we're at scroll edge
+      if (!startedInHeader && absDeltaY > 0) {
+        const atEdge = isScrollableAtEdge(scrollableElementRef.current, deltaY)
+        if (!atEdge) {
+          // Not at edge and not in header, cancel swipe gesture
+          isScrolling.current = true
+          setSwipeOffset(0)
+          swipeDirection.current = null
+          return
+        }
+      }
+      
       // Determine direction on first significant movement
       if (swipeDirection.current === null) {
         swipeDirection.current = deltaX < 0 ? 'left' : 'right'
       }
-      setSwipeOffset(Math.abs(deltaX))
+      setSwipeOffset(absDeltaX)
     }
   }
 
@@ -152,6 +219,20 @@ export function Sheet(props: {
     if (!dismissible || touchStartX.current === null) {
       setSwipeOffset(0)
       swipeDirection.current = null
+      isScrolling.current = false
+      touchStartElementY.current = null
+      return
+    }
+
+    // Don't close if user was scrolling
+    if (isScrolling.current) {
+      setSwipeOffset(0)
+      swipeDirection.current = null
+      touchStartX.current = null
+      touchStartY.current = null
+      touchStartTime.current = null
+      touchStartElementY.current = null
+      isScrolling.current = false
       return
     }
 
@@ -168,7 +249,10 @@ export function Sheet(props: {
     setSwipeOffset(0)
     swipeDirection.current = null
     touchStartX.current = null
+    touchStartY.current = null
     touchStartTime.current = null
+    touchStartElementY.current = null
+    isScrolling.current = false
   }
 
   if (!open) return null
@@ -213,7 +297,7 @@ export function Sheet(props: {
             : undefined,
         }}
       >
-        <div className="flex items-center justify-between">
+        <div ref={headerRef} className="flex items-center justify-between">
           <div className="flex-1">
             {titleElement ? (
               <div id={titleId}>{titleElement}</div>

@@ -25,11 +25,13 @@ export default defineConfig({
         name: 'Brezn',
         short_name: 'Brezn',
         description: 'Nostr-Client für lokale Posts.',
-        start_url: base,
+        start_url: `${base}?utm_source=pwa`,
         scope: base,
         display: 'standalone',
         background_color: '#161618',
         theme_color: '#161618',
+        lang: 'de',
+        dir: 'ltr',
         icons: [
           {
             src: `${base}icons/brezn.svg`,
@@ -64,6 +66,8 @@ export default defineConfig({
         ],
         orientation: 'portrait',
         categories: ['social', 'utilities'],
+        // Prefer maskable icons, but fallback to regular icons if not available
+        prefer_related_applications: false,
       },
       workbox: {
         // Only use globPatterns in production to avoid dev-dist warnings
