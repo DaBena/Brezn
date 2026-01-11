@@ -22,7 +22,6 @@ export default defineConfig({
       manifestFilename: 'manifest.json',
       includeAssets: ['icons/brezn.svg', 'icons/brezn-192.png', 'icons/brezn-512.png', 'offline.html'],
       manifest: {
-        id: base,
         name: 'Brezn',
         short_name: 'Brezn',
         description: 'Nostr-Client für lokale Posts.',

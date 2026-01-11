@@ -292,13 +292,13 @@ export function ThreadSheet(props: {
               disabled={blockState === 'blocking' || isOffline}
             />
             <div className="flex justify-center">
-              <button
-                onClick={() => void handleBlock()}
-                disabled={blockState === 'blocking' || isOffline}
+            <button
+              onClick={() => void handleBlock()}
+              disabled={blockState === 'blocking' || isOffline}
                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-              >
-                {blockState === 'blocking' ? 'Blocking…' : 'Block'}
-              </button>
+            >
+              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+            </button>
             </div>
           </div>
         ) : (
@@ -358,13 +358,13 @@ export function ThreadSheet(props: {
                               disabled={blockState === 'blocking' || isOffline}
                             />
                             <div className="flex justify-center">
-                              <button
-                                onClick={() => void handleBlockReplyWithReport(r)}
-                                disabled={blockState === 'blocking' || isOffline}
+                            <button
+                              onClick={() => void handleBlockReplyWithReport(r)}
+                              disabled={blockState === 'blocking' || isOffline}
                                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-                              >
-                                {blockState === 'blocking' ? 'Blocking…' : 'Block'}
-                              </button>
+                            >
+                              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+                            </button>
                             </div>
                           </div>
                         ) : (
