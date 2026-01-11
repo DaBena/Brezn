@@ -265,21 +265,9 @@ export function ComposerSheet(props: {
             onClick={publishPost}
             disabled={publishState === 'publishing' || uploadState === 'uploading' || (!composerText.trim() && mediaUrls.length === 0)}
             aria-label="Publish post"
-            className={`w-1/2 mx-auto rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] ${buttonBase}`}
+            className={`w-full rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] ${buttonBase}`}
           >
             {publishState === 'publishing' ? 'Publishing…' : 'Publish'}
-          </button>
-          <button
-            onClick={() => {
-              setComposerText('')
-              setMediaUrls([])
-              setUploadState('idle')
-              setUploadError(null)
-              onClose()
-            }}
-            className={`rounded-lg px-4 py-3.5 text-sm min-h-[44px] active:opacity-90 sm:hidden ${buttonBase}`}
-          >
-            Cancel
           </button>
         </div>
       </div>
