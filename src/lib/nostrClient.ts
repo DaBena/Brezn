@@ -11,8 +11,8 @@ import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them)
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
-  'wss://relay.nostr.wirednet.jp',
-  'wss://relay.bitdevs.tw'
+  'wss://nos.lol',
+  'wss://relay.snort.social'
 ] as const
 
 const LS_KEY = 'brezn:v1'

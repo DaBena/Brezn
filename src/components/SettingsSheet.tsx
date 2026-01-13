@@ -145,6 +145,20 @@ export function SettingsSheet(props: {
           mediaEndpoint={mediaEndpoint}
           onProfileChange={handleProfileChange}
         />
+
+        <div className="p-3 pt-6 border-t border-brezn-border">
+          <div className="text-xs text-brezn-muted">
+            Source {' '}
+            <a
+              href="https://github.com/dabena/Brezn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline hover:text-blue-400 transition-colors"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
       </div>
     </Sheet>
   )
