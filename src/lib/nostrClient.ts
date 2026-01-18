@@ -29,6 +29,7 @@ type StoredStateV1 = {
     geohashLength?: number // 1-5, default: 1
     mediaUploadEndpoint?: string
     relays?: string[]
+    theme?: 'light' | 'dark' // 'light' or 'dark', default: 'dark'
   }
 }
 
@@ -183,6 +184,18 @@ export type BreznNostrClient = {
    * @param endpoint - Endpoint URL, or null to disable
    */
   setMediaUploadEndpoint(endpoint: string | null): void
+
+  /**
+   * Get theme preference ('light' or 'dark').
+   * @returns Theme preference, default: 'dark'
+   */
+  getTheme(): 'light' | 'dark'
+
+  /**
+   * Set theme preference.
+   * @param theme - 'light' or 'dark'
+   */
+  setTheme(theme: 'light' | 'dark'): void
 
   /**
    * Send an encrypted direct message (NIP-04).
@@ -436,12 +449,8 @@ export function createNostrClient(): BreznNostrClient {
       try {
         oldCloser.close(`brezn:${reason}`)
       } catch (err) {
-        // Ignore errors - WebSocket might already be closed
-        // This is a known race condition in SimplePool when EOSE and close happen simultaneously
-        // The error is harmless and can be safely ignored
-        // Suppress console errors for already-closed WebSockets
+        // Ignore WebSocket errors (known race condition in SimplePool)
         if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
-          // Silently ignore - WebSocket is already closing/closed
           return
         }
       }
@@ -501,35 +510,24 @@ export function createNostrClient(): BreznNostrClient {
     let skHex = s.skHex
     
     // Validate skHex: must be 64 hex characters (32 bytes)
-    // If it looks encrypted (contains ':' or wrong length), it needs decryption
     if (skHex && (skHex.includes(':') || skHex.length !== 64)) {
-      // This is an encrypted value that wasn't decrypted yet
-      // The async initialization (initializeStateCache) should handle this.
-      // If we're here synchronously before decryption completes, wait a bit and retry.
-      // This is a normal race condition on first load - the encrypted key exists in IndexedDB
-      // but hasn't been decrypted yet. We'll wait briefly for the async decryption to complete.
-      
-      // Check if this is a valid encrypted format (has ':')
+      // Encrypted value or invalid format - handle race condition on first load
       if (skHex.includes(':')) {
-        // Encrypted key exists - wait for async decryption to complete
-        // Try loading from localStorage again (async init may have completed)
+        // Encrypted key: retry after async decryption may have completed
         const retry = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
         if (retry.skHex && !retry.skHex.includes(':') && retry.skHex.length === 64) {
-          // Decryption completed, use the decrypted value
           skHex = retry.skHex
           stateCache = retry
         } else {
-          // Still encrypted - this is expected on first load, generate temporary identity
-          // The async init will restore the real identity once decryption completes
+          // Still encrypted on first load - generate temporary identity (async init will restore real one)
           const sk = generateSecretKey()
           skHex = bytesToHex(sk)
           const pubkey = getPublicKey(sk)
           const npub = nip19.npubEncode(pubkey)
-          // Don't save yet - wait for async decryption to complete and restore real identity
           return { skHex, pubkey, npub }
         }
       } else {
-        // Invalid format (wrong length but not encrypted) - generate new identity
+        // Invalid format - generate new identity
         const sk = generateSecretKey()
         skHex = bytesToHex(sk)
         const pubkey = getPublicKey(sk)
@@ -622,11 +620,9 @@ export function createNostrClient(): BreznNostrClient {
         try {
           s.closer.close('ui-unsubscribe')
         } catch (err) {
-          // Ignore errors - WebSocket might already be closed
-          // This is a known race condition in SimplePool when EOSE and close happen simultaneously
-          // Suppress console errors for already-closed WebSockets
+          // Ignore WebSocket errors (known race condition in SimplePool)
           if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
-            // Silently ignore - WebSocket is already closing/closed
+            // Ignored
           }
         }
         s.closer = null
@@ -705,6 +701,20 @@ export function createNostrClient(): BreznNostrClient {
     // `null` from the UI means: user explicitly disabled uploads.
     const next = endpoint === null ? '' : endpoint.trim()
     saveState({ settings: { ...s.settings, mediaUploadEndpoint: next } })
+  }
+
+  function getTheme(): 'light' | 'dark' {
+    const theme = loadState().settings?.theme
+    if (theme === 'light' || theme === 'dark') {
+      return theme
+    }
+    // Default: 'dark'
+    return 'dark'
+  }
+
+  function setTheme(theme: 'light' | 'dark') {
+    const s = loadState()
+    saveState({ settings: { ...s.settings, theme } })
   }
 
   // Direct Messages (NIP-04)
@@ -1090,6 +1100,8 @@ export function createNostrClient(): BreznNostrClient {
     setGeohashLength,
     getMediaUploadEndpoint,
     setMediaUploadEndpoint,
+    getTheme,
+    setTheme,
     sendDM,
     decryptDM,
     getConversations,

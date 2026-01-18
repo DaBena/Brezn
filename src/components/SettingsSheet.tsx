@@ -7,6 +7,8 @@ import { KeyManagement } from './settings/KeyManagement'
 import { RelaySettings } from './settings/RelaySettings'
 import { MediaUploadSettings } from './settings/MediaUploadSettings'
 import { ProfileSettings } from './settings/ProfileSettings'
+import { ThemeSettings } from './settings/ThemeSettings'
+import { useTheme } from '../hooks/useTheme'
 
 export function SettingsSheet(props: {
   open: boolean
@@ -20,10 +22,8 @@ export function SettingsSheet(props: {
 }) {
   const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange, onRelaysChanged } = props
 
-  // Media endpoint state (needed for ProfileSettings)
+  const { theme, setTheme } = useTheme(client)
   const [mediaEndpoint, setMediaEndpoint] = useState<string>(() => client.getMediaUploadEndpoint() ?? '')
-
-  // Profile state (needed for persistence on close)
   const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string } | null>(null)
   const initialProfileRef = useRef<{ name: string; picture: string } | null>(null)
   const initialMediaEndpointRef = useRef<string>('')
@@ -31,23 +31,17 @@ export function SettingsSheet(props: {
 
   const [closing, setClosing] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
-
-  // Reset key to force sub-components to reset when sheet opens
   const [resetKey, setResetKey] = useState(0)
 
-  // Memoize onProfileChange to prevent infinite loops
   const handleProfileChange = useCallback((profile: { name: string; picture: string }) => {
     if (!initialProfileRef.current) {
-      // First load - set initial reference
       initialProfileRef.current = profile
     }
     setCurrentProfile(profile)
   }, [])
 
-  // Open/close lifecycle
   useEffect(() => {
     if (!open) return
-    // Avoid setState directly in effect body (eslint rule).
     const schedule = (fn: () => void) => {
       if (typeof queueMicrotask === 'function') queueMicrotask(fn)
       else window.setTimeout(fn, 0)
@@ -59,10 +53,9 @@ export function SettingsSheet(props: {
         initialMediaEndpointRef.current = ep
         setMediaEndpoint(ep)
       }
-      // Store initial relays when settings open
       initialRelaysRef.current = [...client.getRelays()]
-      setCurrentProfile(null) // Will be set by ProfileSettings when loaded
-      setResetKey(prev => prev + 1) // Force reset of sub-components
+      setCurrentProfile(null)
+      setResetKey(prev => prev + 1)
     })
   }, [client, open])
 
@@ -72,7 +65,6 @@ export function SettingsSheet(props: {
 
     setClosing(true)
 
-    // Persist media endpoint
     try {
       const trimmed = mediaEndpoint.trim()
       const normalized = trimmed ? trimmed : null // empty => disable
@@ -84,11 +76,9 @@ export function SettingsSheet(props: {
       }
     } catch (e) {
       setClosing(false)
-      // Media endpoint error - could show toast here if needed
       return
     }
 
-    // Persist profile metadata
     if (currentProfile) {
     try {
       const initial = initialProfileRef.current ?? { name: '', picture: '' }
@@ -103,14 +93,12 @@ export function SettingsSheet(props: {
     } catch (e) {
       setClosing(false)
       setProfileSaving(false)
-        // Profile error will be shown in ProfileSettings component
       return
     } finally {
       setProfileSaving(false)
       }
     }
 
-    // Check if relays changed
     const currentRelays = client.getRelays()
     const initialRelays = initialRelaysRef.current
     const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...initialRelays].sort())
@@ -125,6 +113,8 @@ export function SettingsSheet(props: {
   return (
     <Sheet open={open} title="Settings" onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving}>
       <div className="mt-4 space-y-3">
+        <ThemeSettings theme={theme} onThemeChange={setTheme} />
+
         <GeohashSettings geohashLength={geohashLength} geoCell={geoCell} onGeohashLengthChange={onGeohashLengthChange} />
 
         <ModerationSettings key={`moderation-${resetKey}`} client={client} onModerationChanged={onModerationChanged} />

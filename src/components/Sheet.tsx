@@ -285,7 +285,7 @@ export function Sheet(props: {
           // layout
           'flex flex-col',
           // visuals
-          'rounded-t-xl border border-brezn-border bg-brezn-panel shadow-soft',
+          'rounded-t-xl border shadow-soft',
           // spacing
           'p-2',
           // swipe transition
@@ -295,6 +295,8 @@ export function Sheet(props: {
           transform: swipeOffset > 0 
             ? `translateX(${swipeDirection.current === 'left' ? '-' : ''}${swipeOffset}px)` 
             : undefined,
+          backgroundColor: 'var(--brezn-panel)',
+          borderColor: 'var(--brezn-border)',
         }}
       >
         <div ref={headerRef} className="flex items-center justify-between">
@@ -312,7 +314,11 @@ export function Sheet(props: {
               ref={closeButtonRef}
               onClick={onClose}
               aria-label="Close"
-              className={`ml-auto shrink-0 rounded-xl p-2 hover:opacity-80 focus:outline-none bg-[#4a4a52]`}
+              className="ml-auto shrink-0 rounded-xl p-2 hover:opacity-80 focus:outline-none"
+              style={{
+                backgroundColor: 'var(--brezn-button)',
+                color: 'var(--brezn-text)',
+              }}
             >
               <CloseIcon size={24} />
             </button>

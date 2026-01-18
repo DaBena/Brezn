@@ -84,7 +84,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
           </div>
 
           <div className="mt-3">
-            <label htmlFor="profile-picture" className="block text-xs text-brezn-muted mb-1">
+            <label htmlFor={profileFileInputId} className="block text-xs text-brezn-muted mb-1">
               Profile picture
             </label>
             <div className="flex items-center gap-3">

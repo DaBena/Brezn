@@ -1,8 +1,42 @@
 @import "tailwindcss";
 
-/* Dark-mode only baseline */
+/* Default: Dark mode (for backward compatibility) */
 :root {
   color-scheme: dark;
+  --brezn-bg: #161618;
+  --brezn-panel: #121216;
+  --brezn-panel2: #17171d;
+  --brezn-button: #4a4a52;
+  --brezn-buttonDisabled: #2a2a30;
+  --brezn-border: #242430;
+  --brezn-text: #f4f1ea;
+  --brezn-muted: #b8b0a3;
+}
+
+/* Dark mode (explicit) */
+html.dark {
+  color-scheme: dark;
+  --brezn-bg: #161618;
+  --brezn-panel: #121216;
+  --brezn-panel2: #17171d;
+  --brezn-button: #4a4a52;
+  --brezn-buttonDisabled: #2a2a30;
+  --brezn-border: #242430;
+  --brezn-text: #f4f1ea;
+  --brezn-muted: #b8b0a3;
+}
+
+/* Light mode (when .dark class is NOT present - higher specificity) */
+html:not(.dark) {
+  color-scheme: light;
+  --brezn-bg: #f4f1ea;
+  --brezn-panel: #ffffff;
+  --brezn-panel2: #f9f8f6;
+  --brezn-button: #e0ddd8;
+  --brezn-buttonDisabled: #d0cdc8;
+  --brezn-border: #e0ddd8;
+  --brezn-text: #161618;
+  --brezn-muted: #6b6659;
 }
 
 html,
@@ -15,8 +49,8 @@ body {
 
 body {
   margin: 0;
-  background: #161618;
-  color: #f4f1ea;
+  background: var(--brezn-bg);
+  color: var(--brezn-text);
 }
 
 body::-webkit-scrollbar {
@@ -37,3 +71,31 @@ body::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
 
+/* Button styles using CSS variables */
+.btn-base {
+  background-color: var(--brezn-button);
+  color: var(--brezn-text);
+}
+
+.btn-base:hover {
+  opacity: 0.9;
+}
+
+.btn-base:disabled {
+  background-color: var(--brezn-buttonDisabled);
+  opacity: 1;
+}
+
+.btn-danger {
+  background-color: var(--brezn-button);
+  color: var(--brezn-danger);
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-danger:disabled {
+  background-color: var(--brezn-buttonDisabled);
+  opacity: 1;
+}
