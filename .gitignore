@@ -29,6 +29,7 @@ android/.gradle/
 android/build/
 android/app/build/
 android/android.keystore
+android/*.jks.b64
 android/*.apk
 android/*.aab
 android/*.idsig

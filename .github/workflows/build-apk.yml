@@ -35,8 +35,8 @@ jobs:
         run: |
           mkdir -p android
           cd android
-          # ANDROID_JKS = base64-encoded android.keystore. Strip whitespace/newlines so pasted multi-line base64 works.
-          echo "${{ secrets.ANDROID_JKS }}" | tr -d '\n\r \t' | base64 -d > android.keystore
+          # ANDROID_JKS = base64-encoded android.keystore. Strip whitespace/newlines; -i ignores stray non-base64 chars.
+          echo "${{ secrets.ANDROID_JKS }}" | tr -d '\n\r \t' | base64 -d -i > android.keystore
 
       - name: Build Android app (Bubblewrap project)
         env:
@@ -44,6 +44,8 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          # Use JDK from setup-java so Bubblewrap does not prompt to install JDK (exit 130 in CI).
+          export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/temurin-17-jdk-amd64}"
           cd android
           bubblewrap build --skipVersionCheck \
             --keyStorePassword "$KEYSTORE_PASSWORD" \
