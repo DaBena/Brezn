@@ -9,11 +9,17 @@ type ProfileSettingsProps = {
   onProfileChange?: (profile: { name: string; picture: string }) => void
 }
 
+/** Allow only http(s) and data: URLs for img src to avoid javascript: etc. */
 function sanitizeProfilePictureUrl(url: string | null): string | null {
-  if (!url) return null
+  if (!url || !url.trim()) return null
   try {
     const parsed = new URL(url, window.location.origin)
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+    const protocol = parsed.protocol
+    if (
+      protocol === 'http:' ||
+      protocol === 'https:' ||
+      protocol === 'data:'
+    ) {
       return parsed.toString()
     }
   } catch {
