@@ -366,12 +366,24 @@ function normalizeRelays(relays: string[]): string[] {
 export function createNostrClient(): BreznNostrClient {
   const pool = new SimplePool({ enablePing: true, enableReconnect: true })
 
-  type SubCloser = { close: (reason?: string) => void }
+  type SubCloser = { close: (reason?: string) => void | Promise<void> }
   type ActiveSub = {
     id: string
     filter: Filter
     opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void }
     closer: SubCloser | null
+  }
+
+  /** Close a subscription and swallow any sync throw or promise rejection (e.g. SendingOnClosedConnection). */
+  function closeSubSafely(closer: SubCloser, reason: string): void {
+    try {
+      const result = closer.close(reason)
+      if (result != null && typeof (result as Promise<unknown>).catch === 'function') {
+        (result as Promise<void>).catch(() => {})
+      }
+    } catch {
+      // Ignore sync errors (e.g. WebSocket already CLOSING/CLOSED)
+    }
   }
 
   const activeSubs = new Map<string, ActiveSub>()
@@ -437,16 +449,8 @@ export function createNostrClient(): BreznNostrClient {
     // Close old subscription first, but don't wait (non-blocking)
     const oldCloser = s.closer
     if (oldCloser) {
-      // Clear immediately to avoid race conditions
       s.closer = null
-      try {
-        oldCloser.close(`brezn:${reason}`)
-      } catch (err) {
-        // Ignore WebSocket errors (known race condition in SimplePool)
-        if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
-          return
-        }
-      }
+      closeSubSafely(oldCloser, `brezn:${reason}`)
     }
     // Create new subscription
     const relays = getRelays()
@@ -608,16 +612,8 @@ export function createNostrClient(): BreznNostrClient {
       activeSubs.delete(id)
       // Remove from pending if not yet started
       pendingSubs = pendingSubs.filter(p => p.id !== id)
-      // Safely close subscription - ignore errors from already-closed WebSockets
       if (s.closer) {
-        try {
-          s.closer.close('ui-unsubscribe')
-        } catch (err) {
-          // Ignore WebSocket errors (known race condition in SimplePool)
-          if (err instanceof Error && (err.message.includes('CLOSING') || err.message.includes('CLOSED'))) {
-            // Ignored
-          }
-        }
+        closeSubSafely(s.closer, 'ui-unsubscribe')
         s.closer = null
       }
     }

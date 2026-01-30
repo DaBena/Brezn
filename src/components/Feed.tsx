@@ -166,6 +166,7 @@ export function Feed(props: {
                               <PostIdentity
                                 pubkey={evt.pubkey}
                                 profile={profilesByPubkey.get(evt.pubkey)}
+                                displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
                                 onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
                               />
                             </div>
@@ -206,6 +207,7 @@ export function Feed(props: {
                         <PostIdentity 
                           pubkey={evt.pubkey} 
                           profile={profilesByPubkey.get(evt.pubkey)}
+                          displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
                           onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
                         />
                       </div>

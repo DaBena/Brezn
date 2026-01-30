@@ -3,10 +3,10 @@ import * as nip19 from 'nostr-tools/nip19'
 import type { Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
 
-export const PostIdentity = memo(function PostIdentity(props: { pubkey: string; profile?: Profile; onClick?: () => void }) {
-  const { pubkey, profile, onClick } = props
+export const PostIdentity = memo(function PostIdentity(props: { pubkey: string; profile?: Profile; displayNameOverride?: string; onClick?: () => void }) {
+  const { pubkey, profile, displayNameOverride, onClick } = props
 
-  const displayName = profile?.name?.trim() || null
+  const displayName = displayNameOverride?.trim() || profile?.name?.trim() || null
   const picture = profile?.picture?.trim() || null
 
   return (

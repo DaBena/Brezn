@@ -26,6 +26,9 @@ const LAST_LOCATION_KEY = 'brezn:last-location:v1'
 const INITIAL_MIN_POSTS = 7
 const AUTO_BACKFILL_MAX_ATTEMPTS = 3
 
+/** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
+const GEOHASH_CHANNEL_KIND = 20000
+
 function isReplyNote(evt: Event): boolean {
   // NIP-10 replies are kind:1 with at least one `e` tag.
   // We keep the main feed "root posts only" and show replies in a thread view.
@@ -217,9 +220,9 @@ export function useLocalFeed(params: {
     // New posts have tuple tags and will be found regardless of age
 
     const onEvent = (evt: Event) => {
-      if (evt.kind !== 1) return
-      if (isReplyNote(evt)) return
-      
+      if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
+      if (evt.kind === 1 && isReplyNote(evt)) return
+
       // basic de-dupe
       setEvents(prev => {
         if (prev.some(e => e.id === evt.id)) {
@@ -230,6 +233,7 @@ export function useLocalFeed(params: {
 
       // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
       if (
+        evt.kind === 1 &&
         identityPubkey &&
         evt.pubkey === identityPubkey &&
         deletedNoteIdsRef.current.has(evt.id)
@@ -286,7 +290,7 @@ export function useLocalFeed(params: {
           currentIndex++
           
           const unsub = client.subscribe(
-            { kinds: [1], '#g': [cell], limit: 200 },
+            { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [cell], limit: 200 },
             {
               onevent: onEvent,
               oneose: () => {
@@ -315,7 +319,7 @@ export function useLocalFeed(params: {
         // This should find posts in a wider area
         const fallbackHash = queryGeohash.slice(0, 1)
         const unsub = client.subscribe(
-          { kinds: [1], '#g': [fallbackHash], limit: 200 },
+          { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [fallbackHash], limit: 200 },
           { onevent: onEvent, oneose: onEose, onclose: onClose },
         )
         unsubRef.current = unsub
@@ -323,7 +327,7 @@ export function useLocalFeed(params: {
     } else {
       // Single query with the selected geohash length
       const unsub = client.subscribe(
-        { kinds: [1], '#g': [queryGeohash], limit: 200 },
+        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200 },
         { onevent: onEvent, oneose: onEose, onclose: onClose },
       )
       unsubRef.current = unsub
@@ -350,23 +354,19 @@ export function useLocalFeed(params: {
 
     const until = oldest - 1
 
-    const onEvent = (evt: Event) => {
-      if (evt.kind !== 1) return
-      if (isReplyNote(evt)) return
+    const onEventLoadMore = (evt: Event) => {
+      if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
+      if (evt.kind === 1 && isReplyNote(evt)) return
       setEvents(prev => (prev.some(e => e.id === evt.id) ? prev : [evt, ...prev]))
     }
 
-    const clear = () => {
-      setIsLoadingMore(false)
-    }
-
+    const clear = () => setIsLoadingMore(false)
     const timeoutId = window.setTimeout(clear, 12_500)
-    
-    // Single query with the selected geohash length
+
     const unsub = client.subscribe(
-      { kinds: [1], '#g': [queryGeohash], limit: 200, until },
+      { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200, until },
       {
-        onevent: onEvent,
+        onevent: onEventLoadMore,
         oneose: () => {
           window.clearTimeout(timeoutId)
           clear()
