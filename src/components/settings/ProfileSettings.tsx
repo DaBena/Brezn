@@ -9,6 +9,19 @@ type ProfileSettingsProps = {
   onProfileChange?: (profile: { name: string; picture: string }) => void
 }
 
+function sanitizeProfilePictureUrl(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url, window.location.origin)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString()
+    }
+  } catch {
+    // Ignore invalid URLs
+  }
+  return null
+}
+
 export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: ProfileSettingsProps) {
   const [profileName, setProfileName] = useState<string>('')
   const [profilePicture, setProfilePicture] = useState<string>('')
@@ -19,6 +32,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   const [profileUploadError, setProfileUploadError] = useState<string | null>(null)
   const profileFileInputId = useId()
   const initialProfileRef = useRef<{ name: string; picture: string } | null>(null)
+  const safeProfilePictureSrc = sanitizeProfilePictureUrl(profilePicture)
 
   // Track last notified values to avoid duplicate notifications
   const lastNotifiedRef = useRef<{ name: string; picture: string } | null>(null)
@@ -88,9 +102,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               Profile picture
             </label>
             <div className="flex items-center gap-3">
-              {profilePicture ? (
+              {safeProfilePictureSrc ? (
                 <img
-                  src={profilePicture}
+                  src={safeProfilePictureSrc}
                   alt="Profile picture"
                   className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
                   onError={e => {
