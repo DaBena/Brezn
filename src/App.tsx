@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import { ComposerSheet } from './components/ComposerSheet'
 import { ConversationsSheet } from './components/ConversationsSheet'
@@ -24,6 +24,7 @@ import { useNavigation } from './hooks/useNavigation'
 import { useTheme } from './hooks/useTheme'
 import { publishPost, publishReply, deletePost } from './lib/postService'
 import { reactToPost } from './lib/reactionService'
+import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
 
 export default function App() {
   const client = useNostrClient()
@@ -35,6 +36,10 @@ export default function App() {
   const moderation = useModeration(client)
   const navigation = useNavigation()
   useTheme(client) // Initialize theme management
+
+  const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(
+    () => new Set(loadDeletedNoteIds())
+  )
 
   const {
     feedState,
@@ -50,7 +55,13 @@ export default function App() {
     loadMore,
     isOffline,
     applyGeohashLength,
-  } = useLocalFeed({ client, mutedTerms: moderation.mutedTerms, blockedPubkeys: moderation.blockedPubkeys })
+  } = useLocalFeed({
+    client,
+    mutedTerms: moderation.mutedTerms,
+    blockedPubkeys: moderation.blockedPubkeys,
+    deletedNoteIds,
+    identityPubkey: identity.pubkey,
+  })
 
   // Load profiles for search functionality
   const pubkeysForProfiles = useMemo(() => sortedEvents.map(e => e.pubkey), [sortedEvents])
@@ -108,6 +119,8 @@ export default function App() {
   const handleDeletePost = async (evt: Event) => {
     if (isOffline) throw new Error('Offline - Deletion event cannot be sent.')
     await deletePost(client, evt, identity.pubkey)
+    addDeletedNoteId(evt.id)
+    setDeletedNoteIds(prev => new Set(prev).add(evt.id))
   }
 
   const handleReactToPost = async (evt: Event) => {
@@ -150,6 +163,7 @@ export default function App() {
         lastCloseReasons={lastCloseReasons}
         isLoadingMore={isLoadingMore}
         client={client}
+        deletedNoteIds={deletedNoteIds}
         onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
         onLoadMore={loadMore}
         onReact={evt => void handleReactToPost(evt)}
@@ -168,6 +182,7 @@ export default function App() {
         open={appState.sheets.composer.open}
         onClose={() => appState.closeSheet('composer')}
         viewerGeo5={viewerGeo5}
+        onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
       />

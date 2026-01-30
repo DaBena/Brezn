@@ -228,3 +228,104 @@ export function calculateApproxDistance(evt: Event, viewerPoint: GeoPoint | null
   const label = formatApproxDistance(km, g.length)
   return label || null
 }
+
+/**
+ * Calculates the bounding box (bounds) of a geohash cell.
+ * Returns the min/max latitude and longitude of the rectangular cell.
+ * Uses neighbors to estimate bounds more accurately.
+ * @param hash - Geohash string
+ * @returns Bounding box with min/max lat/lon, or null if invalid
+ */
+export function getGeohashBounds(hash: string): { minLat: number; maxLat: number; minLon: number; maxLon: number } | null {
+  const h = (hash ?? '').trim()
+  if (!h) return null
+  
+  try {
+    // Decode to get center point
+    const decoded = geohash.decode(h)
+    if (!decoded || typeof decoded.latitude !== 'number' || typeof decoded.longitude !== 'number') return null
+    
+    const centerLat = decoded.latitude
+    const centerLon = decoded.longitude
+    
+    // If error bounds are provided, use them (ngeohash may provide this)
+    if (decoded.error && typeof decoded.error.latitude === 'number' && typeof decoded.error.longitude === 'number') {
+      return {
+        minLat: centerLat - decoded.error.latitude,
+        maxLat: centerLat + decoded.error.latitude,
+        minLon: centerLon - decoded.error.longitude,
+        maxLon: centerLon + decoded.error.longitude,
+      }
+    }
+    
+    // Calculate bounds using neighbors to get more accurate cell size
+    // Get all neighbors and calculate the cell size from them
+    try {
+      const neighbors = geohash.neighbors(h)
+      if (neighbors.length >= 8) {
+        // neighbors: [n, ne, e, se, s, sw, w, nw]
+        const north = geohash.decode(neighbors[0])
+        const south = geohash.decode(neighbors[4])
+        const east = geohash.decode(neighbors[2])
+        const west = geohash.decode(neighbors[6])
+        
+        if (north && south && east && west) {
+          // Calculate cell dimensions from neighbors
+          const latSize = Math.abs(north.latitude - south.latitude)
+          const lonSize = Math.abs(east.longitude - west.longitude)
+          
+          return {
+            minLat: centerLat - latSize / 2,
+            maxLat: centerLat + latSize / 2,
+            minLon: centerLon - lonSize / 2,
+            maxLon: centerLon + lonSize / 2,
+          }
+        }
+      }
+    } catch {
+      // Fall through to approximate method
+    }
+    
+    // Fallback: approximate cell size based on geohash length
+    // These are approximate cell sizes at the equator (in degrees)
+    const cellSizes: Record<number, { lat: number; lon: number }> = {
+      1: { lat: 45, lon: 45 },
+      2: { lat: 11.25, lon: 11.25 },
+      3: { lat: 1.40625, lon: 1.40625 },
+      4: { lat: 0.17578125, lon: 0.17578125 },
+      5: { lat: 0.02197265625, lon: 0.02197265625 },
+      6: { lat: 0.00274658203125, lon: 0.00274658203125 },
+      7: { lat: 0.00034332275390625, lon: 0.00034332275390625 },
+      8: { lat: 0.00004291534423828125, lon: 0.00004291534423828125 },
+    }
+    
+    const size = cellSizes[h.length] || cellSizes[5]
+    // Adjust for latitude (cells get narrower away from equator)
+    const latAdjustment = Math.max(0.1, Math.abs(Math.cos((centerLat * Math.PI) / 180)))
+    
+    return {
+      minLat: centerLat - size.lat / 2,
+      maxLat: centerLat + size.lat / 2,
+      minLon: centerLon - size.lon / (2 * latAdjustment),
+      maxLon: centerLon + size.lon / (2 * latAdjustment),
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Gets the appropriate zoom level for displaying a geohash on a map.
+ * @param hash - Geohash string
+ * @returns Zoom level (typically 1-18)
+ */
+export function getGeohashZoomLevel(hash: string): number {
+  const len = hash.length
+  // Longer geohashes = smaller cells = higher zoom
+  if (len <= 2) return 3
+  if (len === 3) return 6
+  if (len === 4) return 9
+  if (len === 5) return 12
+  if (len >= 6) return 15
+  return 10
+}

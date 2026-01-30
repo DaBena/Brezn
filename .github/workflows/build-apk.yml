@@ -1,0 +1,71 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # read + write for creating releases and uploading assets
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Restore keystore from secret
+        run: |
+          mkdir -p android
+          cd android
+          echo "${{ secrets.ANDROID_JKS }}" | base64 -d > android.keystore
+
+      - name: Build Android app (Bubblewrap project)
+        env:
+          # Add ANDROID_KEYSTORE_PASSWORD as repo secret. Add ANDROID_KEY_PASSWORD too if key password differs.
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          cd android
+          bubblewrap build --skipVersionCheck \
+            --keyStorePassword "$KEYSTORE_PASSWORD" \
+            --keyPassword "$KEY_PASSWORD"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: brezn-android
+          path: |
+            android/app/build/outputs/**/*.aab
+            android/app/build/outputs/**/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release and upload APK/AAB
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Brezn build ${{ github.run_number }}
+          files: |
+            android/app/build/outputs/**/*.aab
+            android/app/build/outputs/**/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

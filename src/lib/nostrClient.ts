@@ -272,11 +272,7 @@ async function initializeStateCache() {
       ['skHex'],
     )
     stateCache = loaded
-    // Also ensure localStorage is synced (will be encrypted on next save)
-    if (loaded.skHex || loaded.mutedTerms.length > 0 || loaded.blockedPubkeys.length > 0) {
-      // Save unencrypted to localStorage for immediate access (will be encrypted on next async save)
-      saveJsonSync(LS_KEY, loaded)
-    }
+    // Do not write decrypted skHex to localStorage; it stays only in IndexedDB (encrypted) and in memory.
   } catch {
     // If IndexedDB fails, fallback to localStorage
     const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
@@ -284,21 +280,17 @@ async function initializeStateCache() {
   }
 }
 
-// Start async initialization immediately (non-blocking)
-if (typeof window !== 'undefined') {
-  initializeStateCache().catch(() => {
-    // Ignore errors, will fallback to localStorage
-  })
-}
+/** Resolves when identity/storage is ready (IndexedDB decrypted or fallback applied). Await before using client identity. */
+export const whenIdentityReady: Promise<void> =
+  typeof window !== 'undefined' ? initializeStateCache().then(() => {}) : Promise.resolve()
 
 function loadState(): StoredStateV1 {
   // Use cache if available (from IndexedDB or localStorage, already decrypted)
   if (stateCache !== null) {
     return stateCache
   }
-  // Fallback to synchronous localStorage read
-  // Note: localStorage may contain unencrypted values for fast access
-  // Encrypted values in IndexedDB are handled by initializeStateCache()
+  // Fallback to synchronous localStorage read (no skHex there; only IndexedDB has it, encrypted)
+  // initializeStateCache() populates stateCache from IndexedDB before app uses identity
   const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
   stateCache = loaded
   
@@ -317,14 +309,15 @@ function loadState(): StoredStateV1 {
 function saveState(patch: Partial<StoredStateV1>) {
   const next = { ...loadState(), ...patch }
   stateCache = next
-  
-  // Save synchronously to localStorage (immediate, unencrypted for fast access)
-  // This is acceptable since localStorage is already accessible to scripts
-  saveJsonSync(LS_KEY, next)
-  
-  // Save asynchronously to IndexedDB with encryption (robust persistence + obfuscation)
+
+  // Save to localStorage without skHex (secret key only in IndexedDB, encrypted)
+  const forLocal: Partial<StoredStateV1> = { ...next }
+  delete forLocal.skHex
+  saveJsonSync(LS_KEY, forLocal as StoredStateV1)
+
+  // Save full state to IndexedDB with skHex encrypted
   saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {
-    // Ignore errors, localStorage is already saved
+    // Ignore errors, non-sensitive state is already in localStorage
   })
 }
 

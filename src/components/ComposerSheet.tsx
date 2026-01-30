@@ -5,18 +5,22 @@ import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
 import { uploadMediaFile, compressImage } from '../lib/mediaUpload'
 import { isLikelyImageUrl, isLikelyVideoUrl } from '../lib/urls'
+import { GeohashMap } from './GeohashMap'
 
 export function ComposerSheet(props: {
   open: boolean
   onClose: () => void
   viewerGeo5: string | null
+  onRequestLocation?: () => void
   onPublish: (content: string) => Promise<void>
   mediaUploadEndpoint?: string
 }) {
-  const { open, onClose, viewerGeo5, onPublish, mediaUploadEndpoint } = props
+  const { open, onClose, viewerGeo5, onRequestLocation, onPublish, mediaUploadEndpoint } = props
 
   const [composerText, setComposerText] = useState('')
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
+  const [showGeoMap, setShowGeoMap] = useState(false)
+  const [mapCenterTrigger, setMapCenterTrigger] = useState(0)
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'error'>('idle')
   const [publishError, setPublishError] = useState<string | null>(null)
 
@@ -34,6 +38,7 @@ export function ComposerSheet(props: {
     if (!open) {
       setComposerText('')
       setMediaUrls([])
+      setShowGeoMap(false)
       setUploadState('idle')
       setUploadError(null)
       setPublishState('idle')
@@ -73,12 +78,53 @@ export function ComposerSheet(props: {
       open={open}
       titleElement={
         <div className="text-xs font-semibold">
-          {viewerGeo5 ? `create new post in cell ${viewerGeo5}` : 'create new post'}
+          {viewerGeo5 ? (
+            <span>
+              create new post in cell{' '}
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation()
+                  setShowGeoMap(v => !v)
+                }}
+                className="font-mono underline underline-offset-2 text-blue-500 hover:text-blue-400"
+                aria-label={`Show cell ${viewerGeo5} on map`}
+                title="Show cell on map"
+              >
+                {viewerGeo5}
+              </button>
+            </span>
+          ) : (
+            'create new post'
+          )}
         </div>
       }
       onClose={onClose}
       scrollable={false}
     >
+      {viewerGeo5 && showGeoMap ? (
+        <div className="relative mt-2 h-[40vh] w-full overflow-hidden rounded-lg border border-brezn-border bg-brezn-panel2">
+          <GeohashMap geohash={viewerGeo5} className="h-full w-full" centerTrigger={mapCenterTrigger} />
+          {onRequestLocation ? (
+            <button
+              type="button"
+              onClick={() => {
+                onRequestLocation()
+                setMapCenterTrigger(t => t + 1)
+              }}
+              className="absolute bottom-2 left-2 z-[500] flex h-12 w-12 items-center justify-center rounded-full bg-black/25 text-white shadow-soft hover:bg-black/35 active:scale-[0.98] focus:outline-none"
+              aria-label="Standort aktualisieren"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" className="block">
+                <path
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {mediaUrls.length > 0 ? (
         <div className="mt-3 grid grid-cols-4 gap-2">
           {mediaUrls.map((url, idx) => {

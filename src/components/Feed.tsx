@@ -23,6 +23,7 @@ export function Feed(props: {
   lastCloseReasons: string[] | null
   isLoadingMore: boolean
   client: BreznNostrClient
+  deletedNoteIds: Set<string>
   onRequestLocation: () => void
   onLoadMore: () => void
   onReact: (evt: Event) => void
@@ -39,6 +40,7 @@ export function Feed(props: {
     lastCloseReasons,
     isLoadingMore,
     client,
+    deletedNoteIds,
     onRequestLocation,
     onLoadMore,
     onOpenThread,
@@ -77,7 +79,7 @@ export function Feed(props: {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-3 pb-14 pt-12">
+    <main className="mx-auto max-w-xl px-3 pb-24 pt-12">
       {isOffline ? (
         <div className="mb-2 rounded-lg border border-brezn-border bg-brezn-panel2 p-2 text-xs text-brezn-muted shadow-soft">
           Offline - showing last seen posts (read-only).
@@ -147,7 +149,44 @@ export function Feed(props: {
                     No posts found
                   </div>
                 ) : (
-                  displayedEvents.map(evt => (
+                  displayedEvents.map(evt => {
+                    const isDeleted = deletedNoteIds.has(evt.id)
+                    if (isDeleted) {
+                      return (
+                        <article
+                          key={evt.id}
+                          className="rounded-lg border border-brezn-border bg-brezn-muted/20 px-3 py-2 shadow-soft opacity-80"
+                          aria-label="Deleted post"
+                        >
+                          <div className="text-[11px] font-medium text-brezn-muted">
+                            Deleted – propagating to relays
+                          </div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <PostIdentity
+                                pubkey={evt.pubkey}
+                                profile={profilesByPubkey.get(evt.pubkey)}
+                                onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
+                              />
+                            </div>
+                            <div className="shrink-0 text-[11px] text-brezn-muted">
+                              {new Date(evt.created_at * 1000).toLocaleString(undefined, {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                              {approxDistanceById[evt.id] ? <span> / {approxDistanceById[evt.id]}</span> : null}
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <PostContent content={evt.content} interactive compact />
+                          </div>
+                        </article>
+                      )
+                    }
+                    return (
                   <article
                     key={evt.id}
                     role="button"
@@ -189,7 +228,8 @@ export function Feed(props: {
                       />
                     </div>
                   </article>
-                  ))
+                    )
+                  })
                 )}
               </div>
               <div className="mt-3">

@@ -130,9 +130,6 @@ export function ThreadSheet(props: {
       setDeleteError('Offline - Deletion event cannot be sent.')
       return
     }
-    if (!window.confirm('Send NIP-09 deletion event? This marks the post as deleted (clients may still display it).')) {
-      return
-    }
     setDeleteState('deleting')
     setDeleteError(null)
     try {

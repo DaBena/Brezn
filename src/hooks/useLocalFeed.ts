@@ -11,6 +11,7 @@ import {
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJsonSync, saveJsonSync } from '../lib/storage'
+import { deletePost } from '../lib/postService'
 
 export type FeedState =
   | { kind: 'need-location' }
@@ -31,12 +32,20 @@ function isReplyNote(evt: Event): boolean {
   return evt.kind === 1 && evt.tags.some(t => t[0] === 'e')
 }
 
+const RESEND_DELETION_COOLDOWN_MS = 10_000
+
 export function useLocalFeed(params: {
   client: BreznNostrClient
   mutedTerms: string[]
   blockedPubkeys: string[]
+  deletedNoteIds: Set<string>
+  identityPubkey: string | null
 }) {
-  const { client, mutedTerms, blockedPubkeys } = params
+  const { client, mutedTerms, blockedPubkeys, deletedNoteIds, identityPubkey } = params
+
+  const deletedNoteIdsRef = useRef(deletedNoteIds)
+  deletedNoteIdsRef.current = deletedNoteIds
+  const lastResendTimeByNoteIdRef = useRef<Record<string, number>>({})
 
   const cached = loadJsonSync<{ updatedAt: number; geoCell?: string; events: Event[] } | null>(FEED_CACHE_KEY, null)
 
@@ -80,6 +89,8 @@ export function useLocalFeed(params: {
 
   const unsubRef = useRef<null | (() => void)>(null)
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
+  const viewerGeo5Ref = useRef<string | null>(viewerGeo5)
+  viewerGeo5Ref.current = viewerGeo5
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
@@ -138,9 +149,6 @@ export function useLocalFeed(params: {
   }
 
   async function requestLocationAndLoad(opts?: { forceBrowser?: boolean }) {
-    setFeedState({ kind: 'loading' })
-    setInitialTimedOut(false)
-    setLastCloseReasons(null)
     try {
       // Prefer a stored last location to avoid prompting on every app open.
       if (!opts?.forceBrowser) {
@@ -155,8 +163,15 @@ export function useLocalFeed(params: {
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
       saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
-      setViewerGeo5(geo5) // Update state with new 5-digit geohash
-      setLocalQueryFromGeo5(geo5, geohashLength)
+      setViewerGeo5(geo5)
+
+      // Only reload feed when the 5-digit geohash actually changed
+      if (geo5 !== viewerGeo5Ref.current) {
+        setFeedState({ kind: 'loading' })
+        setInitialTimedOut(false)
+        setLastCloseReasons(null)
+        setLocalQueryFromGeo5(geo5, geohashLength)
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Location error'
       setFeedState({ kind: 'error', message: msg })
@@ -212,6 +227,20 @@ export function useLocalFeed(params: {
         }
         return [evt, ...prev]
       })
+
+      // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
+      if (
+        identityPubkey &&
+        evt.pubkey === identityPubkey &&
+        deletedNoteIdsRef.current.has(evt.id)
+      ) {
+        const now = Date.now()
+        const last = lastResendTimeByNoteIdRef.current[evt.id] ?? 0
+        if (now - last >= RESEND_DELETION_COOLDOWN_MS) {
+          lastResendTimeByNoteIdRef.current[evt.id] = now
+          void deletePost(client, evt, identityPubkey).catch(() => {})
+        }
+      }
     }
     const onEose = () => {
       didEose = true
@@ -303,7 +332,7 @@ export function useLocalFeed(params: {
       window.clearTimeout(timeoutId)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength])
+  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength, identityPubkey])
 
   function loadMore() {
     if (isLoadingMore) return

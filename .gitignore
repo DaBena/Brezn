@@ -23,3 +23,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android build and secrets
+android/.gradle/
+android/build/
+android/app/build/
+android/android.keystore
+android/*.apk
+android/*.aab
+android/*.idsig
+android/local.properties
+
+# Environment / local secrets
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db

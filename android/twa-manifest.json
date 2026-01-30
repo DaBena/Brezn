@@ -1,0 +1,51 @@
+{
+  "packageId": "io.github.dabena.twa",
+  "host": "dabena.github.io",
+  "name": "Brezn",
+  "launcherName": "Brezn",
+  "display": "standalone",
+  "themeColor": "#161618",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#161618",
+  "enableNotifications": true,
+  "startUrl": "/Brezn/?utm_source=pwa",
+  "iconUrl": "https://dabena.github.io/Brezn/icons/brezn.svg",
+  "maskableIconUrl": "https://dabena.github.io/Brezn/icons/brezn-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://dabena.github.io/Brezn/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://dabena.github.io/Brezn/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

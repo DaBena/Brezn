@@ -11,6 +11,7 @@
   --brezn-border: #242430;
   --brezn-text: #f4f1ea;
   --brezn-muted: #b8b0a3;
+  --brezn-overlay: rgba(0, 0, 0, 0.75);
 }
 
 /* Dark mode (explicit) */
@@ -24,19 +25,21 @@ html.dark {
   --brezn-border: #242430;
   --brezn-text: #f4f1ea;
   --brezn-muted: #b8b0a3;
+  --brezn-overlay: rgba(0, 0, 0, 0.75);
 }
 
 /* Light mode (when .dark class is NOT present - higher specificity) */
 html:not(.dark) {
   color-scheme: light;
-  --brezn-bg: #f4f1ea;
+  --brezn-bg: #ffffff;
   --brezn-panel: #ffffff;
-  --brezn-panel2: #f9f8f6;
-  --brezn-button: #e0ddd8;
-  --brezn-buttonDisabled: #d0cdc8;
-  --brezn-border: #e0ddd8;
+  --brezn-panel2: #fafafa;
+  --brezn-button: #e8e6e3;
+  --brezn-buttonDisabled: #c5c2be;
+  --brezn-border: #e5e3e0;
   --brezn-text: #161618;
   --brezn-muted: #6b6659;
+  --brezn-overlay: rgba(0, 0, 0, 0.2);
 }
 
 html,
