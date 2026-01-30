@@ -40,12 +40,12 @@ jobs:
 
       - name: Build Android app (Bubblewrap project)
         env:
-          # Add ANDROID_KEYSTORE_PASSWORD as repo secret. Add ANDROID_KEY_PASSWORD too if key password differs.
+          JAVA_HOME: ${{ env.JAVA_HOME }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          # Use JDK from setup-java so Bubblewrap does not prompt to install JDK (exit 130 in CI).
-          export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/temurin-17-jdk-amd64}"
+          # Ensure JDK from setup-java is on PATH so Bubblewrap uses it and does not prompt.
+          export PATH="${JAVA_HOME:-/usr/lib/jvm/temurin-17-jdk-amd64}/bin:$PATH"
           cd android
           bubblewrap build --skipVersionCheck \
             --keyStorePassword "$KEYSTORE_PASSWORD" \
