@@ -38,16 +38,26 @@ jobs:
           # ANDROID_JKS = base64-encoded android.keystore. Strip whitespace/newlines; -i ignores stray non-base64 chars.
           echo "${{ secrets.ANDROID_JKS }}" | tr -d '\n\r \t' | base64 -d -i > android.keystore
 
+      - name: Debug Java / JDK
+        run: |
+          echo "JAVA_HOME=${JAVA_HOME:-<unset>}"
+          echo "which java: $(which java 2>/dev/null || echo 'not found')"
+          java -version 2>&1 || true
+          if [ -n "$JAVA_HOME" ]; then
+            echo "JAVA_HOME/bin contents:"
+            ls -la "$JAVA_HOME/bin" 2>/dev/null | head -20 || true
+          fi
+
       - name: Build Android app (Bubblewrap project)
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          # Ensure JDK from setup-java is on PATH so Bubblewrap uses it and does not prompt.
+          # JDK on PATH; pipe "n" so Bubblewrap skips "install JDK?" prompt and uses setup-java's JDK (CI has no stdin).
           export PATH="${JAVA_HOME:-/usr/lib/jvm/temurin-17-jdk-amd64}/bin:$PATH"
           cd android
-          bubblewrap build --skipVersionCheck \
+          echo n | bubblewrap build --skipVersionCheck \
             --keyStorePassword "$KEYSTORE_PASSWORD" \
             --keyPassword "$KEY_PASSWORD"
 
