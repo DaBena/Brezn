@@ -35,7 +35,8 @@ jobs:
         run: |
           mkdir -p android
           cd android
-          echo "${{ secrets.ANDROID_JKS }}" | base64 -d > android.keystore
+          # ANDROID_JKS = base64-encoded android.keystore. Strip whitespace/newlines so pasted multi-line base64 works.
+          echo "${{ secrets.ANDROID_JKS }}" | tr -d '\n\r \t' | base64 -d > android.keystore
 
       - name: Build Android app (Bubblewrap project)
         env:
