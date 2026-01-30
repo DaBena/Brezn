@@ -150,8 +150,17 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            storeFile file("${rootProject.projectDir}/android.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias "android"
+            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
         }
     }
