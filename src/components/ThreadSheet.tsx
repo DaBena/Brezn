@@ -5,6 +5,9 @@ import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
 import { buttonBase, buttonDanger, reactionButtonClasses } from '../lib/buttonStyles'
 import { breznClientTag, NOSTR_KINDS } from '../lib/breznNostr'
+
+/** Kind 20000: geohash channel (e.g. nym.bar); no like/reply, block still allowed */
+const GEOHASH_CHANNEL_KIND = 20000
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles } from '../hooks/useProfiles'
 import { useToast } from './Toast'
@@ -98,6 +101,7 @@ export function ThreadSheet(props: {
   const identity = client.getPublicIdentity()
   const isOwnPost = root.pubkey === identity.pubkey
   const isBlocked = blockedPubkeys.includes(root.pubkey)
+  const isChannelPost = root.kind === GEOHASH_CHANNEL_KIND
 
   const [deleteState, setDeleteState] = useState<'idle' | 'deleting' | 'error'>('idle')
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -300,25 +304,27 @@ export function ThreadSheet(props: {
           </div>
         ) : (
           <div>
-            <PostCard evt={root} viewerPoint={viewerPoint} profile={profilesByPubkey.get(root.pubkey)} onOpenChat={onOpenChat} />
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onReact(root)}
-                  disabled={!canReact || Boolean(reactionsByNoteId[root.id]?.viewerReacted)}
-                  className={reactionButtonClasses(
-                    Boolean(reactionsByNoteId[root.id]?.viewerReacted),
-                    canReact
-                  )}
-                  aria-label={`Send reaction${reactionsByNoteId[root.id]?.total ? ` (${reactionsByNoteId[root.id]?.total})` : ''}`}
-                >
-                  <span aria-hidden="true">👍</span>
-                  <span className="font-mono">{reactionsByNoteId[root.id]?.total ?? 0}</span>
-                </button>
+            <PostCard evt={root} viewerPoint={viewerPoint} profile={profilesByPubkey.get(root.pubkey)} onOpenChat={isChannelPost ? undefined : onOpenChat} />
+            {!isChannelPost ? (
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onReact(root)}
+                    disabled={!canReact || Boolean(reactionsByNoteId[root.id]?.viewerReacted)}
+                    className={reactionButtonClasses(
+                      Boolean(reactionsByNoteId[root.id]?.viewerReacted),
+                      canReact
+                    )}
+                    aria-label={`Send reaction${reactionsByNoteId[root.id]?.total ? ` (${reactionsByNoteId[root.id]?.total})` : ''}`}
+                  >
+                    <span aria-hidden="true">👍</span>
+                    <span className="font-mono">{reactionsByNoteId[root.id]?.total ?? 0}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         )}
 
@@ -405,25 +411,27 @@ export function ThreadSheet(props: {
               ) : null}
             </div>
 
-            <div className="-mx-4 mt-3 bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
-              <textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                placeholder="Write reply…"
-                className="mt-2 h-24 w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
-                disabled={isOffline}
-              />
-              {publishState === 'error' && publishError ? <div className="mt-2 text-sm text-brezn-danger">{publishError}</div> : null}
-              <div className="mt-2 flex justify-center">
-                <button
-                  onClick={() => void publish()}
-                  disabled={publishState === 'publishing' || !text.trim() || isOffline}
-                  className={`w-1/2 rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
-                >
-                  {publishState === 'publishing' ? 'Sending…' : 'Reply'}
-                </button>
+            {!isChannelPost ? (
+              <div className="-mx-4 mt-3 bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
+                <textarea
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  placeholder="Write reply…"
+                  className="mt-2 h-24 w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
+                  disabled={isOffline}
+                />
+                {publishState === 'error' && publishError ? <div className="mt-2 text-sm text-brezn-danger">{publishError}</div> : null}
+                <div className="mt-2 flex justify-center">
+                  <button
+                    onClick={() => void publish()}
+                    disabled={publishState === 'publishing' || !text.trim() || isOffline}
+                    className={`w-1/2 rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
+                  >
+                    {publishState === 'publishing' ? 'Sending…' : 'Reply'}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </>
         ) : null}
       </div>

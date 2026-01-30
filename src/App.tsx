@@ -173,7 +173,6 @@ export default function App() {
             appState.openSheet('thread', { threadRoot: evt })
           }
         }}
-        onOpenChat={pubkey => handleOpenChat(pubkey)}
       />
 
       <ComposeButton onClick={() => appState.openSheet('composer')} />

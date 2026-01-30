@@ -28,7 +28,6 @@ export function Feed(props: {
   onLoadMore: () => void
   onReact: (evt: Event) => void
   onOpenThread: (evt: Event) => void
-  onOpenChat?: (pubkey: string) => void
 }) {
   const {
     feedState,
@@ -44,7 +43,6 @@ export function Feed(props: {
     onRequestLocation,
     onLoadMore,
     onOpenThread,
-    onOpenChat,
   } = props
 
   const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT)
@@ -167,7 +165,6 @@ export function Feed(props: {
                                 pubkey={evt.pubkey}
                                 profile={profilesByPubkey.get(evt.pubkey)}
                                 displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
-                                onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
                               />
                             </div>
                             <div className="shrink-0 text-[11px] text-brezn-muted">
@@ -208,7 +205,6 @@ export function Feed(props: {
                           pubkey={evt.pubkey} 
                           profile={profilesByPubkey.get(evt.pubkey)}
                           displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
-                          onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
                         />
                       </div>
                       <div className="shrink-0 text-[11px] text-brezn-muted">
