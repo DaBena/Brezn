@@ -29,6 +29,14 @@ const AUTO_BACKFILL_MAX_ATTEMPTS = 3
 /** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
 const GEOHASH_CHANNEL_KIND = 20000
 
+function isFeedDebug(): boolean {
+  try {
+    return typeof window !== 'undefined' && localStorage.getItem('brezn:feed-debug') === '1'
+  } catch {
+    return false
+  }
+}
+
 function isReplyNote(evt: Event): boolean {
   // NIP-10 replies are kind:1 with at least one `e` tag.
   // We keep the main feed "root posts only" and show replies in a thread view.
@@ -219,9 +227,22 @@ export function useLocalFeed(params: {
     // No time limit - with few users, we want to find all posts regardless of age
     // New posts have tuple tags and will be found regardless of age
 
+    if (isFeedDebug()) {
+      console.debug('[Brezn feed] subscribe', {
+        queryGeohash,
+        geohashLength,
+        relays: currentRelays.length,
+        origin: typeof location !== 'undefined' ? location.origin : '',
+      })
+    }
+
     const onEvent = (evt: Event) => {
       if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
       if (evt.kind === 1 && isReplyNote(evt)) return
+
+      if (isFeedDebug() && (evt.kind === 1 || evt.kind === GEOHASH_CHANNEL_KIND)) {
+        console.debug('[Brezn feed] event', { kind: evt.kind, id: evt.id.slice(0, 8) })
+      }
 
       // basic de-dupe
       setEvents(prev => {
@@ -247,11 +268,13 @@ export function useLocalFeed(params: {
       }
     }
     const onEose = () => {
+      if (isFeedDebug()) console.debug('[Brezn feed] EOSE')
       didEose = true
       window.clearTimeout(timeoutId)
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
+      if (isFeedDebug()) console.debug('[Brezn feed] onclose', reasons)
       setLastCloseReasons(reasons)
       if (!didEose) setInitialTimedOut(true)
     }
