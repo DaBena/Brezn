@@ -259,6 +259,8 @@ function nowSec(): number {
 let stateCache: StoredStateV1 | null = null
 let stateCacheInitialized = false
 
+const IDENTITY_INIT_TIMEOUT_MS = 5000
+
 // Initialize state cache asynchronously from IndexedDB (best effort)
 async function initializeStateCache() {
   if (stateCacheInitialized) return
@@ -280,9 +282,26 @@ async function initializeStateCache() {
   }
 }
 
+function fallbackStateFromLocalStorage(): void {
+  if (stateCache !== null) return
+  stateCacheInitialized = true
+  stateCache = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+}
+
 /** Resolves when identity/storage is ready (IndexedDB decrypted or fallback applied). Await before using client identity. */
 export const whenIdentityReady: Promise<void> =
-  typeof window !== 'undefined' ? initializeStateCache().then(() => {}) : Promise.resolve()
+  typeof window !== 'undefined'
+    ? Promise.race([
+        initializeStateCache().then(() => {}),
+        new Promise<void>(resolve => {
+          setTimeout(() => {
+            // On GitHub Pages / strict environments IndexedDB can hang; ensure app still loads
+            fallbackStateFromLocalStorage()
+            resolve()
+          }, IDENTITY_INIT_TIMEOUT_MS)
+        }),
+      ])
+    : Promise.resolve()
 
 function loadState(): StoredStateV1 {
   // Use cache if available (from IndexedDB or localStorage, already decrypted)
