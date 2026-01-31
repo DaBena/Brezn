@@ -29,11 +29,16 @@ const AUTO_BACKFILL_MAX_ATTEMPTS = 3
 /** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
 const GEOHASH_CHANNEL_KIND = 20000
 
-/** Set to false when done debugging feed/relays. */
-const FEED_DEBUG = true
-
-function isFeedDebug(): boolean {
-  return FEED_DEBUG
+/**
+ * Prefixes for kind-20000 search by radius (geo0..geo5).
+ * Relays often need 2+ char #g for kind 20000; querying all prefixes from startLen to 5 covers that.
+ */
+function getKind20000Prefixes(viewerGeo5: string | null, geohashLength: number): string[] {
+  if (!viewerGeo5 || viewerGeo5.length < 5) return []
+  const startLen = geohashLength <= 1 ? 1 : geohashLength
+  const prefixes: string[] = []
+  for (let len = startLen; len <= 5; len++) prefixes.push(viewerGeo5.slice(0, len))
+  return prefixes
 }
 
 function isReplyNote(evt: Event): boolean {
@@ -102,15 +107,6 @@ export function useLocalFeed(params: {
   const viewerGeo5Ref = useRef<string | null>(viewerGeo5)
   viewerGeo5Ref.current = viewerGeo5
 
-  // Always log once so you see something in Console (and whether debug is on)
-  const onceLoggedRef = useRef(false)
-  useEffect(() => {
-    if (onceLoggedRef.current) return
-    onceLoggedRef.current = true
-    const debugOn = isFeedDebug()
-    console.log('[Brezn feed] hook loaded. Debug:', debugOn ? 'ON' : 'OFF')
-  }, [])
-
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
     const filtered = events.filter(e => {
@@ -165,7 +161,6 @@ export function useLocalFeed(params: {
       setQueryGeohash(geo5.slice(0, clampedLen))
     }
     setFeedState({ kind: 'loading' })
-    if (isFeedDebug()) console.log('[Brezn feed] setLocalQueryFromGeo5', { geo5, len })
   }
 
   async function requestLocationAndLoad(opts?: { forceBrowser?: boolean }) {
@@ -174,17 +169,14 @@ export function useLocalFeed(params: {
       if (!opts?.forceBrowser) {
         const savedGeo5 = readSavedGeo5()
         if (savedGeo5) {
-          if (isFeedDebug()) console.log('[Brezn feed] location from storage', { savedGeo5 })
           setViewerGeo5(savedGeo5) // Update state with saved 5-digit geohash
           setLocalQueryFromGeo5(savedGeo5, geohashLength)
           return
         }
       }
 
-      if (isFeedDebug()) console.log('[Brezn feed] requesting browser location…')
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
-      if (isFeedDebug()) console.log('[Brezn feed] browser location', { geo5, lat: pos.lat, lon: pos.lon })
       saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
       setViewerGeo5(geo5)
 
@@ -197,7 +189,6 @@ export function useLocalFeed(params: {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Location error'
-      if (isFeedDebug()) console.log('[Brezn feed] location error', msg)
       setFeedState({ kind: 'error', message: msg })
     }
   }
@@ -219,16 +210,9 @@ export function useLocalFeed(params: {
   // Old posts without tuple tags will only be found if query matches exactly
   const currentRelays = client.getRelays()
   useEffect(() => {
-    if (isOffline) {
-      if (isFeedDebug()) console.log('[Brezn feed] subscribe skipped: offline')
-      return
-    }
-    if (!queryGeohash) {
-      if (isFeedDebug()) console.log('[Brezn feed] subscribe skipped: no queryGeohash')
-      return
-    }
+    if (isOffline) return
+    if (!queryGeohash) return
     if (currentRelays.length === 0) {
-      if (isFeedDebug()) console.log('[Brezn feed] subscribe skipped: no relays')
       setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
       return
     }
@@ -238,36 +222,13 @@ export function useLocalFeed(params: {
     setEvents([])
 
     let didEose = false
-    const eventCounts = { kind1: 0, kind20000: 0 }
     const timeoutId = window.setTimeout(() => {
-      if (!didEose) {
-        if (isFeedDebug()) console.log('[Brezn feed] initial timeout (12.5s) before EOSE', eventCounts)
-        setInitialTimedOut(true)
-      }
+      if (!didEose) setInitialTimedOut(true)
     }, 12_500)
-
-    // No time limit - with few users, we want to find all posts regardless of age
-    // New posts have tuple tags and will be found regardless of age
-
-    if (isFeedDebug()) {
-      console.log('[Brezn feed] subscribe', {
-        queryGeohash,
-        geohashLength,
-        relayUrls: currentRelays,
-        origin: typeof location !== 'undefined' ? location.origin : '',
-      })
-    }
 
     const onEvent = (evt: Event) => {
       if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
       if (evt.kind === 1 && isReplyNote(evt)) return
-
-      if (evt.kind === 1) eventCounts.kind1++
-      else if (evt.kind === GEOHASH_CHANNEL_KIND) eventCounts.kind20000++
-
-      if (isFeedDebug() && (evt.kind === 1 || evt.kind === GEOHASH_CHANNEL_KIND)) {
-        console.log('[Brezn feed] event', { kind: evt.kind, id: evt.id.slice(0, 8) })
-      }
 
       // Defer state update so relay setTimeout doesn't trigger "handler took 50ms" violation
       startTransition(() => {
@@ -293,13 +254,11 @@ export function useLocalFeed(params: {
       }
     }
     const onEose = () => {
-      if (isFeedDebug()) console.log('[Brezn feed] EOSE', { kind1: eventCounts.kind1, kind20000: eventCounts.kind20000, total: eventCounts.kind1 + eventCounts.kind20000 })
       didEose = true
       window.clearTimeout(timeoutId)
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
-      if (isFeedDebug()) console.log('[Brezn feed] onclose', reasons)
       setLastCloseReasons(reasons)
       if (!didEose) setInitialTimedOut(true)
     }
@@ -308,77 +267,122 @@ export function useLocalFeed(params: {
     // Otherwise, single query with the selected geohash length
     // No 'since' filter - find all posts regardless of age (important for apps with few users)
     
+    // For geo0, queryGeohash is the 5-char cell; use it as fallback when viewerGeo5 not yet in state
+    const geo5ForPrefixes = viewerGeo5 ?? (queryGeohash?.length === 5 ? queryGeohash : null)
+    const kind20000Prefixes = getKind20000Prefixes(geo5ForPrefixes, geohashLength)
+    const addKind20000PrefixSub = kind20000Prefixes.length > 0
+
     if (geohashLength === 0 && queryGeohash.length === 5) {
-      // Use 1-character geohash and query its east/west neighbors
       const oneCharHash = queryGeohash.slice(0, 1)
       const neighbors = getEastWestNeighbors(oneCharHash)
       if (neighbors) {
         const cellsToQuery = [oneCharHash, neighbors.east, neighbors.west]
-        if (isFeedDebug()) console.log('[Brezn feed] subscribe mode: 3 cells (east/west)', cellsToQuery)
+        const totalQueries = cellsToQuery.length + (addKind20000PrefixSub ? 1 : 0)
         let currentIndex = 0
-        const totalQueries = cellsToQuery.length
         let eoseCount = 0
         const unsubs: (() => void)[] = []
-        
+
         const checkAllComplete = () => {
           if (eoseCount >= totalQueries) {
-            if (isFeedDebug()) console.log('[Brezn feed] all 3 cells EOSE')
-            // All queries completed
             didEose = true
             window.clearTimeout(timeoutId)
             setFeedState({ kind: 'live' })
           }
         }
-        
+
+        // Start kind-20000 prefix sub immediately (parallel), so u0 etc. are found while 3 cells run
+        if (addKind20000PrefixSub) {
+          unsubs.push(
+            client.subscribe(
+              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+              {
+                onevent: onEvent,
+                oneose: () => {
+                  eoseCount++
+                  checkAllComplete()
+                },
+                onclose: onClose,
+              },
+            ),
+          )
+          unsubRef.current = () => unsubs.forEach(u => u())
+        }
+
         const runNextQuery = () => {
-          if (currentIndex >= totalQueries) {
+          if (currentIndex >= cellsToQuery.length) {
             checkAllComplete()
             return
           }
-          
+
           const cell = cellsToQuery[currentIndex]
-          if (isFeedDebug()) console.log('[Brezn feed] query cell', { cell, index: currentIndex + 1, of: totalQueries })
           currentIndex++
-          
           const unsub = client.subscribe(
             { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [cell], limit: 200 },
             {
               onevent: onEvent,
               oneose: () => {
                 eoseCount++
-                if (isFeedDebug()) console.log('[Brezn feed] cell EOSE', { cell, eoseCount, totalQueries })
                 checkAllComplete()
-                // Wait a bit before starting next query to avoid overwhelming relays
-                if (currentIndex < totalQueries) {
-                  setTimeout(runNextQuery, 100)
-                }
+                if (currentIndex < cellsToQuery.length) setTimeout(runNextQuery, 100)
               },
               onclose: onClose,
             },
           )
-          
           unsubs.push(unsub)
-          
-          // Store a function that unsubscribes from all queries
-          unsubRef.current = () => {
-            unsubs.forEach(u => u())
-          }
+          unsubRef.current = () => unsubs.forEach(u => u())
         }
-        
+
         runNextQuery()
       } else {
-        // Fallback: if neighbors can't be calculated, query with 1-character prefix
         const fallbackHash = queryGeohash.slice(0, 1)
-        if (isFeedDebug()) console.log('[Brezn feed] subscribe mode: single (fallback 1-char)', fallbackHash)
-        const unsub = client.subscribe(
+        let mainDone = false
+        let prefixDone = !addKind20000PrefixSub
+        const checkDone = () => {
+          if (mainDone && prefixDone) {
+            didEose = true
+            window.clearTimeout(timeoutId)
+            setFeedState({ kind: 'live' })
+          }
+        }
+        const unsubMain = client.subscribe(
           { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [fallbackHash], limit: 200 },
-          { onevent: onEvent, oneose: onEose, onclose: onClose },
+          { onevent: onEvent, oneose: () => { mainDone = true; checkDone() }, onclose: onClose },
         )
-        unsubRef.current = unsub
+        const unsubs: (() => void)[] = [unsubMain]
+        if (addKind20000PrefixSub) {
+          unsubs.push(
+            client.subscribe(
+              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+              { onevent: onEvent, oneose: () => { prefixDone = true; checkDone() }, onclose: onClose },
+            ),
+          )
+        }
+        unsubRef.current = () => unsubs.forEach(u => u())
+      }
+    } else if (addKind20000PrefixSub && queryGeohash.length >= 1) {
+      // Main sub (kind 1 + 20000) + kind-20000 prefix sub (u..u0xdx by radius)
+      let mainDone = false
+      let prefixDone = false
+      const checkBoth = () => {
+        if (mainDone && prefixDone) {
+          didEose = true
+          window.clearTimeout(timeoutId)
+          setFeedState({ kind: 'live' })
+        }
+      }
+      const unsubMain = client.subscribe(
+        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200 },
+        { onevent: onEvent, oneose: () => { mainDone = true; checkBoth() }, onclose: onClose },
+      )
+      const unsubPrefix = client.subscribe(
+        { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+        { onevent: onEvent, oneose: () => { prefixDone = true; checkBoth() }, onclose: onClose },
+      )
+      unsubRef.current = () => {
+        unsubMain()
+        unsubPrefix()
       }
     } else {
-      if (isFeedDebug()) console.log('[Brezn feed] subscribe mode: single', queryGeohash)
-      // Single query with the selected geohash length
       const unsub = client.subscribe(
         { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200 },
         { onevent: onEvent, oneose: onEose, onclose: onClose },
@@ -389,10 +393,9 @@ export function useLocalFeed(params: {
       window.clearTimeout(timeoutId)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength, identityPubkey])
+  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength, identityPubkey, viewerGeo5])
 
   function loadMore() {
-    if (isFeedDebug()) console.log('[Brezn feed] loadMore', { isLoadingMore, queryGeohash, eventsCount: events.length })
     if (isLoadingMore) return
     if (!queryGeohash) return
     const relays = client.getRelays()
@@ -407,7 +410,6 @@ export function useLocalFeed(params: {
     setIsLoadingMore(true)
 
     const until = oldest - 1
-    if (isFeedDebug()) console.log('[Brezn feed] loadMore subscription', { queryGeohash, until, eventsCount: events.length })
 
     const onEventLoadMore = (evt: Event) => {
       if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
@@ -456,7 +458,6 @@ export function useLocalFeed(params: {
     if (autoBackfillRef.current.attempts >= AUTO_BACKFILL_MAX_ATTEMPTS) return
 
     autoBackfillRef.current.attempts++
-    if (isFeedDebug()) console.log('[Brezn feed] auto-backfill', { queryGeohash, sortedCount: sortedEvents.length, attempt: autoBackfillRef.current.attempts })
     loadMore()
     // Intentionally omit loadMore from deps; we only need the current render values.
     // eslint-disable-next-line react-hooks/exhaustive-deps

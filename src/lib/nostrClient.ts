@@ -679,7 +679,6 @@ export function createNostrClient(): BreznNostrClient {
       if (len >= 1 && len <= 5) return len
     }
     
-    // Default: 1 (for apps with few users)
     return 1
   }
 
