@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import {
@@ -29,16 +29,11 @@ const AUTO_BACKFILL_MAX_ATTEMPTS = 3
 /** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
 const GEOHASH_CHANNEL_KIND = 20000
 
+/** Set to false when done debugging feed/relays. */
+const FEED_DEBUG = true
+
 function isFeedDebug(): boolean {
-  try {
-    if (typeof window === 'undefined') return false
-    // URL param: ?brezn_feed_debug=1 (no console needed)
-    const params = new URLSearchParams(location.search)
-    if (params.get('brezn_feed_debug') === '1') return true
-    return localStorage.getItem('brezn:feed-debug') === '1'
-  } catch {
-    return false
-  }
+  return FEED_DEBUG
 }
 
 function isReplyNote(evt: Event): boolean {
@@ -106,6 +101,15 @@ export function useLocalFeed(params: {
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
   const viewerGeo5Ref = useRef<string | null>(viewerGeo5)
   viewerGeo5Ref.current = viewerGeo5
+
+  // Always log once so you see something in Console (and whether debug is on)
+  const onceLoggedRef = useRef(false)
+  useEffect(() => {
+    if (onceLoggedRef.current) return
+    onceLoggedRef.current = true
+    const debugOn = isFeedDebug()
+    console.log('[Brezn feed] hook loaded. Debug:', debugOn ? 'ON' : 'OFF')
+  }, [])
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
@@ -265,12 +269,12 @@ export function useLocalFeed(params: {
         console.log('[Brezn feed] event', { kind: evt.kind, id: evt.id.slice(0, 8) })
       }
 
-      // basic de-dupe
-      setEvents(prev => {
-        if (prev.some(e => e.id === evt.id)) {
-          return prev
-        }
-        return [evt, ...prev]
+      // Defer state update so relay setTimeout doesn't trigger "handler took 50ms" violation
+      startTransition(() => {
+        setEvents(prev => {
+          if (prev.some(e => e.id === evt.id)) return prev
+          return [evt, ...prev]
+        })
       })
 
       // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
