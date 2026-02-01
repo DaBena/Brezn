@@ -1,0 +1,13 @@
+# Zapstore app listing - https://zapstore.dev/docs/publish
+# Published automatically when a GitHub release with APK exists (workflow zapstore-publish).
+name: Brezn
+repository: https://github.com/dabena/Brezn
+homepage: https://dabena.github.io/Brezn/
+summary: Nostr PWA that shows posts by location. Five-digit geohash (about 5 km per cell). Connect with others nearby.
+icon: public/icons/brezn-512.png
+license: MIT
+tags: nostr pwa geohash local decentralized
+remote_metadata:
+  - github
+assets:
+  - .*\.apk

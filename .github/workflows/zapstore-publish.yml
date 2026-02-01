@@ -1,0 +1,28 @@
+# Publishes the APK from the latest GitHub release to Zapstore.
+# Runs after build-apk creates a release (or on manual run).
+name: Publish to Zapstore
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Zapstore CLI
+        run: |
+          curl -sL https://cdn.zapstore.dev/6e2c7cf6da53c3f1a78b523a6aacd6316dce3d74ace6f859c2676729ee439990 -o zapstore
+          echo '6e2c7cf6da53c3f1a78b523a6aacd6316dce3d74ace6f859c2676729ee439990  zapstore' | shasum -a 256 -c
+          chmod +x zapstore
+          ./zapstore --version || true
+
+      - name: Publish to Zapstore
+        env:
+          SIGN_WITH: ${{ secrets.NOSTR_NSEC }}
+        run: ./zapstore publish --no-overwrite-release
+        continue-on-error: true
