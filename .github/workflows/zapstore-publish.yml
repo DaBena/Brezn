@@ -26,5 +26,5 @@ jobs:
       - name: Publish to Zapstore
         env:
           SIGN_WITH: ${{ secrets.NOSTR_NSEC }}
-        run: ./zapstore publish --no-overwrite-release
+        run: ./zapstore publish --no-overwrite-release --indexer-mode
         continue-on-error: true
