@@ -10,7 +10,7 @@ import { breznClientTag, NOSTR_KINDS } from '../lib/breznNostr'
 const GEOHASH_CHANNEL_KIND = 20000
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles } from '../hooks/useProfiles'
-import { useToast } from './Toast'
+import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'

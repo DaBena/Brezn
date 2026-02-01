@@ -10,7 +10,7 @@ import { SettingsSheet } from './components/SettingsSheet'
 import { ThreadSheet } from './components/ThreadSheet'
 import { NavigationBar } from './components/NavigationBar'
 import { ComposeButton } from './components/ComposeButton'
-import { useToast } from './components/Toast'
+import { useToast } from './components/ToastContext'
 import { useIdentity } from './hooks/useIdentity'
 import { useLocalFeed } from './hooks/useLocalFeed'
 import { useNostrClient } from './hooks/useNostrClient'
@@ -152,6 +152,7 @@ export default function App() {
       />
 
       <Feed
+        key={search.filteredEvents[0]?.id ?? 'empty'}
         feedState={feedState}
         geoCell={geoCell}
         viewerPoint={viewerPoint}

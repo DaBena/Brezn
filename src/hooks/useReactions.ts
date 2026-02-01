@@ -49,7 +49,7 @@ export function useReactions(params: {
       scopeKeyRef.current = activeKey
       seenReactionIdsRef.current = new Set()
       countedPubkeysByNoteRef.current = new Map()
-      // Reset state when scope changes to ensure fresh data
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when noteIds/scope change
       setState({ key: activeKey, byNote: {} })
     }
 

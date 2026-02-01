@@ -41,7 +41,8 @@ export function useReplies(params: {
     })
 
     return unsub
-    // queryKey captures all relevant deps (rootId, mutedTerms, blockedPubkeys, isOffline)
+    // queryKey captures rootId, mutedTerms, blockedPubkeys, isOffline
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, queryKey])
 
   const replies = useMemo(() => {

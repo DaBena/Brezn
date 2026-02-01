@@ -44,10 +44,19 @@ export function Sheet(props: {
   const touchStartTime = useRef<number | null>(null)
   const touchStartElementY = useRef<number | null>(null)
   const [swipeOffset, setSwipeOffset] = useState(0)
-  const swipeDirection = useRef<'left' | 'right' | null>(null)
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null)
   const isScrolling = useRef<boolean>(false)
   const scrollableElementRef = useRef<HTMLElement | null>(null)
   const headerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) {
+      /* eslint-disable react-hooks/set-state-in-effect -- reset swipe state when sheet closes */
+      setSwipeOffset(0)
+      setSwipeDirection(null)
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -183,7 +192,7 @@ export function Sheet(props: {
     if (absDeltaY > absDeltaX * 1.5) {
       isScrolling.current = true
       setSwipeOffset(0)
-      swipeDirection.current = null
+      setSwipeDirection(null)
       return
     }
     
@@ -202,15 +211,13 @@ export function Sheet(props: {
           // Not at edge and not in header, cancel swipe gesture
           isScrolling.current = true
           setSwipeOffset(0)
-          swipeDirection.current = null
+          setSwipeDirection(null)
           return
         }
       }
       
       // Determine direction on first significant movement
-      if (swipeDirection.current === null) {
-        swipeDirection.current = deltaX < 0 ? 'left' : 'right'
-      }
+      setSwipeDirection(prev => (prev === null ? (deltaX < 0 ? 'left' : 'right') : prev))
       setSwipeOffset(absDeltaX)
     }
   }
@@ -218,7 +225,7 @@ export function Sheet(props: {
   const handleTouchEnd = () => {
     if (!dismissible || touchStartX.current === null) {
       setSwipeOffset(0)
-      swipeDirection.current = null
+      setSwipeDirection(null)
       isScrolling.current = false
       touchStartElementY.current = null
       return
@@ -227,7 +234,7 @@ export function Sheet(props: {
     // Don't close if user was scrolling
     if (isScrolling.current) {
       setSwipeOffset(0)
-      swipeDirection.current = null
+      setSwipeDirection(null)
       touchStartX.current = null
       touchStartY.current = null
       touchStartTime.current = null
@@ -247,7 +254,7 @@ export function Sheet(props: {
     }
     
     setSwipeOffset(0)
-    swipeDirection.current = null
+    setSwipeDirection(null)
     touchStartX.current = null
     touchStartY.current = null
     touchStartTime.current = null
@@ -293,7 +300,7 @@ export function Sheet(props: {
         ].join(' ')}
         style={{
           transform: swipeOffset > 0 
-            ? `translateX(${swipeDirection.current === 'left' ? '-' : ''}${swipeOffset}px)` 
+            ? `translateX(${swipeDirection === 'left' ? '-' : ''}${swipeOffset}px)` 
             : undefined,
           backgroundColor: 'var(--brezn-panel)',
           borderColor: 'var(--brezn-border)',

@@ -41,6 +41,8 @@ npm install
 npm run dev        # Development Server
 npm run build      # Build
 npm run preview    # Preview Build
+npm run lint       # Lint
+npm run test       # Run tests
 ```
 
 **GitHub Pages**: Automatic deployment on push to `main` via `.github/workflows/deploy-pages.yml`.

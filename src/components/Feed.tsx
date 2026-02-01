@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { GeoPoint } from '../lib/geo'
@@ -8,8 +8,7 @@ import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
 import { useProfiles } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
-
-const INITIAL_DISPLAY_LIMIT = 7
+import { FEED_INITIAL_DISPLAY_LIMIT } from '../lib/constants'
 
 export function Feed(props: {
   feedState: FeedState
@@ -45,12 +44,7 @@ export function Feed(props: {
     onOpenThread,
   } = props
 
-  const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT)
-  
-  // Reset display limit when events change (new feed loaded)
-  useEffect(() => {
-    setDisplayLimit(INITIAL_DISPLAY_LIMIT)
-  }, [events.length > 0 ? events[0].id : null])
+  const [displayLimit, setDisplayLimit] = useState(FEED_INITIAL_DISPLAY_LIMIT)
 
   const displayedEvents = useMemo(() => events.slice(0, displayLimit), [events, displayLimit])
   const hasMore = events.length > displayLimit
@@ -70,7 +64,7 @@ export function Feed(props: {
 
   const handleLoadMore = () => {
     if (hasMore) {
-      setDisplayLimit(prev => prev + INITIAL_DISPLAY_LIMIT)
+      setDisplayLimit(prev => prev + FEED_INITIAL_DISPLAY_LIMIT)
     } else {
       onLoadMore()
     }

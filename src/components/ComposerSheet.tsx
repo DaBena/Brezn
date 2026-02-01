@@ -1,5 +1,5 @@
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
@@ -32,19 +32,6 @@ export function ComposerSheet(props: {
 
   const maxImageBytes = 12 * 1024 * 1024
   const maxVideoBytes = 25 * 1024 * 1024
-
-  // Reset state when sheet closes
-  useEffect(() => {
-    if (!open) {
-      setComposerText('')
-      setMediaUrls([])
-      setShowGeoMap(false)
-      setUploadState('idle')
-      setUploadError(null)
-      setPublishState('idle')
-      setPublishError(null)
-    }
-  }, [open])
 
   async function publishPost() {
     const text = composerText.trim()

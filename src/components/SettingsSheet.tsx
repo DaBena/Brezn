@@ -74,7 +74,7 @@ export function SettingsSheet(props: {
         client.setMediaUploadEndpoint(normalized)
         initialMediaEndpointRef.current = client.getMediaUploadEndpoint() ?? ''
       }
-    } catch (e) {
+    } catch {
       setClosing(false)
       return
     }
@@ -90,7 +90,7 @@ export function SettingsSheet(props: {
           await client.updateProfile({ name: currentProfile.name, picture: currentProfile.picture })
         initialProfileRef.current = { name: nextName, picture: nextPicture }
       }
-    } catch (e) {
+    } catch {
       setClosing(false)
       setProfileSaving(false)
       return

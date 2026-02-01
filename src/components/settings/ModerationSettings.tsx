@@ -15,8 +15,9 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
   const [blockedPubkeys, setBlockedPubkeys] = useState<string[]>(() => client.getBlockedPubkeys())
   const [blockedMsg, setBlockedMsg] = useState<string | null>(null)
 
-  // Reset when client changes (e.g., when sheet opens)
+  // Sync local state from client when sheet opens or client reference changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- sync form state from client on open */
     const nextTerms = client.getMutedTerms()
     setMutedTerms(nextTerms)
     setMutedTermsText(nextTerms.join('\n'))
@@ -24,6 +25,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
     const nextBlocked = client.getBlockedPubkeys()
     setBlockedPubkeys(nextBlocked)
     setBlockedMsg(null)
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [client])
 
   function saveMutedTerms(nextTerms: string[], msg: string) {

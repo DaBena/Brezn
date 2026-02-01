@@ -15,7 +15,7 @@ export function AdblockerWarning() {
           if (registrations.length === 0) {
             setShowWarning(true)
           }
-        } catch (e) {
+        } catch {
           // Service worker access failed - might be blocked
           setShowWarning(true)
         }

@@ -12,6 +12,14 @@ import {
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJsonSync, saveJsonSync } from '../lib/storage'
 import { deletePost } from '../lib/postService'
+import {
+  FEED_INITIAL_LOAD_TIMEOUT_MS,
+  RESEND_DELETION_COOLDOWN_MS,
+  FEED_INITIAL_MIN_POSTS,
+  FEED_AUTO_BACKFILL_MAX_ATTEMPTS,
+  FEED_QUERY_LIMIT,
+  FEED_CACHE_MAX_EVENTS,
+} from '../lib/constants'
 
 export type FeedState =
   | { kind: 'need-location' }
@@ -23,8 +31,6 @@ type SavedLocation = { geohash5: string; savedAt: number }
 
 const FEED_CACHE_KEY = 'brezn:feed-cache:v1'
 const LAST_LOCATION_KEY = 'brezn:last-location:v1'
-const INITIAL_MIN_POSTS = 7
-const AUTO_BACKFILL_MAX_ATTEMPTS = 3
 
 /** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
 const GEOHASH_CHANNEL_KIND = 20000
@@ -46,8 +52,6 @@ function isReplyNote(evt: Event): boolean {
   // We keep the main feed "root posts only" and show replies in a thread view.
   return evt.kind === 1 && evt.tags.some(t => t[0] === 'e')
 }
-
-const RESEND_DELETION_COOLDOWN_MS = 10_000
 
 export function useLocalFeed(params: {
   client: BreznNostrClient
@@ -147,7 +151,7 @@ export function useLocalFeed(params: {
   useEffect(() => {
     if (!sortedEvents.length) return
     // Keep it small and recent.
-    const top = sortedEvents.slice(0, 200)
+    const top = sortedEvents.slice(0, FEED_CACHE_MAX_EVENTS)
     saveJsonSync(FEED_CACHE_KEY, { updatedAt: Date.now(), geoCell: geoCell ?? undefined, events: top })
   }, [geoCell, sortedEvents])
 
@@ -209,6 +213,7 @@ export function useLocalFeed(params: {
   // New posts have tuple tags (1-5), so they'll be found regardless of query length
   // Old posts without tuple tags will only be found if query matches exactly
   const currentRelays = client.getRelays()
+  const relaysKey = currentRelays.join(',')
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return
@@ -224,7 +229,7 @@ export function useLocalFeed(params: {
     let didEose = false
     const timeoutId = window.setTimeout(() => {
       if (!didEose) setInitialTimedOut(true)
-    }, 12_500)
+    }, FEED_INITIAL_LOAD_TIMEOUT_MS)
 
     const onEvent = (evt: Event) => {
       if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
@@ -294,7 +299,7 @@ export function useLocalFeed(params: {
         if (addKind20000PrefixSub) {
           unsubs.push(
             client.subscribe(
-              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
               {
                 onevent: onEvent,
                 oneose: () => {
@@ -317,7 +322,7 @@ export function useLocalFeed(params: {
           const cell = cellsToQuery[currentIndex]
           currentIndex++
           const unsub = client.subscribe(
-            { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [cell], limit: 200 },
+            { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [cell], limit: FEED_QUERY_LIMIT },
             {
               onevent: onEvent,
               oneose: () => {
@@ -345,14 +350,14 @@ export function useLocalFeed(params: {
           }
         }
         const unsubMain = client.subscribe(
-          { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [fallbackHash], limit: 200 },
+          { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [fallbackHash], limit: FEED_QUERY_LIMIT },
           { onevent: onEvent, oneose: () => { mainDone = true; checkDone() }, onclose: onClose },
         )
         const unsubs: (() => void)[] = [unsubMain]
         if (addKind20000PrefixSub) {
           unsubs.push(
             client.subscribe(
-              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
               { onevent: onEvent, oneose: () => { prefixDone = true; checkDone() }, onclose: onClose },
             ),
           )
@@ -371,11 +376,11 @@ export function useLocalFeed(params: {
         }
       }
       const unsubMain = client.subscribe(
-        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200 },
+        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
         { onevent: onEvent, oneose: () => { mainDone = true; checkBoth() }, onclose: onClose },
       )
       const unsubPrefix = client.subscribe(
-        { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: 200 },
+        { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
         { onevent: onEvent, oneose: () => { prefixDone = true; checkBoth() }, onclose: onClose },
       )
       unsubRef.current = () => {
@@ -384,7 +389,7 @@ export function useLocalFeed(params: {
       }
     } else {
       const unsub = client.subscribe(
-        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200 },
+        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
         { onevent: onEvent, oneose: onEose, onclose: onClose },
       )
       unsubRef.current = unsub
@@ -393,7 +398,7 @@ export function useLocalFeed(params: {
       window.clearTimeout(timeoutId)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, currentRelays.join(','), geohashLength, identityPubkey, viewerGeo5])
+  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength, identityPubkey, viewerGeo5])
 
   function loadMore() {
     if (isLoadingMore) return
@@ -418,10 +423,10 @@ export function useLocalFeed(params: {
     }
 
     const clear = () => setIsLoadingMore(false)
-    const timeoutId = window.setTimeout(clear, 12_500)
+    const timeoutId = window.setTimeout(clear, FEED_INITIAL_LOAD_TIMEOUT_MS)
 
     const unsub = client.subscribe(
-      { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: 200, until },
+      { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT, until },
       {
         onevent: onEventLoadMore,
         oneose: () => {
@@ -440,7 +445,7 @@ export function useLocalFeed(params: {
     // Also close on timeout
     setTimeout(() => {
       unsub()
-    }, 12_500)
+    }, FEED_INITIAL_LOAD_TIMEOUT_MS)
   }
 
   // Auto-backfill: if there are too few posts, automatically load older ones,
@@ -449,13 +454,13 @@ export function useLocalFeed(params: {
     if (isOffline) return
     if (!queryGeohash) return
     if (!sortedEvents.length) return
-    if (sortedEvents.length >= INITIAL_MIN_POSTS) return
+    if (sortedEvents.length >= FEED_INITIAL_MIN_POSTS) return
     if (isLoadingMore) return
 
     // Only try to backfill a few times per geo-query.
     const key = queryGeohash
     if (autoBackfillRef.current.key !== key) autoBackfillRef.current = { key, attempts: 0 }
-    if (autoBackfillRef.current.attempts >= AUTO_BACKFILL_MAX_ATTEMPTS) return
+    if (autoBackfillRef.current.attempts >= FEED_AUTO_BACKFILL_MAX_ATTEMPTS) return
 
     autoBackfillRef.current.attempts++
     loadMore()

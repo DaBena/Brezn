@@ -1,10 +1,7 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
-import { ErrorBoundary } from './components/ErrorBoundary'
-import { ToastProvider } from './components/Toast'
-import { whenIdentityReady } from './lib/nostrClient'
+import { Root } from './Root'
 
 // Initialize theme from localStorage (before React renders to avoid flash)
 // Default to 'dark' for backward compatibility
@@ -50,27 +47,6 @@ if (typeof window !== 'undefined') {
     }
     originalError.apply(console, args)
   }
-}
-
-function Root() {
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    whenIdentityReady.then(() => setReady(true))
-  }, [])
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-brezn-bg text-brezn-muted">
-        <span className="text-sm">Loading…</span>
-      </div>
-    )
-  }
-  return (
-    <ErrorBoundary>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </ErrorBoundary>
-  )
 }
 
 createRoot(document.getElementById('root')!).render(

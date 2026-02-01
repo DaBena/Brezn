@@ -1,33 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CloseIcon } from './CloseIcon'
+import { ToastContext, type Toast, type ToastType } from './ToastContext'
 
-export type ToastType = 'info' | 'success' | 'error' | 'warning'
+export type { Toast, ToastType }
 
-export type Toast = {
-  id: string
-  message: string
-  type: ToastType
-  duration?: number // in ms, default: 5000
-}
-
-type ToastContextValue = {
-  toasts: Toast[]
-  showToast: (message: string, type?: ToastType, duration?: number) => void
-  removeToast: (id: string) => void
-}
-
-export const ToastContext = React.createContext<ToastContextValue | null>(null)
-
-// Hook to use toast context
-export function useToast() {
-  const context = React.useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider')
-  }
-  return context
-}
-
-// Toast Provider Component
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -40,7 +16,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const toast: Toast = { id, message, type, duration }
     setToasts(prev => [...prev, toast])
 
-    // Auto-remove after duration
     if (duration > 0) {
       setTimeout(() => {
         removeToast(id)
@@ -48,7 +23,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, [removeToast])
 
-  // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({ toasts, showToast, removeToast }), [toasts, showToast, removeToast])
 
   return (
@@ -59,7 +33,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Toast Container Component
 function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
   if (toasts.length === 0) return null
 
@@ -72,13 +45,11 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   )
 }
 
-// Individual Toast Item
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
   const [isExiting, setIsExiting] = useState(false)
 
   const handleRemove = () => {
     setIsExiting(true)
-    // Wait for animation before removing
     setTimeout(() => {
       onRemove(toast.id)
     }, 200)
@@ -119,7 +90,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2">
+        <div className="min-w-0 flex-1 flex items-start gap-2">
           <div className={['shrink-0 text-lg', iconStyles[toast.type]].join(' ')}>
             {toast.type === 'success' && '✓'}
             {toast.type === 'error' && '✕'}
@@ -141,4 +112,3 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     </div>
   )
 }
-

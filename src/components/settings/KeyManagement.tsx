@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
-import { useToast } from '../Toast'
+import { useToast } from '../ToastContext'
 
 type KeyManagementProps = {
   client: BreznNostrClient

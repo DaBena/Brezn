@@ -89,6 +89,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
 
   // Keep relay status list in sync with current enabled relays.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- merge new relay URLs into status map */
     setRelayStatusesByUrl(prev => {
       const next: Record<string, RelayStatusLite> = {}
       for (const url of relays) {
@@ -96,6 +97,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
       }
       return next
     })
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [relays])
 
   async function runRelayTests() {

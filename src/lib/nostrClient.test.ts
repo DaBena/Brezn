@@ -11,10 +11,10 @@ describe('nostrClient identity (no accounts)', () => {
     const id = client.getPublicIdentity()
     expect(id.pubkey).toMatch(/^[0-9a-f]{64}$/i)
     expect(id.npub).toMatch(/^npub1/i)
-
-    const stored = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}') as Record<string, unknown>
-    expect(typeof stored.skHex).toBe('string')
-    expect((stored.skHex as string).length).toBe(64)
+    // Secret key is stored in IndexedDB (encrypted) or in localStorage in fallback; either way identity persists.
+    const privateId = client.getPrivateIdentity()
+    expect(typeof privateId.skHex).toBe('string')
+    expect(privateId.skHex).toHaveLength(64)
   })
 
   it('persists the same identity across reloads', () => {
