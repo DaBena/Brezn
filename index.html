@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <!-- Brezn likes you <3 -->
     <meta
@@ -34,7 +34,37 @@
     <link rel="apple-touch-icon" sizes="192x192" href="%BASE_URL%icons/brezn-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="%BASE_URL%icons/brezn-512.png" />
 
-    <title>Brezn</title>
+    <!-- SEO -->
+    <title>Brezn - Nostr PWA for local feeds by area</title>
+    <meta name="description" content="Nostr PWA that shows posts by location. Uses a five-digit geohash (about 5 km per cell). Connect with others nearby." />
+    <link rel="canonical" href="https://dabena.github.io/Brezn/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://dabena.github.io/Brezn/" />
+    <meta property="og:title" content="Brezn - Nostr PWA for local feeds by area" />
+    <meta property="og:description" content="Nostr PWA for local feeds. Set your area, connect with people nearby." />
+    <meta property="og:image" content="https://dabena.github.io/Brezn/icons/brezn-512.png" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Brezn - Nostr PWA for local feeds by area" />
+    <meta name="twitter:description" content="Nostr PWA for local feeds. Set your area, connect with people nearby." />
+    <meta name="twitter:image" content="https://dabena.github.io/Brezn/icons/brezn-512.png" />
+
+    <!-- JSON-LD (Structured Data for search engines) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Brezn",
+      "description": "Nostr PWA that shows posts by location. Uses a five-digit geohash (about 5 km per cell). Connect with others nearby.",
+      "url": "https://dabena.github.io/Brezn/",
+      "applicationCategory": "SocialNetworkingApplication",
+      "operatingSystem": "Web, Android, iOS (PWA)"
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

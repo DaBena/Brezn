@@ -90,7 +90,7 @@ export function ComposerSheet(props: {
       scrollable={false}
     >
       {viewerGeo5 && showGeoMap ? (
-        <div className="relative mt-2 h-[40vh] w-full overflow-hidden rounded-lg border border-brezn-border bg-brezn-panel2">
+        <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
           <GeohashMap geohash={viewerGeo5} className="h-full w-full" centerTrigger={mapCenterTrigger} />
           {onRequestLocation ? (
             <button
@@ -100,7 +100,7 @@ export function ComposerSheet(props: {
                 setMapCenterTrigger(t => t + 1)
               }}
               className="absolute bottom-2 left-2 z-[500] flex h-12 w-12 items-center justify-center rounded-full bg-black/25 text-white shadow-soft hover:bg-black/35 active:scale-[0.98] focus:outline-none"
-              aria-label="Standort aktualisieren"
+              aria-label="Update location"
             >
               <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" className="block">
                 <path

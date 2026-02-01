@@ -1,19 +1,21 @@
 # Brezn
 
-Brezn is like CB radio for the internet: local communication in your area, without central control. Brezn is a PWA client for the Nostr protocol and focuses on local networking using five-digit geohash (4.9 × 4.9 km cell).
+**Nostr PWA, geohash, local feed**
+
+[Brezn](https://dabena.github.io/Brezn/) is a Nostr PWA that shows posts by location. You set your area with a five-digit geohash (about 5 km per cell). You connect with others nearby. Like CB radio for the internet: local chatter, no single company in charge.
 
 ## Installation
 
 [Brezn](https://dabena.github.io/Brezn/) can be installed as a Progressive Web App (PWA) and then runs like a native app:
 
-- **Android**: Banner "Add to Home Screen" or Menu → "Add to Home Screen"
-- **iOS**: ⚠️ PWAs may have limited functionality in Safari. For better PWA support, install a browser that fully supports PWAs, e.g. [Firefox](https://apps.apple.com/app/firefox-private-safe-browser/id989804926). On older iOS versions, use the Share button 📤 → "Add to Home Screen"
+- **Android**: Banner "Add to Home Screen" or Menu, then "Add to Home Screen"
+- **iOS**: PWAs may have limited functionality in Safari. For better PWA support, install a browser that fully supports PWAs, e.g. [Firefox](https://apps.apple.com/app/firefox-private-safe-browser/id989804926). On older iOS versions, use Share, then "Add to Home Screen"
 
 After installation, Brezn appears with the Brezn icon on the home screen/start menu and opens as a standalone app without browser UI.
 
 ## What is Nostr?
 
-"Notes and Other Stuff Transmitted by Relays" is an open protocol for social networks. Many independent relays store and distribute messages (Nostr events). Different Nostr apps speak the same protocol and can access the same content. Your identity consists of a key pair (npub/nsec) and is not bound to a server – you can sign in to different clients and keep the same account and posts everywhere. If a relay is blocked or goes offline, users can switch to others without losing their identity or posts.
+"Notes and Other Stuff Transmitted by Relays" is an open protocol for social networks. Many independent relays store and distribute messages (Nostr events). Different Nostr apps speak the same protocol and can access the same content. Your identity consists of a key pair (npub/nsec) and is not bound to a server. You can sign in to different clients and keep the same account and posts everywhere. If a relay is blocked or goes offline, users can switch to others without losing their identity or posts.
 
 ## Network Architectures Compared
 

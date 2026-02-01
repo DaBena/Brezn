@@ -82,7 +82,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
 
   return (
     <div className="p-3">
-      <div className="text-xs font-semibold text-brezn-muted">Profil</div>
+      <div className="text-xs font-semibold text-brezn-muted">Profile</div>
 
       {profileLoading ? (
         <div className="mt-3 text-xs text-brezn-muted">Loading profile…</div>
