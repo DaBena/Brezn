@@ -1,6 +1,8 @@
 # Publishes the APK from the latest GitHub release to Zapstore.
 # Runs after build-apk creates a release (or on manual run).
 name: Publish to Zapstore
+permissions:
+  contents: read
 
 on:
   release:
