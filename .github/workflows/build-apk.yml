@@ -38,6 +38,14 @@ jobs:
           # ANDROID_JKS = base64-encoded android.keystore. Strip whitespace/newlines; -i ignores stray non-base64 chars.
           echo "${{ secrets.ANDROID_JKS }}" | tr -d '\n\r \t' | base64 -d -i > android.keystore
 
+      - name: Output signing certificate SHA256 (for TWA assetlinks)
+        run: |
+          cd android
+          keytool -list -v -keystore android.keystore -alias android -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep "SHA256:" || true
+          echo "Copy the fingerprint above into assetlinks.json and twa-manifest.json (run: node scripts/update-twa-fingerprint.mjs \"FINGERPRINT\")"
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
       - name: Build Android app (Gradle)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
