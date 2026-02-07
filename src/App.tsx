@@ -164,6 +164,7 @@ export default function App() {
       />
 
       <Feed
+        key={search.searchQuery}
         feedState={feedState}
         geoCell={geoCell}
         viewerPoint={viewerPoint}
