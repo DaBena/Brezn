@@ -52,6 +52,9 @@ export function Feed(props: {
 
   useEffect(() => {
     setDisplayLimit(FEED_INITIAL_DISPLAY_LIMIT)
+  }, [searchQuery])
+
+  useEffect(() => {
     window.scrollTo(0, 0)
   }, [searchQuery])
 
