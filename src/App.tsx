@@ -44,6 +44,7 @@ export default function App() {
   const {
     feedState,
     requestLocationAndLoad,
+    setLocationFromGeohash,
     geoCell,
     viewerGeo5, // Full 5-digit geohash for posting
     sortedEvents,
@@ -108,12 +109,23 @@ export default function App() {
 
   // Handlers using services
   const handlePublishPost = async (content: string) => {
-    await publishPost(client, content, viewerGeo5)
+    try {
+      await publishPost(client, content, viewerGeo5)
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Publish failed.', 'error')
+    }
   }
 
   const handlePublishReply = async (root: Event, content: string) => {
-    if (isOffline) throw new Error('Offline - Comments are read-only.')
-    await publishReply(client, root, content, viewerGeo5)
+    if (isOffline) {
+      showToast('Offline - Comments are read-only.', 'error')
+      return
+    }
+    try {
+      await publishReply(client, root, content, viewerGeo5)
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Publish failed.', 'error')
+    }
   }
 
   const handleDeletePost = async (evt: Event) => {
@@ -152,18 +164,18 @@ export default function App() {
       />
 
       <Feed
-        key={search.filteredEvents[0]?.id ?? 'empty'}
         feedState={feedState}
         geoCell={geoCell}
         viewerPoint={viewerPoint}
         isOffline={isOffline}
+        profilesByPubkey={profilesByPubkey}
         reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
         canReact={!isOffline}
         events={search.filteredEvents}
+        searchQuery={search.searchQuery}
         initialTimedOut={initialTimedOut}
         lastCloseReasons={lastCloseReasons}
         isLoadingMore={isLoadingMore}
-        client={client}
         deletedNoteIds={deletedNoteIds}
         onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
         onLoadMore={loadMore}
@@ -182,7 +194,10 @@ export default function App() {
         open={appState.sheets.composer.open}
         onClose={() => appState.closeSheet('composer')}
         viewerGeo5={viewerGeo5}
-        onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
+        onRequestLocation={onFinished =>
+          void requestLocationAndLoad({ forceBrowser: true, onFinished })
+        }
+        onSelectCell={setLocationFromGeohash}
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
       />

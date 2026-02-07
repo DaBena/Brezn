@@ -4,13 +4,13 @@
   "name": "Brezn",
   "launcherName": "Brezn",
   "display": "standalone",
-  "themeColor": "#161618",
+  "themeColor": "#f4f1ea",
   "themeColorDark": "#000000",
   "navigationColor": "#000000",
   "navigationColorDark": "#000000",
   "navigationDividerColor": "#000000",
   "navigationDividerColorDark": "#000000",
-  "backgroundColor": "#161618",
+  "backgroundColor": "#f4f1ea",
   "enableNotifications": true,
   "startUrl": "/Brezn/?utm_source=pwa",
   "iconUrl": "https://dabena.github.io/Brezn/icons/brezn.svg",
@@ -40,7 +40,11 @@
   "fullScopeUrl": "https://dabena.github.io/Brezn/",
   "minSdkVersion": 21,
   "orientation": "portrait",
-  "fingerprints": [],
+  "fingerprints": [
+    {
+      "value": "CB:E5:42:E9:A1:B6:44:C0:07:88:F6:DE:05:EC:DA:85:CD:6C:02:F1:87:BF:6F:78:BB:C0:5A:D2:23:3A:34:72"
+    }
+  ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "protocolHandlers": [],

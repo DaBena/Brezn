@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.dabena.twa",
+      "sha256_cert_fingerprints": [
+        "CB:E5:42:E9:A1:B6:44:C0:07:88:F6:DE:05:EC:DA:85:CD:6C:02:F1:87:BF:6F:78:BB:C0:5A:D2:23:3A:34:72"
+      ]
+    }
+  }
+]

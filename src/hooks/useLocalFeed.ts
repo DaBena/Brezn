@@ -13,7 +13,6 @@ import { contentMatchesMutedTerms } from '../lib/moderation'
 import { loadJsonSync, saveJsonSync } from '../lib/storage'
 import { deletePost } from '../lib/postService'
 import {
-  FEED_INITIAL_LOAD_TIMEOUT_MS,
   RESEND_DELETION_COOLDOWN_MS,
   FEED_INITIAL_MIN_POSTS,
   FEED_AUTO_BACKFILL_MAX_ATTEMPTS,
@@ -22,7 +21,7 @@ import {
 } from '../lib/constants'
 
 export type FeedState =
-  | { kind: 'need-location' }
+  | { kind: 'need-location'; locationError?: string }
   | { kind: 'loading' }
   | { kind: 'live' }
   | { kind: 'error'; message: string }
@@ -31,21 +30,6 @@ type SavedLocation = { geohash5: string; savedAt: number }
 
 const FEED_CACHE_KEY = 'brezn:feed-cache:v1'
 const LAST_LOCATION_KEY = 'brezn:last-location:v1'
-
-/** Kind 20000: ephemeral geohash-channel messages (e.g. nym.bar); same #g filter as kind 1. */
-const GEOHASH_CHANNEL_KIND = 20000
-
-/**
- * Prefixes for kind-20000 search by radius (geo0..geo5).
- * Relays often need 2+ char #g for kind 20000; querying all prefixes from startLen to 5 covers that.
- */
-function getKind20000Prefixes(viewerGeo5: string | null, geohashLength: number): string[] {
-  if (!viewerGeo5 || viewerGeo5.length < 5) return []
-  const startLen = geohashLength <= 1 ? 1 : geohashLength
-  const prefixes: string[] = []
-  for (let len = startLen; len <= 5; len++) prefixes.push(viewerGeo5.slice(0, len))
-  return prefixes
-}
 
 function isReplyNote(evt: Event): boolean {
   // NIP-10 replies are kind:1 with at least one `e` tag.
@@ -133,6 +117,16 @@ export function useLocalFeed(params: {
     }
   }, [])
 
+  // Re-sync online state after load (e.g. after "Allow location" reload). Some environments
+  // report navigator.onLine as false briefly on first paint; correct it so we don't stay offline.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const t = window.setTimeout(() => {
+      if (navigator.onLine) setIsOffline(false)
+    }, 200)
+    return () => window.clearTimeout(t)
+  }, [])
+
   // Clear events when relays change
   const relaysRef = useRef<string[]>([])
   useEffect(() => {
@@ -167,34 +161,42 @@ export function useLocalFeed(params: {
     setFeedState({ kind: 'loading' })
   }
 
-  async function requestLocationAndLoad(opts?: { forceBrowser?: boolean }) {
+  function applyGeo5AsLocation(geo5: string): void {
+    saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
+    setViewerGeo5(geo5)
+    if (geo5 !== viewerGeo5Ref.current) {
+      setFeedState({ kind: 'loading' })
+      setInitialTimedOut(false)
+      setLastCloseReasons(null)
+      setLocalQueryFromGeo5(geo5, geohashLength)
+    }
+  }
+
+  async function requestLocationAndLoad(opts?: { forceBrowser?: boolean; onFinished?: () => void }) {
     try {
-      // Prefer a stored last location to avoid prompting on every app open.
       if (!opts?.forceBrowser) {
         const savedGeo5 = readSavedGeo5()
         if (savedGeo5) {
-          setViewerGeo5(savedGeo5) // Update state with saved 5-digit geohash
-          setLocalQueryFromGeo5(savedGeo5, geohashLength)
+          applyGeo5AsLocation(savedGeo5)
+          opts?.onFinished?.()
           return
         }
       }
 
+      setFeedState({ kind: 'need-location' }) // clear previous error while retrying
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
-      saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
-      setViewerGeo5(geo5)
-
-      // Only reload feed when the 5-digit geohash actually changed
-      if (geo5 !== viewerGeo5Ref.current) {
-        setFeedState({ kind: 'loading' })
-        setInitialTimedOut(false)
-        setLastCloseReasons(null)
-        setLocalQueryFromGeo5(geo5, geohashLength)
-      }
+      applyGeo5AsLocation(geo5)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Location error'
-      setFeedState({ kind: 'error', message: msg })
+      setFeedState({ kind: 'need-location', locationError: msg })
+    } finally {
+      opts?.onFinished?.()
     }
+  }
+
+  function setLocationFromGeohash(geo5: string): void {
+    applyGeo5AsLocation(geo5)
   }
 
   // Auto-prompt for location on first open (no stored location).
@@ -227,13 +229,10 @@ export function useLocalFeed(params: {
     setEvents([])
 
     let didEose = false
-    const timeoutId = window.setTimeout(() => {
-      if (!didEose) setInitialTimedOut(true)
-    }, FEED_INITIAL_LOAD_TIMEOUT_MS)
 
     const onEvent = (evt: Event) => {
-      if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
-      if (evt.kind === 1 && isReplyNote(evt)) return
+      if (evt.kind !== 1) return
+      if (isReplyNote(evt)) return
 
       // Defer state update so relay setTimeout doesn't trigger "handler took 50ms" violation
       startTransition(() => {
@@ -260,7 +259,6 @@ export function useLocalFeed(params: {
     }
     const onEose = () => {
       didEose = true
-      window.clearTimeout(timeoutId)
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
@@ -268,21 +266,15 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // If geohashLength is 0, query current cell + east/west neighbors (3 queries sequentially)
-    // Otherwise, single query with the selected geohash length
+    // Special case: length 0 means query current cell plus east/west neighbor cells (3 queries) for wider local coverage.
+    // Otherwise, single query with the selected geohash length.
     // No 'since' filter - find all posts regardless of age (important for apps with few users)
-    
-    // For geo0, queryGeohash is the 5-char cell; use it as fallback when viewerGeo5 not yet in state
-    const geo5ForPrefixes = viewerGeo5 ?? (queryGeohash?.length === 5 ? queryGeohash : null)
-    const kind20000Prefixes = getKind20000Prefixes(geo5ForPrefixes, geohashLength)
-    const addKind20000PrefixSub = kind20000Prefixes.length > 0
-
     if (geohashLength === 0 && queryGeohash.length === 5) {
       const oneCharHash = queryGeohash.slice(0, 1)
       const neighbors = getEastWestNeighbors(oneCharHash)
       if (neighbors) {
         const cellsToQuery = [oneCharHash, neighbors.east, neighbors.west]
-        const totalQueries = cellsToQuery.length + (addKind20000PrefixSub ? 1 : 0)
+        const totalQueries = cellsToQuery.length
         let currentIndex = 0
         let eoseCount = 0
         const unsubs: (() => void)[] = []
@@ -290,27 +282,8 @@ export function useLocalFeed(params: {
         const checkAllComplete = () => {
           if (eoseCount >= totalQueries) {
             didEose = true
-            window.clearTimeout(timeoutId)
             setFeedState({ kind: 'live' })
           }
-        }
-
-        // Start kind-20000 prefix sub immediately (parallel), so u0 etc. are found while 3 cells run
-        if (addKind20000PrefixSub) {
-          unsubs.push(
-            client.subscribe(
-              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
-              {
-                onevent: onEvent,
-                oneose: () => {
-                  eoseCount++
-                  checkAllComplete()
-                },
-                onclose: onClose,
-              },
-            ),
-          )
-          unsubRef.current = () => unsubs.forEach(u => u())
         }
 
         const runNextQuery = () => {
@@ -322,7 +295,7 @@ export function useLocalFeed(params: {
           const cell = cellsToQuery[currentIndex]
           currentIndex++
           const unsub = client.subscribe(
-            { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [cell], limit: FEED_QUERY_LIMIT },
+            { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT },
             {
               onevent: onEvent,
               oneose: () => {
@@ -331,6 +304,7 @@ export function useLocalFeed(params: {
                 if (currentIndex < cellsToQuery.length) setTimeout(runNextQuery, 100)
               },
               onclose: onClose,
+              immediate: true,
             },
           )
           unsubs.push(unsub)
@@ -340,65 +314,23 @@ export function useLocalFeed(params: {
         runNextQuery()
       } else {
         const fallbackHash = queryGeohash.slice(0, 1)
-        let mainDone = false
-        let prefixDone = !addKind20000PrefixSub
-        const checkDone = () => {
-          if (mainDone && prefixDone) {
-            didEose = true
-            window.clearTimeout(timeoutId)
-            setFeedState({ kind: 'live' })
-          }
-        }
         const unsubMain = client.subscribe(
-          { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [fallbackHash], limit: FEED_QUERY_LIMIT },
-          { onevent: onEvent, oneose: () => { mainDone = true; checkDone() }, onclose: onClose },
+          { kinds: [1], '#g': [fallbackHash], limit: FEED_QUERY_LIMIT },
+          { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
         )
-        const unsubs: (() => void)[] = [unsubMain]
-        if (addKind20000PrefixSub) {
-          unsubs.push(
-            client.subscribe(
-              { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
-              { onevent: onEvent, oneose: () => { prefixDone = true; checkDone() }, onclose: onClose },
-            ),
-          )
-        }
-        unsubRef.current = () => unsubs.forEach(u => u())
-      }
-    } else if (addKind20000PrefixSub && queryGeohash.length >= 1) {
-      // Main sub (kind 1 + 20000) + kind-20000 prefix sub (u..u0xdx by radius)
-      let mainDone = false
-      let prefixDone = false
-      const checkBoth = () => {
-        if (mainDone && prefixDone) {
-          didEose = true
-          window.clearTimeout(timeoutId)
-          setFeedState({ kind: 'live' })
-        }
-      }
-      const unsubMain = client.subscribe(
-        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
-        { onevent: onEvent, oneose: () => { mainDone = true; checkBoth() }, onclose: onClose },
-      )
-      const unsubPrefix = client.subscribe(
-        { kinds: [GEOHASH_CHANNEL_KIND], '#g': kind20000Prefixes, limit: FEED_QUERY_LIMIT },
-        { onevent: onEvent, oneose: () => { prefixDone = true; checkBoth() }, onclose: onClose },
-      )
-      unsubRef.current = () => {
-        unsubMain()
-        unsubPrefix()
+        unsubRef.current = unsubMain
       }
     } else {
       const unsub = client.subscribe(
-        { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
-        { onevent: onEvent, oneose: onEose, onclose: onClose },
+        { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
+        { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
       )
       unsubRef.current = unsub
     }
     return () => {
-      window.clearTimeout(timeoutId)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength, identityPubkey, viewerGeo5])
+  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength, identityPubkey])
 
   function loadMore() {
     if (isLoadingMore) return
@@ -417,16 +349,17 @@ export function useLocalFeed(params: {
     const until = oldest - 1
 
     const onEventLoadMore = (evt: Event) => {
-      if (evt.kind !== 1 && evt.kind !== GEOHASH_CHANNEL_KIND) return
-      if (evt.kind === 1 && isReplyNote(evt)) return
+      if (evt.kind !== 1) return
+      if (isReplyNote(evt)) return
       setEvents(prev => (prev.some(e => e.id === evt.id) ? prev : [evt, ...prev]))
     }
 
     const clear = () => setIsLoadingMore(false)
-    const timeoutId = window.setTimeout(clear, FEED_INITIAL_LOAD_TIMEOUT_MS)
+    const timeoutMs = 15_000
+    const timeoutId = window.setTimeout(clear, timeoutMs)
 
     const unsub = client.subscribe(
-      { kinds: [1, GEOHASH_CHANNEL_KIND], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT, until },
+      { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT, until },
       {
         onevent: onEventLoadMore,
         oneose: () => {
@@ -441,11 +374,9 @@ export function useLocalFeed(params: {
         },
       },
     )
-    
-    // Also close on timeout
     setTimeout(() => {
       unsub()
-    }, FEED_INITIAL_LOAD_TIMEOUT_MS)
+    }, timeoutMs)
   }
 
   // Auto-backfill: if there are too few posts, automatically load older ones,
@@ -482,6 +413,7 @@ export function useLocalFeed(params: {
   return {
     feedState,
     requestLocationAndLoad,
+    setLocationFromGeohash,
     geoCell,
     viewerGeo5, // Full 5-digit geohash for posting
     isOffline,

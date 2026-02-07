@@ -1,17 +1,20 @@
 # Publishes the APK from the latest GitHub release to Zapstore.
-# Runs after build-apk creates a release (or on manual run).
+# Runs after every successful Build Android APK run
 name: Publish to Zapstore
 permissions:
   contents: read
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Build Android APK"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

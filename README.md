@@ -2,7 +2,7 @@
 
 **Nostr PWA, geohash, local feed**
 
-[Brezn](https://dabena.github.io/Brezn/) is a Nostr PWA that shows posts by location. You set your area with a five-digit geohash (about 5 km per cell). You connect with others nearby. Like CB radio for the internet: local chatter, no single company in charge.
+[Brezn](https://dabena.github.io/Brezn/) is a Nostr PWA that shows posts in your area. Your position is reduced to a five-digit geohash (about 5 km per cell) only the cell is shared, not your exact coordinates. Connect locally. Like CB radio for the internet: free and equal, no single company in charge.
 
 ## Installation
 
@@ -34,7 +34,7 @@ Brezn is just one view of Nostr and not its own social network. The app loads, d
 - `React` + `Vite`
 - `Tailwind CSS`
 - `nostr-tools`
-- PWA: `vite-plugin-pwa` (Service Worker + Offline Fallback)
+- `vite-plugin-pwa` (Service Worker + Offline Fallback)
 
 ## Development
 
@@ -59,6 +59,6 @@ Brezn is a client application that connects to the Nostr network. The developer 
 
 Brezn provides only optional client-side content filtering features for convenience, such as private keyword blocklist and user blocklists. When a report reason is provided by the user, Brezn sends a NIP-56 report event to relays. Relay operators may use this information to help maintain a healthy community, but they are under no obligation to act on reports. Relay operators are volunteers who provide a valuable service free of charge to the Nostr ecosystem and users should be respectful when contacting them.
 
-Users are responsible for managing their private keys and the content they publish. Published content may remain permanently on the network and cannot be guaranteed to be deleted. Regarding concerns about user content please contact the respective relay operators and, if necessary, law enforcement authorities directly.
+Users are responsible for managing their private keys and the content they publish. Published content may remain permanently on the network and cannot be guaranteed to be deleted.
 
   [Impressum](https://mein.online-impressum.de/dabena/)

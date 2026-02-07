@@ -4,7 +4,7 @@ import './index.css'
 import { Root } from './Root'
 
 // Initialize theme from localStorage (before React renders to avoid flash)
-// Default to 'dark' for backward compatibility
+// Default to 'light' for new users (existing preferences stay unchanged)
 function initializeTheme() {
   try {
     const stored = localStorage.getItem('brezn:v1')
@@ -26,27 +26,52 @@ function initializeTheme() {
       }
     }
   } catch {
-    // Ignore errors, fall back to dark mode
+    // Ignore errors, fall back to light mode
   }
-  // Default to dark mode
-  document.documentElement.classList.add('dark')
+  // Default to light mode (no .dark class)
+  document.documentElement.classList.remove('dark')
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute('content', '#f4f1ea')
+  }
 }
 
 initializeTheme()
 
-// Suppress harmless WebSocket errors from nostr-tools SimplePool
-// These occur when a WebSocket is closed while already closing/closed (race condition)
-// The errors are harmless and can be safely ignored
+// Suppress harmless WebSocket errors and long-handler violations in console
 if (typeof window !== 'undefined') {
   const originalError = console.error
+  const originalWarn = console.warn
+
   console.error = (...args: unknown[]) => {
-    const message = args[0]?.toString() || ''
-    // Suppress "WebSocket is already in CLOSING or CLOSED state" errors
-    if (message.includes('WebSocket is already in CLOSING') || message.includes('WebSocket is already in CLOSED')) {
-      return // Silently ignore
+    const full = args.map(a => (a != null ? String(a) : '')).join(' ')
+    if (
+      full.includes('WebSocket is already in CLOSING') ||
+      full.includes('WebSocket is already in CLOSED')
+    ) {
+      return
     }
     originalError.apply(console, args)
   }
+
+  console.warn = (...args: unknown[]) => {
+    const full = args.map(a => (a != null ? String(a) : '')).join(' ')
+    if (full.includes("[Violation]") && full.includes('handler took')) {
+      return
+    }
+    originalWarn.apply(console, args)
+  }
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const msg = event.reason?.message ?? String(event.reason ?? '')
+    if (
+      typeof msg === 'string' &&
+      (msg.includes('WebSocket is already in CLOSING') || msg.includes('WebSocket is already in CLOSED state'))
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  })
 }
 
 createRoot(document.getElementById('root')!).render(

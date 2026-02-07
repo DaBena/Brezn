@@ -1,5 +1,11 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls, isSafeUrl } from '../lib/urls'
+import {
+  extractLinks,
+  isLikelyImageUrl,
+  isLikelyVideoUrl,
+  uniqueUrls,
+  isSafeUrl,
+} from '../lib/urls'
 
 function stop(e: React.SyntheticEvent) {
   e.stopPropagation()
@@ -164,49 +170,57 @@ export const PostContent = memo(function PostContent(props: {
         })}
       </div>
 
-      {videoUrls.length ? (
-        <div className={[
-          'mt-2 grid gap-2 w-full',
-          compact 
-            ? (videoUrls.length === 1 ? 'grid-cols-1' : videoUrls.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
-            : (videoUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
-        ].join(' ')}>
-          {videoUrls.map(u => (
-            <div key={u} className="overflow-hidden">
-              <VideoPreview
-                url={u}
-                interactive={interactive}
-                failed={Boolean(failedMedia[u])}
-                onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
-                compact={compact}
-                linkMedia={linkMedia}
-              />
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {(() => {
+        const okVideos = videoUrls.filter(u => !failedMedia[u])
+        if (!okVideos.length) return null
+        return (
+          <div className={[
+            'mt-2 grid gap-2 w-full',
+            compact
+              ? (okVideos.length === 1 ? 'grid-cols-1' : okVideos.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
+              : (okVideos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
+          ].join(' ')}>
+            {okVideos.map(u => (
+              <div key={u} className="overflow-hidden">
+                <VideoPreview
+                  url={u}
+                  interactive={interactive}
+                  failed={false}
+                  onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
+                  compact={compact}
+                  linkMedia={linkMedia}
+                />
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
-      {imageUrls.length ? (
-        <div className={[
-          'mt-2 grid gap-2 w-full',
-          compact 
-            ? (imageUrls.length === 1 ? 'grid-cols-1' : imageUrls.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
-            : (imageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
-        ].join(' ')}>
-          {imageUrls.map(u => (
-            <div key={u} className="overflow-hidden">
-              <ImagePreview
-                url={u}
-                interactive={interactive}
-                failed={Boolean(failedMedia[u])}
-                onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
-                compact={compact}
-                linkMedia={linkMedia}
-              />
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {(() => {
+        const okImages = imageUrls.filter(u => !failedMedia[u])
+        if (!okImages.length) return null
+        return (
+          <div className={[
+            'mt-2 grid gap-2 w-full',
+            compact
+              ? (okImages.length === 1 ? 'grid-cols-1' : okImages.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
+              : (okImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
+          ].join(' ')}>
+            {okImages.map(u => (
+              <div key={u} className="overflow-hidden">
+                <ImagePreview
+                  url={u}
+                  interactive={interactive}
+                  failed={false}
+                  onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
+                  compact={compact}
+                  linkMedia={linkMedia}
+                />
+              </div>
+            ))}
+          </div>
+        )
+      })()}
       
       {/* Reaction button in a compact row */}
       {compact && reactionButton ? (

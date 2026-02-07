@@ -11,16 +11,16 @@ export function ComposerSheet(props: {
   open: boolean
   onClose: () => void
   viewerGeo5: string | null
-  onRequestLocation?: () => void
+  onRequestLocation?: (onFinished?: () => void) => void
+  onSelectCell?: (geohash5: string) => void
   onPublish: (content: string) => Promise<void>
   mediaUploadEndpoint?: string
 }) {
-  const { open, onClose, viewerGeo5, onRequestLocation, onPublish, mediaUploadEndpoint } = props
+  const { open, onClose, viewerGeo5, onRequestLocation, onSelectCell, onPublish, mediaUploadEndpoint } = props
 
   const [composerText, setComposerText] = useState('')
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
   const [showGeoMap, setShowGeoMap] = useState(false)
-  const [mapCenterTrigger, setMapCenterTrigger] = useState(0)
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'error'>('idle')
   const [publishError, setPublishError] = useState<string | null>(null)
 
@@ -91,25 +91,12 @@ export function ComposerSheet(props: {
     >
       {viewerGeo5 && showGeoMap ? (
         <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
-          <GeohashMap geohash={viewerGeo5} className="h-full w-full" centerTrigger={mapCenterTrigger} />
-          {onRequestLocation ? (
-            <button
-              type="button"
-              onClick={() => {
-                onRequestLocation()
-                setMapCenterTrigger(t => t + 1)
-              }}
-              className="absolute bottom-2 left-2 z-[500] flex h-12 w-12 items-center justify-center rounded-full bg-black/25 text-white shadow-soft hover:bg-black/35 active:scale-[0.98] focus:outline-none"
-              aria-label="Update location"
-            >
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" className="block">
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          ) : null}
+          <GeohashMap
+            geohash={viewerGeo5}
+            className="h-full w-full"
+            onCellSelect={onSelectCell}
+            onRequestLocation={onRequestLocation}
+          />
         </div>
       ) : null}
       {mediaUrls.length > 0 ? (

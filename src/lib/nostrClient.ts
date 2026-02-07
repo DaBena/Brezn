@@ -110,7 +110,7 @@ export type BreznNostrClient = {
    * // Later: unsub()
    * ```
    */
-  subscribe(filter: Filter, opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void }): () => void
+  subscribe(filter: Filter, opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean }): () => void
 
   /**
    * Get list of configured relay URLs.
@@ -389,7 +389,7 @@ export function createNostrClient(): BreznNostrClient {
   type ActiveSub = {
     id: string
     filter: Filter
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void }
+    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean }
     closer: SubCloser | null
   }
 
@@ -610,16 +610,14 @@ export function createNostrClient(): BreznNostrClient {
 
   function subscribe(
     filter: Filter,
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void },
+    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean },
   ): () => void {
     const id = `sub_${++subSeq}`
     const s: ActiveSub = { id, filter, opts, closer: null }
     activeSubs.set(id, s)
     
-    // Stagger subscriptions to avoid "too many concurrent REQs"
-    // First subscription (usually feed) starts immediately
-    // Subsequent subscriptions are delayed by 200ms each
-    const delay = activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200
+    // Stagger subscriptions to avoid "too many concurrent REQs"; feed (immediate) always starts at once
+    const delay = opts.immediate ? 0 : (activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200)
     
     if (delay === 0) {
       startOrRestartSub(s, 'subscribe')
@@ -715,8 +713,8 @@ export function createNostrClient(): BreznNostrClient {
     if (theme === 'light' || theme === 'dark') {
       return theme
     }
-    // Default: 'dark'
-    return 'dark'
+    // Default: 'light' for new users
+    return 'light'
   }
 
   function setTheme(theme: 'light' | 'dark') {
