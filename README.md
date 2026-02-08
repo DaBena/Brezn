@@ -2,7 +2,7 @@
 
 **Nostr PWA, geohash, local feed**
 
-[Brezn](https://dabena.github.io/Brezn/) is a Nostr PWA that shows posts in your area. Your position is reduced to a five-digit geohash (about 5 km per cell) only the cell is shared, not your exact coordinates. Connect locally. Like CB radio for the internet: free and equal, no single company in charge.
+[Brezn](https://dabena.github.io/Brezn/) is a Nostr PWA that shows posts in your area. Your position is reduced to a five-digit geohash (about 5 km per cell) only the cell is shared, not your exact coordinates. Connect locally. Like CB radio for the internet: free and equal and decentralized.
 
 ## Installation
 

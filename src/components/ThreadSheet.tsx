@@ -153,6 +153,7 @@ export function ThreadSheet(props: {
   async function handleBlock() {
     if (!onBlockUser) return
     if (isOffline) {
+      console.log('[Brezn] toast: Offline - Cannot block user')
       showToast('Offline - Cannot block user.', 'error')
       return
     }
@@ -182,7 +183,9 @@ export function ThreadSheet(props: {
       onClose()
     } catch (e) {
       setBlockState('idle')
-      showToast(e instanceof Error ? e.message : 'Blocking failed.', 'error')
+      const msg = e instanceof Error ? e.message : 'Blocking failed.'
+      console.log('[Brezn] toast: Blocking failed', { error: msg })
+      showToast(msg, 'error')
     }
   }
 
@@ -194,6 +197,7 @@ export function ThreadSheet(props: {
   async function handleBlockReplyWithReport(reply: Event) {
     if (!onBlockUser) return
     if (isOffline) {
+      console.log('[Brezn] toast: Offline - Cannot block user')
       showToast('Offline - Cannot block user.', 'error')
       return
     }
@@ -222,7 +226,9 @@ export function ThreadSheet(props: {
       showToast('User blocked.', 'success')
     } catch (e) {
       setBlockState('idle')
-      showToast(e instanceof Error ? e.message : 'Blocking failed.', 'error')
+      const msg = e instanceof Error ? e.message : 'Blocking failed.'
+      console.log('[Brezn] toast: Blocking failed', { error: msg })
+      showToast(msg, 'error')
     }
   }
 

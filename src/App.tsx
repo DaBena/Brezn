@@ -112,19 +112,24 @@ export default function App() {
     try {
       await publishPost(client, content, viewerGeo5)
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Publish failed.', 'error')
+      const msg = e instanceof Error ? e.message : 'Publish failed.'
+      console.log('[Brezn] toast: Publish post failed', { error: msg })
+      showToast(msg, 'error')
     }
   }
 
   const handlePublishReply = async (root: Event, content: string) => {
     if (isOffline) {
+      console.log('[Brezn] toast: Offline - Comments read-only')
       showToast('Offline - Comments are read-only.', 'error')
       return
     }
     try {
       await publishReply(client, root, content, viewerGeo5)
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Publish failed.', 'error')
+      const msg = e instanceof Error ? e.message : 'Publish failed.'
+      console.log('[Brezn] toast: Publish reply failed', { error: msg })
+      showToast(msg, 'error')
     }
   }
 
@@ -147,6 +152,7 @@ export default function App() {
     optimisticReactions.addOptimisticReaction(evt.id)
     await reactToPost(client, evt, identity.pubkey, undefined, error => {
       optimisticReactions.removeOptimisticReaction(evt.id)
+      console.log('[Brezn] toast: Reaction failed', { error: error.message })
       showToast(error.message, 'error')
     })
   }

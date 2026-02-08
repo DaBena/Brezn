@@ -115,6 +115,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                 onClick={async () => {
                   const trimmed = importNsec.trim()
                   if (!trimmed) {
+                    console.log('[Brezn] toast: Please enter an nsec')
                     showToast('Please enter an nsec', 'error')
                     return
                   }
@@ -130,7 +131,9 @@ export function KeyManagement({ client }: KeyManagementProps) {
                       window.location.reload()
                     }, 1000)
                   } catch (error) {
-                    showToast(error instanceof Error ? error.message : 'Failed to import nsec', 'error')
+                    const msg = error instanceof Error ? error.message : 'Failed to import nsec'
+                    console.log('[Brezn] toast: Failed to import nsec', { error: msg })
+                    showToast(msg, 'error')
                   } finally {
                     setIsImporting(false)
                   }
