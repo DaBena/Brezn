@@ -175,6 +175,7 @@ export default function App() {
         geoCell={geoCell}
         viewerPoint={viewerPoint}
         isOffline={isOffline}
+        showCookieNotice={feedState.kind === 'need-location' && viewerGeo5 === null}
         profilesByPubkey={profilesByPubkey}
         reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
         canReact={!isOffline}

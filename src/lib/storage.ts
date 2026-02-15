@@ -6,9 +6,20 @@ const STORE_NAME = 'keyValueStore'
 // Encryption key storage key (separate from data)
 const ENCRYPTION_KEY_STORAGE_KEY = 'brezn:encryption-key'
 
+/** IndexedDB is only opened after user has consented (first "Allow location"). */
+let storageConsentGiven = false
 let dbPromise: Promise<IDBDatabase> | null = null
 
+/** Call with true after user has clicked "Allow location". Enables opening brezn-storage (IndexedDB). */
+export function setStorageConsentGiven(value: boolean): void {
+  storageConsentGiven = value
+  if (value) dbPromise = null
+}
+
 function getDB(): Promise<IDBDatabase> {
+  if (!storageConsentGiven) {
+    return Promise.reject(new Error('Storage consent not yet given'))
+  }
   if (dbPromise) return dbPromise
 
   dbPromise = new Promise((resolve, reject) => {
@@ -122,7 +133,6 @@ export async function saveJson(key: string, value: unknown): Promise<void> {
   }
 }
 
-// Synchronous version for backward compatibility (uses localStorage only)
 export function loadJsonSync<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -238,13 +248,13 @@ async function decryptText(ciphertext: string): Promise<string> {
     const decoder = new TextDecoder()
     return decoder.decode(decrypted)
   } catch (error) {
-    // Decryption failed - this could happen if:
-    // 1. The encryption key changed (e.g., IndexedDB was cleared)
-    // 2. The ciphertext is corrupted
-    // 3. It's actually plaintext from an old version
-    // In this case, we return the ciphertext as-is (might be plaintext)
-    // The caller should handle this gracefully
-    console.warn('Decryption failed, assuming plaintext:', error)
+    // Decryption failed - e.g. wrong key (IndexedDB cleared / consent flow), corrupted data, or old plaintext
+    // Return as-is; caller treats as plaintext. Avoid noisy warn for expected OperationError.
+    const isOperationError =
+      error instanceof DOMException && error.name === 'OperationError'
+    if (!isOperationError) {
+      console.warn('Decryption failed, assuming plaintext:', error)
+    }
     return ciphertext
   }
 }

@@ -8,6 +8,15 @@ export function PwaUpdateToast() {
   const updateServiceWorkerRef = useRef<null | ((reloadPage?: boolean) => Promise<void>)>(null)
 
   useEffect(() => {
+    // In dev, skip SW registration so the app always loads normally (no offline fallback page).
+    if (import.meta.env.DEV) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister())
+        })
+      }
+      return
+    }
     const update = registerSW({
       onNeedRefresh() {
         setNeedRefresh(true)
@@ -23,7 +32,10 @@ export function PwaUpdateToast() {
 
   return (
     <div className="fixed left-1/2 top-3 z-[70] w-[calc(min(560px,100vw)-32px)] -translate-x-1/2">
-      <div className="rounded-lg border border-brezn-border bg-white p-3 shadow-soft dark:bg-brezn-panel">
+      <div
+        className="rounded-lg border border-brezn-border p-3 shadow-soft"
+        style={{ backgroundColor: 'var(--brezn-panel)', color: 'var(--brezn-text)' }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-semibold">Update available</div>

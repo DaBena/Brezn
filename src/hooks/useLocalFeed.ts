@@ -5,12 +5,12 @@ import {
   decodeGeohashCenter,
   encodeGeohash,
   GEOHASH_LEN_MAX_UI,
-  GEOHASH_LEN_MIN_UI,
   getBrowserLocation,
   getEastWestNeighbors,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
-import { loadJsonSync, saveJsonSync } from '../lib/storage'
+import { getSavedGeo5, setSavedGeo5 } from '../lib/lastLocation'
+import { loadJsonSync, saveJsonSync, setStorageConsentGiven } from '../lib/storage'
 import { deletePost } from '../lib/postService'
 import {
   RESEND_DELETION_COOLDOWN_MS,
@@ -26,10 +26,7 @@ export type FeedState =
   | { kind: 'live' }
   | { kind: 'error'; message: string }
 
-type SavedLocation = { geohash5: string; savedAt: number }
-
 const FEED_CACHE_KEY = 'brezn:feed-cache:v1'
-const LAST_LOCATION_KEY = 'brezn:last-location:v1'
 
 function isReplyNote(evt: Event): boolean {
   // NIP-10 replies are kind:1 with at least one `e` tag.
@@ -54,15 +51,7 @@ export function useLocalFeed(params: {
 
   const [isOffline, setIsOffline] = useState(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false))
 
-  function readSavedGeo5(): string | null {
-    const v = loadJsonSync<SavedLocation | null>(LAST_LOCATION_KEY, null)
-    if (!v || typeof v.geohash5 !== 'string') return null
-    const s = v.geohash5.trim()
-    if (s.length < GEOHASH_LEN_MIN_UI) return null
-    return s
-  }
-
-  const initialSavedGeo5 = readSavedGeo5()
+  const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
@@ -83,8 +72,8 @@ export function useLocalFeed(params: {
   // geoCell is the same as queryGeohash (for UI display, can be 1-5 characters)
   const geoCell = queryGeohash
   // viewerGeo5 is the full 5-digit geohash (for posting, always 5 characters)
-  // Read from localStorage - will be updated when location changes
-  const [viewerGeo5, setViewerGeo5] = useState<string | null>(() => readSavedGeo5())
+  // Read from lastLocation - will be updated when location changes
+  const [viewerGeo5, setViewerGeo5] = useState<string | null>(() => getSavedGeo5())
   // viewerPoint is derived from saved 5-digit geohash
   const viewerPoint = useMemo(() => {
     return viewerGeo5 ? decodeGeohashCenter(viewerGeo5) : null
@@ -94,6 +83,10 @@ export function useLocalFeed(params: {
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
   const viewerGeo5Ref = useRef<string | null>(viewerGeo5)
   viewerGeo5Ref.current = viewerGeo5
+  const identityPubkeyRef = useRef<string | null>(identityPubkey)
+  identityPubkeyRef.current = identityPubkey
+  const queryGeohashRef = useRef<string | null>(queryGeohash)
+  queryGeohashRef.current = queryGeohash
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
@@ -162,20 +155,22 @@ export function useLocalFeed(params: {
   }
 
   function applyGeo5AsLocation(geo5: string): void {
-    saveJsonSync(LAST_LOCATION_KEY, { geohash5: geo5, savedAt: Date.now() } satisfies SavedLocation)
+    setSavedGeo5(geo5)
     setViewerGeo5(geo5)
-    if (geo5 !== viewerGeo5Ref.current) {
-      setFeedState({ kind: 'loading' })
-      setInitialTimedOut(false)
-      setLastCloseReasons(null)
-      setLocalQueryFromGeo5(geo5, geohashLength)
-    }
+    if (geo5 === viewerGeo5Ref.current) return
+    const len = geohashLength
+    const nextQuery = len === 0 ? geo5 : geo5.slice(0, Math.max(1, Math.min(5, Math.round(len))) as 1 | 2 | 3 | 4 | 5)
+    if (nextQuery === queryGeohashRef.current) return
+    setFeedState({ kind: 'loading' })
+    setInitialTimedOut(false)
+    setLastCloseReasons(null)
+    setLocalQueryFromGeo5(geo5, geohashLength)
   }
 
   async function requestLocationAndLoad(opts?: { forceBrowser?: boolean; onFinished?: () => void }) {
     try {
       if (!opts?.forceBrowser) {
-        const savedGeo5 = readSavedGeo5()
+        const savedGeo5 = getSavedGeo5()
         if (savedGeo5) {
           applyGeo5AsLocation(savedGeo5)
           opts?.onFinished?.()
@@ -187,6 +182,8 @@ export function useLocalFeed(params: {
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
       applyGeo5AsLocation(geo5)
+      setStorageConsentGiven(true) // allow IndexedDB (brezn-storage) from now on
+      client.persistStateNow() // persist nsec now that user has consented (Allow location)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Location error'
       setFeedState({ kind: 'need-location', locationError: msg })
@@ -225,16 +222,17 @@ export function useLocalFeed(params: {
     }
     unsubRef.current?.()
 
-    // Clear events when starting a new query to avoid duplicates
     setEvents([])
 
     let didEose = false
+    let eventCount = 0
 
     const onEvent = (evt: Event) => {
       if (evt.kind !== 1) return
       if (isReplyNote(evt)) return
 
-      // Defer state update so relay setTimeout doesn't trigger "handler took 50ms" violation
+      eventCount++
+      if (eventCount === 1) setFeedState({ kind: 'live' })
       startTransition(() => {
         setEvents(prev => {
           if (prev.some(e => e.id === evt.id)) return prev
@@ -245,15 +243,15 @@ export function useLocalFeed(params: {
       // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
       if (
         evt.kind === 1 &&
-        identityPubkey &&
-        evt.pubkey === identityPubkey &&
+        identityPubkeyRef.current &&
+        evt.pubkey === identityPubkeyRef.current &&
         deletedNoteIdsRef.current.has(evt.id)
       ) {
         const now = Date.now()
         const last = lastResendTimeByNoteIdRef.current[evt.id] ?? 0
         if (now - last >= RESEND_DELETION_COOLDOWN_MS) {
           lastResendTimeByNoteIdRef.current[evt.id] = now
-          void deletePost(client, evt, identityPubkey).catch(() => {})
+          void deletePost(client, evt, identityPubkeyRef.current).catch(() => {})
         }
       }
     }
@@ -330,7 +328,7 @@ export function useLocalFeed(params: {
     return () => {
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength, identityPubkey])
+  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength])
 
   function loadMore() {
     if (isLoadingMore) return
@@ -404,7 +402,7 @@ export function useLocalFeed(params: {
     setGeohashLength(nextLength)
 
     // If we already have a stored last location, rebuild the query without prompting.
-    const savedGeo5 = readSavedGeo5()
+    const savedGeo5 = getSavedGeo5()
     if (savedGeo5) {
       setLocalQueryFromGeo5(savedGeo5, nextLength)
     }

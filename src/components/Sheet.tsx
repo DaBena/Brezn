@@ -282,21 +282,9 @@ export function Sheet(props: {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={[
-          // mobile: positioned at top to avoid keyboard, with small margin
-          'absolute top-2 top-[calc(env(safe-area-inset-top,0px)+0.5rem)] left-0 right-0 mx-auto w-full max-w-xl',
-          // desktop: centered modal
-          'sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl',
-          // sizing / scrolling
-          'max-h-[calc(100dvh-env(safe-area-inset-top,0px))] sm:max-h-[calc(100dvh-2rem)]',
-          'overflow-hidden',
-          // layout
-          'flex flex-col',
-          // visuals
-          'rounded-t-xl border shadow-soft',
-          // spacing
-          'p-2',
-          // swipe transition
-          'transition-transform duration-200 ease-out',
+          'absolute top-[calc(env(safe-area-inset-top,0px)+0.5rem)] left-0 right-0 mx-auto w-full max-w-xl',
+          'max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.5rem)] overflow-hidden flex flex-col',
+          'border shadow-soft p-2 transition-transform duration-200 ease-out',
         ].join(' ')}
         style={{
           transform: swipeOffset > 0 

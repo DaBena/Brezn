@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadJson, saveJson, loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson } from './storage'
+import { loadJson, saveJson, loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
 
 describe('storage', () => {
   beforeEach(async () => {
+    setStorageConsentGiven(true)
     localStorage.clear()
     // Clear IndexedDB and wait for it to complete
     if (typeof indexedDB !== 'undefined') {

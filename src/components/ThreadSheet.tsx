@@ -14,6 +14,17 @@ import { PostIdentity } from './PostIdentity'
 import { shortNpub } from '../lib/nostrUtils'
 import * as nip19 from 'nostr-tools/nip19'
 
+function HeartIcon({ liked }: { liked: boolean }) {
+  const heartPath = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
+  return (
+    <span aria-hidden="true" className={liked ? 'text-red-500' : 'text-brezn-muted'}>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d={heartPath} />
+      </svg>
+    </span>
+  )
+}
+
 function PostCard(props: {
   evt: Event
   viewerPoint: GeoPoint | null
@@ -30,6 +41,7 @@ function PostCard(props: {
             pubkey={evt.pubkey} 
             profile={profile}
             onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
+            avatarSize="large"
           />
         </div>
         <div className="shrink-0 text-[11px] text-brezn-muted">
@@ -327,7 +339,7 @@ export function ThreadSheet(props: {
                     reactionsByNoteId[root.id]?.total ? ` (${reactionsByNoteId[root.id]?.total})` : ''
                   }`}
                 >
-                  <span aria-hidden="true">👍</span>
+                  <HeartIcon liked={Boolean(reactionsByNoteId[root.id]?.viewerReacted)} />
                   <span className="font-mono">{reactionsByNoteId[root.id]?.total ?? 0}</span>
                 </button>
               </div>
@@ -378,38 +390,57 @@ export function ThreadSheet(props: {
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <PostCard evt={r} viewerPoint={viewerPoint} profile={replyProfile} onOpenChat={onOpenChat} />
-                            <div className="flex items-center justify-end gap-2">
+                          <article className="rounded-lg bg-brezn-panel2 p-3 shadow-soft">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-6 min-w-0 flex-1">
+                                <PostIdentity
+                                  pubkey={r.pubkey}
+                                  profile={replyProfile}
+                                  onClick={onOpenChat ? () => onOpenChat(r.pubkey) : undefined}
+                                  avatarSize="large"
+                                />
+                                {!isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBlockReply(r.id)}
+                                    disabled={blockState === 'blocking' || isOffline}
+                                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonDanger}`}
+                                    title="Block user"
+                                  >
+                                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="12" cy="12" r="10"/>
+                                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                    </svg>
+                                  </button>
+                                ) : null}
+                              </div>
+                              <span className="shrink-0 text-[11px] text-brezn-muted">
+                                {new Date(r.created_at * 1000).toLocaleString()}
+                                {(() => {
+                                  const dist = viewerPoint ? calculateApproxDistance(r, viewerPoint) : null
+                                  return dist ? <span> / {dist}</span> : null
+                                })()}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <PostContent content={r.content} linkMedia />
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => onReact(r)}
                                 disabled={!canReact || Boolean(reactionsByNoteId[r.id]?.viewerReacted)}
-                                className={reactionButtonClasses(
+                                className={`shrink-0 ${reactionButtonClasses(
                                   Boolean(reactionsByNoteId[r.id]?.viewerReacted),
                                   canReact
-                                )}
+                                )}`}
                                 aria-label={`Send reaction${reactionsByNoteId[r.id]?.total ? ` (${reactionsByNoteId[r.id]?.total})` : ''}`}
                               >
-                                <span aria-hidden="true">👍</span>
+                                <HeartIcon liked={Boolean(reactionsByNoteId[r.id]?.viewerReacted)} />
                                 <span className="font-mono">{reactionsByNoteId[r.id]?.total ?? 0}</span>
                               </button>
-                              {!isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleBlockReply(r.id)}
-                                  disabled={blockState === 'blocking' || isOffline}
-                                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonDanger}`}
-                                  title="Block user"
-                                >
-                                  <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                                  </svg>
-                                </button>
-                              ) : null}
                             </div>
-                          </>
+                          </article>
                         )}
                       </div>
                     )

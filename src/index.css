@@ -28,20 +28,6 @@ html.dark {
   --brezn-overlay: rgba(0, 0, 0, 0.75);
 }
 
-/* Light mode (when .dark class is NOT present - higher specificity) */
-html:not(.dark) {
-  color-scheme: light;
-  --brezn-bg: #ffffff;
-  --brezn-panel: #ffffff;
-  --brezn-panel2: #fafafa;
-  --brezn-button: #e8e6e3;
-  --brezn-buttonDisabled: #c5c2be;
-  --brezn-border: #e5e3e0;
-  --brezn-text: #161618;
-  --brezn-muted: #6b6659;
-  --brezn-overlay: rgba(0, 0, 0, 0.2);
-}
-
 html,
 body {
   height: 100%;

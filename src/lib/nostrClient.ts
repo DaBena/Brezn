@@ -5,7 +5,8 @@ import { SimplePool } from 'nostr-tools/pool'
 import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
-import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson } from './storage'
+import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
+import { hasLocationConsent } from './lastLocation'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them)
@@ -249,6 +250,12 @@ export type BreznNostrClient = {
    * @throws If nsec is invalid or cannot be decoded
    */
   setIdentity(nsec: string): void
+
+  /**
+   * Persist current state to storage (e.g. after user has consented and location was saved).
+   * Call this after the user clicks "Allow location" so that nsec is written for the first time.
+   */
+  persistStateNow(): void
 }
 
 function nowSec(): number {
@@ -325,16 +332,24 @@ function loadState(): StoredStateV1 {
   return loaded
 }
 
+/** User has consented (clicked Allow location) = we may persist nsec. No nsec is stored before consent. */
+function hasConsent(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  return hasLocationConsent()
+}
+
 function saveState(patch: Partial<StoredStateV1>) {
   const next = { ...loadState(), ...patch }
   stateCache = next
+
+  // No persistence before user has consented (saw notice and clicked Allow location)
+  if (!hasConsent()) return
 
   // Save to localStorage without skHex (secret key only in IndexedDB, encrypted)
   const forLocal: Partial<StoredStateV1> = { ...next }
   delete forLocal.skHex
   saveJsonSync(LS_KEY, forLocal as StoredStateV1)
 
-  // Save full state to IndexedDB with skHex encrypted
   saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {
     // Ignore errors, non-sensitive state is already in localStorage
   })
@@ -383,6 +398,7 @@ function normalizeRelays(relays: string[]): string[] {
  * @returns BreznNostrClient instance
  */
 export function createNostrClient(): BreznNostrClient {
+  setStorageConsentGiven(hasConsent())
   const pool = new SimplePool({ enablePing: true, enableReconnect: true })
 
   type SubCloser = { close: (reason?: string) => void | Promise<void> }
@@ -1114,6 +1130,9 @@ export function createNostrClient(): BreznNostrClient {
     updateProfile,
     getMyProfile,
     setIdentity,
+    persistStateNow() {
+      saveState(loadState())
+    },
   }
 }
 

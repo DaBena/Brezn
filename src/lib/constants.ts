@@ -20,3 +20,9 @@ export const FEED_CACHE_MAX_EVENTS = 200
 
 /** Number of posts shown initially before "Load more". */
 export const FEED_INITIAL_DISPLAY_LIMIT = 7
+
+/** Storage key for last location (geohash). Presence = user has consented (saw notice and clicked Allow location). */
+export const LAST_LOCATION_KEY = 'brezn:last-location:v1'
+
+/** GitHub repository (README & license). */
+export const REPO_URL = 'https://github.com/dabena/Brezn'

@@ -5,6 +5,8 @@ export function AdblockerWarning() {
   const [showWarning, setShowWarning] = useState(false)
 
   useEffect(() => {
+    // In dev we intentionally don't register a SW – skip this check
+    if (import.meta.env.DEV) return
     // Check if service worker is registered after a delay
     // If not, it might be blocked by an adblocker
     const timeout = setTimeout(async () => {

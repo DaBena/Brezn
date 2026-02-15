@@ -179,13 +179,13 @@ export function ComposerSheet(props: {
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
         placeholder="What's happening in your area?"
-        className="mt-3 min-h-[120px] w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base sm:text-sm outline-none"
+        className="mt-3 min-h-[120px] w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
         rows={5}
       />
       {publishState === 'error' && publishError ? <div className="mt-2 text-sm text-brezn-danger">{publishError}</div> : null}
       {uploadState === 'error' && uploadError ? <div className="mt-2 text-sm text-brezn-danger">{uploadError}</div> : null}
       <div className="sticky bottom-0 -mx-4 mt-3 bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2">
           <input
             id={fileInputId}
             type="file"
@@ -262,7 +262,7 @@ export function ComposerSheet(props: {
 
           <label
             htmlFor={fileInputId}
-            className={`w-full sm:w-auto sm:flex-shrink-0 rounded-lg px-4 py-3.5 sm:px-3 sm:py-2 text-sm sm:text-[11px] font-semibold min-h-[44px] flex items-center justify-center ${buttonBase} ${uploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`w-full rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] flex items-center justify-center ${buttonBase} ${uploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
             tabIndex={uploadState === 'uploading' ? -1 : 0}
             role="button"
             onClick={e => {
@@ -281,18 +281,14 @@ export function ComposerSheet(props: {
             {uploadState === 'uploading' ? 'Uploading…' : 'Media'}
           </label>
 
-          <div className="hidden sm:block sm:flex-1" />
-
           <button
             onClick={publishPost}
             disabled={publishState === 'publishing' || uploadState === 'uploading' || (!composerText.trim() && mediaUrls.length === 0)}
             aria-label="Publish post"
-            className={`w-full sm:w-[30%] rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] ${buttonBase}`}
+            className={`w-full rounded-lg px-4 py-3.5 text-sm font-semibold min-h-[44px] ${buttonBase}`}
           >
             {publishState === 'publishing' ? 'Publishing…' : 'Publish'}
           </button>
-
-          <div className="hidden sm:block sm:flex-1" />
         </div>
       </div>
     </Sheet>

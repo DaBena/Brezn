@@ -7,13 +7,15 @@ import { calculateApproxDistance } from '../lib/geo'
 import { buttonBase } from '../lib/buttonStyles'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
-import { FEED_INITIAL_DISPLAY_LIMIT } from '../lib/constants'
+import { FEED_INITIAL_DISPLAY_LIMIT, REPO_URL } from '../lib/constants'
 
 export function Feed(props: {
   feedState: FeedState
   geoCell: string | null
   viewerPoint: GeoPoint | null
   isOffline: boolean
+  /** Show cookie/consent notice only on first run (no stored location yet). */
+  showCookieNotice: boolean
   profilesByPubkey: Map<string, Profile>
   reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
   canReact: boolean
@@ -33,6 +35,7 @@ export function Feed(props: {
     geoCell,
     viewerPoint,
     isOffline,
+    showCookieNotice,
     profilesByPubkey,
     events,
     searchQuery,
@@ -84,8 +87,29 @@ export function Feed(props: {
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 shadow-soft">
           <div className="text-sm font-semibold">Location for local feed</div>
           <div className="mt-1 text-sm text-brezn-muted">
-            We need your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.
+            This app needs your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.
           </div>
+          {showCookieNotice ? (
+            <div className="mt-2 text-sm text-brezn-muted space-y-1">
+              <p>
+                This app uses local storage on your device. No tracking and no personal data is sent to us. See the{' '}
+                <a
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 underline"
+                >
+                  source, README & license
+                </a>
+                .
+              </p>
+              <p>
+                This app loads user content from external sources (nostr relays, file servers). We accept no liability for any external
+                content.
+              </p>
+              <p>By continuing you confirm: I informed myself and accept.</p>
+            </div>
+          ) : null}
           <div className="mt-2 flex gap-2">
             <button
               onClick={() => onRequestLocation()}

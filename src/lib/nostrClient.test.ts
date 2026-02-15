@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { setSavedGeo5 } from './lastLocation'
 import { createNostrClient } from './nostrClient'
 
 describe('nostrClient identity (no accounts)', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
   })
 
   it('auto-creates a persistent identity on first run', () => {
@@ -46,6 +48,7 @@ describe('nostrClient identity (no accounts)', () => {
 describe('nostrClient blocked pubkeys', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
   })
 
   it('normalizes blocked pubkeys', async () => {
@@ -87,6 +90,7 @@ describe('nostrClient blocked pubkeys', () => {
 describe('nostrClient geohash length', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
   })
 
   it('defaults to 2', () => {
@@ -94,8 +98,6 @@ describe('nostrClient geohash length', () => {
     const length = client.getGeohashLength()
     expect(length).toBeGreaterThanOrEqual(1)
     expect(length).toBeLessThanOrEqual(5)
-    // Default should be 2, but might be different if localStorage has old data
-    // So we just check it's in valid range
   })
 
   it('clamps geohash length to valid range', () => {
@@ -114,6 +116,7 @@ describe('nostrClient geohash length', () => {
 describe('nostrClient relays', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
   })
 
   it('returns default relays when none configured', () => {
@@ -180,6 +183,7 @@ describe('nostrClient relays', () => {
 describe('nostrClient media upload endpoint', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
   })
 
   it('returns default endpoint when not configured', () => {
@@ -213,6 +217,7 @@ describe('nostrClient media upload endpoint', () => {
 describe('nostrClient NIP-56 report events', () => {
   beforeEach(() => {
     localStorage.clear()
+    setSavedGeo5('u0m0m')
     vi.clearAllMocks()
   })
 

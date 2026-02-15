@@ -9,6 +9,12 @@ permissions:
   contents: write  # read + write for creating releases and uploading assets
 
 jobs:
+  timestampit:
+    runs-on: ubuntu-latest
+    name: "Create a trusted timestamp for this repo"
+    steps:
+      - uses: timestampit/github_action@v1.0
+
   build-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
