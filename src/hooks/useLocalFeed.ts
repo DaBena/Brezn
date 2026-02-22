@@ -178,13 +178,24 @@ export function useLocalFeed(params: {
         }
       }
 
-      setFeedState({ kind: 'need-location' }) // clear previous error while retrying
+      // Only clear to need-location when we have no saved location (single source of truth).
+      // If we have a saved location and browser location fails, we keep using the saved one.
+      const savedBeforeRequest = getSavedGeo5()
+      if (!savedBeforeRequest) {
+        setFeedState({ kind: 'need-location' }) // clear previous error while retrying
+      }
       const pos = await getBrowserLocation()
       const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
       applyGeo5AsLocation(geo5)
       setStorageConsentGiven(true) // allow IndexedDB (brezn-storage) from now on
       client.persistStateNow() // persist nsec now that user has consented (Allow location)
     } catch (e) {
+      // Single source of truth: if we have a saved location, use it and never show "allow location".
+      const savedGeo5 = getSavedGeo5()
+      if (savedGeo5) {
+        applyGeo5AsLocation(savedGeo5)
+        return
+      }
       const msg = e instanceof Error ? e.message : 'Location error'
       setFeedState({ kind: 'need-location', locationError: msg })
     } finally {

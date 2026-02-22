@@ -14,10 +14,16 @@ import { PostIdentity } from './PostIdentity'
 import { shortNpub } from '../lib/nostrUtils'
 import * as nip19 from 'nostr-tools/nip19'
 
+const HEART_RED = '#b91c1c'
+
 function HeartIcon({ liked }: { liked: boolean }) {
   const heartPath = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
   return (
-    <span aria-hidden="true" className={liked ? 'text-red-500' : 'text-brezn-muted'}>
+    <span
+      aria-hidden="true"
+      className={liked ? '' : 'text-brezn-muted'}
+      style={liked ? { color: HEART_RED } : undefined}
+    >
       <svg viewBox="0 0 24 24" width="14" height="14" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d={heartPath} />
       </svg>
