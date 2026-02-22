@@ -6,7 +6,7 @@
 
 [Brezn](https://dabena.github.io/Brezn/) can be installed as a Progressive Web App (PWA) and then runs like a native app:
 
-- **Android**: Banner "Add to Home Screen" or Menu, then "Add to Home Screen"
+- **Android**: Browser banner "Add to Home Screen" or Menu, then "Add to Home Screen". Alternatively install [APK](https://github.com/DaBena/Brezn/releases/latest)
 - **iOS**: PWAs may have limited functionality in Safari. For better PWA support, install a browser that fully supports PWAs, e.g. [Firefox](https://apps.apple.com/app/firefox-private-safe-browser/id989804926). On older iOS versions, use Share, then "Add to Home Screen"
 
 After installation, Brezn appears with the Brezn icon on the home screen/start menu and opens as a standalone app without browser UI.
