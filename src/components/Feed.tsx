@@ -8,6 +8,44 @@ import { buttonBase } from '../lib/buttonStyles'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
 import { FEED_INITIAL_DISPLAY_LIMIT, REPO_URL } from '../lib/constants'
+import { extractLinks } from '../lib/urls'
+
+const FEED_MAX_FLOWTEXT_LENGTH = 280
+
+function truncateContentForFeed(content: string): string {
+  const links = extractLinks(content)
+  let flowTextLength = 0
+  let cursor = 0
+  for (const link of links) {
+    flowTextLength += (content.slice(cursor, link.start)).length
+    cursor = link.end
+  }
+  flowTextLength += content.slice(cursor).length
+
+  if (flowTextLength <= FEED_MAX_FLOWTEXT_LENGTH) return content
+
+  cursor = 0
+  let result = ''
+  let flowUsed = 0
+  for (const link of links) {
+    const textBefore = content.slice(cursor, link.start)
+    const len = textBefore.length
+    if (flowUsed + len <= FEED_MAX_FLOWTEXT_LENGTH) {
+      result += textBefore
+      result += content.slice(link.start, link.end)
+      flowUsed += len
+      cursor = link.end
+    } else {
+      const remaining = FEED_MAX_FLOWTEXT_LENGTH - flowUsed
+      result += textBefore.slice(0, remaining) + '\n...'
+      return result
+    }
+  }
+  const textAfter = content.slice(cursor)
+  const remaining = FEED_MAX_FLOWTEXT_LENGTH - flowUsed
+  result += textAfter.slice(0, remaining) + '\n...'
+  return result
+}
 
 export function Feed(props: {
   feedState: FeedState
@@ -195,7 +233,7 @@ export function Feed(props: {
                             </div>
                           </div>
                           <div className="mt-2">
-                            <PostContent content={evt.content} interactive compact />
+                            <PostContent content={truncateContentForFeed(evt.content)} interactive compact />
                           </div>
                         </article>
                       )
@@ -236,7 +274,7 @@ export function Feed(props: {
                     </div>
                     <div className="mt-2">
                       <PostContent 
-                        content={evt.content} 
+                        content={truncateContentForFeed(evt.content)} 
                         interactive 
                         compact 
                       />

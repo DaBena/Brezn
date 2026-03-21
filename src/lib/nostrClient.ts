@@ -232,16 +232,16 @@ export type BreznNostrClient = {
 
   /**
    * Update profile metadata (kind 0 event).
-   * @param metadata - Profile data (name, picture)
+   * @param metadata - Profile data (name, picture, about)
    * @returns Promise resolving to event ID
    */
-  updateProfile(metadata: { name?: string; picture?: string }): Promise<string>
+  updateProfile(metadata: { name?: string; picture?: string; about?: string }): Promise<string>
 
   /**
    * Get own profile metadata from relays.
    * @returns Promise resolving to profile data or null if not found
    */
-  getMyProfile(): Promise<{ name?: string; picture?: string } | null>
+  getMyProfile(): Promise<{ name?: string; picture?: string; about?: string } | null>
 
   /**
    * Set identity from an nsec (bech32-encoded secret key).
@@ -987,7 +987,7 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   // Profile metadata (kind 0)
-  async function getMyProfile(): Promise<{ name?: string; picture?: string } | null> {
+  async function getMyProfile(): Promise<{ name?: string; picture?: string; about?: string } | null> {
     const { pubkey } = ensureIdentity()
 
     return new Promise((resolve, reject) => {
@@ -1012,6 +1012,7 @@ export function createNostrClient(): BreznNostrClient {
                 resolve({
                   name: typeof data.name === 'string' ? data.name.trim() : undefined,
                   picture: typeof data.picture === 'string' ? data.picture.trim() : undefined,
+                  about: typeof data.about === 'string' ? data.about.trim() : undefined,
                 })
                 unsub()
               }
@@ -1043,7 +1044,7 @@ export function createNostrClient(): BreznNostrClient {
     })
   }
 
-  async function updateProfile(metadata: { name?: string; picture?: string }): Promise<string> {
+  async function updateProfile(metadata: { name?: string; picture?: string; about?: string }): Promise<string> {
     // Nostr events are append-only, so we can just publish the new metadata
     // Clients will use the latest event
     const next: Record<string, unknown> = {}
@@ -1052,6 +1053,9 @@ export function createNostrClient(): BreznNostrClient {
     }
     if (metadata.picture !== undefined && metadata.picture.trim()) {
       next.picture = metadata.picture.trim()
+    }
+    if (metadata.about !== undefined && metadata.about.trim()) {
+      next.about = metadata.about.trim()
     }
 
     return await publish({

@@ -21,7 +21,7 @@ export const buttonDanger = 'btn-danger focus:outline-none'
 export function reactionButtonClasses(isReacted: boolean, canReact: boolean): string {
   const base = 'inline-flex items-center gap-1.5 py-1 pr-0.5 text-xs font-semibold focus:outline-none min-w-0'
   if (isReacted || !canReact) {
-    return `${base} opacity-70 cursor-default`
+    return `${base} cursor-default`
   }
   return `${base} hover:opacity-80 active:opacity-90 cursor-pointer`
 }

@@ -104,8 +104,9 @@ export const PostContent = memo(function PostContent(props: {
   compact?: boolean
   reactionButton?: React.ReactNode
   linkMedia?: boolean
+  mediaStacked?: boolean
 }) {
-  const { content, interactive, compact = false, reactionButton, linkMedia = false } = props
+  const { content, interactive, compact = false, reactionButton, linkMedia = false, mediaStacked = false } = props
 
   const { parts, imageUrls, videoUrls } = useMemo(() => {
     const links = extractLinks(content)
@@ -142,7 +143,7 @@ export const PostContent = memo(function PostContent(props: {
 
   return (
     <div className="break-words">
-      <div className="break-words">
+      <div className="break-words whitespace-pre-line">
         {parts.map((p, idx) => {
           if (p.kind === 'text') return <span key={idx}>{p.value}</span>
           
@@ -176,9 +177,9 @@ export const PostContent = memo(function PostContent(props: {
         return (
           <div className={[
             'mt-2 grid gap-2 w-full',
-            compact
+            mediaStacked ? 'grid-cols-1' : (compact
               ? (okVideos.length === 1 ? 'grid-cols-1' : okVideos.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
-              : (okVideos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
+              : (okVideos.length === 1 ? 'grid-cols-1' : 'grid-cols-2')),
           ].join(' ')}>
             {okVideos.map(u => (
               <div key={u} className="overflow-hidden">
@@ -202,9 +203,9 @@ export const PostContent = memo(function PostContent(props: {
         return (
           <div className={[
             'mt-2 grid gap-2 w-full',
-            compact
+            mediaStacked ? 'grid-cols-1' : (compact
               ? (okImages.length === 1 ? 'grid-cols-1' : okImages.length <= 4 ? 'grid-cols-2' : 'grid-cols-4')
-              : (okImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'),
+              : (okImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2')),
           ].join(' ')}>
             {okImages.map(u => (
               <div key={u} className="overflow-hidden">

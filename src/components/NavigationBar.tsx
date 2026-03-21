@@ -46,7 +46,7 @@ export function NavigationBar({
         value={searchQuery}
         onChange={e => onSearchChange(e.target.value)}
         placeholder="Search posts…"
-        className="flex-1 rounded-lg border border-brezn-border bg-brezn-panel2 px-2.5 py-1.5 text-xs outline-none placeholder:text-brezn-muted focus:ring-2 focus:ring-brezn-gold/40"
+        className="flex-1 rounded-lg border border-brezn-border bg-brezn-panel2 px-2.5 py-1.5 text-base sm:text-xs outline-none placeholder:text-brezn-muted focus:ring-2 focus:ring-brezn-gold/40"
       />
 
       <button

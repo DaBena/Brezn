@@ -25,7 +25,7 @@ export function useReactions(params: {
   // NOTE: `noteIds` is often created via `.map(...)` in callers.
   // Using the array directly in deps can cause re-subscribes on every render,
   // which in turn can double-count events. Use stable string keys instead.
-  const limitedNoteIds = Array.from(new Set(noteIds)).slice(0, 200)
+  const limitedNoteIds = Array.from(new Set(noteIds)).slice(0, 300)
   const noteIdKey = limitedNoteIds.join(',')
   const activeKey = `${noteIdKey}|${viewerPubkey ?? ''}`
 
@@ -54,7 +54,7 @@ export function useReactions(params: {
     }
 
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 14 // last 14d
-    const filter: Filter = { kinds: [7], '#e': ids, since, limit: 2000 }
+    const filter: Filter = { kinds: [7], '#e': ids, since, limit: 5000 }
 
     const unsub = client.subscribe(filter, {
       onevent: evt => {

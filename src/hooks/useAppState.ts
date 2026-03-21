@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import type { Event } from 'nostr-tools'
 
-export type SheetType = 'composer' | 'thread' | 'settings' | 'dm'
+export type SheetType = 'composer' | 'thread' | 'settings' | 'dm' | 'profile'
 
 export interface SheetState {
   composer: { open: boolean }
   thread: { open: boolean; root: Event | null }
   settings: { open: boolean }
   dm: { open: boolean; targetPubkey: string | null }
+  profile: { open: boolean; pubkey: string | null }
 }
 
 export function useAppState() {
@@ -16,8 +17,31 @@ export function useAppState() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [dmOpen, setDmOpen] = useState(false)
   const [dmTargetPubkey, setDmTargetPubkey] = useState<string | null>(null)
+  const [profilePubkey, setProfilePubkey] = useState<string | null>(null)
 
-  const openSheet = (type: SheetType, options?: { threadRoot?: Event; dmTargetPubkey?: string }) => {
+  const openSheet = (
+    type: SheetType,
+    options?: {
+      threadRoot?: Event
+      /** Keep profile sheet mounted under the thread (e.g. opened post from profile). */
+      retainProfileWhenOpeningThread?: boolean
+      dmTargetPubkey?: string
+      profilePubkey?: string
+    },
+  ) => {
+    if (
+      type === 'thread' &&
+      options?.threadRoot &&
+      options.retainProfileWhenOpeningThread
+    ) {
+      setIsComposerOpen(false)
+      setFilterOpen(false)
+      setDmOpen(false)
+      setDmTargetPubkey(null)
+      setThreadRoot(options.threadRoot)
+      return
+    }
+
     // Close all other sheets first
     closeAllSheets()
 
@@ -41,6 +65,11 @@ export function useAppState() {
           setDmOpen(true)
         }
         break
+      case 'profile':
+        if (options?.profilePubkey) {
+          setProfilePubkey(options.profilePubkey)
+        }
+        break
     }
   }
 
@@ -59,6 +88,9 @@ export function useAppState() {
         setDmOpen(false)
         setDmTargetPubkey(null)
         break
+      case 'profile':
+        setProfilePubkey(null)
+        break
     }
   }
 
@@ -68,6 +100,7 @@ export function useAppState() {
     setFilterOpen(false)
     setDmOpen(false)
     setDmTargetPubkey(null)
+    setProfilePubkey(null)
   }
 
   return {
@@ -76,6 +109,7 @@ export function useAppState() {
       thread: { open: threadRoot !== null, root: threadRoot },
       settings: { open: filterOpen },
       dm: { open: dmOpen, targetPubkey: dmTargetPubkey },
+      profile: { open: profilePubkey !== null, pubkey: profilePubkey },
     },
     openSheet,
     closeSheet,

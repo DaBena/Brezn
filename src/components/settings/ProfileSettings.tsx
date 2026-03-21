@@ -3,10 +3,12 @@ import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 
+const PROFILE_ABOUT_MAX_LENGTH = 5000
+
 type ProfileSettingsProps = {
   client: BreznNostrClient
   mediaEndpoint: string
-  onProfileChange?: (profile: { name: string; picture: string }) => void
+  onProfileChange?: (profile: { name: string; picture: string; about: string }) => void
 }
 
 /** Allow only http(s) and data: URLs for img src to avoid javascript: etc. */
@@ -31,17 +33,18 @@ function sanitizeProfilePictureUrl(url: string | null): string | null {
 export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: ProfileSettingsProps) {
   const [profileName, setProfileName] = useState<string>('')
   const [profilePicture, setProfilePicture] = useState<string>('')
+  const [profileAbout, setProfileAbout] = useState<string>('')
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMsg, setProfileMsg] = useState<string | null>(null)
   const [profileUploadState, setProfileUploadState] = useState<'idle' | 'uploading' | 'error'>('idle')
   const [profileUploadError, setProfileUploadError] = useState<string | null>(null)
   const profileFileInputId = useId()
-  const initialProfileRef = useRef<{ name: string; picture: string } | null>(null)
+  const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
   const safeProfilePictureSrc = sanitizeProfilePictureUrl(profilePicture)
 
   // Track last notified values to avoid duplicate notifications
-  const lastNotifiedRef = useRef<{ name: string; picture: string } | null>(null)
+  const lastNotifiedRef = useRef<{ name: string; picture: string; about: string } | null>(null)
 
   // Load profile on mount
   useEffect(() => {
@@ -51,23 +54,29 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
       .then(profile => {
         const name = profile?.name ?? ''
         const picture = profile?.picture ?? ''
-        initialProfileRef.current = { name, picture }
+        const about = profile?.about ?? ''
+        initialProfileRef.current = { name, picture, about }
         setProfileName(name)
         setProfilePicture(picture)
+        setProfileAbout(about)
         setProfileLoading(false)
         // Only notify if values changed
-        const current = { name, picture }
-        if (!lastNotifiedRef.current || 
-            lastNotifiedRef.current.name !== current.name || 
-            lastNotifiedRef.current.picture !== current.picture) {
+        const current = { name, picture, about }
+        if (
+          !lastNotifiedRef.current ||
+          lastNotifiedRef.current.name !== current.name ||
+          lastNotifiedRef.current.picture !== current.picture ||
+          lastNotifiedRef.current.about !== current.about
+        ) {
           lastNotifiedRef.current = current
           onProfileChange?.(current)
         }
       })
       .catch(() => {
-        initialProfileRef.current = { name: '', picture: '' }
+        initialProfileRef.current = { name: '', picture: '', about: '' }
         setProfileName('')
         setProfilePicture('')
+        setProfileAbout('')
         setProfileLoading(false)
         // Don't notify parent on error - let it keep its current state
         // The parent will see empty values when user explicitly saves
@@ -75,7 +84,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]) // onProfileChange is stable (memoized), no need to include it
 
-  // Note: We don't notify on every profileName/profilePicture change to avoid infinite loops.
+  // Note: We don't notify on every field change to avoid infinite loops.
   // The parent is only notified when:
   // 1. Profile is loaded initially (in the useEffect above)
   // 2. User explicitly saves the profile (in SettingsSheet.persistAndClose)
@@ -101,6 +110,24 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               maxLength={100}
               className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
             />
+          </div>
+
+          <div className="mt-3">
+            <label htmlFor="profile-about" className="block text-xs text-brezn-muted mb-1">
+              About
+            </label>
+            <textarea
+              id="profile-about"
+              value={profileAbout}
+              onChange={e => setProfileAbout(e.target.value)}
+              placeholder="Short bio (optional)"
+              maxLength={PROFILE_ABOUT_MAX_LENGTH}
+              rows={4}
+              className="w-full resize-y border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+            />
+            <div className="mt-1 text-[10px] text-brezn-muted">
+              {profileAbout.length}/{PROFILE_ABOUT_MAX_LENGTH}
+            </div>
           </div>
 
           <div className="mt-3">
@@ -212,16 +239,17 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!window.confirm('Really reset profile? Name and picture will be removed.')) return
+                      if (!window.confirm('Really reset profile? Name, about, and picture will be removed.')) return
                       setProfileSaving(true)
                       setProfileMsg(null)
                       try {
-                        await client.updateProfile({ name: '', picture: '' })
+                        await client.updateProfile({ name: '', picture: '', about: '' })
                         setProfileName('')
                         setProfilePicture('')
-                        initialProfileRef.current = { name: '', picture: '' }
+                        setProfileAbout('')
+                        initialProfileRef.current = { name: '', picture: '', about: '' }
                         setProfileMsg('Profile reset.')
-                        onProfileChange?.({ name: '', picture: '' })
+                        onProfileChange?.({ name: '', picture: '', about: '' })
                       } catch (e) {
                         setProfileMsg(e instanceof Error ? e.message : 'Error resetting profile')
                       } finally {

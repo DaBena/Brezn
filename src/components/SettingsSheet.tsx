@@ -24,8 +24,8 @@ export function SettingsSheet(props: {
 
   const { theme, setTheme } = useTheme(client)
   const [mediaEndpoint, setMediaEndpoint] = useState<string>(() => client.getMediaUploadEndpoint() ?? '')
-  const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string } | null>(null)
-  const initialProfileRef = useRef<{ name: string; picture: string } | null>(null)
+  const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string; about: string } | null>(null)
+  const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
   const initialMediaEndpointRef = useRef<string>('')
   const initialRelaysRef = useRef<string[]>([])
 
@@ -33,7 +33,7 @@ export function SettingsSheet(props: {
   const [profileSaving, setProfileSaving] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
-  const handleProfileChange = useCallback((profile: { name: string; picture: string }) => {
+  const handleProfileChange = useCallback((profile: { name: string; picture: string; about: string }) => {
     if (!initialProfileRef.current) {
       initialProfileRef.current = profile
     }
@@ -81,14 +81,22 @@ export function SettingsSheet(props: {
 
     if (currentProfile) {
     try {
-      const initial = initialProfileRef.current ?? { name: '', picture: '' }
+      const initial = initialProfileRef.current ?? { name: '', picture: '', about: '' }
         const nextName = currentProfile.name.trim()
         const nextPicture = currentProfile.picture.trim()
-      const changed = initial.name.trim() !== nextName || initial.picture.trim() !== nextPicture
+        const nextAbout = currentProfile.about.trim()
+      const changed =
+        initial.name.trim() !== nextName ||
+        initial.picture.trim() !== nextPicture ||
+        (initial.about ?? '').trim() !== nextAbout
       if (changed) {
         setProfileSaving(true)
-          await client.updateProfile({ name: currentProfile.name, picture: currentProfile.picture })
-        initialProfileRef.current = { name: nextName, picture: nextPicture }
+          await client.updateProfile({
+            name: currentProfile.name,
+            picture: currentProfile.picture,
+            about: currentProfile.about,
+          })
+        initialProfileRef.current = { name: nextName, picture: nextPicture, about: nextAbout }
       }
     } catch {
       setClosing(false)

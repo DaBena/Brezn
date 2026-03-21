@@ -125,7 +125,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                     client.setIdentity(trimmed)
                     setImportNsec('')
                     setShowImport(false)
-                    showToast('Identity imported successfully. Page will reload...', 'success')
+                    showToast('Identity imported successfully. Page will reload...')
                     // Reload page to ensure all state is refreshed
                     setTimeout(() => {
                       window.location.reload()

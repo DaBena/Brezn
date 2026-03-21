@@ -6,14 +6,16 @@ export type Profile = {
   pubkey: string
   name?: string
   picture?: string
+  about?: string
 }
 
-function parseMetadata(content: string): { name?: string; picture?: string } {
+function parseMetadata(content: string): { name?: string; picture?: string; about?: string } {
   try {
     const data = JSON.parse(content)
     return {
       name: typeof data.name === 'string' ? data.name.trim() : undefined,
       picture: typeof data.picture === 'string' ? data.picture.trim() : undefined,
+      about: typeof data.about === 'string' ? data.about.trim() : undefined,
     }
   } catch {
     return {}
@@ -61,21 +63,21 @@ export function useProfiles(params: {
 
         seenMetadataIdsRef.current.add(evt.id)
 
-        const { name, picture } = parseMetadata(evt.content ?? '')
-        // Only update if we have useful data
-        if (name || picture) {
-          setState(prev => {
-            const base = prev.key === activeKey ? prev.profiles : new Map()
-            // Always update if we have new data (metadata events are usually the latest)
-            const next = new Map(base)
-            next.set(evt.pubkey, {
-              pubkey: evt.pubkey,
-              name,
-              picture,
-            })
-            return { key: activeKey, profiles: next }
-          })
-        }
+        const parsed = parseMetadata(evt.content ?? '')
+        setState(prevState => {
+          const base = prevState.key === activeKey ? prevState.profiles : new Map()
+          const prev = base.get(evt.pubkey)
+          const merged: Profile = {
+            pubkey: evt.pubkey,
+            name: parsed.name ?? prev?.name,
+            picture: parsed.picture ?? prev?.picture,
+            about: parsed.about ?? prev?.about,
+          }
+          if (!merged.name && !merged.picture && !merged.about) return prevState
+          const next = new Map(base)
+          next.set(evt.pubkey, merged)
+          return { key: activeKey, profiles: next }
+        })
       },
     })
 

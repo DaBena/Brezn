@@ -1,9 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Event } from 'nostr-tools'
 import * as nip19 from 'nostr-tools/nip19'
 import { buttonBase } from '../lib/buttonStyles'
 import type { BreznNostrClient, DecryptedDM } from '../lib/nostrClient'
 import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
+
+function sortDms(list: DecryptedDM[]): DecryptedDM[] {
+  return [...list].sort((a, b) => a.event.created_at - b.event.created_at)
+}
+
+function mergeIncomingDm(prev: DecryptedDM[], msg: DecryptedDM, fromMe: boolean): DecryptedDM[] {
+  if (prev.some(m => m.event.id === msg.event.id)) return prev
+  let next = prev
+  if (fromMe) {
+    next = prev.filter(
+      m => !(m.event.id.startsWith('temp-') && m.decryptedContent === msg.decryptedContent && m.isFromMe),
+    )
+  }
+  return sortDms([...next, msg])
+}
 
 export function DMSheet(props: {
   open: boolean
@@ -24,115 +40,63 @@ export function DMSheet(props: {
 
   useEffect(() => {
     if (!open) return
+
+    let alive = true
+
     setLoading(true)
     setError(null)
     setMessages([])
     setMessageText('')
 
-    let mounted = true
-
-    // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('Offline - Please check your internet connection.')
       setLoading(false)
       return
     }
 
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        setError('Timeout - Relays are not responding. Please check your relay settings.')
-        setLoading(false)
-      }
-    }, 5000) // Reduced from 10000 to 5000
-
-    client
+    void client
       .getDMsWith(otherPubkey)
       .then(msgs => {
-        if (mounted) {
-          clearTimeout(timeout)
-          setMessages(msgs)
-          setLoading(false)
-        }
+        if (!alive) return
+        setMessages(msgs)
+        setLoading(false)
       })
       .catch(err => {
-        if (mounted) {
-          clearTimeout(timeout)
-          setError(err instanceof Error ? err.message : 'Error loading messages')
-          setLoading(false)
-        }
+        if (!alive) return
+        setError(err instanceof Error ? err.message : 'Error loading messages')
+        setLoading(false)
       })
 
-    return () => {
-      clearTimeout(timeout)
+    const since = Math.floor(Date.now() / 1000) - 60
+
+    async function onIncomingDm(fromMe: boolean, evt: Event) {
+      try {
+        const decryptedContent = await client.decryptDM(evt)
+        const newMessage: DecryptedDM = { event: evt, decryptedContent, isFromMe: fromMe }
+        if (!alive) return
+        setMessages(prev => mergeIncomingDm(prev, newMessage, fromMe))
+      } catch (e) {
+        console.error('Failed to decrypt DM:', e)
+      }
     }
 
-    // Subscribe to new messages I sent
-    const since = Math.floor(Date.now() / 1000) - 60 // last minute to catch just-sent messages
     const unsub1 = client.subscribe(
       { kinds: [4], authors: [identity.pubkey], '#p': [otherPubkey], since },
-      {
-        onevent: async evt => {
-          try {
-            const decryptedContent = await client.decryptDM(evt)
-            const newMessage: DecryptedDM = {
-              event: evt,
-              decryptedContent,
-              isFromMe: true,
-            }
-            if (mounted) {
-              setMessages(prev => {
-                // Avoid duplicates
-                if (prev.some(m => m.event.id === evt.id)) return prev
-                // Remove any optimistic messages with matching content
-                const filtered = prev.filter(m => !(m.event.id.startsWith('temp-') && m.decryptedContent === decryptedContent && m.isFromMe))
-                return [...filtered, newMessage].sort((a, b) => a.event.created_at - b.event.created_at)
-              })
-            }
-          } catch (e) {
-            console.error('Failed to decrypt DM:', e)
-            // Skip messages that can't be decrypted
-          }
-        },
-      },
+      { onevent: evt => void onIncomingDm(true, evt) },
     )
-
-    // Subscribe to new messages I received
     const unsub2 = client.subscribe(
       { kinds: [4], authors: [otherPubkey], '#p': [identity.pubkey], since },
-      {
-        onevent: async evt => {
-          try {
-            const decryptedContent = await client.decryptDM(evt)
-            const newMessage: DecryptedDM = {
-              event: evt,
-              decryptedContent,
-              isFromMe: false,
-            }
-            if (mounted) {
-              setMessages(prev => {
-                // Avoid duplicates
-                if (prev.some(m => m.event.id === evt.id)) return prev
-                return [...prev, newMessage].sort((a, b) => a.event.created_at - b.event.created_at)
-              })
-            }
-          } catch (e) {
-            console.error('Failed to decrypt DM:', e)
-            // Skip messages that can't be decrypted
-          }
-        },
-      },
+      { onevent: evt => void onIncomingDm(false, evt) },
     )
 
-    const unsubscribe = () => {
+    return () => {
+      alive = false
       unsub1()
       unsub2()
     }
-
-    return () => {
-      mounted = false
-      unsubscribe()
-    }
-  }, [open, otherPubkey, client, identity.pubkey])
+    // Intentionally only open + peer: avoids re-running on every client/identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- client is stable; identity read inside effect
+  }, [open, otherPubkey])
 
   useEffect(() => {
     if (open && messages.length > 0) {
@@ -144,7 +108,6 @@ export function DMSheet(props: {
     const content = messageText.trim()
     if (!content || sending) return
 
-    // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('Offline - Message cannot be sent.')
       return
@@ -152,8 +115,7 @@ export function DMSheet(props: {
 
     setSending(true)
     setError(null)
-    
-    // Optimistically add message to UI
+
     const tempId = `temp-${Date.now()}`
     const optimisticMessage: DecryptedDM = {
       event: {
@@ -168,31 +130,21 @@ export function DMSheet(props: {
       decryptedContent: content,
       isFromMe: true,
     }
-    setMessages(prev => [...prev, optimisticMessage].sort((a, b) => a.event.created_at - b.event.created_at))
-    
+    setMessages(prev => sortDms([...prev, optimisticMessage]))
+
     try {
       await client.sendDM(otherPubkey, content)
       setMessageText('')
-      // Don't remove optimistic message - subscription will replace it with real one
-      // Fallback: remove optimistic message after 5 seconds if real one hasn't arrived
-      setTimeout(() => {
+      window.setTimeout(() => {
         setMessages(prev => {
-          // Check if we have a real message with the same content from us
-          const hasRealMessage = prev.some(m => 
-            m.event.id !== tempId && 
-            m.isFromMe && 
-            m.decryptedContent === content
+          const hasRealMessage = prev.some(
+            m => m.event.id !== tempId && m.isFromMe && m.decryptedContent === content,
           )
-          if (!hasRealMessage) {
-            // Real message hasn't arrived - keep optimistic for now
-            return prev
-          }
-          // Real message arrived - remove optimistic
+          if (!hasRealMessage) return prev
           return prev.filter(m => m.event.id !== tempId)
         })
       }, 5000)
     } catch (e) {
-      // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.event.id !== tempId))
       setError(e instanceof Error ? e.message : 'Error sending message')
     } finally {
@@ -284,4 +236,3 @@ export function DMSheet(props: {
     </Sheet>
   )
 }
-

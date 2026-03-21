@@ -69,16 +69,12 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 
   const typeStyles = {
     info: 'border-brezn-border bg-brezn-panel/95',
-    success: 'border-green-500/50 bg-green-500/10',
     error: 'border-brezn-danger/50 bg-brezn-danger/10',
-    warning: 'border-yellow-500/50 bg-yellow-500/10',
   }
 
   const iconStyles = {
     info: 'text-brezn-muted',
-    success: 'text-green-400',
     error: 'text-brezn-danger',
-    warning: 'text-yellow-400',
   }
 
   return (
@@ -92,10 +88,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 flex items-start gap-2">
           <div className={['shrink-0 text-lg', iconStyles[toast.type]].join(' ')}>
-            {toast.type === 'success' && '✓'}
-            {toast.type === 'error' && '✕'}
-            {toast.type === 'warning' && '⚠'}
-            {toast.type === 'info' && 'ℹ'}
+            {toast.type === 'error' ? '✕' : 'ℹ'}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-brezn-text">{toast.message}</div>

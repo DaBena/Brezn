@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import { ComposerSheet } from './components/ComposerSheet'
 import { ConversationsSheet } from './components/ConversationsSheet'
@@ -8,6 +8,7 @@ import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { AdblockerWarning } from './components/AdblockerWarning'
 import { SettingsSheet } from './components/SettingsSheet'
 import { ThreadSheet } from './components/ThreadSheet'
+import { ProfileSheet } from './components/ProfileSheet'
 import { NavigationBar } from './components/NavigationBar'
 import { ComposeButton } from './components/ComposeButton'
 import { useToast } from './components/ToastContext'
@@ -40,6 +41,20 @@ export default function App() {
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(
     () => new Set(loadDeletedNoteIds())
   )
+  const [threadReplyNoteIds, setThreadReplyNoteIds] = useState<string[]>([])
+  const [profileNoteIds, setProfileNoteIds] = useState<string[]>([])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setThreadReplyNoteIds([])
+    })
+  }, [appState.sheets.thread.root?.id])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setProfileNoteIds([])
+    })
+  }, [appState.sheets.profile.pubkey])
 
   const {
     feedState,
@@ -64,21 +79,32 @@ export default function App() {
     identityPubkey: identity.pubkey,
   })
 
-  // Load profiles for search functionality
-  const pubkeysForProfiles = useMemo(() => sortedEvents.map(e => e.pubkey), [sortedEvents])
+  const profileSheetPubkey = appState.sheets.profile.pubkey
+  const threadRootPubkey = appState.sheets.thread.root?.pubkey ?? null
+  // Include open profile / thread root so metadata matches feed cache (same subscription)
+  const pubkeysForProfiles = useMemo(() => {
+    const fromFeed = sortedEvents.map(e => e.pubkey)
+    const extra: string[] = []
+    if (profileSheetPubkey) extra.push(profileSheetPubkey)
+    if (threadRootPubkey) extra.push(threadRootPubkey)
+    return [...fromFeed, ...extra]
+  }, [sortedEvents, profileSheetPubkey, threadRootPubkey])
+
   const { profilesByPubkey } = useProfiles({ client, pubkeys: pubkeysForProfiles, isOffline })
 
   // Search functionality
   const search = useSearch(sortedEvents, profilesByPubkey)
 
-  // Reactions
+  // Keep thread/profile note IDs first so they are not dropped by reaction slicing.
   const noteIdsForReactions = useMemo(() => {
-    const ids = [...sortedEvents.map(e => e.id)]
-    if (appState.sheets.thread.root && !ids.includes(appState.sheets.thread.root.id)) {
-      ids.push(appState.sheets.thread.root.id)
-    }
-    return ids
-  }, [sortedEvents, appState.sheets.thread.root])
+    const fromFeed = sortedEvents.map(e => e.id)
+    const root = appState.sheets.thread.root
+    const threadIds = root ? [root.id, ...threadReplyNoteIds] : []
+    const profileIds = appState.sheets.profile.pubkey ? profileNoteIds : []
+    const merged = [...profileIds, ...threadIds]
+    const rest = fromFeed.filter(id => !merged.includes(id))
+    return [...merged, ...rest]
+  }, [sortedEvents, appState.sheets.thread.root, threadReplyNoteIds, appState.sheets.profile.pubkey, profileNoteIds])
 
   const { reactionsByNoteId } = useReactions({
     client,
@@ -105,6 +131,11 @@ export default function App() {
     } else {
       appState.openSheet('dm', { dmTargetPubkey: pubkey })
     }
+  }
+
+  const handleOpenProfile = (pubkey: string) => {
+    if (moderation.blockedPubkeys.includes(pubkey)) return
+    appState.openSheet('profile', { profilePubkey: pubkey })
   }
 
   // Handlers using services
@@ -210,10 +241,39 @@ export default function App() {
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
       />
 
+      {appState.sheets.profile.pubkey ? (
+        <ProfileSheet
+          open
+          pubkey={appState.sheets.profile.pubkey}
+          cachedProfile={profilesByPubkey.get(appState.sheets.profile.pubkey)}
+          client={client}
+          viewerPoint={viewerPoint}
+          mutedTerms={moderation.mutedTerms}
+          blockedPubkeys={moderation.blockedPubkeys}
+          deletedNoteIds={deletedNoteIds}
+          isOffline={isOffline}
+          reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
+          canReact={!isOffline}
+          onReact={evt => void handleReactToPost(evt)}
+          onNoteIdsChange={setProfileNoteIds}
+          onOpenThread={evt => {
+            if (moderation.blockedPubkeys.includes(evt.pubkey)) return
+            appState.openSheet('thread', { threadRoot: evt, retainProfileWhenOpeningThread: true })
+          }}
+          onClose={() => appState.closeSheet('profile')}
+          onOpenDM={(() => {
+            const pk = appState.sheets.profile.pubkey
+            if (!pk || !canOpenChat(pk)) return undefined
+            return () => handleOpenChat(pk, () => appState.closeSheet('profile'))
+          })()}
+        />
+      ) : null}
+
       {appState.sheets.thread.root ? (
         <ThreadSheet
           open
           root={appState.sheets.thread.root}
+          feedProfilesByPubkey={profilesByPubkey}
           client={client}
           mutedTerms={moderation.mutedTerms}
           blockedPubkeys={moderation.blockedPubkeys}
@@ -230,7 +290,8 @@ export default function App() {
           reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
           canReact={!isOffline}
           onReact={evt => void handleReactToPost(evt)}
-          onOpenChat={pubkey => handleOpenChat(pubkey, () => appState.closeSheet('thread'))}
+          onThreadRepliesChange={setThreadReplyNoteIds}
+          onOpenProfile={handleOpenProfile}
         />
       ) : null}
 

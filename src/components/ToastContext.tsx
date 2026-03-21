@@ -1,6 +1,7 @@
 import React from 'react'
 
-export type ToastType = 'info' | 'success' | 'error' | 'warning'
+/** Neutral panel (`info`) vs error styling only — keeps all non-error toasts visually consistent */
+export type ToastType = 'info' | 'error'
 
 export type Toast = {
   id: string

@@ -6,7 +6,7 @@ import { calculateApproxDistance } from '../lib/geo'
 import { buttonBase, buttonDanger, reactionButtonClasses } from '../lib/buttonStyles'
 import { breznClientTag, NOSTR_KINDS } from '../lib/breznNostr'
 import { useReplies } from '../hooks/useReplies'
-import { useProfiles } from '../hooks/useProfiles'
+import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
@@ -14,7 +14,7 @@ import { PostIdentity } from './PostIdentity'
 import { shortNpub } from '../lib/nostrUtils'
 import * as nip19 from 'nostr-tools/nip19'
 
-const HEART_RED = '#b91c1c'
+const HEART_RED = '#e05a4f'
 
 function HeartIcon({ liked }: { liked: boolean }) {
   const heartPath = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
@@ -34,10 +34,10 @@ function HeartIcon({ liked }: { liked: boolean }) {
 function PostCard(props: {
   evt: Event
   viewerPoint: GeoPoint | null
-  profile?: { pubkey: string; name?: string; picture?: string }
-  onOpenChat?: (pubkey: string) => void
+  profile?: { pubkey: string; name?: string; picture?: string; about?: string }
+  onOpenProfile?: (pubkey: string) => void
 }) {
-  const { evt, viewerPoint, profile, onOpenChat } = props
+  const { evt, viewerPoint, profile, onOpenProfile } = props
   const dist = calculateApproxDistance(evt, viewerPoint)
   return (
     <article className="rounded-lg bg-brezn-panel2 p-3 shadow-soft">
@@ -46,7 +46,8 @@ function PostCard(props: {
           <PostIdentity 
             pubkey={evt.pubkey} 
             profile={profile}
-            onClick={onOpenChat ? () => onOpenChat(evt.pubkey) : undefined}
+            onClick={onOpenProfile ? () => onOpenProfile(evt.pubkey) : undefined}
+            onAvatarClick={onOpenProfile ? () => onOpenProfile(evt.pubkey) : undefined}
             avatarSize="large"
           />
         </div>
@@ -56,7 +57,7 @@ function PostCard(props: {
         </div>
       </div>
       <div className="mt-2">
-        <PostContent content={evt.content} linkMedia />
+        <PostContent content={evt.content} linkMedia mediaStacked />
       </div>
     </article>
   )
@@ -66,6 +67,8 @@ export function ThreadSheet(props: {
   open: boolean
   onClose: () => void
   root: Event
+  /** Profiles already loaded in App (feed + thread root); merged with thread subscription. */
+  feedProfilesByPubkey: Map<string, Profile>
   client: BreznNostrClient
   mutedTerms: string[]
   blockedPubkeys: string[]
@@ -77,17 +80,62 @@ export function ThreadSheet(props: {
   reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
   canReact: boolean
   onReact: (evt: Event) => void
-  onOpenChat?: (pubkey: string) => void
+  onThreadRepliesChange?: (noteIds: string[]) => void
+  onOpenProfile?: (pubkey: string) => void
 }) {
-  const { open, onClose, root, client, mutedTerms, blockedPubkeys, isOffline, viewerPoint, onPublishReply, onDelete, onBlockUser, reactionsByNoteId, canReact, onReact, onOpenChat } = props
+  const {
+    open,
+    onClose,
+    root,
+    feedProfilesByPubkey,
+    client,
+    mutedTerms,
+    blockedPubkeys,
+    isOffline,
+    viewerPoint,
+    onPublishReply,
+    onDelete,
+    onBlockUser,
+    reactionsByNoteId,
+    canReact,
+    onReact,
+    onThreadRepliesChange,
+    onOpenProfile,
+  } = props
   const { showToast } = useToast()
 
   const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
 
+  useEffect(() => {
+    onThreadRepliesChange?.(replies.map(r => r.id))
+  }, [replies, onThreadRepliesChange])
+
   const replyCount = replies.length
 
   const allPubkeys = useMemo(() => [root.pubkey, ...replies.map(r => r.pubkey)], [root.pubkey, replies])
-  const { profilesByPubkey } = useProfiles({ client, pubkeys: allPubkeys, isOffline })
+  const { profilesByPubkey: subProfilesByPubkey } = useProfiles({ client, pubkeys: allPubkeys, isOffline })
+  const profilesByPubkey = useMemo(() => {
+    const out = new Map<string, Profile>()
+    for (const pk of allPubkeys) {
+      const s = subProfilesByPubkey.get(pk)
+      const f = feedProfilesByPubkey.get(pk)
+      if (!f) {
+        if (s) out.set(pk, s)
+        continue
+      }
+      if (!s) {
+        out.set(pk, f)
+        continue
+      }
+      out.set(pk, {
+        pubkey: pk,
+        name: s.name ?? f.name,
+        picture: s.picture ?? f.picture,
+        about: s.about ?? f.about,
+      })
+    }
+    return out
+  }, [allPubkeys, subProfilesByPubkey, feedProfilesByPubkey])
 
   const [text, setText] = useState('')
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'error'>('idle')
@@ -197,7 +245,7 @@ export function ThreadSheet(props: {
       setBlockState('idle')
       setShowReportField(false)
       setReportReason('') // Resetting UI state (report was already sent if reason was provided)
-      showToast('User blocked.', 'success')
+      showToast('User blocked.')
       onClose()
     } catch (e) {
       setBlockState('idle')
@@ -241,7 +289,7 @@ export function ThreadSheet(props: {
       setBlockState('idle')
       setReportingReplyId(null)
       setReplyReportReason('') // Resetting UI state (report was already sent if reason was provided)
-      showToast('User blocked.', 'success')
+      showToast('User blocked.')
     } catch (e) {
       setBlockState('idle')
       const msg = e instanceof Error ? e.message : 'Blocking failed.'
@@ -328,7 +376,7 @@ export function ThreadSheet(props: {
               evt={root}
               viewerPoint={viewerPoint}
               profile={profilesByPubkey.get(root.pubkey)}
-              onOpenChat={onOpenChat}
+              onOpenProfile={onOpenProfile}
             />
             <div className="mt-3 flex items-center justify-between">
               <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
@@ -402,7 +450,8 @@ export function ThreadSheet(props: {
                                 <PostIdentity
                                   pubkey={r.pubkey}
                                   profile={replyProfile}
-                                  onClick={onOpenChat ? () => onOpenChat(r.pubkey) : undefined}
+                                  onClick={onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined}
+                                  onAvatarClick={onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined}
                                   avatarSize="large"
                                 />
                                 {!isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
@@ -430,7 +479,7 @@ export function ThreadSheet(props: {
                             </div>
                             <div className="mt-2 flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <PostContent content={r.content} linkMedia />
+                                <PostContent content={r.content} linkMedia mediaStacked />
                               </div>
                               <button
                                 type="button"
