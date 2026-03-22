@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Filter } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
+import { loadStoredProfiles, saveStoredProfiles } from '../lib/profileCache'
 
 export type Profile = {
   pubkey: string
@@ -33,12 +34,32 @@ export function useProfiles(params: {
   const pubkeyKey = limitedPubkeys.join(',')
   const activeKey = pubkeyKey
 
-  const [state, setState] = useState<{ key: string; profiles: Map<string, Profile> }>({
+  const initialDisk = useMemo(() => loadStoredProfiles(), [])
+  const latestDiskForSaveRef = useRef<Map<string, Profile>>(initialDisk)
+  const saveTimerRef = useRef<number | undefined>(undefined)
+
+  const [state, setState] = useState<{
+    key: string
+    live: Map<string, Profile>
+    disk: Map<string, Profile>
+  }>({
     key: '',
-    profiles: new Map(),
+    live: new Map(),
+    disk: initialDisk,
   })
+
   const seenMetadataIdsRef = useRef<Set<string>>(new Set())
+  const latestKind0TimeRef = useRef<Map<string, number>>(new Map())
   const scopeKeyRef = useRef<string>('')
+
+  function scheduleSaveDisk(): void {
+    if (typeof window === 'undefined') return
+    window.clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = undefined
+      saveStoredProfiles(latestDiskForSaveRef.current)
+    }, 600)
+  }
 
   useEffect(() => {
     if (isOffline) return
@@ -46,14 +67,13 @@ export function useProfiles(params: {
 
     const pubkeySet = new Set(limitedPubkeys)
 
-    // Only reset when the query scope changes
     if (scopeKeyRef.current !== activeKey) {
       scopeKeyRef.current = activeKey
       seenMetadataIdsRef.current = new Set()
+      latestKind0TimeRef.current = new Map()
     }
 
-    const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30 // last 30d
-    const filter: Filter = { kinds: [0], authors: limitedPubkeys, since, limit: 500 }
+    const filter: Filter = { kinds: [0], authors: limitedPubkeys, limit: 500 }
 
     const unsub = client.subscribe(filter, {
       onevent: evt => {
@@ -61,11 +81,15 @@ export function useProfiles(params: {
         if (!pubkeySet.has(evt.pubkey)) return
         if (seenMetadataIdsRef.current.has(evt.id)) return
 
+        const prevBest = latestKind0TimeRef.current.get(evt.pubkey) ?? 0
+        if (evt.created_at < prevBest) return
+
         seenMetadataIdsRef.current.add(evt.id)
+        latestKind0TimeRef.current.set(evt.pubkey, Math.max(prevBest, evt.created_at))
 
         const parsed = parseMetadata(evt.content ?? '')
         setState(prevState => {
-          const base = prevState.key === activeKey ? prevState.profiles : new Map()
+          const base = prevState.key === activeKey ? prevState.live : new Map()
           const prev = base.get(evt.pubkey)
           const merged: Profile = {
             pubkey: evt.pubkey,
@@ -74,9 +98,13 @@ export function useProfiles(params: {
             about: parsed.about ?? prev?.about,
           }
           if (!merged.name && !merged.picture && !merged.about) return prevState
-          const next = new Map(base)
-          next.set(evt.pubkey, merged)
-          return { key: activeKey, profiles: next }
+          const nextLive = new Map(base)
+          nextLive.set(evt.pubkey, merged)
+          const nextDisk = new Map(prevState.disk)
+          nextDisk.set(evt.pubkey, merged)
+          latestDiskForSaveRef.current = nextDisk
+          scheduleSaveDisk()
+          return { key: activeKey, live: nextLive, disk: nextDisk }
         })
       },
     })
@@ -84,7 +112,31 @@ export function useProfiles(params: {
     return () => unsub()
   }, [client, isOffline, activeKey, pubkeyKey, limitedPubkeys])
 
-  const profilesByPubkey = state.key === activeKey ? state.profiles : new Map<string, Profile>()
+  const profilesByPubkey = useMemo(() => {
+    const live = state.key === activeKey ? state.live : new Map<string, Profile>()
+    const disk = state.disk
+    const out = new Map<string, Profile>()
+    for (const pk of limitedPubkeys) {
+      const L = live.get(pk)
+      const D = disk.get(pk)
+      if (!L && !D) continue
+      if (!L) {
+        out.set(pk, { pubkey: pk, name: D?.name, picture: D?.picture, about: D?.about })
+        continue
+      }
+      if (!D) {
+        out.set(pk, L)
+        continue
+      }
+      out.set(pk, {
+        pubkey: pk,
+        name: L.name ?? D.name,
+        picture: L.picture ?? D.picture,
+        about: L.about ?? D.about,
+      })
+    }
+    return out
+  }, [state, activeKey, limitedPubkeys])
+
   return { profilesByPubkey }
 }
-

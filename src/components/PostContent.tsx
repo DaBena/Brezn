@@ -145,7 +145,22 @@ export const PostContent = memo(function PostContent(props: {
     <div className="break-words">
       <div className="break-words whitespace-pre-line">
         {parts.map((p, idx) => {
-          if (p.kind === 'text') return <span key={idx}>{p.value}</span>
+          if (p.kind === 'text') {
+            const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
+            if (ellipsisMatch) {
+              const body = ellipsisMatch[1] ?? ''
+              const trailingWs = ellipsisMatch[2] ?? ''
+              return (
+                <span key={idx}>
+                  {body}
+                  {'\n'}
+                  <span className="block text-center font-semibold">...</span>
+                  {trailingWs}
+                </span>
+              )
+            }
+            return <span key={idx}>{p.value}</span>
+          }
           
           // Validate URL safety before rendering as link
           if (!isSafeUrl(p.href)) {

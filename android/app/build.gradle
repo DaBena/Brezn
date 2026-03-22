@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import groovy.xml.MarkupBuilder
-
 plugins {
     id 'com.android.application'
 }
@@ -184,28 +182,31 @@ task generateShorcutsFile {
 
     def shortcutsFile = new File("$projectDir/src/main/res/xml", "shortcuts.xml")
 
-    def xmlWriter = new StringWriter()
-    def xmlMarkup = new MarkupBuilder(new IndentPrinter(xmlWriter, "    ", true))
+    def escAttr = { String v ->
+        if (v == null) return ''
+        v.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+    }
 
-    xmlMarkup
-        .'shortcuts'('xmlns:android': 'http://schemas.android.com/apk/res/android') {
-            twaManifest.shortcuts.eachWithIndex { s, i ->
-                'shortcut'(
-                        'android:shortcutId': 'shortcut' + i,
-                        'android:enabled': 'true',
-                        'android:icon': '@drawable/' + s.icon,
-                        'android:shortcutShortLabel': '@string/shortcut_short_name_' + i,
-                        'android:shortcutLongLabel': '@string/shortcut_name_' + i) {
-                    'intent'(
-                            'android:action': 'android.intent.action.MAIN',
-                            'android:targetPackage': twaManifest.applicationId,
-                            'android:targetClass': twaManifest.applicationId + '.LauncherActivity',
-                            'android:data': s.url)
-                    'categories'('android:name': 'android.intent.category.LAUNCHER')
-                }
-            }
-        }
-    shortcutsFile.text = xmlWriter.toString() + '\n'
+    def sb = new StringBuilder()
+    sb.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    sb.append('<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">\n')
+    twaManifest.shortcuts.eachWithIndex { s, i ->
+        sb.append('    <shortcut\n')
+        sb.append('        android:shortcutId="shortcut').append(i).append('"\n')
+        sb.append('        android:enabled="true"\n')
+        sb.append('        android:icon="@drawable/').append(escAttr(s.icon)).append('"\n')
+        sb.append('        android:shortcutShortLabel="@string/shortcut_short_name_').append(i).append('"\n')
+        sb.append('        android:shortcutLongLabel="@string/shortcut_name_').append(i).append('">\n')
+        sb.append('        <intent\n')
+        sb.append('            android:action="android.intent.action.MAIN"\n')
+        sb.append('            android:targetPackage="').append(escAttr(twaManifest.applicationId)).append('"\n')
+        sb.append('            android:targetClass="').append(escAttr(twaManifest.applicationId + '.LauncherActivity')).append('"\n')
+        sb.append('            android:data="').append(escAttr(s.url)).append('"/>\n')
+        sb.append('        <categories android:name="android.intent.category.LAUNCHER" />\n')
+        sb.append('    </shortcut>\n')
+    }
+    sb.append('</shortcuts>\n')
+    shortcutsFile.text = sb.toString()
 }
 
 preBuild.dependsOn(generateShorcutsFile)
