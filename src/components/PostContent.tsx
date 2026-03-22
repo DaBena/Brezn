@@ -148,7 +148,7 @@ export const PostContent = memo(function PostContent(props: {
           if (p.kind === 'text') {
             const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
             if (ellipsisMatch) {
-              const body = ellipsisMatch[1] ?? ''
+              const body = (ellipsisMatch[1] ?? '').replace(/^\n+|\n+$/g, '')
               const trailingWs = ellipsisMatch[2] ?? ''
               return (
                 <span key={idx}>
@@ -159,7 +159,9 @@ export const PostContent = memo(function PostContent(props: {
                 </span>
               )
             }
-            return <span key={idx}>{p.value}</span>
+            // pre-line keeps \n; strip leading/trailing newlines (e.g. around stripped media URLs)
+            const text = p.value.replace(/^\n+|\n+$/g, '')
+            return <span key={idx}>{text}</span>
           }
           
           // Validate URL safety before rendering as link
