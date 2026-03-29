@@ -37,6 +37,13 @@ export function Sheet(props: {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const lastActiveElementRef = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
+  /** Only true right after open transitions false → true (avoids re-focusing close on parent re-renders). */
+  const wasOpenRef = useRef(false)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
   
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null)
@@ -59,7 +66,14 @@ export function Sheet(props: {
   }, [open])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      wasOpenRef.current = false
+      return
+    }
+
+    const justOpened = !wasOpenRef.current
+    wasOpenRef.current = true
+
     lastActiveElementRef.current = (document.activeElement as HTMLElement | null) ?? null
 
     // Best-effort scroll lock while modal is open.
@@ -73,24 +87,28 @@ export function Sheet(props: {
       scrollableElementRef.current = scrollableEl ?? null
     }
 
-    // Initial focus: close button first (consistent), otherwise first focusable in dialog.
-    const focusTimer = window.setTimeout(() => {
-      const closeBtn = closeButtonRef.current
-      if (dismissible && closeBtn) {
-        closeBtn.focus()
-        return
-      }
-      const dialog = dialogRef.current
-      if (!dialog) return
-      const focusables = getFocusableElements(dialog)
-      focusables[0]?.focus()
-    }, 0)
+    // Initial focus only when the sheet opens, not when the parent re-renders (unstable onClose
+    // would re-run this effect and steal focus from e.g. a reply textarea on iOS).
+    let focusTimer: number | undefined
+    if (justOpened) {
+      focusTimer = window.setTimeout(() => {
+        const closeBtn = closeButtonRef.current
+        if (dismissible && closeBtn) {
+          closeBtn.focus()
+          return
+        }
+        const dialogEl = dialogRef.current
+        if (!dialogEl) return
+        const focusables = getFocusableElements(dialogEl)
+        focusables[0]?.focus()
+      }, 0)
+    }
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         if (!dismissible) return
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -130,7 +148,7 @@ export function Sheet(props: {
     window.addEventListener('keydown', onKeyDown)
 
     return () => {
-      window.clearTimeout(focusTimer)
+      if (focusTimer !== undefined) window.clearTimeout(focusTimer)
       document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKeyDown)
 
@@ -144,7 +162,7 @@ export function Sheet(props: {
         }
       }
     }
-  }, [open, onClose, dismissible])
+  }, [open, dismissible])
 
   // Check if element is scrollable and at top/bottom
   const isScrollableAtEdge = (element: HTMLElement | null, deltaY: number): boolean => {
@@ -250,7 +268,7 @@ export function Sheet(props: {
     
     // Close on swipe in either direction if threshold is met
     if (swipeOffset > minSwipeDistance && swipeTime < maxSwipeTime) {
-      onClose()
+      onCloseRef.current()
     }
     
     setSwipeOffset(0)
