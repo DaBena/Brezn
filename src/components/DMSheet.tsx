@@ -219,7 +219,7 @@ export function DMSheet(props: {
                 }
               }}
               placeholder="Write message…"
-              className="flex-1 h-20 resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
+              className="flex-1 h-20 resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base outline-none"
               disabled={sending}
             />
             <button

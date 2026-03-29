@@ -3,7 +3,7 @@ import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
-import { buttonBase, buttonDanger, reactionButtonClasses } from '../lib/buttonStyles'
+import { buttonBase, reactionButtonClasses } from '../lib/buttonStyles'
 import { breznClientTag, NOSTR_KINDS } from '../lib/breznNostr'
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles, type Profile } from '../hooks/useProfiles'
@@ -308,7 +308,7 @@ export function ThreadSheet(props: {
             onClick={() => void handleDelete()}
             disabled={deleteState === 'deleting' || isOffline}
             aria-label="Send NIP-09 deletion event"
-            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonDanger}`}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
           >
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="opacity-90">
               <path
@@ -324,7 +324,7 @@ export function ThreadSheet(props: {
             onClick={() => void handleBlockUser()}
             disabled={blockState === 'blocking'}
             aria-label="Block user"
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${buttonDanger}`}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
             title="Block user"
           >
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -357,7 +357,7 @@ export function ThreadSheet(props: {
               value={reportReason}
               onChange={e => setReportReason(e.target.value)}
               placeholder="Reason for reporting (optional)"
-              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
               disabled={blockState === 'blocking' || isOffline}
             />
             <div className="flex justify-center">
@@ -430,7 +430,7 @@ export function ThreadSheet(props: {
                               value={replyReportReason}
                               onChange={e => setReplyReportReason(e.target.value)}
                               placeholder="Reason for reporting (optional)"
-                              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+                              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
                               disabled={blockState === 'blocking' || isOffline}
                             />
                             <div className="flex justify-center">
@@ -459,7 +459,7 @@ export function ThreadSheet(props: {
                                     type="button"
                                     onClick={() => handleBlockReply(r.id)}
                                     disabled={blockState === 'blocking' || isOffline}
-                                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonDanger}`}
+                                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonBase}`}
                                     title="Block user"
                                   >
                                     <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -509,7 +509,7 @@ export function ThreadSheet(props: {
                 value={text}
                 onChange={e => setText(e.target.value)}
                 placeholder="Write reply…"
-                className="mt-2 h-24 w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
+                className="mt-2 h-24 w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base outline-none"
                 disabled={isOffline}
               />
               {publishState === 'error' && publishError ? (

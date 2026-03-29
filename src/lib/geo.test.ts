@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import geohash from 'ngeohash'
-import { encodeGeohash, generateGeohashTags } from './geo'
+import { encodeGeohash, generateGeohashTags, getBrowserLocation } from './geo'
 
 describe('geo', () => {
   it('encodeGeohash returns ngeohash.encode with correct length', () => {
@@ -27,5 +27,47 @@ describe('geo', () => {
   it('generateGeohashTags handles empty string', () => {
     expect(generateGeohashTags('')).toEqual([])
   })
+
+  it('getBrowserLocation uses fast defaults (no high accuracy)', async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) => {
+      success({
+        coords: { latitude: 48.1, longitude: 11.5 } as GeolocationCoordinates,
+      } as GeolocationPosition)
+    })
+    vi.stubGlobal('navigator', {
+      geolocation: { getCurrentPosition },
+    })
+
+    const pos = await getBrowserLocation()
+    expect(pos).toEqual({ lat: 48.1, lon: 11.5 })
+    expect(getCurrentPosition).toHaveBeenCalledOnce()
+    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 60_000,
+    })
+  })
+
+  it('getBrowserLocation forwards custom geolocation options', async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) => {
+      success({
+        coords: { latitude: 47.9, longitude: 12.2 } as GeolocationCoordinates,
+      } as GeolocationPosition)
+    })
+    vi.stubGlobal('navigator', {
+      geolocation: { getCurrentPosition },
+    })
+
+    await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
+    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+      enableHighAccuracy: true,
+      timeout: 2000,
+      maximumAge: 5000,
+    })
+  })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 

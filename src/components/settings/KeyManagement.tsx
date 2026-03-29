@@ -106,7 +106,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
               value={importNsec}
               onChange={e => setImportNsec(e.target.value)}
               placeholder="nsec1..."
-              className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-xs focus:outline-none"
+              className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-base focus:outline-none"
               disabled={isImporting}
             />
             <div className="flex gap-2">

@@ -16,8 +16,8 @@ describe('moderation', () => {
   })
 
   it('contentMatchesMutedTerms matches substrings', () => {
-    const terms = normalizeMutedTerms(['telegram.me'])
-    expect(contentMatchesMutedTerms('join us at https://tELEgram.me/abc', terms)).toBe(true)
+    const terms = normalizeMutedTerms(['evil.example'])
+    expect(contentMatchesMutedTerms('join us at https://EVIL.example/abc', terms)).toBe(true)
   })
 
   it('contentMatchesMutedTerms returns false when no terms', () => {

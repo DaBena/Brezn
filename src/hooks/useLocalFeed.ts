@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import {
@@ -85,8 +85,6 @@ export function useLocalFeed(params: {
   viewerGeo5Ref.current = viewerGeo5
   const identityPubkeyRef = useRef<string | null>(identityPubkey)
   identityPubkeyRef.current = identityPubkey
-  const queryGeohashRef = useRef<string | null>(queryGeohash)
-  queryGeohashRef.current = queryGeohash
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
@@ -130,6 +128,9 @@ export function useLocalFeed(params: {
     if (relaysChanged && prevRelays.length > 0) {
       // Relays changed - clear events to avoid showing posts from removed relays
       setEvents([])
+      setFeedState({ kind: 'loading' })
+      setInitialTimedOut(false)
+      setLastCloseReasons(null)
     }
     relaysRef.current = currentRelays
   }, [client])
@@ -158,9 +159,6 @@ export function useLocalFeed(params: {
     setSavedGeo5(geo5)
     setViewerGeo5(geo5)
     if (geo5 === viewerGeo5Ref.current) return
-    const len = geohashLength
-    const nextQuery = len === 0 ? geo5 : geo5.slice(0, Math.max(1, Math.min(5, Math.round(len))) as 1 | 2 | 3 | 4 | 5)
-    if (nextQuery === queryGeohashRef.current) return
     setFeedState({ kind: 'loading' })
     setInitialTimedOut(false)
     setLastCloseReasons(null)
@@ -234,21 +232,27 @@ export function useLocalFeed(params: {
     unsubRef.current?.()
 
     setEvents([])
+    setFeedState({ kind: 'loading' })
+    setInitialTimedOut(false)
+    setLastCloseReasons(null)
 
     let didEose = false
     let eventCount = 0
+    let cancelled = false
+    const timerIds: number[] = []
 
     const onEvent = (evt: Event) => {
+      if (cancelled) return
       if (evt.kind !== 1) return
       if (isReplyNote(evt)) return
 
       eventCount++
       if (eventCount === 1) setFeedState({ kind: 'live' })
-      startTransition(() => {
-        setEvents(prev => {
-          if (prev.some(e => e.id === evt.id)) return prev
-          return [evt, ...prev]
-        })
+      // Must not wrap setEvents in startTransition: setFeedState('live') would commit first and
+      // the feed could briefly render "No posts found" while events are still deferred.
+      setEvents(prev => {
+        if (prev.some(e => e.id === evt.id)) return prev
+        return [evt, ...prev]
       })
 
       // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
@@ -267,10 +271,12 @@ export function useLocalFeed(params: {
       }
     }
     const onEose = () => {
+      if (cancelled) return
       didEose = true
       setFeedState({ kind: 'live' })
     }
     const onClose = (reasons: string[]) => {
+      if (cancelled) return
       setLastCloseReasons(reasons)
       if (!didEose) setInitialTimedOut(true)
     }
@@ -308,9 +314,13 @@ export function useLocalFeed(params: {
             {
               onevent: onEvent,
               oneose: () => {
+                if (cancelled) return
                 eoseCount++
                 checkAllComplete()
-                if (currentIndex < cellsToQuery.length) setTimeout(runNextQuery, 100)
+                if (currentIndex < cellsToQuery.length) {
+                  const id = window.setTimeout(runNextQuery, 100)
+                  timerIds.push(id)
+                }
               },
               onclose: onClose,
               immediate: true,
@@ -337,9 +347,11 @@ export function useLocalFeed(params: {
       unsubRef.current = unsub
     }
     return () => {
+      cancelled = true
+      for (const id of timerIds) window.clearTimeout(id)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, isOffline, relaysKey, currentRelays.length, geohashLength])
+  }, [client, queryGeohash, viewerGeo5, isOffline, relaysKey, currentRelays.length, geohashLength])
 
   function loadMore() {
     if (isLoadingMore) return
@@ -366,6 +378,8 @@ export function useLocalFeed(params: {
     const clear = () => setIsLoadingMore(false)
     const timeoutMs = 15_000
     const timeoutId = window.setTimeout(clear, timeoutMs)
+    let cleanupTimerId: number | null = null
+    let hardStopTimerId: number | null = null
 
     const unsub = client.subscribe(
       { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT, until },
@@ -375,15 +389,17 @@ export function useLocalFeed(params: {
           window.clearTimeout(timeoutId)
           clear()
           // Close subscription after EOSE to avoid keeping it open
-          setTimeout(() => unsub(), 100)
+          cleanupTimerId = window.setTimeout(() => unsub(), 100)
         },
         onclose: () => {
           window.clearTimeout(timeoutId)
+          if (cleanupTimerId !== null) window.clearTimeout(cleanupTimerId)
+          if (hardStopTimerId !== null) window.clearTimeout(hardStopTimerId)
           clear()
         },
       },
     )
-    setTimeout(() => {
+    hardStopTimerId = window.setTimeout(() => {
       unsub()
     }, timeoutMs)
   }

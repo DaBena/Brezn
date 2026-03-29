@@ -75,17 +75,3 @@ body::-webkit-scrollbar {
   opacity: 1;
 }
 
-.btn-danger {
-  background-color: var(--brezn-button);
-  color: var(--brezn-danger);
-}
-
-.btn-danger:hover {
-  opacity: 0.9;
-}
-
-.btn-danger:disabled {
-  background-color: var(--brezn-buttonDisabled);
-  opacity: 1;
-}
-

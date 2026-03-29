@@ -20,7 +20,7 @@ export function MediaUploadSettings({ mediaEndpoint, onMediaEndpointChange }: Me
           value={mediaEndpoint}
           onChange={e => onMediaEndpointChange(e.target.value)}
           placeholder={DEFAULT_NIP96_SERVER}
-          className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+          className="w-full border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
         />
         <button
           type="button"

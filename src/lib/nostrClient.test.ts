@@ -32,9 +32,9 @@ describe('nostrClient identity (no accounts)', () => {
 
   it('persists keyword filters', () => {
     const client = createNostrClient()
-    client.setMutedTerms(['spam', ' telegram.me ', 'SPAM'])
+    client.setMutedTerms(['spam', ' evil.example ', 'SPAM'])
     const client2 = createNostrClient()
-    expect(client2.getMutedTerms()).toEqual(['spam', 'telegram.me'])
+    expect(client2.getMutedTerms()).toEqual(['spam', 'evil.example'])
   })
 
   it('persists geohash length setting', () => {

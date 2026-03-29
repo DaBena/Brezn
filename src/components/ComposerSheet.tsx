@@ -179,7 +179,7 @@ export function ComposerSheet(props: {
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
         placeholder="What's happening in your area?"
-        className="mt-3 min-h-[120px] w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-sm outline-none"
+        className="mt-3 min-h-[120px] w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base outline-none"
         rows={5}
       />
       {publishState === 'error' && publishError ? <div className="mt-2 text-sm text-brezn-danger">{publishError}</div> : null}

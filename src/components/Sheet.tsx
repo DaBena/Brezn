@@ -268,10 +268,10 @@ export function Sheet(props: {
 
   return (
     <div className={`fixed inset-0 ${zIndexClassName ?? 'z-50'}`}>
-      <div 
+      <div
         className="absolute inset-0 backdrop-blur-sm"
         style={{ opacity, backgroundColor: 'var(--brezn-overlay)' }}
-        onClick={dismissible ? onClose : undefined}
+        aria-hidden="true"
       />
       <div
         ref={dialogRef}

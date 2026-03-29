@@ -190,7 +190,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           value={newRelay}
           onChange={e => setNewRelay(e.target.value)}
           placeholder="wss://relay.example"
-          className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+          className="w-full border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
         />
         <button
           type="submit"

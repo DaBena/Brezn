@@ -108,7 +108,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               onChange={e => setProfileName(e.target.value)}
               placeholder="Your name (optional)"
               maxLength={100}
-              className="w-full border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+              className="w-full border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
             />
           </div>
 
@@ -123,7 +123,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               placeholder="Short bio (optional)"
               maxLength={PROFILE_ABOUT_MAX_LENGTH}
               rows={4}
-              className="w-full resize-y border border-brezn-border bg-brezn-panel p-2 text-sm outline-none"
+              className="w-full resize-y border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
             />
             <div className="mt-1 text-[10px] text-brezn-muted">
               {profileAbout.length}/{PROFILE_ABOUT_MAX_LENGTH}
@@ -283,7 +283,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   value={profilePicture}
                   onChange={e => setProfilePicture(e.target.value)}
                   placeholder="Or enter URL directly"
-                  className="w-full border border-brezn-border bg-brezn-panel p-2 text-xs font-mono outline-none"
+                  className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-base outline-none"
                 />
               </div>
             ) : null}

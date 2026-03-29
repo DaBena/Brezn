@@ -58,8 +58,8 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
           value={mutedTermsText}
           onChange={e => setMutedTermsText(e.target.value)}
           onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blocklist saved.')}
-          placeholder={'e.g.\nspam\nbuy now\ntelegram.me'}
-          className="mt-2 h-28 w-full resize-none border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs outline-none"
+          placeholder={'e.g.\nspam\nbuy now\nevil.example'}
+          className="mt-2 h-28 w-full resize-none border border-brezn-border bg-brezn-panel2 p-2 font-mono text-base outline-none"
         />
         {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
       </div>

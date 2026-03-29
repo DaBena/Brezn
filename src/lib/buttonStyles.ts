@@ -9,11 +9,6 @@
 export const buttonBase = 'btn-base focus:outline-none'
 
 /**
- * Button classes for danger/red buttons (e.g., delete, block)
- */
-export const buttonDanger = 'btn-danger focus:outline-none'
-
-/**
  * Button classes for reaction buttons (icon + counter only, no background)
  * @param isReacted - Whether the user has already reacted
  * @param canReact - Whether the user can react
