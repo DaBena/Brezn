@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "Ładowanie…"
+  },
+  "nav": {
+    "searchPlaceholder": "Szukaj postów…",
+    "openChat": "Otwórz czat",
+    "openMenu": "Otwórz menu"
+  },
+  "feed": {
+    "offlineBanner": "Offline — wyświetlane ostatnio widziane posty (tylko do odczytu).",
+    "locationTitle": "Lokalizacja dla lokalnego kanału",
+    "locationBody": "Aplikacja potrzebuje przybliżonego obszaru, by pokazać lokalne posty. Możesz to później zmienić. Twoja pozycja jest redukowana do komórki geohash (~5 km) dla prywatności.",
+    "privacyStorage": "Ta aplikacja używa pamięci lokalnej na urządzeniu. Brak śledzenia, brak przesyłania danych osobowych do nas. Zobacz",
+    "privacyLink": "źródło, README i licencję",
+    "privacyDisclaimer": "Aplikacja ładuje treści z zewnętrznych źródeł (relay’e nostr, serwery plików). Nie ponosimy odpowiedzialności za treści zewnętrzne.",
+    "privacyConfirm": "Kontynuując potwierdzasz: zapoznałem/am się i akceptuję.",
+    "allowLocation": "Zezwól na lokalizację",
+    "errorTitle": "Błąd",
+    "tryAgain": "Spróbuj ponownie",
+    "relayFailPrefix": "Połączenie z relay’em nie powiodło się. ",
+    "noRelayResponse": "Brak odpowiedzi z relay’ów. Sprawdź listę relay’ów lub spróbuj później.",
+    "waitingEose": "Brak zdarzeń (oczekiwanie na EOSE)…",
+    "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów."
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "source": "Źródło",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Motyw",
+    "switchToDark": "Przełącz na ciemny",
+    "switchToLight": "Przełącz na jasny"
+  },
+  "geohash": {
+    "searchRadius": "Promień wyszukiwania",
+    "lengthLabel": "Długość geohash:",
+    "length0": "0 (bieżący + wschód/zachód)",
+    "queries3": "3 zapytania",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Zmniejsz promień",
+    "increaseRadius": "Zwiększ promień",
+    "length": "Długość {{n}}",
+    "queriesCurrent": "3 zapytania (bieżący + wschód/zachód)",
+    "precisionFallback": "Wyższa = mniejsza (dokładniejsza) — ale mniej wyników.",
+    "cellSize": "{{w}} × {{h}} na komórkę"
+  },
+  "moderation": {
+    "blocklist": "Lista blokowanych",
+    "oneLineOneTerm": "1 linia = 1 wyraz ({{count}}/200)",
+    "placeholder": "np.\nspam\nkup teraz\nzly.przyklad",
+    "saved": "Lista zapisana.",
+    "blockedUsers": "Zablokowani użytkownicy",
+    "blockedCount": "{{count}} zablokowanych",
+    "unblock": "Odblokuj",
+    "noBlocked": "Brak zablokowanych",
+    "unblockedMsg": "Użytkownik odblokowany."
+  },
+  "keyMgmt": {
+    "title": "Tożsamość",
+    "npub": "npub",
+    "copy": "Kopiuj",
+    "nsec": "nsec",
+    "show": "Pokaż",
+    "hide": "Ukryj",
+    "neverShareNsec": "Nigdy nie udostępniaj swojego nsec.",
+    "npubCopied": "Skopiowano npub.",
+    "copyNpubHint": "Pokaż i skopiuj npub.",
+    "nsecCopied": "Skopiowano nsec.",
+    "copyNsecHint": "Pokaż i skopiuj nsec.",
+    "importTitle": "Importuj tożsamość",
+    "importNsec": "Importuj nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Wpisz nsec",
+    "importSuccess": "Tożsamość zaimportowana. Strona się przeładuje…",
+    "importing": "Importowanie…",
+    "import": "Importuj",
+    "cancel": "Anuluj",
+    "importFailed": "Nie udało się zaimportować nsec"
+  },
+  "relay": {
+    "title": "Relay’e",
+    "hint": "Relay’e używane do kanału, DM i publikacji.",
+    "empty": "Brak skonfigurowanych relay’ów. Bez co najmniej jednego relay’a nie można wczytać ani opublikować postów. Dodaj poniżej lub użyj «Domyślne», by przywrócić domyślne relay’e.",
+    "removeAria": "Usuń relay",
+    "placeholder": "wss://relay.przyklad",
+    "add": "Dodaj",
+    "default": "Domyślne",
+    "test": "Test",
+    "testing": "Testowanie…",
+    "removed": "Relay usunięty.",
+    "added": "Relay dodany.",
+    "resetDefault": "Przywróć domyślne relay’e.",
+    "unknown": "nieznany",
+    "reachable": "osiągalny",
+    "unreachable": "nieosiągalny",
+    "reachableWithRtt": "osiągalny • {{rtt}} ms",
+    "unreachableWithErr": "nieosiągalny • {{error}}",
+    "statusAria": "Status relay’a: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Przesyłanie mediów",
+    "hint": "Bezpośredni URL lub NIP-96. Domyślnie: {{default}}. Puste = wyłączone.",
+    "defaultBtn": "Domyślne"
+  },
+  "profileSettings": {
+    "title": "Profil",
+    "loading": "Ładowanie profilu…",
+    "name": "Nazwa",
+    "namePlaceholder": "Twoja nazwa (opcjonalnie)",
+    "about": "O mnie",
+    "aboutPlaceholder": "Krótki opis (opcjonalnie)",
+    "picture": "Zdjęcie profilowe",
+    "pictureAlt": "Zdjęcie profilowe",
+    "onlyImages": "Obsługiwane są tylko obrazy.",
+    "imageTooLarge5": "Obraz jest za duży (maks. 5 MB).",
+    "configureEndpointFirst": "Najpierw skonfiguruj punkt końcowy przesyłania mediów.",
+    "uploading": "Przesyłanie…",
+    "changeImage": "Zmień obraz",
+    "uploadImage": "Prześlij obraz",
+    "resetConfirm": "Zresetować profil? Nazwa, opis i zdjęcie zostaną usunięte.",
+    "reset": "Resetuj",
+    "removeImage": "Usuń obraz",
+    "urlPlaceholder": "Lub wpisz URL bezpośrednio",
+    "resetDone": "Profil zresetowany.",
+    "resetError": "Błąd resetowania profilu"
+  },
+  "chat": {
+    "title": "Czat",
+    "loading": "Ładowanie rozmów…",
+    "offline": "Offline — sprawdź połączenie z internetem.",
+    "timeout": "Timeout — relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "loadError": "Nie udało się wczytać rozmów",
+    "empty": "Brak rozmów"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Offline — nie można wysłać wiadomości.",
+    "offline": "Offline — sprawdź połączenie z internetem.",
+    "timeout": "Timeout — relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "loadError": "Nie udało się wczytać wiadomości",
+    "loading": "Ładowanie wiadomości…",
+    "empty": "Brak wiadomości",
+    "placeholder": "Napisz wiadomość…",
+    "sendAria": "Wyślij wiadomość",
+    "sendingContent": "[wysyłanie...]",
+    "sendError": "Błąd wysyłania wiadomości"
+  },
+  "composer": {
+    "srTitle": "Nowy post",
+    "publish": "Opublikuj",
+    "publishing": "Publikowanie…",
+    "publishAria": "Opublikuj post",
+    "media": "Media",
+    "uploading": "Przesyłanie…",
+    "mediaAria": "Dodaj media",
+    "createInCell": "utwórz nowy post w komórce",
+    "createNew": "utwórz nowy post",
+    "showMapAria": "Pokaż komórkę {{cell}} na mapie",
+    "showMapTitle": "Pokaż komórkę na mapie",
+    "placeholder": "Co dzieje się w Twojej okolicy?",
+    "removeMediaAria": "Usuń media",
+    "noUploadEndpoint": "Brak skonfigurowanego punktu przesyłania (Ustawienia → Przesyłanie mediów).",
+    "onlyImagesVideos": "Obsługiwane są tylko obrazy lub filmy.",
+    "videoTooLarge": "Film jest za duży (maks. 25 MB).",
+    "imageTooLarge": "Obraz jest za duży (maks. 12 MB).",
+    "compressFailed": "Nie udało się skompresować obrazu.",
+    "uploadFailed": "Przesyłanie nie powiodło się.",
+    "publishFailed": "Publikacja nie powiodła się."
+  },
+  "feedArticle": {
+    "deleted": "Usunięto — propagacja do relay’ów",
+    "deletedAria": "Usunięty post",
+    "openPost": "Otwórz post",
+    "sendReaction": "Wyślij reakcję",
+    "sendReactionCount": "Wyślij reakcję ({{count}})",
+    "loadOlder": "Pokaż więcej",
+    "loading": "Ładowanie…"
+  },
+  "pwa": {
+    "title": "Dostępna aktualizacja",
+    "body": "Załadowano nową wersję. Odśwież, aby ją aktywować.",
+    "reload": "Odśwież",
+    "close": "Zamknij"
+  },
+  "adblock": {
+    "title": "Service Worker zablokowany",
+    "body": "Blokada reklam może blokować service worker. Wyłącz ją dla tej witryny lub dodaj wyjątek.",
+    "close": "Zamknij"
+  },
+  "composeBtn": {
+    "aria": "Utwórz nowy post"
+  },
+  "errorBoundary": {
+    "title": "Coś poszło nie tak",
+    "body": "Wystąpił nieoczekiwany błąd. Spróbuj odświeżyć stronę.",
+    "details": "Szczegóły błędu",
+    "errorLabel": "Błąd:",
+    "stack": "Ślad stosu:",
+    "componentStack": "Stos komponentów:",
+    "tryAgain": "Spróbuj ponownie",
+    "reload": "Odśwież stronę"
+  },
+  "app": {
+    "publishFailed": "Publikacja nie powiodła się.",
+    "offlineComments": "Offline — komentarze tylko do odczytu.",
+    "offlineDelete": "Offline — nie można wysłać zdarzenia usunięcia."
+  },
+  "thread": {
+    "reportRoot": "Zgłoś post główny",
+    "reportReply": "Zgłoś odpowiedź",
+    "reportReason": "Powód zgłoszenia (opcjonalnie)",
+    "submitReport": "Wyślij zgłoszenie",
+    "replies": "Odpowiedzi ({{count}})",
+    "offline": "Offline",
+    "replyPlaceholder": "Napisz odpowiedź…",
+    "sendDeletionAria": "Wyślij zdarzenie usunięcia NIP-09",
+    "blockUserAria": "Zablokuj użytkownika",
+    "blockUserTitle": "Zablokuj użytkownika",
+    "delete": "Usuń",
+    "deleteSending": "Wysyłanie…",
+    "block": "Zablokuj",
+    "blocking": "Blokowanie…",
+    "blockHeading": "Zablokuj {{label}}",
+    "reportHint": "Opcjonalnie: powód zgłoszenia. Zostanie wysłany do relay’ów przez NIP-56.",
+    "reply": "Odpowiedz",
+    "replySending": "Wysyłanie…",
+    "userBlocked": "Użytkownik zablokowany.",
+    "blockingFailed": "Blokowanie nie powiodło się.",
+    "offlineBlock": "Offline — nie można zablokować użytkownika.",
+    "deleteFailed": "Nie udało się wysłać zdarzenia usunięcia.",
+    "publishFailedFallback": "Publikacja nie powiodła się."
+  },
+  "profileSheet": {
+    "openPictureAria": "Otwórz zdjęcie profilowe",
+    "dmAria": "Otwórz wiadomość bezpośrednią",
+    "message": "Wiadomość",
+    "offlineHint": "Offline — posty na profilu mogą być niekompletne.",
+    "loadingPosts": "Ładowanie postów…",
+    "noPosts": "Brak postów",
+    "noPostsFromRelays": "Brak postów z relay’ów.",
+    "loadError": "Nie udało się wczytać postów."
+  },
+  "geohashMap": {
+    "gpsAria": "Lokalizacja GPS",
+    "gpsTitle": "Lokalizacja GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Otwórz profil"
+  },
+  "time": {
+    "justNow": "przed chwilą",
+    "minutesAgo": "{{count}} min temu",
+    "hoursAgo": "{{count}} godz. temu",
+    "daysAgo": "{{count}} dni temu"
+  },
+  "common": {
+    "loading": "Ładowanie…",
+    "close": "Zamknij"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Wczytywanie cytowanego posta…",
+    "noText": "(brak tekstu)"
+  }
+}

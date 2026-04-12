@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
@@ -81,6 +82,7 @@ function asErrorMessage(e: unknown): string {
 }
 
 export function RelaySettings({ client }: RelaySettingsProps) {
+  const { t } = useTranslation()
   const [relays, setRelays] = useState<string[]>(() => client.getRelays())
   const [newRelay, setNewRelay] = useState('')
   const [relayMsg, setRelayMsg] = useState<string | null>(null)
@@ -138,15 +140,12 @@ export function RelaySettings({ client }: RelaySettingsProps) {
 
   return (
     <div className="p-3">
-      <div className="text-xs font-semibold text-brezn-muted">Relays</div>
-      <div className="mt-1 text-xs text-brezn-muted">
-        Relays for loading & posting. The <span className="font-medium text-brezn-text">first relay</span> is used for
-        the DM inbox (chat list & history) so it finishes quickly—put your most reliable relay at the top.
-      </div>
+      <div className="text-xs font-semibold text-brezn-muted">{t('relay.title')}</div>
+      <div className="mt-1 text-xs text-brezn-muted">{t('relay.hint')}</div>
 
       {relays.length === 0 ? (
         <div className="mt-3 rounded-xl border border-brezn-border bg-brezn-panel p-3 text-xs text-brezn-muted">
-          No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the "Default" button to restore default relays.
+          {t('relay.empty')}
         </div>
       ) : null}
 
@@ -165,10 +164,10 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                   const next = relays.filter(x => x !== r)
                   client.setRelays(next)
                   setRelays(next)
-                  setRelayMsg('Relay removed.')
+                  setRelayMsg(t('relay.removed'))
                 }}
                 className="shrink-0 hover:opacity-80 focus:outline-none"
-                aria-label="Remove relay"
+                aria-label={t('relay.removeAria')}
               >
                 <CloseIcon />
               </button>
@@ -181,20 +180,20 @@ export function RelaySettings({ client }: RelaySettingsProps) {
         className="mt-3 flex gap-2"
         onSubmit={e => {
           e.preventDefault()
-          const t = newRelay.trim()
-          if (!t) return
-          const next = [...relays, t]
+          const trimmed = newRelay.trim()
+          if (!trimmed) return
+          const next = [...relays, trimmed]
           client.setRelays(next)
           setRelays(client.getRelays())
           setNewRelay('')
-          setRelayMsg('Relay added.')
+          setRelayMsg(t('relay.added'))
           setRelayTestTriggered(false)
         }}
       >
         <input
           value={newRelay}
           onChange={e => setNewRelay(e.target.value)}
-          placeholder="wss://relay.example"
+          placeholder={t('relay.placeholder')}
           className="w-full border border-brezn-text p-2 text-base outline-none"
         />
         <button
@@ -202,19 +201,19 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           disabled={!newRelay.trim()}
           className={`rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
         >
-          Add
+          {t('relay.add')}
         </button>
         <button
           type="button"
           onClick={() => {
             client.setRelays([...DEFAULT_RELAYS])
             setRelays(client.getRelays())
-            setRelayMsg('Reset to default relays.')
+            setRelayMsg(t('relay.resetDefault'))
             setRelayTestTriggered(false)
           }}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
-          Default
+          {t('relay.default')}
         </button>
         <button
           type="button"
@@ -222,7 +221,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           disabled={relayTestState === 'running' || relays.length === 0}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
-          {relayTestState === 'running' ? 'Testing…' : 'Test'}
+          {relayTestState === 'running' ? t('relay.testing') : t('relay.test')}
         </button>
       </form>
 
@@ -242,10 +241,14 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                   <div className="truncate font-mono text-xs">{url}</div>
                   <div className="truncate text-[11px] text-brezn-muted">
                     {s.reachable === 'unknown'
-                      ? 'unknown'
+                      ? t('relay.unknown')
                       : s.reachable
-                        ? `reachable${typeof s.rttMs === 'number' ? ` • ${s.rttMs}ms` : ''}`
-                        : `unreachable${s.lastError ? ` • ${s.lastError}` : ''}`}
+                        ? typeof s.rttMs === 'number'
+                          ? t('relay.reachableWithRtt', { rtt: s.rttMs })
+                          : t('relay.reachable')
+                        : s.lastError
+                          ? t('relay.unreachableWithErr', { error: s.lastError })
+                          : t('relay.unreachable')}
                   </div>
                 </div>
                 <div
@@ -253,7 +256,14 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                     'h-2.5 w-2.5 shrink-0 rounded-full',
                     s.reachable === 'unknown' ? 'bg-brezn-muted/50' : s.reachable ? 'bg-brezn-success' : 'bg-brezn-error',
                   )}
-                  aria-label={`Relay status: ${s.reachable === 'unknown' ? 'unknown' : s.reachable ? 'reachable' : 'unreachable'}`}
+                  aria-label={t('relay.statusAria', {
+                    state:
+                      s.reachable === 'unknown'
+                        ? t('relay.unknown')
+                        : s.reachable
+                          ? t('relay.reachable')
+                          : t('relay.unreachable'),
+                  })}
                 />
               </div>
             )

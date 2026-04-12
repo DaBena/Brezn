@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "جارٍ التحميل…"
+  },
+  "nav": {
+    "searchPlaceholder": "البحث في المنشورات…",
+    "openChat": "فتح الدردشة",
+    "openMenu": "فتح القائمة"
+  },
+  "feed": {
+    "offlineBanner": "دون اتصال — عرض آخر المنشورات (للقراءة فقط).",
+    "locationTitle": "الموقع للخلاصة المحلية",
+    "locationBody": "يحتاج التطبيق إلى منطقتك التقريبية لعرض المنشورات المحلية. يمكنك تغييرها لاحقًا. يُختصر موقعك إلى خلية geohash (~5 كم).",
+    "privacyStorage": "يستخدم هذا التطبيق التخزين المحلي على جهازك. لا تتبع ولا بيانات شخصية إلينا. راجع",
+    "privacyLink": "المصدر وREADME والترخيص",
+    "privacyDisclaimer": "يحمّل التطبيق محتوى من مصادر خارجية (مرحّلات Nostr، خوادم). لا مسؤولية عن المحتوى الخارجي.",
+    "privacyConfirm": "بالمتابعة تؤكد أنك اطلعت وتوافق.",
+    "allowLocation": "السماح بالموقع",
+    "errorTitle": "خطأ",
+    "tryAgain": "إعادة المحاولة",
+    "relayFailPrefix": "فشل الاتصال بالمرحّل. ",
+    "noRelayResponse": "لا استجابة من المرحّلات. تحقق من القائمة أو حاول لاحقًا.",
+    "waitingEose": "لا أحداث بعد (في انتظار EOSE)…",
+    "noPostsYet": "لا منشورات بعد. حاول لاحقًا أو مرحّلات أخرى."
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "source": "المصدر",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "المظهر",
+    "switchToDark": "الوضع الداكن",
+    "switchToLight": "الوضع الفاتح"
+  },
+  "geohash": {
+    "searchRadius": "نطاق البحث",
+    "lengthLabel": "طول geohash:",
+    "length0": "0 (الحالي + شرق/غرب)",
+    "queries3": "3 استعلامات",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "تصغير النطاق",
+    "increaseRadius": "توسيع النطاق",
+    "length": "الطول {{n}}",
+    "queriesCurrent": "3 استعلامات (الحالي + شرق/غرب)",
+    "precisionFallback": "أعلى = أصغر (أدق) لكن نتائج أقل.",
+    "cellSize": "{{w}} × {{h}} لكل خلية"
+  },
+  "moderation": {
+    "blocklist": "قائمة الحظر",
+    "oneLineOneTerm": "سطر واحد = مصطلح واحد ({{count}}/200)",
+    "placeholder": "مثال\nspam\nاشتر الآن\nevile.example",
+    "saved": "تم حفظ القائمة.",
+    "blockedUsers": "المستخدمون المحظورون",
+    "blockedCount": "{{count}} محظور",
+    "unblock": "إلغاء الحظر",
+    "noBlocked": "لا مستخدمين محظورين",
+    "unblockedMsg": "تم إلغاء حظر المستخدم."
+  },
+  "keyMgmt": {
+    "title": "الهوية",
+    "npub": "npub",
+    "copy": "نسخ",
+    "nsec": "nsec",
+    "show": "إظهار",
+    "hide": "إخفاء",
+    "neverShareNsec": "لا تشارك nsec أبدًا.",
+    "npubCopied": "تم نسخ npub.",
+    "copyNpubHint": "إظهار ونسخ npub.",
+    "nsecCopied": "تم نسخ nsec.",
+    "copyNsecHint": "إظهار ونسخ nsec.",
+    "importTitle": "استيراد الهوية",
+    "importNsec": "استيراد nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "يرجى إدخال nsec",
+    "importSuccess": "تم الاستيراد. سيتم إعادة التحميل…",
+    "importing": "جارٍ الاستيراد…",
+    "import": "استيراد",
+    "cancel": "إلغاء",
+    "importFailed": "فشل استيراد nsec"
+  },
+  "relay": {
+    "title": "المرحّلات",
+    "hint": "للخلاصة والرسائل والنشر.",
+    "empty": "لا مرحّلات. لا يمكن التحميل أو النشر دون مرحّل. أضف أدناه أو «افتراضي».",
+    "removeAria": "إزالة المرحّل",
+    "placeholder": "wss://relay.example",
+    "add": "إضافة",
+    "default": "افتراضي",
+    "test": "اختبار",
+    "testing": "جارٍ الاختبار…",
+    "removed": "تمت الإزالة.",
+    "added": "تمت الإضافة.",
+    "resetDefault": "استعادة المرحّلات الافتراضية.",
+    "unknown": "غير معروف",
+    "reachable": "متاح",
+    "unreachable": "غير متاح",
+    "reachableWithRtt": "متاح • {{rtt}}ms",
+    "unreachableWithErr": "غير متاح • {{error}}",
+    "statusAria": "حالة المرحّل: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "رفع الوسائط",
+    "hint": "رابط مباشر أو NIP-96. الافتراضي: {{default}}. فارغ = إيقاف.",
+    "defaultBtn": "افتراضي"
+  },
+  "profileSettings": {
+    "title": "الملف الشخصي",
+    "loading": "جارٍ التحميل…",
+    "name": "الاسم",
+    "namePlaceholder": "اسمك (اختياري)",
+    "about": "نبذة",
+    "aboutPlaceholder": "نبذة قصيرة (اختياري)",
+    "picture": "صورة الملف",
+    "pictureAlt": "صورة الملف",
+    "onlyImages": "الصور فقط.",
+    "imageTooLarge5": "الصورة كبيرة جدًا (حد أقصى 5 ميجابايت).",
+    "configureEndpointFirst": "اضبط نقطة الرفع أولًا.",
+    "uploading": "جارٍ الرفع…",
+    "changeImage": "تغيير الصورة",
+    "uploadImage": "رفع صورة",
+    "resetConfirm": "إعادة تعيين الملف؟ سيتم حذف الاسم والنبذة والصورة.",
+    "reset": "إعادة تعيين",
+    "removeImage": "إزالة الصورة",
+    "urlPlaceholder": "أو أدخل الرابط",
+    "resetDone": "تمت إعادة التعيين.",
+    "resetError": "خطأ في إعادة تعيين الملف"
+  },
+  "chat": {
+    "title": "الدردشة",
+    "loading": "جارٍ تحميل المحادثات…",
+    "offline": "دون اتصال — تحقق من الشبكة.",
+    "timeout": "انتهت المهلة — لا استجابة من المرحّلات.",
+    "loadError": "فشل تحميل المحادثات",
+    "empty": "لا محادثات بعد"
+  },
+  "dm": {
+    "titlePrefix": "رسالة:",
+    "offlineSend": "دون اتصال — لا يمكن إرسال الرسالة.",
+    "offline": "دون اتصال — تحقق من الشبكة.",
+    "timeout": "انتهت المهلة — لا استجابة من المرحّلات.",
+    "loadError": "فشل تحميل الرسائل",
+    "loading": "جارٍ تحميل الرسائل…",
+    "empty": "لا رسائل بعد",
+    "placeholder": "اكتب رسالة…",
+    "sendAria": "إرسال",
+    "sendingContent": "[جارٍ الإرسال...]",
+    "sendError": "فشل الإرسال"
+  },
+  "composer": {
+    "srTitle": "منشور جديد",
+    "publish": "نشر",
+    "publishing": "جارٍ النشر…",
+    "publishAria": "نشر",
+    "media": "وسائط",
+    "uploading": "جارٍ الرفع…",
+    "mediaAria": "إضافة وسائط",
+    "createInCell": "منشور جديد في الخلية",
+    "createNew": "منشور جديد",
+    "showMapAria": "عرض الخلية {{cell}} على الخريطة",
+    "showMapTitle": "عرض الخلية على الخريطة",
+    "placeholder": "ما الذي يحدث في منطقتك؟",
+    "removeMediaAria": "إزالة الوسائط",
+    "noUploadEndpoint": "لا نقطة رفع (الإعدادات → وسائط).",
+    "onlyImagesVideos": "صور أو فيديو فقط.",
+    "videoTooLarge": "الفيديو كبير جدًا (حد أقصى 25 ميجابايت).",
+    "imageTooLarge": "الصورة كبيرة جدًا (حد أقصى 12 ميجابايت).",
+    "compressFailed": "فشل ضغط الصورة.",
+    "uploadFailed": "فشل الرفع.",
+    "publishFailed": "فشل النشر."
+  },
+  "feedArticle": {
+    "deleted": "محذوف — جارٍ المزامنة",
+    "deletedAria": "منشور محذوف",
+    "openPost": "فتح المنشور",
+    "sendReaction": "تفاعل",
+    "sendReactionCount": "تفاعل ({{count}})",
+    "loadOlder": "المزيد",
+    "loading": "جارٍ التحميل…"
+  },
+  "pwa": {
+    "title": "يتوفر تحديث",
+    "body": "تم تحميل إصدار جديد. أعد التحميل لتفعيله.",
+    "reload": "إعادة تحميل",
+    "close": "إغلاق"
+  },
+  "adblock": {
+    "title": "حظر Service Worker",
+    "body": "قد يحجب مانع الإعلانات الـ service worker. عطّله أو أضف استثناءً.",
+    "close": "إغلاق"
+  },
+  "composeBtn": {
+    "aria": "إنشاء منشور"
+  },
+  "errorBoundary": {
+    "title": "حدث خطأ",
+    "body": "خطأ غير متوقع. حاول تحديث الصفحة.",
+    "details": "تفاصيل الخطأ",
+    "errorLabel": "الخطأ:",
+    "stack": "المكدس:",
+    "componentStack": "مكدس المكوّنات:",
+    "tryAgain": "إعادة المحاولة",
+    "reload": "إعادة تحميل الصفحة"
+  },
+  "app": {
+    "publishFailed": "فشل النشر.",
+    "offlineComments": "دون اتصال — التعليقات للقراءة فقط.",
+    "offlineDelete": "دون اتصال — لا يمكن إرسال حدث الحذف."
+  },
+  "thread": {
+    "reportRoot": "الإبلاغ عن المنشور الأصل",
+    "reportReply": "الإبلاغ عن الرد",
+    "reportReason": "السبب (اختياري)",
+    "submitReport": "إرسال البلاغ",
+    "replies": "الردود ({{count}})",
+    "offline": "دون اتصال",
+    "replyPlaceholder": "اكتب ردًا…",
+    "sendDeletionAria": "إرسال حذف NIP-09",
+    "blockUserAria": "حظر المستخدم",
+    "blockUserTitle": "حظر المستخدم",
+    "delete": "حذف",
+    "deleteSending": "جارٍ الإرسال…",
+    "block": "حظر",
+    "blocking": "جارٍ الحظر…",
+    "blockHeading": "حظر {{label}}",
+    "reportHint": "اختياري: سبب البلاغ. يُرسل إلى المرحّلات عبر NIP-56.",
+    "reply": "رد",
+    "replySending": "جارٍ الإرسال…",
+    "userBlocked": "تم حظر المستخدم.",
+    "blockingFailed": "فشل الحظر.",
+    "offlineBlock": "دون اتصال — لا يمكن حظر المستخدم.",
+    "deleteFailed": "فشل إرسال حدث الحذف.",
+    "publishFailedFallback": "فشل النشر."
+  },
+  "profileSheet": {
+    "openPictureAria": "فتح صورة الملف",
+    "dmAria": "فتح رسالة مباشرة",
+    "offlineHint": "دون اتصال — قد تكون منشورات الملف ناقصة.",
+    "loadingPosts": "جارٍ تحميل المنشورات…",
+    "noPosts": "لا منشورات بعد",
+    "loadError": "تعذر تحميل المنشورات."
+  },
+  "geohashMap": {
+    "gpsAria": "موقع GPS",
+    "gpsTitle": "موقع GPS"
+  },
+  "postIdentity": {
+    "openProfile": "فتح الملف"
+  },
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} د",
+    "hoursAgo": "منذ {{count}} س",
+    "daysAgo": "منذ {{count}} يوم"
+  },
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "close": "إغلاق"
+  },
+  "quotedPost": {
+    "loadingReferenced": "جارٍ تحميل المنشور المقتبس…",
+    "noText": "(لا نص)"
+  }
+}

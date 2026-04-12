@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
+import { i18n } from '../i18n/i18n'
 import { CloseIcon } from './CloseIcon'
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
@@ -358,7 +359,7 @@ export function Sheet(props: {
                 <button
                   ref={closeButtonRef}
                   onClick={onClose}
-                  aria-label="Close"
+                  aria-label={i18n.t('common.close')}
                   className="justify-self-end rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
                 >
                   <CloseIcon size={24} />
@@ -382,7 +383,7 @@ export function Sheet(props: {
                 <button
                   ref={closeButtonRef}
                   onClick={onClose}
-                  aria-label="Close"
+                  aria-label={i18n.t('common.close')}
                   className="ml-auto shrink-0 rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
                 >
                   <CloseIcon size={24} />

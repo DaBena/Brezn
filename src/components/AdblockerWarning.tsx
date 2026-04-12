@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CloseIcon } from './CloseIcon'
 
 export function AdblockerWarning() {
+  const { t } = useTranslation()
   const [showWarning, setShowWarning] = useState(false)
 
   useEffect(() => {
@@ -34,14 +36,12 @@ export function AdblockerWarning() {
       <div className="rounded-lg border border-brezn-border bg-brezn-panel/95 p-3 backdrop-blur">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-semibold">Service Worker blocked</div>
-            <div className="mt-0.5 text-xs text-brezn-muted">
-              An adblocker may be blocking the service worker. Please disable the adblocker for this site or add an exception.
-            </div>
+            <div className="text-sm font-semibold">{t('adblock.title')}</div>
+            <div className="mt-0.5 text-xs text-brezn-muted">{t('adblock.body')}</div>
           </div>
           <button
             onClick={() => setShowWarning(false)}
-            aria-label="Close"
+            aria-label={t('adblock.close')}
             className="shrink-0 hover:opacity-80 focus:outline-none"
           >
             <CloseIcon />

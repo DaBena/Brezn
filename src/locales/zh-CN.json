@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "加载中…"
+  },
+  "nav": {
+    "searchPlaceholder": "搜索帖子…",
+    "openChat": "打开聊天",
+    "openMenu": "打开菜单"
+  },
+  "feed": {
+    "offlineBanner": "离线 — 显示上次看到的帖子（只读）",
+    "locationTitle": "本地信息流的位置",
+    "locationBody": "应用需要大致区域以显示附近帖子，之后可更改。位置会模糊到 geohash 单元（约 5 公里）。",
+    "privacyStorage": "本应用使用设备本地存储，不向服务器发送跟踪或个人数据。参见",
+    "privacyLink": "源码、README 与许可证",
+    "privacyDisclaimer": "内容来自外部（Nostr 中继、文件服务器），不对外部内容负责。",
+    "privacyConfirm": "继续即表示您已了解并同意。",
+    "allowLocation": "允许位置",
+    "errorTitle": "错误",
+    "tryAgain": "重试",
+    "relayFailPrefix": "中继连接失败。",
+    "noRelayResponse": "中继无响应，请检查列表或稍后再试。",
+    "waitingEose": "尚无事件（等待 EOSE）…",
+    "noPostsYet": "暂无帖子，请稍后再试或更换中继。"
+  },
+  "settings": {
+    "title": "设置",
+    "source": "源码",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "主题",
+    "switchToDark": "切换到深色",
+    "switchToLight": "切换到浅色"
+  },
+  "geohash": {
+    "searchRadius": "搜索半径",
+    "lengthLabel": "Geohash 长度：",
+    "length0": "0（当前格 + 东西邻格）",
+    "queries3": "3 次查询",
+    "geoHashLabel": "GeoHash：",
+    "geoHashEmpty": "GeoHash：-",
+    "decreaseRadius": "缩小半径",
+    "increaseRadius": "扩大半径",
+    "length": "长度 {{n}}",
+    "queriesCurrent": "3 次查询（当前 + 东西）",
+    "precisionFallback": "数值越大格子越小（更精确），但结果更少。",
+    "cellSize": "每格约 {{w}} × {{h}}"
+  },
+  "moderation": {
+    "blocklist": "屏蔽词",
+    "oneLineOneTerm": "一行一词（{{count}}/200）",
+    "placeholder": "例如\nspam\n立即购买\nevile.example",
+    "saved": "已保存。",
+    "blockedUsers": "已屏蔽用户",
+    "blockedCount": "已屏蔽 {{count}} 人",
+    "unblock": "取消屏蔽",
+    "noBlocked": "无屏蔽用户",
+    "unblockedMsg": "已取消屏蔽。"
+  },
+  "keyMgmt": {
+    "title": "身份",
+    "npub": "npub",
+    "copy": "复制",
+    "nsec": "nsec",
+    "show": "显示",
+    "hide": "隐藏",
+    "neverShareNsec": "切勿分享 nsec。",
+    "npubCopied": "已复制 npub。",
+    "copyNpubHint": "显示并复制 npub。",
+    "nsecCopied": "已复制 nsec。",
+    "copyNsecHint": "显示并复制 nsec。",
+    "importTitle": "导入身份",
+    "importNsec": "导入 nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "请输入 nsec",
+    "importSuccess": "导入成功，即将刷新…",
+    "importing": "导入中…",
+    "import": "导入",
+    "cancel": "取消",
+    "importFailed": "无法导入 nsec"
+  },
+  "relay": {
+    "title": "中继",
+    "hint": "用于信息流、私信与发布。",
+    "empty": "未配置中继，无法加载或发布。请添加或使用「默认」。",
+    "removeAria": "移除中继",
+    "placeholder": "wss://relay.example",
+    "add": "添加",
+    "default": "默认",
+    "test": "测试",
+    "testing": "测试中…",
+    "removed": "已移除。",
+    "added": "已添加。",
+    "resetDefault": "恢复默认中继",
+    "unknown": "未知",
+    "reachable": "可达",
+    "unreachable": "不可达",
+    "reachableWithRtt": "可达 • {{rtt}}ms",
+    "unreachableWithErr": "不可达 • {{error}}",
+    "statusAria": "中继状态：{{state}}"
+  },
+  "mediaUpload": {
+    "title": "媒体上传",
+    "hint": "直接 URL 或 NIP-96。默认：{{default}}。留空为关闭。",
+    "defaultBtn": "默认"
+  },
+  "profileSettings": {
+    "title": "资料",
+    "loading": "加载资料…",
+    "name": "名称",
+    "namePlaceholder": "昵称（可选）",
+    "about": "简介",
+    "aboutPlaceholder": "简短简介（可选）",
+    "picture": "头像",
+    "pictureAlt": "头像",
+    "onlyImages": "仅支持图片。",
+    "imageTooLarge5": "图片过大（最大 5 MB）。",
+    "configureEndpointFirst": "请先配置上传端点。",
+    "uploading": "上传中…",
+    "changeImage": "更换图片",
+    "uploadImage": "上传图片",
+    "resetConfirm": "确定重置资料？名称、简介与头像将清空。",
+    "reset": "重置",
+    "removeImage": "移除图片",
+    "urlPlaceholder": "或直接输入 URL",
+    "resetDone": "已重置。",
+    "resetError": "重置资料失败"
+  },
+  "chat": {
+    "title": "聊天",
+    "loading": "加载会话…",
+    "offline": "离线 — 请检查网络。",
+    "timeout": "超时 — 中继无响应。",
+    "loadError": "加载会话失败",
+    "empty": "暂无会话"
+  },
+  "dm": {
+    "titlePrefix": "私信：",
+    "offlineSend": "离线 — 无法发送消息。",
+    "offline": "离线 — 请检查网络。",
+    "timeout": "超时 — 中继无响应。",
+    "loadError": "加载消息失败",
+    "loading": "加载消息…",
+    "empty": "暂无消息",
+    "placeholder": "输入消息…",
+    "sendAria": "发送",
+    "sendingContent": "[发送中...]",
+    "sendError": "发送失败"
+  },
+  "composer": {
+    "srTitle": "新帖",
+    "publish": "发布",
+    "publishing": "发布中…",
+    "publishAria": "发布",
+    "media": "媒体",
+    "uploading": "上传中…",
+    "mediaAria": "添加媒体",
+    "createInCell": "在此格发新帖",
+    "createNew": "新帖",
+    "showMapAria": "在地图上显示格 {{cell}}",
+    "showMapTitle": "在地图上显示格",
+    "placeholder": "你那里发生了什么？",
+    "removeMediaAria": "移除媒体",
+    "noUploadEndpoint": "未设置上传端点（设置 → 媒体上传）。",
+    "onlyImagesVideos": "仅支持图片或视频。",
+    "videoTooLarge": "视频过大（最大 25 MB）。",
+    "imageTooLarge": "图片过大（最大 12 MB）。",
+    "compressFailed": "压缩图片失败。",
+    "uploadFailed": "上传失败。",
+    "publishFailed": "发布失败。"
+  },
+  "feedArticle": {
+    "deleted": "已删除 — 同步到中继",
+    "deletedAria": "已删除的帖子",
+    "openPost": "打开帖子",
+    "sendReaction": "点赞",
+    "sendReactionCount": "点赞 ({{count}})",
+    "loadOlder": "加载更多",
+    "loading": "加载中…"
+  },
+  "pwa": {
+    "title": "有更新",
+    "body": "新版本已下载，请刷新以启用。",
+    "reload": "刷新",
+    "close": "关闭"
+  },
+  "adblock": {
+    "title": "Service Worker 被拦截",
+    "body": "广告拦截器可能阻止了 Service Worker，请关闭或加入白名单。",
+    "close": "关闭"
+  },
+  "composeBtn": {
+    "aria": "发帖"
+  },
+  "errorBoundary": {
+    "title": "出错了",
+    "body": "发生意外错误，请尝试刷新页面。",
+    "details": "错误详情",
+    "errorLabel": "错误：",
+    "stack": "堆栈：",
+    "componentStack": "组件堆栈：",
+    "tryAgain": "重试",
+    "reload": "刷新页面"
+  },
+  "app": {
+    "publishFailed": "发布失败。",
+    "offlineComments": "离线 — 评论只读。",
+    "offlineDelete": "离线 — 无法发送删除事件。"
+  },
+  "thread": {
+    "reportRoot": "举报根帖",
+    "reportReply": "举报回复",
+    "reportReason": "原因（可选）",
+    "submitReport": "提交举报",
+    "replies": "回复 ({{count}})",
+    "offline": "离线",
+    "replyPlaceholder": "写回复…",
+    "sendDeletionAria": "发送 NIP-09 删除事件",
+    "blockUserAria": "屏蔽用户",
+    "blockUserTitle": "屏蔽用户",
+    "delete": "删除",
+    "deleteSending": "发送中…",
+    "block": "屏蔽",
+    "blocking": "屏蔽中…",
+    "blockHeading": "屏蔽 {{label}}",
+    "reportHint": "可选：举报原因，将通过 NIP-56 发送至中继。",
+    "reply": "回复",
+    "replySending": "发送中…",
+    "userBlocked": "已屏蔽该用户。",
+    "blockingFailed": "屏蔽失败。",
+    "offlineBlock": "离线 — 无法屏蔽用户。",
+    "deleteFailed": "删除事件发送失败。",
+    "publishFailedFallback": "发布失败。"
+  },
+  "profileSheet": {
+    "openPictureAria": "打开头像",
+    "dmAria": "打开私信",
+    "offlineHint": "离线 — 个人帖子可能不完整。",
+    "loadingPosts": "加载帖子…",
+    "noPosts": "暂无帖子",
+    "loadError": "无法加载帖子。"
+  },
+  "geohashMap": {
+    "gpsAria": "GPS 定位",
+    "gpsTitle": "GPS 定位"
+  },
+  "postIdentity": {
+    "openProfile": "打开资料"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前"
+  },
+  "common": {
+    "loading": "加载中…",
+    "close": "关闭"
+  },
+  "quotedPost": {
+    "loadingReferenced": "正在加载引用帖子…",
+    "noText": "（无正文）"
+  }
+}

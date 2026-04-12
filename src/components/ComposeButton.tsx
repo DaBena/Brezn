@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '../lib/cn'
 
 interface ComposeButtonProps {
@@ -5,11 +6,12 @@ interface ComposeButtonProps {
 }
 
 export function ComposeButton({ onClick }: ComposeButtonProps) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Create new post"
+      aria-label={t('composeBtn.aria')}
       className={cn(
         'pointer-events-auto fixed left-1/2 z-50 -translate-x-1/2',
         'bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',

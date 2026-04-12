@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { useToast } from '../ToastContext'
@@ -22,6 +23,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 export function KeyManagement({ client }: KeyManagementProps) {
+  const { t } = useTranslation()
   const identity = useMemo(() => client.getPublicIdentity(), [client])
   const privateIdentity = useMemo(() => client.getPrivateIdentity(), [client])
   const { showToast } = useToast()
@@ -33,9 +35,9 @@ export function KeyManagement({ client }: KeyManagementProps) {
 
   return (
     <div className="p-3">
-      <div className="text-xs font-semibold text-brezn-muted">Identity</div>
+      <div className="text-xs font-semibold text-brezn-muted">{t('keyMgmt.title')}</div>
       <div className="mt-1 text-xs text-brezn-muted">
-        <span className="font-mono">npub</span>:
+        <span className="font-mono">{t('keyMgmt.npub')}</span>:
       </div>
       <div className="mt-1 flex items-center gap-2">
         <div className="min-w-0 flex-1 truncate rounded-xl bg-brezn-panel p-2 font-mono text-xs">
@@ -45,17 +47,17 @@ export function KeyManagement({ client }: KeyManagementProps) {
           type="button"
           onClick={() => {
             void copyToClipboard(identity.npub).then(ok => {
-              setKeyMsg(ok ? 'npub copied.' : 'Show & copy npub.')
+              setKeyMsg(ok ? t('keyMgmt.npubCopied') : t('keyMgmt.copyNpubHint'))
             })
           }}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
-          Copy
+          {t('keyMgmt.copy')}
         </button>
       </div>
 
       <div className="mt-3 text-xs text-brezn-muted">
-        <span className="font-mono">nsec</span>:
+        <span className="font-mono">{t('keyMgmt.nsec')}</span>:
       </div>
       <div className="mt-1 flex items-center gap-2">
         <div className="min-w-0 flex-1 truncate rounded-xl bg-brezn-panel p-2 font-mono text-xs">
@@ -66,36 +68,34 @@ export function KeyManagement({ client }: KeyManagementProps) {
           onClick={() => setShowPrivKey(v => !v)}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
-          {showPrivKey ? 'Hide' : 'Show'}
+          {showPrivKey ? t('keyMgmt.hide') : t('keyMgmt.show')}
         </button>
         <button
           type="button"
           onClick={() => {
             void copyToClipboard(privateIdentity.nsec).then(ok => {
-              setKeyMsg(ok ? 'nsec copied.' : 'Show & copy nsec.')
+              setKeyMsg(ok ? t('keyMgmt.nsecCopied') : t('keyMgmt.copyNsecHint'))
             })
           }}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
           disabled={!showPrivKey}
         >
-          Copy
+          {t('keyMgmt.copy')}
         </button>
       </div>
-      <div className="mt-2 text-[11px] text-brezn-muted">
-        Never share your <span className="font-mono">nsec</span>.
-      </div>
+      <div className="mt-2 text-[11px] text-brezn-muted">{t('keyMgmt.neverShareNsec')}</div>
       {keyMsg ? <div className="mt-2 text-xs text-brezn-muted">{keyMsg}</div> : null}
 
       <div className="mt-4 pt-3">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="text-xs font-semibold text-brezn-muted">Import Identity</div>
+          <div className="text-xs font-semibold text-brezn-muted">{t('keyMgmt.importTitle')}</div>
           {!showImport ? (
             <button
               type="button"
               onClick={() => setShowImport(true)}
               className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
             >
-              Import nsec
+              {t('keyMgmt.importNsec')}
             </button>
           ) : null}
         </div>
@@ -105,7 +105,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
               type="text"
               value={importNsec}
               onChange={e => setImportNsec(e.target.value)}
-              placeholder="nsec1..."
+              placeholder={t('keyMgmt.importPlaceholder')}
               className="w-full border border-brezn-text p-2 font-mono text-base focus:outline-none"
               disabled={isImporting}
             />
@@ -115,7 +115,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                 onClick={async () => {
                   const trimmed = importNsec.trim()
                   if (!trimmed) {
-                    showToast('Please enter an nsec', 'error')
+                    showToast(t('keyMgmt.pleaseEnterNsec'), 'error')
                     return
                   }
 
@@ -124,13 +124,13 @@ export function KeyManagement({ client }: KeyManagementProps) {
                     client.setIdentity(trimmed)
                     setImportNsec('')
                     setShowImport(false)
-                    showToast('Identity imported successfully. Page will reload...')
+                    showToast(t('keyMgmt.importSuccess'))
                     // Reload page to ensure all state is refreshed
                     setTimeout(() => {
                       window.location.reload()
                     }, 1000)
                   } catch (error) {
-                    const msg = error instanceof Error ? error.message : 'Failed to import nsec'
+                    const msg = error instanceof Error ? error.message : t('keyMgmt.importFailed')
                     showToast(msg, 'error')
                   } finally {
                     setIsImporting(false)
@@ -139,7 +139,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                 disabled={isImporting || !importNsec.trim()}
                 className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
               >
-                {isImporting ? 'Importing...' : 'Import'}
+                {isImporting ? t('keyMgmt.importing') : t('keyMgmt.import')}
               </button>
               <button
                 type="button"
@@ -150,7 +150,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
                 disabled={isImporting}
                 className={`rounded-xl px-3 py-2 text-xs ${buttonBase}`}
               >
-                Cancel
+                {t('keyMgmt.cancel')}
               </button>
             </div>
           </div>

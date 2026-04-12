@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "Chargement…"
+  },
+  "nav": {
+    "searchPlaceholder": "Rechercher des publications…",
+    "openChat": "Ouvrir le chat",
+    "openMenu": "Ouvrir le menu"
+  },
+  "feed": {
+    "offlineBanner": "Hors ligne — dernières publications vues (lecture seule).",
+    "locationTitle": "Position pour le fil local",
+    "locationBody": "L’application a besoin de votre zone approximative pour afficher les publications locales. Vous pourrez la modifier. Votre position est réduite à une cellule geohash (~5 km).",
+    "privacyStorage": "Cette application utilise le stockage local sur votre appareil. Pas de suivi ni de données personnelles vers nous. Voir le",
+    "privacyLink": "code source, README et licence",
+    "privacyDisclaimer": "L’application charge du contenu externe (relays Nostr, serveurs). Aucune responsabilité sur le contenu externe.",
+    "privacyConfirm": "En continuant vous confirmez : je me suis informé(e) et j’accepte.",
+    "allowLocation": "Autoriser la position",
+    "errorTitle": "Erreur",
+    "tryAgain": "Réessayer",
+    "relayFailPrefix": "Échec de connexion au relay. ",
+    "noRelayResponse": "Aucune réponse des relays. Vérifiez la liste ou réessayez plus tard.",
+    "waitingEose": "Aucun événement pour l’instant (en attente d’EOSE)…",
+    "noPostsYet": "Aucune publication pour l’instant. Réessayez plus tard ou changez de relays."
+  },
+  "settings": {
+    "title": "Réglages",
+    "source": "Source",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Thème",
+    "switchToDark": "Passer en sombre",
+    "switchToLight": "Passer en clair"
+  },
+  "geohash": {
+    "searchRadius": "Rayon de recherche",
+    "lengthLabel": "Longueur geohash :",
+    "length0": "0 (actuel + est/ouest)",
+    "queries3": "3 requêtes",
+    "geoHashLabel": "GeoHash :",
+    "geoHashEmpty": "GeoHash : -",
+    "decreaseRadius": "Réduire le rayon",
+    "increaseRadius": "Augmenter le rayon",
+    "length": "Longueur {{n}}",
+    "queriesCurrent": "3 requêtes (actuel + est/ouest)",
+    "precisionFallback": "Plus élevé = plus petit (plus précis), mais moins de résultats.",
+    "cellSize": "{{w}} × {{h}} par cellule"
+  },
+  "moderation": {
+    "blocklist": "Liste de blocage",
+    "oneLineOneTerm": "1 ligne = 1 terme ({{count}}/200)",
+    "placeholder": "ex.\nspam\nachetez\nmal.example",
+    "saved": "Liste enregistrée.",
+    "blockedUsers": "Utilisateurs bloqués",
+    "blockedCount": "{{count}} bloqué(s)",
+    "unblock": "Débloquer",
+    "noBlocked": "Aucun utilisateur bloqué",
+    "unblockedMsg": "Utilisateur débloqué."
+  },
+  "keyMgmt": {
+    "title": "Identité",
+    "npub": "npub",
+    "copy": "Copier",
+    "nsec": "nsec",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "neverShareNsec": "Ne partagez jamais votre nsec.",
+    "npubCopied": "npub copié.",
+    "copyNpubHint": "Afficher et copier le npub.",
+    "nsecCopied": "nsec copié.",
+    "copyNsecHint": "Afficher et copier le nsec.",
+    "importTitle": "Importer une identité",
+    "importNsec": "Importer un nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Entrez un nsec",
+    "importSuccess": "Identité importée. Rechargement…",
+    "importing": "Import…",
+    "import": "Importer",
+    "cancel": "Annuler",
+    "importFailed": "Échec de l’import du nsec"
+  },
+  "relay": {
+    "title": "Relays",
+    "hint": "Relays pour le fil, les DM et la publication.",
+    "empty": "Aucun relay. Impossible de charger ou publier sans relay. Ajoutez-en un ou utilisez « Par défaut ».",
+    "removeAria": "Retirer le relay",
+    "placeholder": "wss://relay.example",
+    "add": "Ajouter",
+    "default": "Par défaut",
+    "test": "Tester",
+    "testing": "Test…",
+    "removed": "Relay retiré.",
+    "added": "Relay ajouté.",
+    "resetDefault": "Rétablir les relays par défaut.",
+    "unknown": "inconnu",
+    "reachable": "joignable",
+    "unreachable": "injoignable",
+    "reachableWithRtt": "joignable • {{rtt}}ms",
+    "unreachableWithErr": "injoignable • {{error}}",
+    "statusAria": "État du relay : {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Envoi de médias",
+    "hint": "URL directe ou NIP-96. Par défaut : {{default}}. Vide = désactivé.",
+    "defaultBtn": "Par défaut"
+  },
+  "profileSettings": {
+    "title": "Profil",
+    "loading": "Chargement du profil…",
+    "name": "Nom",
+    "namePlaceholder": "Votre nom (facultatif)",
+    "about": "À propos",
+    "aboutPlaceholder": "Courte bio (facultatif)",
+    "picture": "Photo de profil",
+    "pictureAlt": "Photo de profil",
+    "onlyImages": "Images uniquement.",
+    "imageTooLarge5": "Image trop volumineuse (max. 5 Mo).",
+    "configureEndpointFirst": "Configurez d’abord le point d’envoi média.",
+    "uploading": "Envoi…",
+    "changeImage": "Changer l’image",
+    "uploadImage": "Envoyer une image",
+    "resetConfirm": "Réinitialiser le profil ? Nom, bio et photo seront supprimés.",
+    "reset": "Réinitialiser",
+    "removeImage": "Retirer l’image",
+    "urlPlaceholder": "Ou saisir l’URL",
+    "resetDone": "Profil réinitialisé.",
+    "resetError": "Erreur lors de la réinitialisation du profil"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Chargement des conversations…",
+    "offline": "Hors ligne — vérifiez la connexion.",
+    "timeout": "Délai dépassé — les relays ne répondent pas.",
+    "loadError": "Erreur de chargement des conversations",
+    "empty": "Aucune conversation"
+  },
+  "dm": {
+    "titlePrefix": "DM :",
+    "offlineSend": "Hors ligne — impossible d’envoyer le message.",
+    "offline": "Hors ligne — vérifiez la connexion.",
+    "timeout": "Délai dépassé — les relays ne répondent pas.",
+    "loadError": "Erreur de chargement des messages",
+    "loading": "Chargement des messages…",
+    "empty": "Aucun message",
+    "placeholder": "Écrire un message…",
+    "sendAria": "Envoyer le message",
+    "sendingContent": "[envoi…]",
+    "sendError": "Erreur d’envoi"
+  },
+  "composer": {
+    "srTitle": "Nouvelle publication",
+    "publish": "Publier",
+    "publishing": "Publication…",
+    "publishAria": "Publier",
+    "media": "Médias",
+    "uploading": "Envoi…",
+    "mediaAria": "Ajouter des médias",
+    "createInCell": "nouvelle publication dans la cellule",
+    "createNew": "nouvelle publication",
+    "showMapAria": "Afficher la cellule {{cell}} sur la carte",
+    "showMapTitle": "Voir la cellule sur la carte",
+    "placeholder": "Que se passe-t-il près de chez vous ?",
+    "removeMediaAria": "Retirer le média",
+    "noUploadEndpoint": "Aucun point d’envoi (Réglages → Envoi médias).",
+    "onlyImagesVideos": "Images ou vidéos uniquement.",
+    "videoTooLarge": "Vidéo trop volumineuse (max. 25 Mo).",
+    "imageTooLarge": "Image trop volumineuse (max. 12 Mo).",
+    "compressFailed": "Échec de compression de l’image.",
+    "uploadFailed": "Échec de l’envoi.",
+    "publishFailed": "Échec de la publication."
+  },
+  "feedArticle": {
+    "deleted": "Supprimé — propagation aux relays",
+    "deletedAria": "Publication supprimée",
+    "openPost": "Ouvrir la publication",
+    "sendReaction": "Envoyer une réaction",
+    "sendReactionCount": "Envoyer une réaction ({{count}})",
+    "loadOlder": "Voir plus",
+    "loading": "Chargement…"
+  },
+  "pwa": {
+    "title": "Mise à jour disponible",
+    "body": "Une nouvelle version est chargée. Rechargez pour l’activer.",
+    "reload": "Recharger",
+    "close": "Fermer"
+  },
+  "adblock": {
+    "title": "Service Worker bloqué",
+    "body": "Un bloqueur de pub bloque peut-être le service worker. Désactivez-le ou ajoutez une exception.",
+    "close": "Fermer"
+  },
+  "composeBtn": {
+    "aria": "Créer une publication"
+  },
+  "errorBoundary": {
+    "title": "Une erreur s’est produite",
+    "body": "Erreur inattendue. Essayez de recharger la page.",
+    "details": "Détails de l’erreur",
+    "errorLabel": "Erreur :",
+    "stack": "Pile d’exécution :",
+    "componentStack": "Pile des composants :",
+    "tryAgain": "Réessayer",
+    "reload": "Recharger la page"
+  },
+  "app": {
+    "publishFailed": "Échec de la publication.",
+    "offlineComments": "Hors ligne — commentaires en lecture seule.",
+    "offlineDelete": "Hors ligne — impossible d’envoyer l’événement de suppression."
+  },
+  "thread": {
+    "reportRoot": "Signaler la publication racine",
+    "reportReply": "Signaler la réponse",
+    "reportReason": "Motif du signalement (facultatif)",
+    "submitReport": "Envoyer le signalement",
+    "replies": "Réponses ({{count}})",
+    "offline": "Hors ligne",
+    "replyPlaceholder": "Écrire une réponse…",
+    "sendDeletionAria": "Envoyer l’événement de suppression NIP-09",
+    "blockUserAria": "Bloquer l’utilisateur",
+    "blockUserTitle": "Bloquer l’utilisateur",
+    "delete": "Supprimer",
+    "deleteSending": "Envoi…",
+    "block": "Bloquer",
+    "blocking": "Blocage…",
+    "blockHeading": "Bloquer {{label}}",
+    "reportHint": "Facultatif : motif du signalement. Sera envoyé aux relays via NIP-56.",
+    "reply": "Répondre",
+    "replySending": "Envoi…",
+    "userBlocked": "Utilisateur bloqué.",
+    "blockingFailed": "Échec du blocage.",
+    "offlineBlock": "Hors ligne — impossible de bloquer l’utilisateur.",
+    "deleteFailed": "Échec de l’envoi de l’événement de suppression.",
+    "publishFailedFallback": "Échec de la publication."
+  },
+  "profileSheet": {
+    "openPictureAria": "Ouvrir la photo de profil",
+    "dmAria": "Ouvrir le message direct",
+    "offlineHint": "Hors ligne — publications du profil peut-être incomplètes.",
+    "loadingPosts": "Chargement des publications…",
+    "noPosts": "Aucune publication",
+    "loadError": "Impossible de charger les publications."
+  },
+  "geohashMap": {
+    "gpsAria": "Position GPS",
+    "gpsTitle": "Position GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Ouvrir le profil"
+  },
+  "time": {
+    "justNow": "à l’instant",
+    "minutesAgo": "il y a {{count}} min",
+    "hoursAgo": "il y a {{count}} h",
+    "daysAgo": "il y a {{count}} j"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "close": "Fermer"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Chargement de la publication citée…",
+    "noText": "(pas de texte)"
+  }
+}

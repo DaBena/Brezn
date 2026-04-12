@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "Yükleniyor…"
+  },
+  "nav": {
+    "searchPlaceholder": "Gönderilerde ara…",
+    "openChat": "Sohbeti aç",
+    "openMenu": "Menüyü aç"
+  },
+  "feed": {
+    "offlineBanner": "Çevrimdışı — son görülen gönderiler (salt okunur).",
+    "locationTitle": "Yerel akış için konum",
+    "locationBody": "Yerel gönderileri göstermek için yaklaşık konumunuz gerekir. Daha sonra değiştirebilirsiniz. Konumunuz gizlilik için bir geohash hücresine (~5 km) indirgenir.",
+    "privacyStorage": "Bu uygulama cihazınızda yerel depolama kullanır. İzleme yok, bize kişisel veri gönderilmez. Bkz.",
+    "privacyLink": "kaynak, README ve lisans",
+    "privacyDisclaimer": "Bu uygulama içeriği harici kaynaklardan yükler (nostr relay’leri, dosya sunucuları). Harici içerik için sorumluluk kabul edilmez.",
+    "privacyConfirm": "Devam ederek onaylıyorum: bilgilendim ve kabul ediyorum.",
+    "allowLocation": "Konuma izin ver",
+    "errorTitle": "Hata",
+    "tryAgain": "Yeniden dene",
+    "relayFailPrefix": "Relay bağlantısı başarısız. ",
+    "noRelayResponse": "Relay’lerden yanıt yok. Relay listesini kontrol edin veya sonra tekrar deneyin.",
+    "waitingEose": "Henüz olay yok (EOSE bekleniyor)…",
+    "noPostsYet": "Henüz gönderi yok. Sonra tekrar deneyin veya farklı relay’ler kullanın."
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "source": "Kaynak",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Tema",
+    "switchToDark": "Koyu moda geç",
+    "switchToLight": "Açık moda geç"
+  },
+  "geohash": {
+    "searchRadius": "Arama yarıçapı",
+    "lengthLabel": "Geohash uzunluğu:",
+    "length0": "0 (mevcut + doğu/batı)",
+    "queries3": "3 sorgu",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Yarıçapı azalt",
+    "increaseRadius": "Yarıçapı artır",
+    "length": "Uzunluk {{n}}",
+    "queriesCurrent": "3 sorgu (mevcut + doğu/batı)",
+    "precisionFallback": "Daha yüksek = daha küçük (daha kesin) — ancak daha az sonuç.",
+    "cellSize": "Hücre başına {{w}} × {{h}}"
+  },
+  "moderation": {
+    "blocklist": "Engel listesi",
+    "oneLineOneTerm": "1 satır = 1 terim ({{count}}/200)",
+    "placeholder": "ör.\nspam\nhemen satın al\nekötü.ornek",
+    "saved": "Engel listesi kaydedildi.",
+    "blockedUsers": "Engellenen kullanıcılar",
+    "blockedCount": "{{count}} engellendi",
+    "unblock": "Engeli kaldır",
+    "noBlocked": "Engellenen kullanıcı yok",
+    "unblockedMsg": "Kullanıcının engeli kaldırıldı."
+  },
+  "keyMgmt": {
+    "title": "Kimlik",
+    "npub": "npub",
+    "copy": "Kopyala",
+    "nsec": "nsec",
+    "show": "Göster",
+    "hide": "Gizle",
+    "neverShareNsec": "nsec’inizi asla paylaşmayın.",
+    "npubCopied": "npub kopyalandı.",
+    "copyNpubHint": "Göster ve npub kopyala.",
+    "nsecCopied": "nsec kopyalandı.",
+    "copyNsecHint": "Göster ve nsec kopyala.",
+    "importTitle": "Kimlik içe aktar",
+    "importNsec": "nsec içe aktar",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Lütfen bir nsec girin",
+    "importSuccess": "Kimlik içe aktarıldı. Sayfa yenilenecek…",
+    "importing": "İçe aktarılıyor…",
+    "import": "İçe aktar",
+    "cancel": "İptal",
+    "importFailed": "nsec içe aktarılamadı"
+  },
+  "relay": {
+    "title": "Relay’ler",
+    "hint": "Akış, DM ve yayın için kullanılan relay’ler.",
+    "empty": "Relay yapılandırılmamış. En az bir relay olmadan gönderi yüklenemez veya yayınlanamaz. Aşağıya ekleyin veya «Varsayılan» ile geri yükleyin.",
+    "removeAria": "Relay’i kaldır",
+    "placeholder": "wss://relay.ornek",
+    "add": "Ekle",
+    "default": "Varsayılan",
+    "test": "Test",
+    "testing": "Test ediliyor…",
+    "removed": "Relay kaldırıldı.",
+    "added": "Relay eklendi.",
+    "resetDefault": "Varsayılan relay’lere sıfırla.",
+    "unknown": "bilinmiyor",
+    "reachable": "erişilebilir",
+    "unreachable": "erişilemez",
+    "reachableWithRtt": "erişilebilir • {{rtt}} ms",
+    "unreachableWithErr": "erişilemez • {{error}}",
+    "statusAria": "Relay durumu: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Medya yükleme",
+    "hint": "Doğrudan URL veya NIP-96. Varsayılan: {{default}}. Boş = kapalı.",
+    "defaultBtn": "Varsayılan"
+  },
+  "profileSettings": {
+    "title": "Profil",
+    "loading": "Profil yükleniyor…",
+    "name": "Ad",
+    "namePlaceholder": "Adınız (isteğe bağlı)",
+    "about": "Hakkında",
+    "aboutPlaceholder": "Kısa bio (isteğe bağlı)",
+    "picture": "Profil fotoğrafı",
+    "pictureAlt": "Profil fotoğrafı",
+    "onlyImages": "Yalnızca görseller desteklenir.",
+    "imageTooLarge5": "Görsel çok büyük (en fazla 5 MB).",
+    "configureEndpointFirst": "Önce medya yükleme uç noktasını yapılandırın.",
+    "uploading": "Yükleniyor…",
+    "changeImage": "Görseli değiştir",
+    "uploadImage": "Görsel yükle",
+    "resetConfirm": "Profili sıfırlansın mı? Ad, hakkında ve fotoğraf kaldırılacak.",
+    "reset": "Sıfırla",
+    "removeImage": "Görseli kaldır",
+    "urlPlaceholder": "Veya URL’yi doğrudan girin",
+    "resetDone": "Profil sıfırlandı.",
+    "resetError": "Profil sıfırlanamadı"
+  },
+  "chat": {
+    "title": "Sohbet",
+    "loading": "Sohbetler yükleniyor…",
+    "offline": "Çevrimdışı — internet bağlantınızı kontrol edin.",
+    "timeout": "Zaman aşımı — relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
+    "loadError": "Sohbetler yüklenemedi",
+    "empty": "Henüz sohbet yok"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Çevrimdışı — mesaj gönderilemez.",
+    "offline": "Çevrimdışı — internet bağlantınızı kontrol edin.",
+    "timeout": "Zaman aşımı — relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
+    "loadError": "Mesajlar yüklenemedi",
+    "loading": "Mesajlar yükleniyor…",
+    "empty": "Henüz mesaj yok",
+    "placeholder": "Mesaj yazın…",
+    "sendAria": "Mesaj gönder",
+    "sendingContent": "[gönderiliyor...]",
+    "sendError": "Mesaj gönderilemedi"
+  },
+  "composer": {
+    "srTitle": "Yeni gönderi",
+    "publish": "Yayınla",
+    "publishing": "Yayınlanıyor…",
+    "publishAria": "Gönderiyi yayınla",
+    "media": "Medya",
+    "uploading": "Yükleniyor…",
+    "mediaAria": "Medya ekle",
+    "createInCell": "hücrede yeni gönderi oluştur",
+    "createNew": "yeni gönderi oluştur",
+    "showMapAria": "{{cell}} hücresini haritada göster",
+    "showMapTitle": "Hücreyi haritada göster",
+    "placeholder": "Bölgenizde neler oluyor?",
+    "removeMediaAria": "Medyayı kaldır",
+    "noUploadEndpoint": "Yükleme uç noktası yapılandırılmamış (Ayarlar → Medya yükleme).",
+    "onlyImagesVideos": "Yalnızca görsel veya video desteklenir.",
+    "videoTooLarge": "Video çok büyük (en fazla 25 MB).",
+    "imageTooLarge": "Görsel çok büyük (en fazla 12 MB).",
+    "compressFailed": "Görsel sıkıştırılamadı.",
+    "uploadFailed": "Yükleme başarısız.",
+    "publishFailed": "Yayınlama başarısız."
+  },
+  "feedArticle": {
+    "deleted": "Silindi — relay’lere yayılıyor",
+    "deletedAria": "Silinmiş gönderi",
+    "openPost": "Gönderiyi aç",
+    "sendReaction": "Tepki gönder",
+    "sendReactionCount": "Tepki gönder ({{count}})",
+    "loadOlder": "Daha fazla göster",
+    "loading": "Yükleniyor…"
+  },
+  "pwa": {
+    "title": "Güncelleme var",
+    "body": "Yeni bir sürüm yüklendi. Etkinleştirmek için yenileyin.",
+    "reload": "Yenile",
+    "close": "Kapat"
+  },
+  "adblock": {
+    "title": "Service Worker engellendi",
+    "body": "Bir reklam engelleyici service worker’ı engelliyor olabilir. Bu site için reklam engelleyiciyi kapatın veya istisna ekleyin.",
+    "close": "Kapat"
+  },
+  "composeBtn": {
+    "aria": "Yeni gönderi oluştur"
+  },
+  "errorBoundary": {
+    "title": "Bir şeyler ters gitti",
+    "body": "Beklenmeyen bir hata oluştu. Sayfayı yenilemeyi deneyin.",
+    "details": "Hata ayrıntıları",
+    "errorLabel": "Hata:",
+    "stack": "Yığın izi:",
+    "componentStack": "Bileşen yığını:",
+    "tryAgain": "Tekrar dene",
+    "reload": "Sayfayı yenile"
+  },
+  "app": {
+    "publishFailed": "Yayınlama başarısız.",
+    "offlineComments": "Çevrimdışı — yorumlar salt okunur.",
+    "offlineDelete": "Çevrimdışı — silme olayı gönderilemez."
+  },
+  "thread": {
+    "reportRoot": "Kök gönderiyi bildir",
+    "reportReply": "Yanıtı bildir",
+    "reportReason": "Bildirim nedeni (isteğe bağlı)",
+    "submitReport": "Bildirimi gönder",
+    "replies": "Yanıtlar ({{count}})",
+    "offline": "Çevrimdışı",
+    "replyPlaceholder": "Yanıt yazın…",
+    "sendDeletionAria": "NIP-09 silme olayı gönder",
+    "blockUserAria": "Kullanıcıyı engelle",
+    "blockUserTitle": "Kullanıcıyı engelle",
+    "delete": "Sil",
+    "deleteSending": "Gönderiliyor…",
+    "block": "Engelle",
+    "blocking": "Engelleniyor…",
+    "blockHeading": "{{label}} kullanıcısını engelle",
+    "reportHint": "İsteğe bağlı: bildirim nedeni. NIP-56 ile relay’lere gönderilir.",
+    "reply": "Yanıtla",
+    "replySending": "Gönderiliyor…",
+    "userBlocked": "Kullanıcı engellendi.",
+    "blockingFailed": "Engelleme başarısız.",
+    "offlineBlock": "Çevrimdışı — kullanıcı engellenemez.",
+    "deleteFailed": "Silme olayı gönderilemedi.",
+    "publishFailedFallback": "Yayınlama başarısız."
+  },
+  "profileSheet": {
+    "openPictureAria": "Profil fotoğrafını aç",
+    "dmAria": "Doğrudan mesajı aç",
+    "message": "Mesaj",
+    "offlineHint": "Çevrimdışı — profil gönderileri eksik olabilir.",
+    "loadingPosts": "Gönderiler yükleniyor…",
+    "noPosts": "Henüz gönderi yok",
+    "noPostsFromRelays": "Relay’lerden henüz gönderi bulunamadı.",
+    "loadError": "Gönderiler yüklenemedi."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS konumu",
+    "gpsTitle": "GPS konumu"
+  },
+  "postIdentity": {
+    "openProfile": "Profili aç"
+  },
+  "time": {
+    "justNow": "şimdi",
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} sa önce",
+    "daysAgo": "{{count}} gün önce"
+  },
+  "common": {
+    "loading": "Yükleniyor…",
+    "close": "Kapat"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Alıntılanan gönderi yükleniyor…",
+    "noText": "(metin yok)"
+  }
+}

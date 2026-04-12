@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "로드 중…"
+  },
+  "nav": {
+    "searchPlaceholder": "게시물 검색…",
+    "openChat": "채팅 열기",
+    "openMenu": "메뉴 열기"
+  },
+  "feed": {
+    "offlineBanner": "오프라인 — 마지막으로 본 게시물 표시(읽기 전용).",
+    "locationTitle": "로컬 피드용 위치",
+    "locationBody": "로컬 게시물을 표시하려면 대략적인 지역이 필요합니다. 나중에 변경할 수 있습니다. 개인정보 보호를 위해 위치는 geohash 셀(~5km)로 줄어듭니다.",
+    "privacyStorage": "이 앱은 기기의 로컬 저장소를 사용합니다. 추적 없음, 개인 데이터는 전송되지 않습니다. 참고:",
+    "privacyLink": "소스, README 및 라이선스",
+    "privacyDisclaimer": "이 앱은 외부 소스(nostr 릴레이, 파일 서버)에서 콘텐츠를 불러옵니다. 외부 콘텐츠에 대한 책임은 없습니다.",
+    "privacyConfirm": "계속하면 확인합니다: 안내를 읽었고 동의합니다.",
+    "allowLocation": "위치 허용",
+    "errorTitle": "오류",
+    "tryAgain": "다시 시도",
+    "relayFailPrefix": "릴레이 연결 실패. ",
+    "noRelayResponse": "릴레이에서 응답이 없습니다. 릴레이 목록을 확인하거나 나중에 다시 시도하세요.",
+    "waitingEose": "아직 이벤트 없음(EOSE 대기 중)…",
+    "noPostsYet": "아직 게시물이 없습니다. 나중에 다시 시도하거나 다른 릴레이를 사용하세요."
+  },
+  "settings": {
+    "title": "설정",
+    "source": "소스",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "테마",
+    "switchToDark": "다크 모드로",
+    "switchToLight": "라이트 모드로"
+  },
+  "geohash": {
+    "searchRadius": "검색 반경",
+    "lengthLabel": "Geohash 길이:",
+    "length0": "0 (현재 + 동/서)",
+    "queries3": "3개 쿼리",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "반경 줄이기",
+    "increaseRadius": "반경 늘리기",
+    "length": "길이 {{n}}",
+    "queriesCurrent": "3개 쿼리 (현재 + 동/서)",
+    "precisionFallback": "높을수록 더 작고 정확 — 결과는 더 적습니다.",
+    "cellSize": "셀당 {{w}} × {{h}}"
+  },
+  "moderation": {
+    "blocklist": "차단 목록",
+    "oneLineOneTerm": "1줄 = 1어구 ({{count}}/200)",
+    "placeholder": "예:\n스팸\n지금 구매\nevil.example",
+    "saved": "차단 목록이 저장되었습니다.",
+    "blockedUsers": "차단한 사용자",
+    "blockedCount": "{{count}}명 차단",
+    "unblock": "차단 해제",
+    "noBlocked": "차단된 사용자 없음",
+    "unblockedMsg": "사용자 차단이 해제되었습니다."
+  },
+  "keyMgmt": {
+    "title": "신원",
+    "npub": "npub",
+    "copy": "복사",
+    "nsec": "nsec",
+    "show": "표시",
+    "hide": "숨기기",
+    "neverShareNsec": "nsec를 절대 공유하지 마세요.",
+    "npubCopied": "npub가 복사되었습니다.",
+    "copyNpubHint": "표시 후 npub 복사.",
+    "nsecCopied": "nsec가 복사되었습니다.",
+    "copyNsecHint": "표시 후 nsec 복사.",
+    "importTitle": "신원 가져오기",
+    "importNsec": "nsec 가져오기",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "nsec를 입력하세요",
+    "importSuccess": "신원을 가져왔습니다. 페이지를 새로고침합니다…",
+    "importing": "가져오는 중…",
+    "import": "가져오기",
+    "cancel": "취소",
+    "importFailed": "nsec 가져오기 실패"
+  },
+  "relay": {
+    "title": "릴레이",
+    "hint": "피드, DM, 게시에 사용되는 릴레이입니다.",
+    "empty": "릴레이가 구성되지 않았습니다. 최소 하나의 릴레이 없이는 게시물을 불러오거나 게시할 수 없습니다. 아래에 추가하거나 «기본값»으로 복원하세요.",
+    "removeAria": "릴레이 제거",
+    "placeholder": "wss://relay.example",
+    "add": "추가",
+    "default": "기본값",
+    "test": "테스트",
+    "testing": "테스트 중…",
+    "removed": "릴레이가 제거되었습니다.",
+    "added": "릴레이가 추가되었습니다.",
+    "resetDefault": "기본 릴레이로 재설정.",
+    "unknown": "알 수 없음",
+    "reachable": "연결됨",
+    "unreachable": "연결 안 됨",
+    "reachableWithRtt": "연결됨 • {{rtt}}ms",
+    "unreachableWithErr": "연결 안 됨 • {{error}}",
+    "statusAria": "릴레이 상태: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "미디어 업로드",
+    "hint": "직접 URL 또는 NIP-96. 기본값: {{default}}. 비어 있으면 끔.",
+    "defaultBtn": "기본값"
+  },
+  "profileSettings": {
+    "title": "프로필",
+    "loading": "프로필 로드 중…",
+    "name": "이름",
+    "namePlaceholder": "이름(선택)",
+    "about": "소개",
+    "aboutPlaceholder": "짧은 소개(선택)",
+    "picture": "프로필 사진",
+    "pictureAlt": "프로필 사진",
+    "onlyImages": "이미지만 지원됩니다.",
+    "imageTooLarge5": "이미지가 너무 큽니다(최대 5MB).",
+    "configureEndpointFirst": "먼저 미디어 업로드 엔드포인트를 설정하세요.",
+    "uploading": "업로드 중…",
+    "changeImage": "이미지 변경",
+    "uploadImage": "이미지 업로드",
+    "resetConfirm": "프로필을 초기화할까요? 이름, 소개, 사진이 삭제됩니다.",
+    "reset": "초기화",
+    "removeImage": "이미지 제거",
+    "urlPlaceholder": "또는 URL 직접 입력",
+    "resetDone": "프로필이 초기화되었습니다.",
+    "resetError": "프로필 초기화 오류"
+  },
+  "chat": {
+    "title": "채팅",
+    "loading": "대화 불러오는 중…",
+    "offline": "오프라인 — 인터넷 연결을 확인하세요.",
+    "timeout": "시간 초과 — 릴레이가 응답하지 않습니다. 릴레이 설정을 확인하세요.",
+    "loadError": "대화를 불러오지 못했습니다",
+    "empty": "아직 대화 없음"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "오프라인 — 메시지를 보낼 수 없습니다.",
+    "offline": "오프라인 — 인터넷 연결을 확인하세요.",
+    "timeout": "시간 초과 — 릴레이가 응답하지 않습니다. 릴레이 설정을 확인하세요.",
+    "loadError": "메시지를 불러오지 못했습니다",
+    "loading": "메시지 로드 중…",
+    "empty": "아직 메시지 없음",
+    "placeholder": "메시지 작성…",
+    "sendAria": "메시지 보내기",
+    "sendingContent": "[보내는 중...]",
+    "sendError": "메시지 전송 실패"
+  },
+  "composer": {
+    "srTitle": "새 게시물",
+    "publish": "게시",
+    "publishing": "게시 중…",
+    "publishAria": "게시물 게시",
+    "media": "미디어",
+    "uploading": "업로드 중…",
+    "mediaAria": "미디어 추가",
+    "createInCell": "셀에 새 게시물 만들기",
+    "createNew": "새 게시물 만들기",
+    "showMapAria": "지도에서 셀 {{cell}} 표시",
+    "showMapTitle": "지도에서 셀 표시",
+    "placeholder": "이 지역에서 무슨 일이 있나요?",
+    "removeMediaAria": "미디어 제거",
+    "noUploadEndpoint": "업로드 엔드포인트가 구성되지 않았습니다(설정 → 미디어 업로드).",
+    "onlyImagesVideos": "이미지 또는 동영상만 지원됩니다.",
+    "videoTooLarge": "동영상이 너무 큽니다(최대 25MB).",
+    "imageTooLarge": "이미지가 너무 큽니다(최대 12MB).",
+    "compressFailed": "이미지 압축 실패.",
+    "uploadFailed": "업로드 실패.",
+    "publishFailed": "게시 실패."
+  },
+  "feedArticle": {
+    "deleted": "삭제됨 — 릴레이에 전파 중",
+    "deletedAria": "삭제된 게시물",
+    "openPost": "게시물 열기",
+    "sendReaction": "반응 보내기",
+    "sendReactionCount": "반응 보내기 ({{count}})",
+    "loadOlder": "더 보기",
+    "loading": "로드 중…"
+  },
+  "pwa": {
+    "title": "업데이트 있음",
+    "body": "새 버전이 로드되었습니다. 적용하려면 새로고침하세요.",
+    "reload": "새로고침",
+    "close": "닫기"
+  },
+  "adblock": {
+    "title": "서비스 워커 차단됨",
+    "body": "광고 차단기가 서비스 워커를 막았을 수 있습니다. 이 사이트에 대해 끄거나 예외를 추가하세요.",
+    "close": "닫기"
+  },
+  "composeBtn": {
+    "aria": "새 게시물 만들기"
+  },
+  "errorBoundary": {
+    "title": "문제가 발생했습니다",
+    "body": "예기치 않은 오류가 발생했습니다. 페이지를 새로고침하세요.",
+    "details": "오류 세부정보",
+    "errorLabel": "오류:",
+    "stack": "스택 추적:",
+    "componentStack": "컴포넌트 스택:",
+    "tryAgain": "다시 시도",
+    "reload": "페이지 새로고침"
+  },
+  "app": {
+    "publishFailed": "게시 실패.",
+    "offlineComments": "오프라인 — 댓글은 읽기 전용입니다.",
+    "offlineDelete": "오프라인 — 삭제 이벤트를 보낼 수 없습니다."
+  },
+  "thread": {
+    "reportRoot": "루트 게시물 신고",
+    "reportReply": "답글 신고",
+    "reportReason": "신고 사유(선택)",
+    "submitReport": "신고 제출",
+    "replies": "답글 ({{count}})",
+    "offline": "오프라인",
+    "replyPlaceholder": "답글 작성…",
+    "sendDeletionAria": "NIP-09 삭제 이벤트 보내기",
+    "blockUserAria": "사용자 차단",
+    "blockUserTitle": "사용자 차단",
+    "delete": "삭제",
+    "deleteSending": "전송 중…",
+    "block": "차단",
+    "blocking": "차단 중…",
+    "blockHeading": "{{label}} 차단",
+    "reportHint": "선택: 신고 사유. NIP-56으로 릴레이에 전송됩니다.",
+    "reply": "답글",
+    "replySending": "전송 중…",
+    "userBlocked": "사용자를 차단했습니다.",
+    "blockingFailed": "차단 실패.",
+    "offlineBlock": "오프라인 — 사용자를 차단할 수 없습니다.",
+    "deleteFailed": "삭제 이벤트 전송 실패.",
+    "publishFailedFallback": "게시 실패."
+  },
+  "profileSheet": {
+    "openPictureAria": "프로필 사진 열기",
+    "dmAria": "다이렉트 메시지 열기",
+    "message": "메시지",
+    "offlineHint": "오프라인 — 프로필 게시물이 불완전할 수 있습니다.",
+    "loadingPosts": "게시물 로드 중…",
+    "noPosts": "아직 게시물 없음",
+    "noPostsFromRelays": "릴레이에서 아직 게시물을 찾지 못했습니다.",
+    "loadError": "게시물을 불러올 수 없습니다."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS 위치",
+    "gpsTitle": "GPS 위치"
+  },
+  "postIdentity": {
+    "openProfile": "프로필 열기"
+  },
+  "time": {
+    "justNow": "방금",
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "daysAgo": "{{count}}일 전"
+  },
+  "common": {
+    "loading": "로드 중…",
+    "close": "닫기"
+  },
+  "quotedPost": {
+    "loadingReferenced": "인용 게시물 로드 중…",
+    "noText": "(텍스트 없음)"
+  }
+}

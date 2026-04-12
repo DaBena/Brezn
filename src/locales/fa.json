@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "در حال بارگذاری…"
+  },
+  "nav": {
+    "searchPlaceholder": "جستجوی پست‌ها…",
+    "openChat": "باز کردن گفتگو",
+    "openMenu": "باز کردن منو"
+  },
+  "feed": {
+    "offlineBanner": "آفلاین — نمایش آخرین پست‌های دیده‌شده (فقط خواندنی).",
+    "locationTitle": "موقعیت برای فید محلی",
+    "locationBody": "این برنامه برای نمایش پست‌های محلی به حوزه تقریبی شما نیاز دارد. بعداً می‌توانید تغییر دهید. موقعیت شما برای حریم خصوصی به یک سلول ژئوهش (~۵ کیلومتر) کاهش می‌یابد.",
+    "privacyStorage": "این برنامه از حافظه محلی دستگاه شما استفاده می‌کند. ردیابی نیست و داده شخصی به ما ارسال نمی‌شود. ببینید",
+    "privacyLink": "منبع، README و مجوز",
+    "privacyDisclaimer": "این برنامه محتوا را از منابع خارجی بارگذاری می‌کند (رله‌های nostr، سرورهای فایل). مسئولیتی برای محتوای خارجی پذیرفته نمی‌شود.",
+    "privacyConfirm": "با ادامه تأیید می‌کنید: مطلع شدم و می‌پذیرم.",
+    "allowLocation": "اجازه موقعیت",
+    "errorTitle": "خطا",
+    "tryAgain": "تلاش دوباره",
+    "relayFailPrefix": "اتصال رله ناموفق بود. ",
+    "noRelayResponse": "پاسخی از رله‌ها نیست. فهرست رله را بررسی کنید یا بعداً دوباره تلاش کنید.",
+    "waitingEose": "هنوز رویدادی نیست (در انتظار EOSE)…",
+    "noPostsYet": "هنوز پستی نیست. بعداً دوباره تلاش کنید یا رله‌های دیگر را امتحان کنید."
+  },
+  "settings": {
+    "title": "تنظیمات",
+    "source": "منبع",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "پوسته",
+    "switchToDark": "رفتن به حالت تیره",
+    "switchToLight": "رفتن به حالت روشن"
+  },
+  "geohash": {
+    "searchRadius": "شعاع جستجو",
+    "lengthLabel": "طول ژئوهش:",
+    "length0": "۰ (فعلی + شرق/غرب)",
+    "queries3": "۳ پرس‌وجو",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "کاهش شعاع",
+    "increaseRadius": "افزایش شعاع",
+    "length": "طول {{n}}",
+    "queriesCurrent": "۳ پرس‌وجو (فعلی + شرق/غرب)",
+    "precisionFallback": "بیشتر = کوچک‌تر (دقیق‌تر) — اما نتایج کمتر.",
+    "cellSize": "{{w}} × {{h}} در هر سلول"
+  },
+  "moderation": {
+    "blocklist": "فهرست مسدود",
+    "oneLineOneTerm": "۱ خط = ۱ عبارت ({{count}}/۲۰۰)",
+    "placeholder": "مثال\nهرزنامه\nهمین حالا بخر\nbad.example",
+    "saved": "فهرست مسدود ذخیره شد.",
+    "blockedUsers": "کاربران مسدود",
+    "blockedCount": "{{count}} مسدود",
+    "unblock": "رفع مسدودیت",
+    "noBlocked": "کاربر مسدودی نیست",
+    "unblockedMsg": "مسدودیت کاربر برداشته شد."
+  },
+  "keyMgmt": {
+    "title": "هویت",
+    "npub": "npub",
+    "copy": "کپی",
+    "nsec": "nsec",
+    "show": "نمایش",
+    "hide": "پنهان",
+    "neverShareNsec": "هرگز nsec خود را به اشتراک نگذارید.",
+    "npubCopied": "npub کپی شد.",
+    "copyNpubHint": "نمایش و کپی npub.",
+    "nsecCopied": "nsec کپی شد.",
+    "copyNsecHint": "نمایش و کپی nsec.",
+    "importTitle": "وارد کردن هویت",
+    "importNsec": "وارد کردن nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "لطفاً nsec را وارد کنید",
+    "importSuccess": "هویت وارد شد. صفحه بارگذاری مجدد می‌شود…",
+    "importing": "در حال وارد کردن…",
+    "import": "وارد کردن",
+    "cancel": "لغو",
+    "importFailed": "وارد کردن nsec ناموفق بود"
+  },
+  "relay": {
+    "title": "رله‌ها",
+    "hint": "رله‌های استفاده‌شده برای فید، پیام خصوصی و انتشار.",
+    "empty": "رله‌ای پیکربندی نشده. بدون حداقل یک رله نمی‌توان پست بارگذاری یا منتشر کرد. در پایین اضافه کنید یا از «پیش‌فرض» استفاده کنید.",
+    "removeAria": "حذف رله",
+    "placeholder": "wss://relay.example",
+    "add": "افزودن",
+    "default": "پیش‌فرض",
+    "test": "آزمایش",
+    "testing": "در حال آزمایش…",
+    "removed": "رله حذف شد.",
+    "added": "رله اضافه شد.",
+    "resetDefault": "بازنشانی به رله‌های پیش‌فرض.",
+    "unknown": "نامشخص",
+    "reachable": "در دسترس",
+    "unreachable": "غیرقابل دسترس",
+    "reachableWithRtt": "در دسترس • {{rtt}} ms",
+    "unreachableWithErr": "غیرقابل دسترس • {{error}}",
+    "statusAria": "وضعیت رله: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "بارگذاری رسانه",
+    "hint": "URL مستقیم یا NIP-96. پیش‌فرض: {{default}}. خالی = خاموش.",
+    "defaultBtn": "پیش‌فرض"
+  },
+  "profileSettings": {
+    "title": "پروفایل",
+    "loading": "در حال بارگذاری پروفایل…",
+    "name": "نام",
+    "namePlaceholder": "نام شما (اختیاری)",
+    "about": "درباره",
+    "aboutPlaceholder": "بیو کوتاه (اختیاری)",
+    "picture": "عکس پروفایل",
+    "pictureAlt": "عکس پروفایل",
+    "onlyImages": "فقط تصاویر پشتیبانی می‌شوند.",
+    "imageTooLarge5": "تصویر بسیار بزرگ است (حداکثر ۵ مگابایت).",
+    "configureEndpointFirst": "ابتدا نقطه پایانی بارگذاری رسانه را تنظیم کنید.",
+    "uploading": "در حال بارگذاری…",
+    "changeImage": "تغییر تصویر",
+    "uploadImage": "بارگذاری تصویر",
+    "resetConfirm": "پروفایل بازنشانی شود؟ نام، درباره و عکس حذف می‌شوند.",
+    "reset": "بازنشانی",
+    "removeImage": "حذف تصویر",
+    "urlPlaceholder": "یا URL را مستقیم وارد کنید",
+    "resetDone": "پروفایل بازنشانی شد.",
+    "resetError": "خطا در بازنشانی پروفایل"
+  },
+  "chat": {
+    "title": "گفتگو",
+    "loading": "در حال بارگذاری گفتگوها…",
+    "offline": "آفلاین — اتصال اینترنت را بررسی کنید.",
+    "timeout": "زمان تمام شد — رله‌ها پاسخ نمی‌دهند. تنظیمات رله را بررسی کنید.",
+    "loadError": "بارگذاری گفتگوها ناموفق بود",
+    "empty": "هنوز گفتگویی نیست"
+  },
+  "dm": {
+    "titlePrefix": "پیام:",
+    "offlineSend": "آفلاین — پیام ارسال نمی‌شود.",
+    "offline": "آفلاین — اتصال اینترنت را بررسی کنید.",
+    "timeout": "زمان تمام شد — رله‌ها پاسخ نمی‌دهند. تنظیمات رله را بررسی کنید.",
+    "loadError": "بارگذاری پیام‌ها ناموفق بود",
+    "loading": "در حال بارگذاری پیام‌ها…",
+    "empty": "هنوز پیامی نیست",
+    "placeholder": "پیام بنویسید…",
+    "sendAria": "ارسال پیام",
+    "sendingContent": "[در حال ارسال...]",
+    "sendError": "ارسال پیام ناموفق بود"
+  },
+  "composer": {
+    "srTitle": "پست جدید",
+    "publish": "انتشار",
+    "publishing": "در حال انتشار…",
+    "publishAria": "انتشار پست",
+    "media": "رسانه",
+    "uploading": "در حال بارگذاری…",
+    "mediaAria": "افزودن رسانه",
+    "createInCell": "ایجاد پست جدید در سلول",
+    "createNew": "ایجاد پست جدید",
+    "showMapAria": "نمایش سلول {{cell}} روی نقشه",
+    "showMapTitle": "نمایش سلول روی نقشه",
+    "placeholder": "در منطقه شما چه خبر است؟",
+    "removeMediaAria": "حذف رسانه",
+    "noUploadEndpoint": "نقطه پایانی بارگذاری تنظیم نشده (تنظیمات → بارگذاری رسانه).",
+    "onlyImagesVideos": "فقط تصویر یا ویدیو پشتیبانی می‌شود.",
+    "videoTooLarge": "ویدیو بسیار بزرگ است (حداکثر ۲۵ مگابایت).",
+    "imageTooLarge": "تصویر بسیار بزرگ است (حداکثر ۱۲ مگابایت).",
+    "compressFailed": "فشرده‌سازی تصویر ناموفق بود.",
+    "uploadFailed": "بارگذاری ناموفق بود.",
+    "publishFailed": "انتشار ناموفق بود."
+  },
+  "feedArticle": {
+    "deleted": "حذف شد — در حال انتشار به رله‌ها",
+    "deletedAria": "پست حذف‌شده",
+    "openPost": "باز کردن پست",
+    "sendReaction": "ارسال واکنش",
+    "sendReactionCount": "ارسال واکنش ({{count}})",
+    "loadOlder": "نمایش بیشتر",
+    "loading": "در حال بارگذاری…"
+  },
+  "pwa": {
+    "title": "به‌روزرسانی موجود است",
+    "body": "نسخه جدید بارگذاری شد. برای فعال‌سازی بارگذاری مجدد کنید.",
+    "reload": "بارگذاری مجدد",
+    "close": "بستن"
+  },
+  "adblock": {
+    "title": "Service Worker مسدود شد",
+    "body": "مسدودکننده تبلیغات ممکن است service worker را مسدود کند. آن را برای این سایت غیرفعال کنید یا استثنا اضافه کنید.",
+    "close": "بستن"
+  },
+  "composeBtn": {
+    "aria": "ایجاد پست جدید"
+  },
+  "errorBoundary": {
+    "title": "مشکلی پیش آمد",
+    "body": "خطای غیرمنتظره رخ داد. صفحه را بارگذاری مجدد کنید.",
+    "details": "جزئیات خطا",
+    "errorLabel": "خطا:",
+    "stack": "ردپای پشته:",
+    "componentStack": "پشته کامپوننت:",
+    "tryAgain": "تلاش دوباره",
+    "reload": "بارگذاری مجدد صفحه"
+  },
+  "app": {
+    "publishFailed": "انتشار ناموفق بود.",
+    "offlineComments": "آفلاین — نظرات فقط خواندنی است.",
+    "offlineDelete": "آفلاین — رویداد حذف ارسال نمی‌شود."
+  },
+  "thread": {
+    "reportRoot": "گزارش پست ریشه",
+    "reportReply": "گزارش پاسخ",
+    "reportReason": "دلیل گزارش (اختیاری)",
+    "submitReport": "ارسال گزارش",
+    "replies": "پاسخ‌ها ({{count}})",
+    "offline": "آفلاین",
+    "replyPlaceholder": "پاسخ بنویسید…",
+    "sendDeletionAria": "ارسال رویداد حذف NIP-09",
+    "blockUserAria": "مسدود کردن کاربر",
+    "blockUserTitle": "مسدود کردن کاربر",
+    "delete": "حذف",
+    "deleteSending": "در حال ارسال…",
+    "block": "مسدود",
+    "blocking": "در حال مسدود کردن…",
+    "blockHeading": "مسدود کردن {{label}}",
+    "reportHint": "اختیاری: دلیل گزارش. از طریق NIP-56 به رله‌ها ارسال می‌شود.",
+    "reply": "پاسخ",
+    "replySending": "در حال ارسال…",
+    "userBlocked": "کاربر مسدود شد.",
+    "blockingFailed": "مسدود کردن ناموفق بود.",
+    "offlineBlock": "آفلاین — نمی‌توان کاربر را مسدود کرد.",
+    "deleteFailed": "ارسال رویداد حذف ناموفق بود.",
+    "publishFailedFallback": "انتشار ناموفق بود."
+  },
+  "profileSheet": {
+    "openPictureAria": "باز کردن عکس پروفایل",
+    "dmAria": "باز کردن پیام مستقیم",
+    "message": "پیام",
+    "offlineHint": "آفلاین — پست‌های پروفایل ممکن است ناقص باشند.",
+    "loadingPosts": "در حال بارگذاری پست‌ها…",
+    "noPosts": "هنوز پستی نیست",
+    "noPostsFromRelays": "هنوز پستی از رله‌ها یافت نشد.",
+    "loadError": "بارگذاری پست‌ها ناموفق بود."
+  },
+  "geohashMap": {
+    "gpsAria": "موقعیت GPS",
+    "gpsTitle": "موقعیت GPS"
+  },
+  "postIdentity": {
+    "openProfile": "باز کردن پروفایل"
+  },
+  "time": {
+    "justNow": "همین الان",
+    "minutesAgo": "{{count}} دقیقه پیش",
+    "hoursAgo": "{{count}} ساعت پیش",
+    "daysAgo": "{{count}} روز پیش"
+  },
+  "common": {
+    "loading": "در حال بارگذاری…",
+    "close": "بستن"
+  },
+  "quotedPost": {
+    "loadingReferenced": "در حال بارگذاری پست ارجاع‌شده…",
+    "noText": "(بدون متن)"
+  }
+}

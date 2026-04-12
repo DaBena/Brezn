@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
@@ -42,14 +43,15 @@ function distanceSuffix(distanceLabel?: string | null) {
 }
 
 export function FeedEventArticle(props: FeedEventArticleProps) {
+  const { t } = useTranslation()
   const { evt, isDeleted, contentPreview, distanceLabel, onOpenThread, client } = props
   const ts = formatEventCardTimestamp(evt.created_at)
   const dist = distanceSuffix(distanceLabel)
 
   if (isDeleted) {
     return (
-      <article className={feedListPostDeletedClass} aria-label="Deleted post">
-        <div className="text-[11px] font-medium text-brezn-muted">Deleted – propagating to relays</div>
+      <article className={feedListPostDeletedClass} aria-label={t('feedArticle.deletedAria')}>
+        <div className="text-[11px] font-medium text-brezn-muted">{t('feedArticle.deleted')}</div>
         {props.variant === 'feed' ? (
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -92,7 +94,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
         onClick={() => onOpenThread(evt)}
         onKeyDown={openKeyDown}
         className={feedListPostCardClass}
-        aria-label="Open post"
+        aria-label={t('feedArticle.openPost')}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -122,7 +124,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
       onClick={() => onOpenThread(evt)}
       onKeyDown={openKeyDown}
       className={feedListPostCardClass}
-      aria-label="Open post"
+      aria-label={t('feedArticle.openPost')}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="shrink-0 text-[11px] text-brezn-text">
@@ -140,9 +142,11 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
             Boolean(reactionsByNoteId[evt.id]?.viewerReacted),
             canReact,
           )}
-          aria-label={`Send reaction${
-            reactionsByNoteId[evt.id]?.total ? ` (${reactionsByNoteId[evt.id]?.total})` : ''
-          }`}
+          aria-label={
+            reactionsByNoteId[evt.id]?.total
+              ? t('feedArticle.sendReactionCount', { count: reactionsByNoteId[evt.id]?.total ?? 0 })
+              : t('feedArticle.sendReaction')
+          }
         >
           <HeartIcon liked={Boolean(reactionsByNoteId[evt.id]?.viewerReacted)} />
           <span className="font-mono">{reactionsByNoteId[evt.id]?.total ?? 0}</span>
@@ -162,6 +166,7 @@ export function LoadOlderPostsButton(props: {
   /** Wrap in `div.mt-3` (main feed layout). */
   wrapWithMargin?: boolean
 }) {
+  const { t } = useTranslation()
   const { onClick, loading, wrapWithMargin } = props
   const btn = (
     <button
@@ -170,7 +175,7 @@ export function LoadOlderPostsButton(props: {
       disabled={Boolean(loading)}
       className={`w-full rounded-lg px-3 py-2 text-sm font-semibold ${buttonBase}`}
     >
-      {loading ? 'Loading…' : 'Show more'}
+      {loading ? t('feedArticle.loading') : t('feedArticle.loadOlder')}
     </button>
   )
   if (wrapWithMargin) return <div className="mt-3">{btn}</div>

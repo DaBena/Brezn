@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "Загрузка…"
+  },
+  "nav": {
+    "searchPlaceholder": "Поиск постов…",
+    "openChat": "Открыть чат",
+    "openMenu": "Открыть меню"
+  },
+  "feed": {
+    "offlineBanner": "Офлайн — показаны последние посты (только чтение).",
+    "locationTitle": "Местоположение для локальной ленты",
+    "locationBody": "Приложению нужен примерный район для локальных постов. Позже можно изменить. Координаты сводятся к ячейке geohash (~5 км).",
+    "privacyStorage": "Приложение использует локальное хранилище. Без трекинга и личных данных к нам. См.",
+    "privacyLink": "исходный код, README и лицензию",
+    "privacyDisclaimer": "Контент загружается извне (реле Nostr, серверы). Ответственности за внешний контент нет.",
+    "privacyConfirm": "Продолжая, вы подтверждаете: ознакомился и принимаю.",
+    "allowLocation": "Разрешить геолокацию",
+    "errorTitle": "Ошибка",
+    "tryAgain": "Повторить",
+    "relayFailPrefix": "Ошибка подключения к реле. ",
+    "noRelayResponse": "Нет ответа от реле. Проверьте список или попробуйте позже.",
+    "waitingEose": "Событий пока нет (ожидание EOSE)…",
+    "noPostsYet": "Постов пока нет. Попробуйте позже или другие реле."
+  },
+  "settings": {
+    "title": "Настройки",
+    "source": "Исходники",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Тема",
+    "switchToDark": "Тёмная тема",
+    "switchToLight": "Светлая тема"
+  },
+  "geohash": {
+    "searchRadius": "Радиус поиска",
+    "lengthLabel": "Длина geohash:",
+    "length0": "0 (текущая + восток/запад)",
+    "queries3": "3 запроса",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Уменьшить радиус",
+    "increaseRadius": "Увеличить радиус",
+    "length": "Длина {{n}}",
+    "queriesCurrent": "3 запроса (текущая + восток/запад)",
+    "precisionFallback": "Больше = меньше ячейка (точнее), но меньше результатов.",
+    "cellSize": "{{w}} × {{h}} на ячейку"
+  },
+  "moderation": {
+    "blocklist": "Чёрный список",
+    "oneLineOneTerm": "1 строка = 1 термин ({{count}}/200)",
+    "placeholder": "напр.\nспам\nкупи сейчас\nevile.example",
+    "saved": "Список сохранён.",
+    "blockedUsers": "Заблокированные",
+    "blockedCount": "{{count}} заблокировано",
+    "unblock": "Разблокировать",
+    "noBlocked": "Никого не заблокировано",
+    "unblockedMsg": "Пользователь разблокирован."
+  },
+  "keyMgmt": {
+    "title": "Личность",
+    "npub": "npub",
+    "copy": "Копировать",
+    "nsec": "nsec",
+    "show": "Показать",
+    "hide": "Скрыть",
+    "neverShareNsec": "Никогда не делитесь nsec.",
+    "npubCopied": "npub скопирован.",
+    "copyNpubHint": "Показать и скопировать npub.",
+    "nsecCopied": "nsec скопирован.",
+    "copyNsecHint": "Показать и скопировать nsec.",
+    "importTitle": "Импорт личности",
+    "importNsec": "Импорт nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Введите nsec",
+    "importSuccess": "Личность импортирована. Перезагрузка…",
+    "importing": "Импорт…",
+    "import": "Импорт",
+    "cancel": "Отмена",
+    "importFailed": "Не удалось импортировать nsec"
+  },
+  "relay": {
+    "title": "Реле",
+    "hint": "Реле для ленты, ЛС и публикации.",
+    "empty": "Нет реле. Без реле нельзя загружать или публиковать. Добавьте ниже или «По умолчанию».",
+    "removeAria": "Удалить реле",
+    "placeholder": "wss://relay.example",
+    "add": "Добавить",
+    "default": "По умолчанию",
+    "test": "Тест",
+    "testing": "Тест…",
+    "removed": "Реле удалено.",
+    "added": "Реле добавлено.",
+    "resetDefault": "Сбросить к реле по умолчанию.",
+    "unknown": "неизвестно",
+    "reachable": "доступно",
+    "unreachable": "недоступно",
+    "reachableWithRtt": "доступно • {{rtt}}ms",
+    "unreachableWithErr": "недоступно • {{error}}",
+    "statusAria": "Статус реле: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Загрузка медиа",
+    "hint": "Прямой URL или NIP-96. По умолчанию: {{default}}. Пусто = выкл.",
+    "defaultBtn": "По умолчанию"
+  },
+  "profileSettings": {
+    "title": "Профиль",
+    "loading": "Загрузка профиля…",
+    "name": "Имя",
+    "namePlaceholder": "Ваше имя (необязательно)",
+    "about": "О себе",
+    "aboutPlaceholder": "Краткая био (необязательно)",
+    "picture": "Аватар",
+    "pictureAlt": "Аватар",
+    "onlyImages": "Только изображения.",
+    "imageTooLarge5": "Слишком большой файл (макс. 5 МБ).",
+    "configureEndpointFirst": "Сначала настройте endpoint загрузки.",
+    "uploading": "Загрузка…",
+    "changeImage": "Сменить изображение",
+    "uploadImage": "Загрузить изображение",
+    "resetConfirm": "Сбросить профиль? Имя, о себе и фото будут удалены.",
+    "reset": "Сброс",
+    "removeImage": "Убрать изображение",
+    "urlPlaceholder": "Или введите URL",
+    "resetDone": "Профиль сброшен.",
+    "resetError": "Ошибка сброса профиля"
+  },
+  "chat": {
+    "title": "Чат",
+    "loading": "Загрузка чатов…",
+    "offline": "Офлайн — проверьте сеть.",
+    "timeout": "Таймаут — реле не отвечают.",
+    "loadError": "Ошибка загрузки чатов",
+    "empty": "Чатов пока нет"
+  },
+  "dm": {
+    "titlePrefix": "ЛС:",
+    "offlineSend": "Офлайн — нельзя отправить сообщение.",
+    "offline": "Офлайн — проверьте сеть.",
+    "timeout": "Таймаут — реле не отвечают.",
+    "loadError": "Ошибка загрузки сообщений",
+    "loading": "Загрузка сообщений…",
+    "empty": "Сообщений пока нет",
+    "placeholder": "Написать сообщение…",
+    "sendAria": "Отправить",
+    "sendingContent": "[отправка...]",
+    "sendError": "Ошибка отправки"
+  },
+  "composer": {
+    "srTitle": "Новый пост",
+    "publish": "Опубликовать",
+    "publishing": "Публикация…",
+    "publishAria": "Опубликовать",
+    "media": "Медиа",
+    "uploading": "Загрузка…",
+    "mediaAria": "Добавить медиа",
+    "createInCell": "новый пост в ячейке",
+    "createNew": "новый пост",
+    "showMapAria": "Показать ячейку {{cell}} на карте",
+    "showMapTitle": "Показать ячейку на карте",
+    "placeholder": "Что у вас в районе?",
+    "removeMediaAria": "Убрать медиа",
+    "noUploadEndpoint": "Нет endpoint (Настройки → Медиа).",
+    "onlyImagesVideos": "Только изображения или видео.",
+    "videoTooLarge": "Видео слишком большое (макс. 25 МБ).",
+    "imageTooLarge": "Изображение слишком большое (макс. 12 МБ).",
+    "compressFailed": "Не удалось сжать изображение.",
+    "uploadFailed": "Ошибка загрузки.",
+    "publishFailed": "Ошибка публикации."
+  },
+  "feedArticle": {
+    "deleted": "Удалено — синхронизация с реле",
+    "deletedAria": "Удалённый пост",
+    "openPost": "Открыть пост",
+    "sendReaction": "Реакция",
+    "sendReactionCount": "Реакция ({{count}})",
+    "loadOlder": "Ещё",
+    "loading": "Загрузка…"
+  },
+  "pwa": {
+    "title": "Доступно обновление",
+    "body": "Загружена новая версия. Перезагрузите страницу.",
+    "reload": "Перезагрузить",
+    "close": "Закрыть"
+  },
+  "adblock": {
+    "title": "Service Worker заблокирован",
+    "body": "Блокировщик рекламы может блокировать service worker. Отключите или добавьте исключение.",
+    "close": "Закрыть"
+  },
+  "composeBtn": {
+    "aria": "Новый пост"
+  },
+  "errorBoundary": {
+    "title": "Что-то пошло не так",
+    "body": "Неожиданная ошибка. Попробуйте обновить страницу.",
+    "details": "Подробности",
+    "errorLabel": "Ошибка:",
+    "stack": "Стек:",
+    "componentStack": "Стек компонентов:",
+    "tryAgain": "Повторить",
+    "reload": "Обновить страницу"
+  },
+  "app": {
+    "publishFailed": "Ошибка публикации.",
+    "offlineComments": "Офлайн — комментарии только для чтения.",
+    "offlineDelete": "Офлайн — нельзя отправить событие удаления."
+  },
+  "thread": {
+    "reportRoot": "Пожаловаться на корень",
+    "reportReply": "Пожаловаться на ответ",
+    "reportReason": "Причина (необязательно)",
+    "submitReport": "Отправить жалобу",
+    "replies": "Ответы ({{count}})",
+    "offline": "Офлайн",
+    "replyPlaceholder": "Написать ответ…",
+    "sendDeletionAria": "Отправить удаление NIP-09",
+    "blockUserAria": "Заблокировать",
+    "blockUserTitle": "Заблокировать",
+    "delete": "Удалить",
+    "deleteSending": "Отправка…",
+    "block": "Заблокировать",
+    "blocking": "Блокировка…",
+    "blockHeading": "Заблокировать {{label}}",
+    "reportHint": "Необязательно: причина жалобы. Будет отправлена на реле через NIP-56.",
+    "reply": "Ответить",
+    "replySending": "Отправка…",
+    "userBlocked": "Пользователь заблокирован.",
+    "blockingFailed": "Не удалось заблокировать.",
+    "offlineBlock": "Офлайн — нельзя заблокировать пользователя.",
+    "deleteFailed": "Не удалось отправить событие удаления.",
+    "publishFailedFallback": "Не удалось опубликовать."
+  },
+  "profileSheet": {
+    "openPictureAria": "Открыть аватар",
+    "dmAria": "Открыть ЛС",
+    "offlineHint": "Офлайн — посты профиля могут быть неполными.",
+    "loadingPosts": "Загрузка постов…",
+    "noPosts": "Постов нет",
+    "loadError": "Не удалось загрузить посты."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS",
+    "gpsTitle": "GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Открыть профиль"
+  },
+  "time": {
+    "justNow": "только что",
+    "minutesAgo": "{{count}} мин назад",
+    "hoursAgo": "{{count}} ч назад",
+    "daysAgo": "{{count}} дн назад"
+  },
+  "common": {
+    "loading": "Загрузка…",
+    "close": "Закрыть"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Загрузка цитируемого поста…",
+    "noText": "(нет текста)"
+  }
+}

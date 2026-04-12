@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
@@ -32,6 +33,7 @@ function sanitizeProfilePictureUrl(url: string | null): string | null {
 }
 
 export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: ProfileSettingsProps) {
+  const { t } = useTranslation()
   const [profileName, setProfileName] = useState<string>('')
   const [profilePicture, setProfilePicture] = useState<string>('')
   const [profileAbout, setProfileAbout] = useState<string>('')
@@ -92,22 +94,22 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
 
   return (
     <div className="p-3">
-      <div className="text-xs font-semibold text-brezn-muted">Profile</div>
+      <div className="text-xs font-semibold text-brezn-muted">{t('profileSettings.title')}</div>
 
       {profileLoading ? (
-        <div className="mt-3 text-xs text-brezn-muted">Loading profile…</div>
+        <div className="mt-3 text-xs text-brezn-muted">{t('profileSettings.loading')}</div>
       ) : (
         <>
           <div className="mt-3">
             <label htmlFor="profile-name" className="block text-xs text-brezn-muted mb-1">
-              Name
+              {t('profileSettings.name')}
             </label>
             <input
               id="profile-name"
               type="text"
               value={profileName}
               onChange={e => setProfileName(e.target.value)}
-              placeholder="Your name (optional)"
+              placeholder={t('profileSettings.namePlaceholder')}
               maxLength={100}
               className="w-full border border-brezn-text p-2 text-base outline-none"
             />
@@ -115,13 +117,13 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
 
           <div className="mt-3">
             <label htmlFor="profile-about" className="block text-xs text-brezn-muted mb-1">
-              About
+              {t('profileSettings.about')}
             </label>
             <textarea
               id="profile-about"
               value={profileAbout}
               onChange={e => setProfileAbout(e.target.value)}
-              placeholder="Short bio (optional)"
+              placeholder={t('profileSettings.aboutPlaceholder')}
               maxLength={PROFILE_ABOUT_MAX_LENGTH}
               rows={4}
               className="w-full resize-y border border-brezn-text p-2 text-base outline-none"
@@ -133,13 +135,13 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
 
           <div className="mt-3">
             <label htmlFor={profileFileInputId} className="block text-xs text-brezn-muted mb-1">
-              Profile picture
+              {t('profileSettings.picture')}
             </label>
             <div className="flex items-center gap-3">
               {safeProfilePictureSrc ? (
                 <img
                   src={safeProfilePictureSrc}
-                  alt="Profile picture"
+                  alt={t('profileSettings.pictureAlt')}
                   className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
                   onError={e => {
                     // Replace image with placeholder icon on error
@@ -187,20 +189,20 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
 
                     if (!isImage) {
                       setProfileUploadState('error')
-                      setProfileUploadError('Only images are supported.')
+                      setProfileUploadError(t('profileSettings.onlyImages'))
                       return
                     }
 
                     const maxBytes = 5 * 1024 * 1024 // 5 MB
                     if (file.size > maxBytes) {
                       setProfileUploadState('error')
-                      setProfileUploadError('Image is too large (max. 5 MB).')
+                      setProfileUploadError(t('profileSettings.imageTooLarge5'))
                       return
                     }
 
                     if (!mediaEndpoint) {
                       setProfileUploadState('error')
-                      setProfileUploadError('Configure media upload endpoint first.')
+                      setProfileUploadError(t('profileSettings.configureEndpointFirst'))
                       return
                     }
 
@@ -212,7 +214,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       setProfileUploadState('idle')
                     } catch (err) {
                       setProfileUploadState('error')
-                      setProfileUploadError(err instanceof Error ? err.message : 'Upload failed.')
+                      setProfileUploadError(err instanceof Error ? err.message : t('composer.uploadFailed'))
                     }
                   }}
                 />
@@ -236,12 +238,16 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       }
                     }}
                   >
-                    {profileUploadState === 'uploading' ? 'Uploading…' : profilePicture ? 'Change image' : 'Upload image'}
+                    {profileUploadState === 'uploading'
+                      ? t('profileSettings.uploading')
+                      : profilePicture
+                        ? t('profileSettings.changeImage')
+                        : t('profileSettings.uploadImage')}
                   </label>
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!window.confirm('Really reset profile? Name, about, and picture will be removed.')) return
+                      if (!window.confirm(t('profileSettings.resetConfirm'))) return
                       setProfileSaving(true)
                       setProfileMsg(null)
                       try {
@@ -250,10 +256,10 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                         setProfilePicture('')
                         setProfileAbout('')
                         initialProfileRef.current = { name: '', picture: '', about: '' }
-                        setProfileMsg('Profile reset.')
+                        setProfileMsg(t('profileSettings.resetDone'))
                         onProfileChange?.({ name: '', picture: '', about: '' })
                       } catch (e) {
-                        setProfileMsg(e instanceof Error ? e.message : 'Error resetting profile')
+                        setProfileMsg(e instanceof Error ? e.message : t('profileSettings.resetError'))
                       } finally {
                         setProfileSaving(false)
                       }
@@ -261,7 +267,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                     disabled={profileSaving || profileUploadState === 'uploading'}
                     className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
                   >
-                    Reset
+                    {t('profileSettings.reset')}
                   </button>
                 </div>
                 {profilePicture ? (
@@ -270,7 +276,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                     onClick={() => setProfilePicture('')}
                     className={`mt-1 w-full rounded-xl px-3 py-2 text-xs ${buttonBase}`}
                   >
-                    Remove image
+                    {t('profileSettings.removeImage')}
                   </button>
                 ) : null}
               </div>
@@ -284,7 +290,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   type="text"
                   value={profilePicture}
                   onChange={e => setProfilePicture(e.target.value)}
-                  placeholder="Or enter URL directly"
+                  placeholder={t('profileSettings.urlPlaceholder')}
                   className="w-full border border-brezn-text p-2 font-mono text-base outline-none"
                 />
               </div>

@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "Laden…"
+  },
+  "nav": {
+    "searchPlaceholder": "Beiträge suchen…",
+    "openChat": "Chat öffnen",
+    "openMenu": "Menü öffnen"
+  },
+  "feed": {
+    "offlineBanner": "Offline – zuletzt gesehene Beiträge (nur lesen).",
+    "locationTitle": "Standort für lokalen Feed",
+    "locationBody": "Die App braucht deine ungefähre Gegend, um lokale Beiträge zu zeigen. Du kannst sie später ändern. Dein Standort wird auf eine Geohash-Zelle (~5 km) reduziert.",
+    "privacyStorage": "Diese App nutzt lokalen Speicher auf deinem Gerät. Kein Tracking, keine personenbezogenen Daten an uns. Siehe",
+    "privacyLink": "Quellcode, README & Lizenz",
+    "privacyDisclaimer": "Die App lädt Inhalte von externen Quellen (Nostr-Relays, Dateiserver). Keine Haftung für externe Inhalte.",
+    "privacyConfirm": "Mit Fortfahren bestätigst du: Ich habe mich informiert und stimme zu.",
+    "allowLocation": "Standort erlauben",
+    "errorTitle": "Fehler",
+    "tryAgain": "Erneut versuchen",
+    "relayFailPrefix": "Relay-Verbindung fehlgeschlagen. ",
+    "noRelayResponse": "Keine Antwort von den Relays. Relay-Liste prüfen oder später erneut versuchen.",
+    "waitingEose": "Noch keine Events (warte auf EOSE)…",
+    "noPostsYet": "Noch keine Beiträge. Später erneut versuchen oder andere Relays."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "source": "Quelle",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Design",
+    "switchToDark": "Zu Dunkel wechseln",
+    "switchToLight": "Zu Hell wechseln"
+  },
+  "geohash": {
+    "searchRadius": "Suchradius",
+    "lengthLabel": "Geohash-Länge:",
+    "length0": "0 (aktuell + Ost/West)",
+    "queries3": "3 Abfragen",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Radius verkleinern",
+    "increaseRadius": "Radius vergrößern",
+    "length": "Länge {{n}}",
+    "queriesCurrent": "3 Abfragen (aktuell + Ost/West)",
+    "precisionFallback": "Höher = kleiner (genauer) – aber weniger Treffer.",
+    "cellSize": "{{w}} × {{h}} pro Zelle"
+  },
+  "moderation": {
+    "blocklist": "Blockliste",
+    "oneLineOneTerm": "1 Zeile = 1 Begriff ({{count}}/200)",
+    "placeholder": "z. B.\nspam\njetzt kaufen\neböse.example",
+    "saved": "Blockliste gespeichert.",
+    "blockedUsers": "Blockierte Nutzer",
+    "blockedCount": "{{count}} blockiert",
+    "unblock": "Entsperren",
+    "noBlocked": "Keine blockierten Nutzer",
+    "unblockedMsg": "Nutzer entsperrt."
+  },
+  "keyMgmt": {
+    "title": "Identität",
+    "npub": "npub",
+    "copy": "Kopieren",
+    "nsec": "nsec",
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "neverShareNsec": "Teile dein nsec niemals.",
+    "npubCopied": "npub kopiert.",
+    "copyNpubHint": "Anzeigen & npub kopieren.",
+    "nsecCopied": "nsec kopiert.",
+    "copyNsecHint": "Anzeigen & nsec kopieren.",
+    "importTitle": "Identität importieren",
+    "importNsec": "nsec importieren",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Bitte nsec eingeben",
+    "importSuccess": "Identität importiert. Seite wird neu geladen...",
+    "importing": "Importiere...",
+    "import": "Importieren",
+    "cancel": "Abbrechen",
+    "importFailed": "nsec konnte nicht importiert werden"
+  },
+  "relay": {
+    "title": "Relays",
+    "hint": "Relays für Feed, DMs und Veröffentlichung.",
+    "empty": "Keine Relays konfiguriert. Ohne Relay können keine Beiträge geladen oder veröffentlicht werden. Unten ein Relay hinzufügen oder „Standard“.",
+    "removeAria": "Relay entfernen",
+    "placeholder": "wss://relay.example",
+    "add": "Hinzufügen",
+    "default": "Standard",
+    "test": "Test",
+    "testing": "Teste…",
+    "removed": "Relay entfernt.",
+    "added": "Relay hinzugefügt.",
+    "resetDefault": "Auf Standard-Relays zurücksetzen.",
+    "unknown": "unbekannt",
+    "reachable": "erreichbar",
+    "unreachable": "nicht erreichbar",
+    "reachableWithRtt": "erreichbar • {{rtt}}ms",
+    "unreachableWithErr": "nicht erreichbar • {{error}}",
+    "statusAria": "Relay-Status: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Medien-Upload",
+    "hint": "Direkte URL oder NIP-96. Standard: {{default}}. Leer = aus.",
+    "defaultBtn": "Standard"
+  },
+  "profileSettings": {
+    "title": "Profil",
+    "loading": "Profil wird geladen…",
+    "name": "Name",
+    "namePlaceholder": "Dein Name (optional)",
+    "about": "Info",
+    "aboutPlaceholder": "Kurzinfo (optional)",
+    "picture": "Profilbild",
+    "pictureAlt": "Profilbild",
+    "onlyImages": "Nur Bilder werden unterstützt.",
+    "imageTooLarge5": "Bild zu groß (max. 5 MB).",
+    "configureEndpointFirst": "Zuerst Medien-Upload-Endpunkt konfigurieren.",
+    "uploading": "Lade hoch…",
+    "changeImage": "Bild ändern",
+    "uploadImage": "Bild hochladen",
+    "resetConfirm": "Profil wirklich zurücksetzen? Name, Info und Bild werden entfernt.",
+    "reset": "Zurücksetzen",
+    "removeImage": "Bild entfernen",
+    "urlPlaceholder": "Oder URL direkt eingeben",
+    "resetDone": "Profil zurückgesetzt.",
+    "resetError": "Fehler beim Zurücksetzen des Profils"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Unterhaltungen werden geladen…",
+    "offline": "Offline – bitte Internetverbindung prüfen.",
+    "timeout": "Zeitüberschreitung – Relays antworten nicht. Relay-Einstellungen prüfen.",
+    "loadError": "Fehler beim Laden der Chats",
+    "empty": "Noch keine Chats"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Offline – Nachricht kann nicht gesendet werden.",
+    "offline": "Offline – bitte Internetverbindung prüfen.",
+    "timeout": "Zeitüberschreitung – Relays antworten nicht. Relay-Einstellungen prüfen.",
+    "loadError": "Fehler beim Laden der Nachrichten",
+    "loading": "Nachrichten werden geladen…",
+    "empty": "Noch keine Nachrichten",
+    "placeholder": "Nachricht schreiben…",
+    "sendAria": "Nachricht senden",
+    "sendingContent": "[wird gesendet...]",
+    "sendError": "Fehler beim Senden"
+  },
+  "composer": {
+    "srTitle": "Neuer Beitrag",
+    "publish": "Veröffentlichen",
+    "publishing": "Veröffentliche…",
+    "publishAria": "Beitrag veröffentlichen",
+    "media": "Medien",
+    "uploading": "Lade hoch…",
+    "mediaAria": "Medien hinzufügen",
+    "createInCell": "neuer Beitrag in Zelle",
+    "createNew": "neuer Beitrag",
+    "showMapAria": "Zelle {{cell}} auf Karte",
+    "showMapTitle": "Zelle auf Karte",
+    "placeholder": "Was passiert bei dir in der Gegend?",
+    "removeMediaAria": "Medium entfernen",
+    "noUploadEndpoint": "Kein Upload-Endpunkt (Einstellungen → Medien-Upload).",
+    "onlyImagesVideos": "Nur Bilder oder Videos.",
+    "videoTooLarge": "Video zu groß (max. 25 MB).",
+    "imageTooLarge": "Bild zu groß (max. 12 MB).",
+    "compressFailed": "Bild konnte nicht komprimiert werden.",
+    "uploadFailed": "Upload fehlgeschlagen.",
+    "publishFailed": "Veröffentlichung fehlgeschlagen."
+  },
+  "feedArticle": {
+    "deleted": "Gelöscht – wird an Relays verteilt",
+    "deletedAria": "Gelöschter Beitrag",
+    "openPost": "Beitrag öffnen",
+    "sendReaction": "Reaktion senden",
+    "sendReactionCount": "Reaktion senden ({{count}})",
+    "loadOlder": "Mehr anzeigen",
+    "loading": "Laden…"
+  },
+  "pwa": {
+    "title": "Update verfügbar",
+    "body": "Eine neue Version wurde geladen. Neu laden zum Aktivieren.",
+    "reload": "Neu laden",
+    "close": "Schließen"
+  },
+  "adblock": {
+    "title": "Service Worker blockiert",
+    "body": "Ein Werbeblocker blockiert möglicherweise den Service Worker. Bitte für diese Seite deaktivieren oder Ausnahme setzen.",
+    "close": "Schließen"
+  },
+  "composeBtn": {
+    "aria": "Neuen Beitrag erstellen"
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "body": "Ein unerwarteter Fehler. Bitte die Seite neu laden.",
+    "details": "Fehlerdetails",
+    "errorLabel": "Fehler:",
+    "stack": "Stacktrace:",
+    "componentStack": "Komponenten-Stack:",
+    "tryAgain": "Erneut versuchen",
+    "reload": "Seite neu laden"
+  },
+  "app": {
+    "publishFailed": "Veröffentlichung fehlgeschlagen.",
+    "offlineComments": "Offline – Kommentare nur lesbar.",
+    "offlineDelete": "Offline – Lösch-Ereignis kann nicht gesendet werden."
+  },
+  "thread": {
+    "reportRoot": "Hauptbeitrag melden",
+    "reportReply": "Antwort melden",
+    "reportReason": "Grund für Meldung (optional)",
+    "submitReport": "Meldung senden",
+    "replies": "Antworten ({{count}})",
+    "offline": "Offline",
+    "replyPlaceholder": "Antwort schreiben…",
+    "sendDeletionAria": "NIP-09-Lösch-Event senden",
+    "blockUserAria": "Nutzer blockieren",
+    "blockUserTitle": "Nutzer blockieren",
+    "delete": "Löschen",
+    "deleteSending": "Sende…",
+    "block": "Blockieren",
+    "blocking": "Blockiere…",
+    "blockHeading": "{{label}} blockieren",
+    "reportHint": "Optional: Grund für die Meldung. Wird per NIP-56 an Relays gesendet.",
+    "reply": "Antworten",
+    "replySending": "Sende…",
+    "userBlocked": "Nutzer blockiert.",
+    "blockingFailed": "Blockieren fehlgeschlagen.",
+    "offlineBlock": "Offline – Nutzer kann nicht blockiert werden.",
+    "deleteFailed": "Lösch-Event konnte nicht gesendet werden.",
+    "publishFailedFallback": "Veröffentlichen fehlgeschlagen."
+  },
+  "profileSheet": {
+    "openPictureAria": "Profilbild öffnen",
+    "dmAria": "Direktnachricht öffnen",
+    "message": "Nachricht",
+    "offlineHint": "Offline – Profilbeiträge ggf. unvollständig.",
+    "loadingPosts": "Beiträge werden geladen…",
+    "noPosts": "Noch keine Beiträge",
+    "noPostsFromRelays": "Noch keine Beiträge von den Relays.",
+    "loadError": "Beiträge konnten nicht geladen werden."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS-Standort",
+    "gpsTitle": "GPS-Standort"
+  },
+  "postIdentity": {
+    "openProfile": "Profil öffnen"
+  },
+  "time": {
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {{count}} Min.",
+    "hoursAgo": "vor {{count}} Std.",
+    "daysAgo": "vor {{count}} Tagen"
+  },
+  "common": {
+    "loading": "Laden…",
+    "close": "Schließen"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Referenzierter Beitrag wird geladen…",
+    "noText": "(kein Text)"
+  }
+}

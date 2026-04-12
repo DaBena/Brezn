@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { extractLinks } from '../lib/urls'
@@ -27,6 +28,7 @@ export function QuotedPostCard(props: {
   interactive?: boolean
   onOpenThread?: (evt: Event) => void
 }) {
+  const { t } = useTranslation()
   const { event, loading = false, href, display, compact = false, interactive, onOpenThread } = props
 
   if (!event) {
@@ -38,7 +40,7 @@ export function QuotedPostCard(props: {
         onClick={interactive ? stop : undefined}
         className="my-1 block rounded-lg border border-brezn-border bg-brezn-panel px-3 py-2 text-xs text-brezn-muted hover:opacity-90"
       >
-        {loading ? 'Loading referenced post...' : display}
+        {loading ? t('quotedPost.loadingReferenced') : display}
       </a>
     )
   }
@@ -54,7 +56,7 @@ export function QuotedPostCard(props: {
         <span>{ts}</span>
       </div>
       <div className={`mt-1 break-words ${compact ? 'text-xs' : 'text-sm'}`}>
-        {content || '(no text)'}
+        {content || t('quotedPost.noText')}
       </div>
     </div>
   )

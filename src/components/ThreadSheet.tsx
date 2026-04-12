@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
@@ -91,6 +92,7 @@ export function ThreadSheet(props: {
     onOpenProfile,
     onOpenThread,
   } = props
+  const { t } = useTranslation()
   const { showToast } = useToast()
 
   const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
@@ -135,7 +137,7 @@ export function ThreadSheet(props: {
     if (!content) return
     if (isOffline) {
       setPublishState('error')
-      setPublishError('Offline - Comments are read-only.')
+      setPublishError(t('app.offlineComments'))
       return
     }
     setPublishState('publishing')
@@ -146,7 +148,7 @@ export function ThreadSheet(props: {
       setPublishState('idle')
     } catch (e) {
       setPublishState('error')
-      setPublishError(e instanceof Error ? e.message : 'Publish failed.')
+      setPublishError(e instanceof Error ? e.message : t('thread.publishFailedFallback'))
     }
   }
 
@@ -182,7 +184,7 @@ export function ThreadSheet(props: {
     if (!onDelete) return
     if (isOffline) {
       setDeleteState('error')
-      setDeleteError('Offline - Deletion event cannot be sent.')
+      setDeleteError(t('app.offlineDelete'))
       return
     }
     setDeleteState('deleting')
@@ -193,7 +195,7 @@ export function ThreadSheet(props: {
       onClose()
     } catch (e) {
       setDeleteState('error')
-      setDeleteError(e instanceof Error ? e.message : 'Deletion event failed.')
+      setDeleteError(e instanceof Error ? e.message : t('thread.deleteFailed'))
     }
   }
 
@@ -208,7 +210,7 @@ export function ThreadSheet(props: {
   async function handleBlock() {
     if (!onBlockUser) return
     if (isOffline) {
-      showToast('Offline - Cannot block user.', 'error')
+      showToast(t('thread.offlineBlock'), 'error')
       return
     }
 
@@ -229,11 +231,11 @@ export function ThreadSheet(props: {
       setBlockState('idle')
       setShowReportField(false)
       setReportReason('') // Resetting UI state (report was already sent if reason was provided)
-      showToast('User blocked.')
+      showToast(t('thread.userBlocked'))
       onClose()
     } catch (e) {
       setBlockState('idle')
-      const msg = e instanceof Error ? e.message : 'Blocking failed.'
+      const msg = e instanceof Error ? e.message : t('thread.blockingFailed')
       showToast(msg, 'error')
     }
   }
@@ -246,7 +248,7 @@ export function ThreadSheet(props: {
   async function handleBlockReplyWithReport(reply: Event) {
     if (!onBlockUser) return
     if (isOffline) {
-      showToast('Offline - Cannot block user.', 'error')
+      showToast(t('thread.offlineBlock'), 'error')
       return
     }
 
@@ -267,10 +269,10 @@ export function ThreadSheet(props: {
       setBlockState('idle')
       setReportingReplyId(null)
       setReplyReportReason('') // Resetting UI state (report was already sent if reason was provided)
-      showToast('User blocked.')
+      showToast(t('thread.userBlocked'))
     } catch (e) {
       setBlockState('idle')
-      const msg = e instanceof Error ? e.message : 'Blocking failed.'
+      const msg = e instanceof Error ? e.message : t('thread.blockingFailed')
       showToast(msg, 'error')
     }
   }
@@ -284,7 +286,7 @@ export function ThreadSheet(props: {
             type="button"
             onClick={() => void handleDelete()}
             disabled={deleteState === 'deleting' || isOffline}
-            aria-label="Send NIP-09 deletion event"
+            aria-label={t('thread.sendDeletionAria')}
             className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
           >
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="opacity-90">
@@ -293,22 +295,22 @@ export function ThreadSheet(props: {
                 d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
               />
             </svg>
-            <span>{deleteState === 'deleting' ? 'Sending…' : 'Delete'}</span>
+            <span>{deleteState === 'deleting' ? t('thread.deleteSending') : t('thread.delete')}</span>
           </button>
         ) : !isOwnPost && onBlockUser && !isBlocked && !showReportField ? (
           <button
             type="button"
             onClick={() => void handleBlockUser()}
             disabled={blockState === 'blocking'}
-            aria-label="Block user"
+            aria-label={t('thread.blockUserAria')}
             className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-            title="Block user"
+            title={t('thread.blockUserTitle')}
           >
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
             </svg>
-            <span>{blockState === 'blocking' ? '…' : 'Block'}</span>
+            <span>{blockState === 'blocking' ? '…' : t('thread.block')}</span>
           </button>
         ) : null
       }
@@ -324,16 +326,14 @@ export function ThreadSheet(props: {
         {showReportField && !isOwnPost && onBlockUser && !isBlocked ? (
           <div className="space-y-2">
             <div className="text-xs font-semibold text-brezn-muted">
-              Block {shortNpub(nip19.npubEncode(root.pubkey), 8, 4)}
+              {t('thread.blockHeading', { label: shortNpub(nip19.npubEncode(root.pubkey), 8, 4) })}
             </div>
-            <div className="text-xs text-brezn-text">
-              Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.
-            </div>
+            <div className="text-xs text-brezn-text">{t('thread.reportHint')}</div>
             <textarea
               ref={reportTextareaRef}
               value={reportReason}
               onChange={e => setReportReason(e.target.value)}
-              placeholder="Reason for reporting (optional)"
+              placeholder={t('thread.reportReason')}
               className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
               disabled={blockState === 'blocking' || isOffline}
             />
@@ -343,7 +343,7 @@ export function ThreadSheet(props: {
               disabled={blockState === 'blocking' || isOffline}
                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
             >
-              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+              {blockState === 'blocking' ? t('thread.blocking') : t('thread.block')}
             </button>
             </div>
           </div>
@@ -358,7 +358,9 @@ export function ThreadSheet(props: {
               onOpenThread={onOpenThread}
             />
             <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
+              <div className="text-xs font-semibold text-brezn-muted">
+                {t('thread.replies', { count: replyCount })}
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -368,9 +370,11 @@ export function ThreadSheet(props: {
                     Boolean(reactionsByNoteId[root.id]?.viewerReacted),
                     canReact,
                   )}
-                  aria-label={`Send reaction${
-                    reactionsByNoteId[root.id]?.total ? ` (${reactionsByNoteId[root.id]?.total})` : ''
-                  }`}
+                  aria-label={
+                    reactionsByNoteId[root.id]?.total
+                      ? t('feedArticle.sendReactionCount', { count: reactionsByNoteId[root.id]?.total ?? 0 })
+                      : t('feedArticle.sendReaction')
+                  }
                 >
                   <HeartIcon liked={Boolean(reactionsByNoteId[root.id]?.viewerReacted)} />
                   <span className="font-mono">{reactionsByNoteId[root.id]?.total ?? 0}</span>
@@ -385,7 +389,7 @@ export function ThreadSheet(props: {
           <>
             <div>
               {isOffline ? (
-                <div className="mb-2 text-[11px] text-brezn-muted">Offline</div>
+                <div className="mb-2 text-[11px] text-brezn-muted">{t('thread.offline')}</div>
               ) : null}
               {replies.length ? (
                 <div className="space-y-2">
@@ -399,16 +403,14 @@ export function ThreadSheet(props: {
                         {isReportingReply && !isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
                           <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel p-3">
                             <div className="text-xs font-semibold text-brezn-muted">
-                              Block {shortNpub(nip19.npubEncode(r.pubkey), 8, 4)}
+                              {t('thread.blockHeading', { label: shortNpub(nip19.npubEncode(r.pubkey), 8, 4) })}
                             </div>
-                            <div className="text-xs text-brezn-text">
-                              Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.
-                            </div>
+                            <div className="text-xs text-brezn-text">{t('thread.reportHint')}</div>
                             <textarea
                               ref={replyReportTextareaRef}
                               value={replyReportReason}
                               onChange={e => setReplyReportReason(e.target.value)}
-                              placeholder="Reason for reporting (optional)"
+                              placeholder={t('thread.reportReason')}
                               className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
                               disabled={blockState === 'blocking' || isOffline}
                             />
@@ -418,7 +420,7 @@ export function ThreadSheet(props: {
                               disabled={blockState === 'blocking' || isOffline}
                                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
                             >
-                              {blockState === 'blocking' ? 'Blocking…' : 'Block'}
+                              {blockState === 'blocking' ? t('thread.blocking') : t('thread.block')}
                             </button>
                             </div>
                           </div>
@@ -438,8 +440,9 @@ export function ThreadSheet(props: {
                                     type="button"
                                     onClick={() => handleBlockReply(r.id)}
                                     disabled={blockState === 'blocking' || isOffline}
+                                    aria-label={t('thread.blockUserAria')}
                                     className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonBase}`}
-                                    title="Block user"
+                                    title={t('thread.blockUserTitle')}
                                   >
                                     <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <circle cx="12" cy="12" r="10"/>
@@ -475,7 +478,11 @@ export function ThreadSheet(props: {
                                   Boolean(reactionsByNoteId[r.id]?.viewerReacted),
                                   canReact
                                 )}`}
-                                aria-label={`Send reaction${reactionsByNoteId[r.id]?.total ? ` (${reactionsByNoteId[r.id]?.total})` : ''}`}
+                                aria-label={
+                                  reactionsByNoteId[r.id]?.total
+                                    ? t('feedArticle.sendReactionCount', { count: reactionsByNoteId[r.id]?.total ?? 0 })
+                                    : t('feedArticle.sendReaction')
+                                }
                               >
                                 <HeartIcon liked={Boolean(reactionsByNoteId[r.id]?.viewerReacted)} />
                                 <span className="font-mono">{reactionsByNoteId[r.id]?.total ?? 0}</span>
@@ -494,7 +501,7 @@ export function ThreadSheet(props: {
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
-                placeholder="Write reply…"
+                placeholder={t('thread.replyPlaceholder')}
                 className="mt-2 h-24 w-full resize-none border border-brezn-text p-3 text-base outline-none"
                 disabled={isOffline}
               />
@@ -507,7 +514,7 @@ export function ThreadSheet(props: {
                   disabled={publishState === 'publishing' || !text.trim() || isOffline}
                   className={`w-1/2 rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
                 >
-                  {publishState === 'publishing' ? 'Sending…' : 'Reply'}
+                  {publishState === 'publishing' ? t('thread.replySending') : t('thread.reply')}
                 </button>
               </div>
             </div>

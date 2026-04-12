@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as nip19 from 'nostr-tools/nip19'
 import type { Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
@@ -15,6 +16,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
   onAvatarClick?: () => void
   avatarSize?: keyof typeof avatarSizes
 }) {
+  const { t } = useTranslation()
   const { pubkey, profile, displayNameOverride, onClick, onAvatarClick, avatarSize = 'default' } = props
   const sizeClass = avatarSizes[avatarSize]
   const iconSize = avatarSize === 'large' ? 28 : 14
@@ -63,7 +65,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
           e.stopPropagation()
           onAvatarClick()
         }}
-        aria-label="Open profile"
+        aria-label={t('postIdentity.openProfile')}
       >
         {avatarInner}
       </button>

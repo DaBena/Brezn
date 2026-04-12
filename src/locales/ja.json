@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "読み込み中…"
+  },
+  "nav": {
+    "searchPlaceholder": "投稿を検索…",
+    "openChat": "チャットを開く",
+    "openMenu": "メニューを開く"
+  },
+  "feed": {
+    "offlineBanner": "オフライン — 最後に見た投稿を表示（閲覧のみ）",
+    "locationTitle": "ローカルフィード用の位置",
+    "locationBody": "近くの投稿を表示するためにおおよその地域が必要です。後から変更できます。位置は geohash セル（約5km）に丸められます。",
+    "privacyStorage": "このアプリは端末のローカルストレージを使います。追跡や個人データの送信はありません。",
+    "privacyLink": "ソース、README、ライセンス",
+    "privacyDisclaimer": "外部（Nostr リレー、ファイルサーバー）からコンテンツを読み込みます。外部コンテンツについて責任を負いません。",
+    "privacyConfirm": "続行すると、内容を確認し同意したことになります。",
+    "allowLocation": "位置情報を許可",
+    "errorTitle": "エラー",
+    "tryAgain": "再試行",
+    "relayFailPrefix": "リレー接続に失敗しました。",
+    "noRelayResponse": "リレーから応答がありません。リストを確認するか後で試してください。",
+    "waitingEose": "まだイベントがありません（EOSE 待ち）…",
+    "noPostsYet": "まだ投稿がありません。後で試すか別のリレーを。"
+  },
+  "settings": {
+    "title": "設定",
+    "source": "ソース",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "テーマ",
+    "switchToDark": "ダークに切替",
+    "switchToLight": "ライトに切替"
+  },
+  "geohash": {
+    "searchRadius": "検索半径",
+    "lengthLabel": "ジオハッシュ長:",
+    "length0": "0（現在＋東西）",
+    "queries3": "3 クエリ",
+    "geoHashLabel": "ジオハッシュ:",
+    "geoHashEmpty": "ジオハッシュ: -",
+    "decreaseRadius": "半径を縮小",
+    "increaseRadius": "半径を拡大",
+    "length": "長さ {{n}}",
+    "queriesCurrent": "3 クエリ（現在＋東西）",
+    "precisionFallback": "大きいほど細かい（精密）ですが、件数は減ります。",
+    "cellSize": "セルあたり ~{{w}} × ~{{h}}"
+  },
+  "moderation": {
+    "blocklist": "ブロックリスト",
+    "oneLineOneTerm": "1 行 = 1 語（{{count}}/200）",
+    "placeholder": "例\nspam\n今すぐ\nevil.example",
+    "saved": "保存しました。",
+    "blockedUsers": "ブロックしたユーザー",
+    "blockedCount": "{{count}} 人をブロック",
+    "unblock": "解除",
+    "noBlocked": "ブロックなし",
+    "unblockedMsg": "ブロックを解除しました。"
+  },
+  "keyMgmt": {
+    "title": "本人確認",
+    "npub": "npub",
+    "copy": "コピー",
+    "nsec": "nsec",
+    "show": "表示",
+    "hide": "隠す",
+    "neverShareNsec": "nsec は絶対に共有しないでください。",
+    "npubCopied": "npub をコピーしました。",
+    "copyNpubHint": "表示して npub をコピー。",
+    "nsecCopied": "nsec をコピーしました。",
+    "copyNsecHint": "表示して nsec をコピー。",
+    "importTitle": "鍵をインポート",
+    "importNsec": "nsec をインポート",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "nsec を入力してください",
+    "importSuccess": "インポートしました。再読み込みします…",
+    "importing": "インポート中…",
+    "import": "インポート",
+    "cancel": "キャンセル",
+    "importFailed": "nsec をインポートできませんでした"
+  },
+  "relay": {
+    "title": "リレー",
+    "hint": "フィード、DM、投稿に使うリレー。",
+    "empty": "リレーがありません。リレーがないと読み込み・投稿できません。追加するか「デフォルト」を使ってください。",
+    "removeAria": "リレーを削除",
+    "placeholder": "wss://relay.example",
+    "add": "追加",
+    "default": "デフォルト",
+    "test": "テスト",
+    "testing": "テスト中…",
+    "removed": "削除しました。",
+    "added": "追加しました。",
+    "resetDefault": "デフォルトのリレーに戻す",
+    "unknown": "不明",
+    "reachable": "接続可",
+    "unreachable": "接続不可",
+    "reachableWithRtt": "接続可 • {{rtt}}ms",
+    "unreachableWithErr": "接続不可 • {{error}}",
+    "statusAria": "リレー状態: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "メディアアップロード",
+    "hint": "直接 URL または NIP-96。既定: {{default}}。空でオフ。",
+    "defaultBtn": "デフォルト"
+  },
+  "profileSettings": {
+    "title": "プロフィール",
+    "loading": "読み込み中…",
+    "name": "名前",
+    "namePlaceholder": "名前（任意）",
+    "about": "自己紹介",
+    "aboutPlaceholder": "短い自己紹介（任意）",
+    "picture": "プロフィール画像",
+    "pictureAlt": "プロフィール画像",
+    "onlyImages": "画像のみ対応です。",
+    "imageTooLarge5": "画像が大きすぎます（最大 5 MB）。",
+    "configureEndpointFirst": "先にアップロード先を設定してください。",
+    "uploading": "アップロード中…",
+    "changeImage": "画像を変更",
+    "uploadImage": "画像をアップロード",
+    "resetConfirm": "プロフィールをリセットしますか？名前・自己紹介・画像が消えます。",
+    "reset": "リセット",
+    "removeImage": "画像を削除",
+    "urlPlaceholder": "または URL を直接入力",
+    "resetDone": "リセットしました。",
+    "resetError": "プロフィールのリセットに失敗しました"
+  },
+  "chat": {
+    "title": "チャット",
+    "loading": "会話を読み込み中…",
+    "offline": "オフライン — 接続を確認してください。",
+    "timeout": "タイムアウト — リレーが応答しません。",
+    "loadError": "会話の読み込みに失敗しました",
+    "empty": "まだ会話がありません"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "オフライン — メッセージを送信できません。",
+    "offline": "オフライン — 接続を確認してください。",
+    "timeout": "タイムアウト — リレーが応答しません。",
+    "loadError": "メッセージの読み込みに失敗しました",
+    "loading": "メッセージを読み込み中…",
+    "empty": "まだメッセージがありません",
+    "placeholder": "メッセージを入力…",
+    "sendAria": "送信",
+    "sendingContent": "[送信中...]",
+    "sendError": "送信に失敗しました"
+  },
+  "composer": {
+    "srTitle": "新規投稿",
+    "publish": "投稿",
+    "publishing": "投稿中…",
+    "publishAria": "投稿する",
+    "media": "メディア",
+    "uploading": "アップロード中…",
+    "mediaAria": "メディアを追加",
+    "createInCell": "セル内の新規投稿",
+    "createNew": "新規投稿",
+    "showMapAria": "セル {{cell}} を地図で表示",
+    "showMapTitle": "地図でセルを表示",
+    "placeholder": "近くで何がありましたか？",
+    "removeMediaAria": "メディアを削除",
+    "noUploadEndpoint": "アップロード先が未設定（設定 → メディア）。",
+    "onlyImagesVideos": "画像または動画のみです。",
+    "videoTooLarge": "動画が大きすぎます（最大 25 MB）。",
+    "imageTooLarge": "画像が大きすぎます（最大 12 MB）。",
+    "compressFailed": "画像の圧縮に失敗しました。",
+    "uploadFailed": "アップロードに失敗しました。",
+    "publishFailed": "投稿に失敗しました。"
+  },
+  "feedArticle": {
+    "deleted": "削除済み — リレーに反映中",
+    "deletedAria": "削除された投稿",
+    "openPost": "投稿を開く",
+    "sendReaction": "リアクション",
+    "sendReactionCount": "リアクション ({{count}})",
+    "loadOlder": "さらに表示",
+    "loading": "読み込み中…"
+  },
+  "pwa": {
+    "title": "更新があります",
+    "body": "新しいバージョンが読み込まれました。反映には再読み込みしてください。",
+    "reload": "再読み込み",
+    "close": "閉じる"
+  },
+  "adblock": {
+    "title": "Service Worker がブロックされています",
+    "body": "広告ブロッカーが service worker を妨げている可能性があります。無効化または例外を追加してください。",
+    "close": "閉じる"
+  },
+  "composeBtn": {
+    "aria": "新規投稿を作成"
+  },
+  "errorBoundary": {
+    "title": "問題が発生しました",
+    "body": "予期しないエラーです。ページを再読み込みしてください。",
+    "details": "詳細",
+    "errorLabel": "エラー:",
+    "stack": "スタック:",
+    "componentStack": "コンポーネントスタック:",
+    "tryAgain": "再試行",
+    "reload": "ページを再読み込み"
+  },
+  "app": {
+    "publishFailed": "投稿に失敗しました。",
+    "offlineComments": "オフライン — コメントは閲覧のみです。",
+    "offlineDelete": "オフライン — 削除イベントを送信できません。"
+  },
+  "thread": {
+    "reportRoot": "ルート投稿を報告",
+    "reportReply": "返信を報告",
+    "reportReason": "理由（任意）",
+    "submitReport": "送信",
+    "replies": "返信 ({{count}})",
+    "offline": "オフライン",
+    "replyPlaceholder": "返信を入力…",
+    "sendDeletionAria": "NIP-09 削除イベントを送る",
+    "blockUserAria": "ユーザーをブロック",
+    "blockUserTitle": "ブロック",
+    "delete": "削除",
+    "deleteSending": "送信中…",
+    "block": "ブロック",
+    "blocking": "ブロック中…",
+    "blockHeading": "{{label}} をブロック",
+    "reportHint": "任意: 通報理由。NIP-56 でリレーに送信されます。",
+    "reply": "返信",
+    "replySending": "送信中…",
+    "userBlocked": "ユーザーをブロックしました。",
+    "blockingFailed": "ブロックに失敗しました。",
+    "offlineBlock": "オフライン — ユーザーをブロックできません。",
+    "deleteFailed": "削除イベントを送信できませんでした。",
+    "publishFailedFallback": "投稿に失敗しました。"
+  },
+  "profileSheet": {
+    "openPictureAria": "プロフィール画像を開く",
+    "dmAria": "DM を開く",
+    "offlineHint": "オフライン — プロフィールの投稿が不完全な場合があります。",
+    "loadingPosts": "投稿を読み込み中…",
+    "noPosts": "まだ投稿がありません",
+    "loadError": "投稿を読み込めませんでした。"
+  },
+  "geohashMap": {
+    "gpsAria": "GPS 位置",
+    "gpsTitle": "GPS 位置"
+  },
+  "postIdentity": {
+    "openProfile": "プロフィールを開く"
+  },
+  "time": {
+    "justNow": "たった今",
+    "minutesAgo": "{{count}} 分前",
+    "hoursAgo": "{{count}} 時間前",
+    "daysAgo": "{{count}} 日前"
+  },
+  "common": {
+    "loading": "読み込み中…",
+    "close": "閉じる"
+  },
+  "quotedPost": {
+    "loadingReferenced": "引用元を読み込み中…",
+    "noText": "（テキストなし）"
+  }
+}

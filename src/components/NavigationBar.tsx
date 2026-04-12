@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 interface NavigationBarProps {
   showNav: boolean
   searchQuery: string
@@ -13,6 +15,7 @@ export function NavigationBar({
   onOpenChat,
   onOpenMenu,
 }: NavigationBarProps) {
+  const { t } = useTranslation()
   return (
     <div
       className={[
@@ -26,7 +29,7 @@ export function NavigationBar({
         <button
           type="button"
           onClick={onOpenChat}
-          aria-label="Open chat"
+          aria-label={t('nav.openChat')}
           className="h-9 w-9 shrink-0 rounded-lg text-black hover:opacity-80 dark:text-white grid place-items-center focus:outline-none"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -43,14 +46,14 @@ export function NavigationBar({
           type="text"
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
-          placeholder="Search posts…"
+          placeholder={t('nav.searchPlaceholder')}
           className="flex-1 rounded-lg border border-black bg-brezn-panel px-2.5 py-1.5 text-base !text-black caret-black outline-none ring-0 !placeholder:text-black/50 focus:outline-none focus:ring-0 sm:text-xs dark:border-white dark:!text-white dark:caret-white dark:!placeholder:text-white/50"
         />
 
         <button
           type="button"
           onClick={onOpenMenu}
-          aria-label="Open menu"
+          aria-label={t('nav.openMenu')}
           className="h-9 w-9 shrink-0 rounded-lg text-black hover:opacity-80 dark:text-white grid place-items-center focus:outline-none"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">

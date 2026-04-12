@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "Loading…"
+  },
+  "nav": {
+    "searchPlaceholder": "Search posts…",
+    "openChat": "Open chat",
+    "openMenu": "Open menu"
+  },
+  "feed": {
+    "offlineBanner": "Offline - showing last seen posts (read-only).",
+    "locationTitle": "Location for local feed",
+    "locationBody": "This app needs your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.",
+    "privacyStorage": "This app uses local storage on your device. No tracking and no personal data is sent to us. See the",
+    "privacyLink": "source, README & license",
+    "privacyDisclaimer": "This app loads user content from external sources (nostr relays, file servers). We accept no liability for any external content.",
+    "privacyConfirm": "By continuing you confirm: I informed myself and accept.",
+    "allowLocation": "Allow location",
+    "errorTitle": "Error",
+    "tryAgain": "Try again",
+    "relayFailPrefix": "Relay connection failed. ",
+    "noRelayResponse": "No response from relays. Check the relay list or try again later.",
+    "waitingEose": "No events received yet (waiting for EOSE)…",
+    "noPostsYet": "No posts found yet. Try again later or try different relays."
+  },
+  "settings": {
+    "title": "Settings",
+    "source": "Source",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Theme",
+    "switchToDark": "Switch to Dark",
+    "switchToLight": "Switch to Light"
+  },
+  "geohash": {
+    "searchRadius": "Search radius",
+    "lengthLabel": "Geohash length:",
+    "length0": "0 (current + east/west)",
+    "queries3": "3 queries",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Decrease radius",
+    "increaseRadius": "Increase radius",
+    "length": "Length {{n}}",
+    "queriesCurrent": "3 queries (current + east/west)",
+    "precisionFallback": "Higher = smaller (more precise) - but fewer results.",
+    "cellSize": "{{w}} × {{h}} per cell"
+  },
+  "moderation": {
+    "blocklist": "Blocklist",
+    "oneLineOneTerm": "1 line = 1 term ({{count}}/200)",
+    "placeholder": "e.g.\nspam\nbuy now\nevil.example",
+    "saved": "Blocklist saved.",
+    "blockedUsers": "Blocked users",
+    "blockedCount": "{{count}} blocked",
+    "unblock": "Unblock",
+    "noBlocked": "No blocked users",
+    "unblockedMsg": "User unblocked."
+  },
+  "keyMgmt": {
+    "title": "Identity",
+    "npub": "npub",
+    "copy": "Copy",
+    "nsec": "nsec",
+    "show": "Show",
+    "hide": "Hide",
+    "neverShareNsec": "Never share your nsec.",
+    "npubCopied": "npub copied.",
+    "copyNpubHint": "Show & copy npub.",
+    "nsecCopied": "nsec copied.",
+    "copyNsecHint": "Show & copy nsec.",
+    "importTitle": "Import Identity",
+    "importNsec": "Import nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Please enter an nsec",
+    "importSuccess": "Identity imported successfully. Page will reload...",
+    "importing": "Importing...",
+    "import": "Import",
+    "cancel": "Cancel",
+    "importFailed": "Failed to import nsec"
+  },
+  "relay": {
+    "title": "Relays",
+    "hint": "Relays used for the feed, DMs, and publishing.",
+    "empty": "No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the \"Default\" button to restore default relays.",
+    "removeAria": "Remove relay",
+    "placeholder": "wss://relay.example",
+    "add": "Add",
+    "default": "Default",
+    "test": "Test",
+    "testing": "Testing…",
+    "removed": "Relay removed.",
+    "added": "Relay added.",
+    "resetDefault": "Reset to default relays.",
+    "unknown": "unknown",
+    "reachable": "reachable",
+    "unreachable": "unreachable",
+    "reachableWithRtt": "reachable • {{rtt}}ms",
+    "unreachableWithErr": "unreachable • {{error}}",
+    "statusAria": "Relay status: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Media Upload",
+    "hint": "Direct URL or NIP-96. Default: {{default}}. Empty = off.",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "Profile",
+    "loading": "Loading profile…",
+    "name": "Name",
+    "namePlaceholder": "Your name (optional)",
+    "about": "About",
+    "aboutPlaceholder": "Short bio (optional)",
+    "picture": "Profile picture",
+    "pictureAlt": "Profile picture",
+    "onlyImages": "Only images are supported.",
+    "imageTooLarge5": "Image is too large (max. 5 MB).",
+    "configureEndpointFirst": "Configure media upload endpoint first.",
+    "uploading": "Uploading…",
+    "changeImage": "Change image",
+    "uploadImage": "Upload image",
+    "resetConfirm": "Really reset profile? Name, about, and picture will be removed.",
+    "reset": "Reset",
+    "removeImage": "Remove image",
+    "urlPlaceholder": "Or enter URL directly",
+    "resetDone": "Profile reset.",
+    "resetError": "Error resetting profile"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Loading conversations…",
+    "offline": "Offline - Please check your internet connection.",
+    "timeout": "Timeout - Relays are not responding. Please check your relay settings.",
+    "loadError": "Error loading conversations",
+    "empty": "No conversations yet"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Offline - Message cannot be sent.",
+    "offline": "Offline - Please check your internet connection.",
+    "timeout": "Timeout - Relays are not responding. Please check your relay settings.",
+    "loadError": "Error loading messages",
+    "loading": "Loading messages…",
+    "empty": "No messages yet",
+    "placeholder": "Write message…",
+    "sendAria": "Send message",
+    "sendingContent": "[sending...]",
+    "sendError": "Error sending message"
+  },
+  "composer": {
+    "srTitle": "New post",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "publishAria": "Publish post",
+    "media": "Media",
+    "uploading": "Uploading…",
+    "mediaAria": "Add media",
+    "createInCell": "create new post in cell",
+    "createNew": "create new post",
+    "showMapAria": "Show cell {{cell}} on map",
+    "showMapTitle": "Show cell on map",
+    "placeholder": "What's happening in your area?",
+    "removeMediaAria": "Remove media",
+    "noUploadEndpoint": "No upload endpoint configured (Settings → Media Upload).",
+    "onlyImagesVideos": "Only images or videos are supported.",
+    "videoTooLarge": "Video is too large (max. 25 MB).",
+    "imageTooLarge": "Image is too large (max. 12 MB).",
+    "compressFailed": "Failed to compress image.",
+    "uploadFailed": "Upload failed.",
+    "publishFailed": "Publish failed."
+  },
+  "feedArticle": {
+    "deleted": "Deleted – propagating to relays",
+    "deletedAria": "Deleted post",
+    "openPost": "Open post",
+    "sendReaction": "Send reaction",
+    "sendReactionCount": "Send reaction ({{count}})",
+    "loadOlder": "Show more",
+    "loading": "Loading…"
+  },
+  "pwa": {
+    "title": "Update available",
+    "body": "A new version has been loaded. Reload to activate it.",
+    "reload": "Reload",
+    "close": "Close"
+  },
+  "adblock": {
+    "title": "Service Worker blocked",
+    "body": "An adblocker may be blocking the service worker. Please disable the adblocker for this site or add an exception.",
+    "close": "Close"
+  },
+  "composeBtn": {
+    "aria": "Create new post"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred. Please try refreshing the page.",
+    "details": "Error details",
+    "errorLabel": "Error:",
+    "stack": "Stack trace:",
+    "componentStack": "Component stack:",
+    "tryAgain": "Try again",
+    "reload": "Reload page"
+  },
+  "app": {
+    "publishFailed": "Publish failed.",
+    "offlineComments": "Offline - Comments are read-only.",
+    "offlineDelete": "Offline - Deletion event cannot be sent."
+  },
+  "thread": {
+    "reportRoot": "Report root post",
+    "reportReply": "Report reply",
+    "reportReason": "Reason for reporting (optional)",
+    "submitReport": "Submit report",
+    "replies": "Replies ({{count}})",
+    "offline": "Offline",
+    "replyPlaceholder": "Write reply…",
+    "sendDeletionAria": "Send NIP-09 deletion event",
+    "blockUserAria": "Block user",
+    "blockUserTitle": "Block user",
+    "delete": "Delete",
+    "deleteSending": "Sending…",
+    "block": "Block",
+    "blocking": "Blocking…",
+    "blockHeading": "Block {{label}}",
+    "reportHint": "Optional: Provide a reason for reporting this user. This will be sent to relays via NIP-56.",
+    "reply": "Reply",
+    "replySending": "Sending…",
+    "userBlocked": "User blocked.",
+    "blockingFailed": "Blocking failed.",
+    "offlineBlock": "Offline - Cannot block user.",
+    "deleteFailed": "Deletion event failed.",
+    "publishFailedFallback": "Publish failed."
+  },
+  "profileSheet": {
+    "openPictureAria": "Open profile picture",
+    "dmAria": "Open direct message",
+    "message": "Message",
+    "offlineHint": "Offline — profile posts may be incomplete.",
+    "loadingPosts": "Loading posts…",
+    "noPosts": "No posts yet",
+    "noPostsFromRelays": "No posts found from relays yet.",
+    "loadError": "Could not load posts."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS location",
+    "gpsTitle": "GPS location"
+  },
+  "postIdentity": {
+    "openProfile": "Open profile"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Loading referenced post…",
+    "noText": "(no text)"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "common": {
+    "loading": "Loading…",
+    "close": "Close"
+  }
+}

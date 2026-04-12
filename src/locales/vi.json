@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "Đang tải…"
+  },
+  "nav": {
+    "searchPlaceholder": "Tìm bài đăng…",
+    "openChat": "Mở trò chuyện",
+    "openMenu": "Mở menu"
+  },
+  "feed": {
+    "offlineBanner": "Ngoại tuyến — hiển thị bài đăng đã xem lần cuối (chỉ đọc).",
+    "locationTitle": "Vị trí cho bảng tin địa phương",
+    "locationBody": "Ứng dụng cần khu vực xấp xỉ của bạn để hiển thị bài địa phương. Bạn có thể đổi sau. Vị trí được rút gọn ô geohash (~5 km) để bảo vệ quyền riêng tư.",
+    "privacyStorage": "Ứng dụng dùng bộ nhớ cục bộ trên thiết bị. Không theo dõi, không gửi dữ liệu cá nhân cho chúng tôi. Xem",
+    "privacyLink": "mã nguồn, README & giấy phép",
+    "privacyDisclaimer": "Ứng dụng tải nội dung từ nguồn bên ngoài (relay nostr, máy chủ tệp). Không chịu trách nhiệm với nội dung bên ngoài.",
+    "privacyConfirm": "Tiếp tục nghĩa là bạn xác nhận: đã tìm hiểu và chấp nhận.",
+    "allowLocation": "Cho phép vị trí",
+    "errorTitle": "Lỗi",
+    "tryAgain": "Thử lại",
+    "relayFailPrefix": "Kết nối relay thất bại. ",
+    "noRelayResponse": "Không có phản hồi từ relay. Kiểm tra danh sách relay hoặc thử sau.",
+    "waitingEose": "Chưa có sự kiện (đang chờ EOSE)…",
+    "noPostsYet": "Chưa có bài đăng. Thử sau hoặc dùng relay khác."
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "source": "Nguồn",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Giao diện",
+    "switchToDark": "Chuyển sang tối",
+    "switchToLight": "Chuyển sang sáng"
+  },
+  "geohash": {
+    "searchRadius": "Bán kính tìm kiếm",
+    "lengthLabel": "Độ dài geohash:",
+    "length0": "0 (hiện tại + đông/tây)",
+    "queries3": "3 truy vấn",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Giảm bán kính",
+    "increaseRadius": "Tăng bán kính",
+    "length": "Độ dài {{n}}",
+    "queriesCurrent": "3 truy vấn (hiện tại + đông/tây)",
+    "precisionFallback": "Cao hơn = nhỏ hơn (chính xác hơn) — nhưng ít kết quả hơn.",
+    "cellSize": "{{w}} × {{h}} mỗi ô"
+  },
+  "moderation": {
+    "blocklist": "Danh sách chặn",
+    "oneLineOneTerm": "1 dòng = 1 từ ({{count}}/200)",
+    "placeholder": "vd.\nspam\nmua ngay\nxấu.vd",
+    "saved": "Đã lưu danh sách chặn.",
+    "blockedUsers": "Người dùng bị chặn",
+    "blockedCount": "{{count}} đã chặn",
+    "unblock": "Bỏ chặn",
+    "noBlocked": "Không có người bị chặn",
+    "unblockedMsg": "Đã bỏ chặn người dùng."
+  },
+  "keyMgmt": {
+    "title": "Danh tính",
+    "npub": "npub",
+    "copy": "Sao chép",
+    "nsec": "nsec",
+    "show": "Hiện",
+    "hide": "Ẩn",
+    "neverShareNsec": "Không bao giờ chia sẻ nsec của bạn.",
+    "npubCopied": "Đã sao chép npub.",
+    "copyNpubHint": "Hiện và sao chép npub.",
+    "nsecCopied": "Đã sao chép nsec.",
+    "copyNsecHint": "Hiện và sao chép nsec.",
+    "importTitle": "Nhập danh tính",
+    "importNsec": "Nhập nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Vui lòng nhập nsec",
+    "importSuccess": "Đã nhập danh tính. Trang sẽ tải lại…",
+    "importing": "Đang nhập…",
+    "import": "Nhập",
+    "cancel": "Hủy",
+    "importFailed": "Không nhập được nsec"
+  },
+  "relay": {
+    "title": "Relay",
+    "hint": "Relay dùng cho bảng tin, tin nhắn và đăng bài.",
+    "empty": "Chưa cấu hình relay. Không thể tải hoặc đăng bài nếu không có ít nhất một relay. Thêm bên dưới hoặc dùng «Mặc định».",
+    "removeAria": "Xóa relay",
+    "placeholder": "wss://relay.example",
+    "add": "Thêm",
+    "default": "Mặc định",
+    "test": "Kiểm tra",
+    "testing": "Đang kiểm tra…",
+    "removed": "Đã xóa relay.",
+    "added": "Đã thêm relay.",
+    "resetDefault": "Khôi phục relay mặc định.",
+    "unknown": "không rõ",
+    "reachable": "kết nối được",
+    "unreachable": "không kết nối được",
+    "reachableWithRtt": "kết nối được • {{rtt}} ms",
+    "unreachableWithErr": "không kết nối được • {{error}}",
+    "statusAria": "Trạng thái relay: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Tải media lên",
+    "hint": "URL trực tiếp hoặc NIP-96. Mặc định: {{default}}. Để trống = tắt.",
+    "defaultBtn": "Mặc định"
+  },
+  "profileSettings": {
+    "title": "Hồ sơ",
+    "loading": "Đang tải hồ sơ…",
+    "name": "Tên",
+    "namePlaceholder": "Tên của bạn (tuỳ chọn)",
+    "about": "Giới thiệu",
+    "aboutPlaceholder": "Tiểu sử ngắn (tuỳ chọn)",
+    "picture": "Ảnh hồ sơ",
+    "pictureAlt": "Ảnh hồ sơ",
+    "onlyImages": "Chỉ hỗ trợ ảnh.",
+    "imageTooLarge5": "Ảnh quá lớn (tối đa 5 MB).",
+    "configureEndpointFirst": "Cấu hình điểm cuối tải media trước.",
+    "uploading": "Đang tải lên…",
+    "changeImage": "Đổi ảnh",
+    "uploadImage": "Tải ảnh lên",
+    "resetConfirm": "Đặt lại hồ sơ? Tên, giới thiệu và ảnh sẽ bị xóa.",
+    "reset": "Đặt lại",
+    "removeImage": "Xóa ảnh",
+    "urlPlaceholder": "Hoặc nhập URL trực tiếp",
+    "resetDone": "Đã đặt lại hồ sơ.",
+    "resetError": "Lỗi đặt lại hồ sơ"
+  },
+  "chat": {
+    "title": "Trò chuyện",
+    "loading": "Đang tải cuộc trò chuyện…",
+    "offline": "Ngoại tuyến — kiểm tra kết nối internet.",
+    "timeout": "Hết giờ — relay không phản hồi. Kiểm tra cài đặt relay.",
+    "loadError": "Không tải được cuộc trò chuyện",
+    "empty": "Chưa có cuộc trò chuyện"
+  },
+  "dm": {
+    "titlePrefix": "TN:",
+    "offlineSend": "Ngoại tuyến — không gửi được tin nhắn.",
+    "offline": "Ngoại tuyến — kiểm tra kết nối internet.",
+    "timeout": "Hết giờ — relay không phản hồi. Kiểm tra cài đặt relay.",
+    "loadError": "Không tải được tin nhắn",
+    "loading": "Đang tải tin nhắn…",
+    "empty": "Chưa có tin nhắn",
+    "placeholder": "Viết tin nhắn…",
+    "sendAria": "Gửi tin nhắn",
+    "sendingContent": "[đang gửi...]",
+    "sendError": "Gửi tin nhắn thất bại"
+  },
+  "composer": {
+    "srTitle": "Bài đăng mới",
+    "publish": "Đăng",
+    "publishing": "Đang đăng…",
+    "publishAria": "Đăng bài",
+    "media": "Media",
+    "uploading": "Đang tải lên…",
+    "mediaAria": "Thêm media",
+    "createInCell": "tạo bài mới trong ô",
+    "createNew": "tạo bài mới",
+    "showMapAria": "Hiện ô {{cell}} trên bản đồ",
+    "showMapTitle": "Hiện ô trên bản đồ",
+    "placeholder": "Chuyện gì đang xảy ra quanh bạn?",
+    "removeMediaAria": "Xóa media",
+    "noUploadEndpoint": "Chưa cấu hình điểm cuối tải lên (Cài đặt → Tải media).",
+    "onlyImagesVideos": "Chỉ hỗ trợ ảnh hoặc video.",
+    "videoTooLarge": "Video quá lớn (tối đa 25 MB).",
+    "imageTooLarge": "Ảnh quá lớn (tối đa 12 MB).",
+    "compressFailed": "Nén ảnh thất bại.",
+    "uploadFailed": "Tải lên thất bại.",
+    "publishFailed": "Đăng thất bại."
+  },
+  "feedArticle": {
+    "deleted": "Đã xóa — đang lan tới relay",
+    "deletedAria": "Bài đã xóa",
+    "openPost": "Mở bài đăng",
+    "sendReaction": "Gửi cảm xúc",
+    "sendReactionCount": "Gửi cảm xúc ({{count}})",
+    "loadOlder": "Xem thêm",
+    "loading": "Đang tải…"
+  },
+  "pwa": {
+    "title": "Có bản cập nhật",
+    "body": "Đã tải phiên bản mới. Tải lại để kích hoạt.",
+    "reload": "Tải lại",
+    "close": "Đóng"
+  },
+  "adblock": {
+    "title": "Service Worker bị chặn",
+    "body": "Trình chặn quảng cáo có thể chặn service worker. Tắt cho trang này hoặc thêm ngoại lệ.",
+    "close": "Đóng"
+  },
+  "composeBtn": {
+    "aria": "Tạo bài đăng mới"
+  },
+  "errorBoundary": {
+    "title": "Đã xảy ra lỗi",
+    "body": "Lỗi không mong muốn. Hãy tải lại trang.",
+    "details": "Chi tiết lỗi",
+    "errorLabel": "Lỗi:",
+    "stack": "Stack trace:",
+    "componentStack": "Component stack:",
+    "tryAgain": "Thử lại",
+    "reload": "Tải lại trang"
+  },
+  "app": {
+    "publishFailed": "Đăng thất bại.",
+    "offlineComments": "Ngoại tuyến — chỉ đọc bình luận.",
+    "offlineDelete": "Ngoại tuyến — không gửi được sự kiện xóa."
+  },
+  "thread": {
+    "reportRoot": "Báo cáo bài gốc",
+    "reportReply": "Báo cáo trả lời",
+    "reportReason": "Lý do báo cáo (tuỳ chọn)",
+    "submitReport": "Gửi báo cáo",
+    "replies": "Trả lời ({{count}})",
+    "offline": "Ngoại tuyến",
+    "replyPlaceholder": "Viết trả lời…",
+    "sendDeletionAria": "Gửi sự kiện xóa NIP-09",
+    "blockUserAria": "Chặn người dùng",
+    "blockUserTitle": "Chặn người dùng",
+    "delete": "Xóa",
+    "deleteSending": "Đang gửi…",
+    "block": "Chặn",
+    "blocking": "Đang chặn…",
+    "blockHeading": "Chặn {{label}}",
+    "reportHint": "Tuỳ chọn: lý do báo cáo. Sẽ gửi tới relay qua NIP-56.",
+    "reply": "Trả lời",
+    "replySending": "Đang gửi…",
+    "userBlocked": "Đã chặn người dùng.",
+    "blockingFailed": "Chặn thất bại.",
+    "offlineBlock": "Ngoại tuyến — không thể chặn người dùng.",
+    "deleteFailed": "Gửi sự kiện xóa thất bại.",
+    "publishFailedFallback": "Đăng thất bại."
+  },
+  "profileSheet": {
+    "openPictureAria": "Mở ảnh hồ sơ",
+    "dmAria": "Mở tin nhắn trực tiếp",
+    "message": "Tin nhắn",
+    "offlineHint": "Ngoại tuyến — bài trên hồ sơ có thể chưa đầy đủ.",
+    "loadingPosts": "Đang tải bài đăng…",
+    "noPosts": "Chưa có bài",
+    "noPostsFromRelays": "Chưa thấy bài từ relay.",
+    "loadError": "Không tải được bài đăng."
+  },
+  "geohashMap": {
+    "gpsAria": "Vị trí GPS",
+    "gpsTitle": "Vị trí GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Mở hồ sơ"
+  },
+  "time": {
+    "justNow": "vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "common": {
+    "loading": "Đang tải…",
+    "close": "Đóng"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Đang tải bài được trích dẫn…",
+    "noText": "(không có nội dung)"
+  }
+}

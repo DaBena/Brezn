@@ -1,0 +1,267 @@
+{
+  "root": {
+    "loading": "लोड हो रहा है…"
+  },
+  "nav": {
+    "searchPlaceholder": "पोस्ट खोजें…",
+    "openChat": "चैट खोलें",
+    "openMenu": "मेनू खोलें"
+  },
+  "feed": {
+    "offlineBanner": "ऑफ़लाइन — अंतिम देखी गई पोस्ट (केवल पढ़ने योग्य)।",
+    "locationTitle": "स्थानीय फ़ीड के लिए स्थान",
+    "locationBody": "स्थानीय पोस्ट दिखाने के लिए ऐप को आपके आसपास के क्षेत्र की आवश्यकता है। आप इसे बाद में बदल सकते हैं। आपकी स्थिति गोपनीयता के लिए एक geohash सेल (~5 किमी) तक सीमित हो जाती है।",
+    "privacyStorage": "यह ऐप आपके डिवाइस पर स्थानीय संग्रहण का उपयोग करता है। कोई ट्रैकिंग नहीं, हमें कोई व्यक्तिगत डेटा नहीं भेजा जाता। देखें",
+    "privacyLink": "स्रोत, README और लाइसेंस",
+    "privacyDisclaimer": "यह ऐप बाहरी स्रोतों से सामग्री लोड करता है (nostr रिले, फ़ाइल सर्वर)। बाहरी सामग्री के लिए कोई ज़िम्मेदारी नहीं।",
+    "privacyConfirm": "जारी रखकर आप पुष्टि करते हैं: मैंने जानकारी ली और स्वीकार करता/करती हूँ।",
+    "allowLocation": "स्थान की अनुमति दें",
+    "errorTitle": "त्रुटि",
+    "tryAgain": "फिर कोशिश करें",
+    "relayFailPrefix": "रिले कनेक्शन विफल। ",
+    "noRelayResponse": "रिले से कोई प्रतिक्रिया नहीं। रिले सूची जाँचें या बाद में कोशिश करें।",
+    "waitingEose": "अभी तक कोई इवेंट नहीं (EOSE की प्रतीक्षा)…",
+    "noPostsYet": "अभी कोई पोस्ट नहीं। बाद में कोशिश करें या अन्य रिले आज़माएँ।"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "source": "स्रोत",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "थीम",
+    "switchToDark": "डार्क मोड पर जाएँ",
+    "switchToLight": "लाइट मोड पर जाएँ"
+  },
+  "geohash": {
+    "searchRadius": "खोज त्रिज्या",
+    "lengthLabel": "Geohash लंबाई:",
+    "length0": "0 (वर्तमान + पूर्व/पश्चिम)",
+    "queries3": "3 क्वेरी",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "त्रिज्या घटाएँ",
+    "increaseRadius": "त्रिज्या बढ़ाएँ",
+    "length": "लंबाई {{n}}",
+    "queriesCurrent": "3 क्वेरी (वर्तमान + पूर्व/पश्चिम)",
+    "precisionFallback": "अधिक = छोटा (सटीक) — लेकिन कम परिणाम।",
+    "cellSize": "प्रति सेल {{w}} × {{h}}"
+  },
+  "moderation": {
+    "blocklist": "ब्लॉक सूची",
+    "oneLineOneTerm": "1 पंक्ति = 1 शब्द ({{count}}/200)",
+    "placeholder": "उदा.\nस्पैम\nअभी खरीदें\nबुरा.उदाहरण",
+    "saved": "ब्लॉक सूची सहेजी गई।",
+    "blockedUsers": "अवरुद्ध उपयोगकर्ता",
+    "blockedCount": "{{count}} अवरुद्ध",
+    "unblock": "अनब्लॉक",
+    "noBlocked": "कोई अवरुद्ध उपयोगकर्ता नहीं",
+    "unblockedMsg": "उपयोगकर्ता अनब्लॉक किया गया।"
+  },
+  "keyMgmt": {
+    "title": "पहचान",
+    "npub": "npub",
+    "copy": "कॉपी",
+    "nsec": "nsec",
+    "show": "दिखाएँ",
+    "hide": "छिपाएँ",
+    "neverShareNsec": "अपना nsec कभी साझा न करें।",
+    "npubCopied": "npub कॉपी हो गया।",
+    "copyNpubHint": "दिखाएँ और npub कॉपी करें।",
+    "nsecCopied": "nsec कॉपी हो गया।",
+    "copyNsecHint": "दिखाएँ और nsec कॉपी करें।",
+    "importTitle": "पहचान आयात करें",
+    "importNsec": "nsec आयात करें",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "कृपया nsec दर्ज करें",
+    "importSuccess": "पहचान आयात हो गई। पृष्ठ पुनः लोड होगा…",
+    "importing": "आयात हो रहा है…",
+    "import": "आयात",
+    "cancel": "रद्द करें",
+    "importFailed": "nsec आयात विफल"
+  },
+  "relay": {
+    "title": "रिले",
+    "hint": "फ़ीड, DM और प्रकाशन के लिए उपयोग किए जाने वाले रिले।",
+    "empty": "कोई रिले कॉन्फ़िगर नहीं। कम से कम एक रिले के बिना पोस्ट लोड या प्रकाशित नहीं हो सकतीं। नीचे जोड़ें या «डिफ़ॉल्ट» से पुनर्स्थापित करें।",
+    "removeAria": "रिले हटाएँ",
+    "placeholder": "wss://relay.example",
+    "add": "जोड़ें",
+    "default": "डिफ़ॉल्ट",
+    "test": "टेस्ट",
+    "testing": "टेस्ट हो रहा है…",
+    "removed": "रिले हटाया गया।",
+    "added": "रिले जोड़ा गया।",
+    "resetDefault": "डिफ़ॉल्ट रिले पर रीसेट करें।",
+    "unknown": "अज्ञात",
+    "reachable": "पहुँच योग्य",
+    "unreachable": "अपहुँच",
+    "reachableWithRtt": "पहुँच योग्य • {{rtt}} ms",
+    "unreachableWithErr": "अपहुँच • {{error}}",
+    "statusAria": "रिले स्थिति: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "मीडिया अपलोड",
+    "hint": "सीधा URL या NIP-96। डिफ़ॉल्ट: {{default}}। खाली = बंद।",
+    "defaultBtn": "डिफ़ॉल्ट"
+  },
+  "profileSettings": {
+    "title": "प्रोफ़ाइल",
+    "loading": "प्रोफ़ाइल लोड हो रही है…",
+    "name": "नाम",
+    "namePlaceholder": "आपका नाम (वैकल्पिक)",
+    "about": "के बारे में",
+    "aboutPlaceholder": "संक्षिप्त बायो (वैकल्पिक)",
+    "picture": "प्रोफ़ाइल चित्र",
+    "pictureAlt": "प्रोफ़ाइल चित्र",
+    "onlyImages": "केवल छवियाँ समर्थित हैं।",
+    "imageTooLarge5": "छवि बहुत बड़ी है (अधिकतम 5 MB)।",
+    "configureEndpointFirst": "पहले मीडिया अपलोड एंडपॉइंट कॉन्फ़िगर करें।",
+    "uploading": "अपलोड हो रहा है…",
+    "changeImage": "छवि बदलें",
+    "uploadImage": "छवि अपलोड करें",
+    "resetConfirm": "प्रोफ़ाइल रीसेट करें? नाम, विवरण और चित्र हट जाएँगे।",
+    "reset": "रीसेट",
+    "removeImage": "छवि हटाएँ",
+    "urlPlaceholder": "या सीधे URL दर्ज करें",
+    "resetDone": "प्रोफ़ाइल रीसेट हो गई।",
+    "resetError": "प्रोफ़ाइल रीसेट त्रुटि"
+  },
+  "chat": {
+    "title": "चैट",
+    "loading": "बातचीत लोड हो रही है…",
+    "offline": "ऑफ़लाइन — अपना इंटरनेट कनेक्शन जाँचें।",
+    "timeout": "समय समाप्त — रिले प्रतिक्रिया नहीं दे रहे। रिले सेटिंग्स जाँचें।",
+    "loadError": "बातचीत लोड विफल",
+    "empty": "अभी कोई बातचीत नहीं"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "ऑफ़लाइन — संदेश नहीं भेजा जा सकता।",
+    "offline": "ऑफ़लाइन — अपना इंटरनेट कनेक्शन जाँचें।",
+    "timeout": "समय समाप्त — रिले प्रतिक्रिया नहीं दे रहे। रिले सेटिंग्स जाँचें।",
+    "loadError": "संदेश लोड विफल",
+    "loading": "संदेश लोड हो रहे हैं…",
+    "empty": "अभी कोई संदेश नहीं",
+    "placeholder": "संदेश लिखें…",
+    "sendAria": "संदेश भेजें",
+    "sendingContent": "[भेजा जा रहा है...]",
+    "sendError": "संदेश भेजना विफल"
+  },
+  "composer": {
+    "srTitle": "नई पोस्ट",
+    "publish": "प्रकाशित करें",
+    "publishing": "प्रकाशित हो रहा है…",
+    "publishAria": "पोस्ट प्रकाशित करें",
+    "media": "मीडिया",
+    "uploading": "अपलोड हो रहा है…",
+    "mediaAria": "मीडिया जोड़ें",
+    "createInCell": "सेल में नई पोस्ट बनाएँ",
+    "createNew": "नई पोस्ट बनाएँ",
+    "showMapAria": "मानचित्र पर सेल {{cell}} दिखाएँ",
+    "showMapTitle": "मानचित्र पर सेल दिखाएँ",
+    "placeholder": "आपके क्षेत्र में क्या हो रहा है?",
+    "removeMediaAria": "मीडिया हटाएँ",
+    "noUploadEndpoint": "कोई अपलोड एंडपॉइंट कॉन्फ़िगर नहीं (सेटिंग्स → मीडिया अपलोड)।",
+    "onlyImagesVideos": "केवल छवियाँ या वीडियो समर्थित हैं।",
+    "videoTooLarge": "वीडियो बहुत बड़ा है (अधिकतम 25 MB)।",
+    "imageTooLarge": "छवि बहुत बड़ी है (अधिकतम 12 MB)।",
+    "compressFailed": "छवि संपीड़न विफल।",
+    "uploadFailed": "अपलोड विफल।",
+    "publishFailed": "प्रकाशन विफल।"
+  },
+  "feedArticle": {
+    "deleted": "हटाया गया — रिले पर प्रसारित हो रहा है",
+    "deletedAria": "हटाई गई पोस्ट",
+    "openPost": "पोस्ट खोलें",
+    "sendReaction": "प्रतिक्रिया भेजें",
+    "sendReactionCount": "प्रतिक्रिया भेजें ({{count}})",
+    "loadOlder": "और दिखाएँ",
+    "loading": "लोड हो रहा है…"
+  },
+  "pwa": {
+    "title": "अपडेट उपलब्ध",
+    "body": "नया संस्करण लोड हो गया। सक्रिय करने के लिए रीलोड करें।",
+    "reload": "रीलोड",
+    "close": "बंद करें"
+  },
+  "adblock": {
+    "title": "सर्विस वर्कर अवरुद्ध",
+    "body": "विज्ञापन अवरोधक सर्विस वर्कर को अवरुद्ध कर सकता है। इस साइट के लिए इसे अक्षम करें या अपवाद जोड़ें।",
+    "close": "बंद करें"
+  },
+  "composeBtn": {
+    "aria": "नई पोस्ट बनाएँ"
+  },
+  "errorBoundary": {
+    "title": "कुछ गलत हो गया",
+    "body": "अप्रत्याशित त्रुटि हुई। कृपया पृष्ठ रीलोड करें।",
+    "details": "त्रुटि विवरण",
+    "errorLabel": "त्रुटि:",
+    "stack": "स्टैक ट्रेस:",
+    "componentStack": "कंपोनेंट स्टैक:",
+    "tryAgain": "फिर कोशिश करें",
+    "reload": "पृष्ठ रीलोड करें"
+  },
+  "app": {
+    "publishFailed": "प्रकाशन विफल।",
+    "offlineComments": "ऑफ़लाइन — टिप्पणियाँ केवल पढ़ने योग्य।",
+    "offlineDelete": "ऑफ़लाइन — हटाने का इवेंट नहीं भेजा जा सकता।"
+  },
+  "thread": {
+    "reportRoot": "रूट पोस्ट रिपोर्ट करें",
+    "reportReply": "उत्तर रिपोर्ट करें",
+    "reportReason": "रिपोर्ट का कारण (वैकल्पिक)",
+    "submitReport": "रिपोर्ट सबमिट करें",
+    "replies": "उत्तर ({{count}})",
+    "offline": "ऑफ़लाइन",
+    "replyPlaceholder": "उत्तर लिखें…",
+    "sendDeletionAria": "NIP-09 हटाने का इवेंट भेजें",
+    "blockUserAria": "उपयोगकर्ता अवरुद्ध करें",
+    "blockUserTitle": "उपयोगकर्ता अवरुद्ध करें",
+    "delete": "हटाएँ",
+    "deleteSending": "भेजा जा रहा है…",
+    "block": "अवरुद्ध करें",
+    "blocking": "अवरुद्ध कर रहे हैं…",
+    "blockHeading": "{{label}} को अवरुद्ध करें",
+    "reportHint": "वैकल्पिक: रिपोर्ट का कारण। NIP-56 के माध्यम से रिले को भेजा जाएगा।",
+    "reply": "उत्तर",
+    "replySending": "भेजा जा रहा है…",
+    "userBlocked": "उपयोगकर्ता अवरुद्ध।",
+    "blockingFailed": "अवरोध विफल।",
+    "offlineBlock": "ऑफ़लाइन — उपयोगकर्ता अवरुद्ध नहीं कर सकते।",
+    "deleteFailed": "हटाने का इवेंट विफल।",
+    "publishFailedFallback": "प्रकाशन विफल।"
+  },
+  "profileSheet": {
+    "openPictureAria": "प्रोफ़ाइल चित्र खोलें",
+    "dmAria": "प्रत्यक्ष संदेश खोलें",
+    "message": "संदेश",
+    "offlineHint": "ऑफ़लाइन — प्रोफ़ाइल पोस्ट अधूरी हो सकती हैं।",
+    "loadingPosts": "पोस्ट लोड हो रही हैं…",
+    "noPosts": "अभी कोई पोस्ट नहीं",
+    "noPostsFromRelays": "रिले से अभी कोई पोस्ट नहीं मिली।",
+    "loadError": "पोस्ट लोड नहीं हो सकीं।"
+  },
+  "geohashMap": {
+    "gpsAria": "GPS स्थान",
+    "gpsTitle": "GPS स्थान"
+  },
+  "postIdentity": {
+    "openProfile": "प्रोफ़ाइल खोलें"
+  },
+  "time": {
+    "justNow": "अभी",
+    "minutesAgo": "{{count}} मि पहले",
+    "hoursAgo": "{{count}} घं पहले",
+    "daysAgo": "{{count}} दिन पहले"
+  },
+  "common": {
+    "loading": "लोड हो रहा है…",
+    "close": "बंद करें"
+  },
+  "quotedPost": {
+    "loadingReferenced": "संदर्भित पोस्ट लोड हो रही है…",
+    "noText": "(कोई पाठ नहीं)"
+  }
+}

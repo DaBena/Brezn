@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 
@@ -8,6 +9,7 @@ type ModerationSettingsProps = {
 }
 
 export function ModerationSettings({ client, onModerationChanged }: ModerationSettingsProps) {
+  const { t } = useTranslation()
   const [mutedTerms, setMutedTerms] = useState<string[]>(() => client.getMutedTerms())
   const [mutedTermsText, setMutedTermsText] = useState(() => client.getMutedTerms().join('\n'))
   const [mutedTermsMsg, setMutedTermsMsg] = useState<string | null>(null)
@@ -42,7 +44,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
     const next = blockedPubkeys.filter(p => p !== pubkey)
     await client.setBlockedPubkeys(next)
     setBlockedPubkeys(client.getBlockedPubkeys())
-    setBlockedMsg('User unblocked.')
+    setBlockedMsg(t('moderation.unblockedMsg'))
     onModerationChanged?.()
   }
 
@@ -52,21 +54,30 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
   return (
     <>
       <div className="p-3">
-        <div className="text-xs font-semibold text-brezn-muted">Blocklist</div>
-        <div className="mt-1 text-xs text-brezn-muted">1 line = 1 term ({mutedTerms.length}/200)</div>
+        <div className="text-xs font-semibold text-brezn-muted">{t('moderation.blocklist')}</div>
+        <div className="mt-1 text-xs text-brezn-muted">
+          {t('moderation.oneLineOneTerm', { count: mutedTerms.length })}
+        </div>
         <textarea
           value={mutedTermsText}
           onChange={e => setMutedTermsText(e.target.value)}
-          onBlur={() => saveMutedTerms(mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean), 'Blocklist saved.')}
-          placeholder={'e.g.\nspam\nbuy now\nevil.example'}
+          onBlur={() =>
+            saveMutedTerms(
+              mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean),
+              t('moderation.saved'),
+            )
+          }
+          placeholder={t('moderation.placeholder')}
           className="mt-2 h-28 w-full resize-none border border-brezn-text p-2 font-mono text-base outline-none"
         />
         {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
       </div>
 
       <div className="p-3">
-        <div className="text-xs font-semibold text-brezn-muted">Blocked users</div>
-        <div className="mt-1 text-xs text-brezn-muted">{blockedPubkeys.length} blocked</div>
+        <div className="text-xs font-semibold text-brezn-muted">{t('moderation.blockedUsers')}</div>
+        <div className="mt-1 text-xs text-brezn-muted">
+          {t('moderation.blockedCount', { count: blockedPubkeys.length })}
+        </div>
         {blockedPubkeys.length > 0 ? (
           <div className="mt-3 space-y-2">
             {blockedPubkeys.map(pubkey => (
@@ -80,13 +91,13 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
                   onClick={() => unblockUser(pubkey)}
                   className={`shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold ${buttonBase}`}
                 >
-                  Unblock
+                  {t('moderation.unblock')}
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-2 text-xs text-brezn-muted">No blocked users</div>
+          <div className="mt-2 text-xs text-brezn-muted">{t('moderation.noBlocked')}</div>
         )}
         {blockedMsg ? <div className="mt-2 text-xs text-brezn-muted">{blockedMsg}</div> : null}
       </div>

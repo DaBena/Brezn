@@ -8,6 +8,7 @@ import { normalizeMutedTerms } from './moderation'
 import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
+  GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
   GET_DM_HISTORY_MAX_WAIT_MS,
   GET_DM_HISTORY_TIMEOUT_MS,
   GET_MY_PROFILE_FETCH_TIMEOUT_MS,
@@ -52,6 +53,12 @@ export type Conversation = {
   lastMessagePreview: string
 }
 
+/** Options for `getConversations`. */
+export type GetConversationsOptions = {
+  /** Fires after each relay finishes (EOSE/timeout/close) so the UI can show partial results immediately. */
+  onProgress?: (conversations: Conversation[]) => void
+}
+
 /**
  * Represents a decrypted direct message.
  */
@@ -62,6 +69,12 @@ export type DecryptedDM = {
   decryptedContent: string
   /** Whether the message was sent by the current user */
   isFromMe: boolean
+}
+
+/** Options for `getDMsWith`. */
+export type GetDMsWithOptions = {
+  /** Fires after each relay finishes so the thread can render before slower relays complete. */
+  onProgress?: (messages: DecryptedDM[]) => void
 }
 
 /**
@@ -235,17 +248,19 @@ export type BreznNostrClient = {
   /**
    * Get list of conversations (unique DM partners).
    * Returns conversations sorted by last message time (newest first).
+   * @param options - Optional `onProgress` to update the UI as each relay completes (faster first paint).
    * @returns Promise resolving to array of conversations
    */
-  getConversations(): Promise<Conversation[]>
+  getConversations(options?: GetConversationsOptions): Promise<Conversation[]>
 
   /**
    * Get all direct messages with a specific user.
    * Returns messages sorted by time (oldest first).
    * @param pubkey - Other user's pubkey
+   * @param options - Optional `onProgress` so the thread UI can render before every relay finishes.
    * @returns Promise resolving to array of decrypted DMs
    */
-  getDMsWith(pubkey: string): Promise<DecryptedDM[]>
+  getDMsWith(pubkey: string, options?: GetDMsWithOptions): Promise<DecryptedDM[]>
 
   /**
    * Update profile metadata (kind 0 event).
@@ -829,59 +844,93 @@ export function createNostrClient(): BreznNostrClient {
     }
   }
 
-  async function getConversations(): Promise<Conversation[]> {
+  /**
+   * One `subscribeMap` per relay (two filters on that relay only). Nostr-tools waits for every URL in a single map;
+   * splitting by relay avoids one dead relay blocking EOSE on the others.
+   */
+  function subscribeDmOnSingleRelay(
+    relayUrl: string,
+    filterA: Filter,
+    filterB: Filter,
+    onevent: (evt: Event) => void,
+    label: string,
+    timeoutMs: number = GET_DM_HISTORY_TIMEOUT_MS,
+  ): Promise<void> {
+    return new Promise(resolve => {
+      let resolved = false
+      let closer: SubCloser | null = null
+
+      const finishRelay = () => {
+        if (resolved) return
+        resolved = true
+        clearTimeout(tid)
+        if (closer) closeSubSafely(closer, 'ui-unsubscribe')
+        resolve()
+      }
+
+      const tid = setTimeout(finishRelay, timeoutMs)
+
+      closer = pool.subscribeMap(
+        [
+          { url: relayUrl, filter: filterA },
+          { url: relayUrl, filter: filterB },
+        ],
+        {
+          onevent,
+          oneose: finishRelay,
+          onclose: finishRelay,
+          maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
+          label,
+        },
+      ) as SubCloser
+    })
+  }
+
+  async function getConversations(options?: GetConversationsOptions): Promise<Conversation[]> {
     await whenIdentityReady
     const { pubkey } = ensureIdentity()
     const me = pubkey.trim().toLowerCase()
 
     const relays = getRelays()
-    const primary = relays[0]
-    if (!primary) {
+    if (relays.length === 0) {
       return Promise.reject(new Error('No relays configured'))
     }
 
-    return new Promise((resolve, reject) => {
-      const conversations = new Map<string, { pubkey: string; lastMessageAt: number; lastMessagePreview: string }>()
-      let resolved = false
+    const conversations = new Map<string, { pubkey: string; lastMessageAt: number; lastMessagePreview: string }>()
+    const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
+    const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
+    const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
 
-      const finish = () => {
-        if (resolved) return
-        resolved = true
-        clearTimeout(timeout)
-        closeSubSafely(closer, 'ui-unsubscribe')
-        resolve(Array.from(conversations.values()).sort((a, b) => b.lastMessageAt - a.lastMessageAt))
+    function mergeConversation(otherPubkey: string, evt: Event) {
+      let preview = '[encrypted]'
+      try {
+        const decrypted = decryptDM(evt)
+        preview = decrypted.slice(0, 50)
+      } catch {
+        // keep default preview
       }
-
-      const timeout = setTimeout(finish, GET_DM_HISTORY_TIMEOUT_MS)
-      const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
-      const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
-      const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
-
-      function mergeConversation(otherPubkey: string, evt: Event) {
-        let preview = '[encrypted]'
-        try {
-          const decrypted = decryptDM(evt)
-          preview = decrypted.slice(0, 50)
-        } catch {
-          // keep default preview
-        }
-        const existing = conversations.get(otherPubkey)
-        if (!existing || evt.created_at > existing.lastMessageAt) {
-          conversations.set(otherPubkey, {
-            pubkey: otherPubkey,
-            lastMessageAt: evt.created_at,
-            lastMessagePreview: preview,
-          })
-        }
+      const existing = conversations.get(otherPubkey)
+      if (!existing || evt.created_at > existing.lastMessageAt) {
+        conversations.set(otherPubkey, {
+          pubkey: otherPubkey,
+          lastMessageAt: evt.created_at,
+          lastMessagePreview: preview,
+        })
       }
+    }
 
-      const closer = pool.subscribeMap(
-        [
-          { url: primary, filter: filterIn },
-          { url: primary, filter: filterOut },
-        ],
-        {
-          onevent: evt => {
+    const snapshot = (): Conversation[] =>
+      Array.from(conversations.values()).sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+
+    const onProgress = options?.onProgress
+
+    await Promise.all(
+      relays.map((relayUrl, idx) =>
+        subscribeDmOnSingleRelay(
+          relayUrl,
+          filterIn,
+          filterOut,
+          evt => {
             try {
               if (evt.pubkey.toLowerCase() === me) {
                 const raw = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
@@ -897,32 +946,18 @@ export function createNostrClient(): BreznNostrClient {
               // ignore single-event errors
             }
           },
-          oneose: () => {
-            clearTimeout(timeout)
-            finish()
-          },
-          onclose: reasons => {
-            if (resolved) return
-            const significant = reasons.filter(
-              r => r && !String(r).includes('ui-unsubscribe') && r !== 'connection timed out',
-            )
-            if (significant.length > 0) {
-              resolved = true
-              clearTimeout(timeout)
-              closeSubSafely(closer, 'ui-unsubscribe')
-              reject(new Error(`Subscription closed: ${significant.join(', ')}`))
-            } else if (!resolved) {
-              finish()
-            }
-          },
-          maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
-          label: 'brezn-conversations',
-        },
-      ) as SubCloser
-    })
+          `brezn-conversations-${idx}`,
+          GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
+        ).then(() => {
+          onProgress?.(snapshot())
+        }),
+      ),
+    )
+
+    return snapshot()
   }
 
-  async function getDMsWith(otherPubkey: string): Promise<DecryptedDM[]> {
+  async function getDMsWith(otherPubkey: string, options?: GetDMsWithOptions): Promise<DecryptedDM[]> {
     await whenIdentityReady
     const { pubkey } = ensureIdentity()
     const me = pubkey.trim().toLowerCase()
@@ -933,93 +968,65 @@ export function createNostrClient(): BreznNostrClient {
     const filterIn: Filter = { kinds: [4], authors: [peer], '#p': [me], since, limit: 200 }
 
     const relays = getRelays()
-    const primary = relays[0]
-    if (!primary) {
+    if (relays.length === 0) {
       return Promise.reject(new Error('No relays configured'))
     }
 
-    return new Promise((resolve, reject) => {
-      const messages: DecryptedDM[] = []
-      let resolved = false
-      let unsubDm: (() => void) | null = null
+    const messages: DecryptedDM[] = []
 
-      const finish = () => {
-        if (resolved) return
-        resolved = true
-        clearTimeout(timeout)
-        unsubDm?.()
-        unsubDm = null
-        const byId = new Map<string, DecryptedDM>()
-        for (const m of messages) {
-          if (!byId.has(m.event.id)) byId.set(m.event.id, m)
-        }
-        const sorted = [...byId.values()].sort((a, b) => a.event.created_at - b.event.created_at)
-        resolve(sorted)
+    const snapshot = (): DecryptedDM[] => {
+      const byId = new Map<string, DecryptedDM>()
+      for (const m of messages) {
+        if (!byId.has(m.event.id)) byId.set(m.event.id, m)
       }
+      return [...byId.values()].sort((a, b) => a.event.created_at - b.event.created_at)
+    }
 
-      const timeout = setTimeout(() => finish(), GET_DM_HISTORY_TIMEOUT_MS)
+    const onProgress = options?.onProgress
 
-      // One relay only: nostr-tools `oneose` waits for every relay in the map; using the first
-      // relay avoids waiting on the slowest of N connections (live DM still uses all relays).
-      const requests: { url: string; filter: Filter }[] = [
-        { url: primary, filter: filterOut },
-        { url: primary, filter: filterIn },
-      ]
-      const closer = pool.subscribeMap(requests, {
-        onevent: evt => {
-          const author = evt.pubkey.toLowerCase()
-          if (author === me) {
-            const rec = dmRecipientPubkeyLower(evt)
-            if (rec !== peer) return
-            try {
-              const decryptedContent = decryptDM(evt)
-              messages.push({
-                event: evt,
-                decryptedContent,
-                isFromMe: true,
-              })
-            } catch {
-              // Skip undecryptable outgoing events
+    await Promise.all(
+      relays.map((relayUrl, idx) =>
+        subscribeDmOnSingleRelay(
+          relayUrl,
+          filterOut,
+          filterIn,
+          evt => {
+            const author = evt.pubkey.toLowerCase()
+            if (author === me) {
+              const rec = dmRecipientPubkeyLower(evt)
+              if (rec !== peer) return
+              try {
+                const decryptedContent = decryptDM(evt)
+                messages.push({
+                  event: evt,
+                  decryptedContent,
+                  isFromMe: true,
+                })
+              } catch {
+                // Skip undecryptable outgoing events
+              }
+            } else if (author === peer) {
+              try {
+                const decryptedContent = decryptDM(evt)
+                messages.push({
+                  event: evt,
+                  decryptedContent,
+                  isFromMe: false,
+                })
+              } catch {
+                // Skip undecryptable incoming events
+              }
             }
-          } else if (author === peer) {
-            try {
-              const decryptedContent = decryptDM(evt)
-              messages.push({
-                event: evt,
-                decryptedContent,
-                isFromMe: false,
-              })
-            } catch {
-              // Skip undecryptable incoming events
-            }
-          }
-        },
-        oneose: () => {
-          finish()
-        },
-        onclose: reasons => {
-          if (resolved) return
-          const significant = reasons.filter(
-            r => r && !String(r).includes('ui-unsubscribe') && r !== 'connection timed out',
-          )
-          if (significant.length > 0) {
-            resolved = true
-            clearTimeout(timeout)
-            unsubDm?.()
-            unsubDm = null
-            reject(new Error(`Subscription closed: ${significant.join(', ')}`))
-          } else if (!resolved) {
-            finish()
-          }
-        },
-        maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
-        label: 'brezn-dm-history',
-      }) as SubCloser
+          },
+          `brezn-dm-history-${idx}`,
+          GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
+        ).then(() => {
+          onProgress?.(snapshot())
+        }),
+      ),
+    )
 
-      unsubDm = () => {
-        closeSubSafely(closer, 'ui-unsubscribe')
-      }
-    })
+    return snapshot()
   }
 
   // Profile metadata (kind 0)

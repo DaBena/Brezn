@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import * as nip19 from 'nostr-tools/nip19'
 import type { BreznNostrClient } from '../lib/nostrClient'
@@ -52,6 +53,7 @@ export function ProfileSheet(props: {
     onOpenDM,
   } = props
 
+  const { t } = useTranslation()
   const { profilesByPubkey } = useProfiles({ client, pubkeys: [pubkey], isOffline })
   const subProfile = profilesByPubkey.get(pubkey)
   const profile = useMemo((): Profile | undefined => {
@@ -124,7 +126,7 @@ export function ProfileSheet(props: {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block h-20 w-20 shrink-0 overflow-hidden rounded-full border border-brezn-border outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brezn-border"
-                aria-label="Open profile picture"
+                aria-label={t('profileSheet.openPictureAria')}
                 onClick={e => e.stopPropagation()}
               >
                 <img src={picture} alt="" className="h-full w-full object-cover" />
@@ -164,7 +166,7 @@ export function ProfileSheet(props: {
                       d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
                     />
                   </svg>
-                  <span>Message</span>
+                  <span>{t('profileSheet.message')}</span>
                 </button>
               ) : null}
             </div>
@@ -172,13 +174,13 @@ export function ProfileSheet(props: {
         </header>
 
         {isOffline ? (
-          <div className="text-[11px] text-brezn-muted">Offline — profile posts may be incomplete.</div>
+          <div className="text-[11px] text-brezn-muted">{t('profileSheet.offlineHint')}</div>
         ) : null}
 
         <div className="space-y-2">
           {events.length === 0 && !isOffline ? (
             <div className="rounded-lg border border-brezn-border bg-brezn-panel px-3 py-4 text-center text-sm text-brezn-muted">
-              No posts found from relays yet.
+              {t('profileSheet.noPostsFromRelays')}
             </div>
           ) : null}
 

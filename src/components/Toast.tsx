@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
+import { i18n } from '../i18n/i18n'
 import { CloseIcon } from './CloseIcon'
 import { ToastContext, type Toast, type ToastType } from './ToastContext'
 
@@ -97,7 +98,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         </div>
         <button
           onClick={handleRemove}
-          aria-label="Close"
+          aria-label={i18n.t('common.close')}
           className="shrink-0 hover:opacity-80 focus:outline-none"
         >
           <CloseIcon />

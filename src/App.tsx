@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import { ComposerSheet } from './components/ComposerSheet'
 import { ConversationsSheet } from './components/ConversationsSheet'
@@ -28,6 +29,7 @@ import { reactToPost } from './lib/reactionService'
 import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
 
 export default function App() {
+  const { t } = useTranslation()
   const client = useNostrClient()
   const { identity } = useIdentity(client)
   const { showToast } = useToast()
@@ -152,26 +154,26 @@ export default function App() {
     try {
       await publishPost(client, content, viewerGeo5)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Publish failed.'
+      const msg = e instanceof Error ? e.message : t('app.publishFailed')
       showToast(msg, 'error')
     }
   }
 
   const handlePublishReply = async (root: Event, content: string) => {
     if (isOffline) {
-      showToast('Offline - Comments are read-only.', 'error')
+      showToast(t('app.offlineComments'), 'error')
       return
     }
     try {
       await publishReply(client, root, content, viewerGeo5)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Publish failed.'
+      const msg = e instanceof Error ? e.message : t('app.publishFailed')
       showToast(msg, 'error')
     }
   }
 
   const handleDeletePost = async (evt: Event) => {
-    if (isOffline) throw new Error('Offline - Deletion event cannot be sent.')
+    if (isOffline) throw new Error(t('app.offlineDelete'))
     await deletePost(client, evt, identity.pubkey)
     addDeletedNoteId(evt.id)
     setDeletedNoteIds(prev => new Set(prev).add(evt.id))

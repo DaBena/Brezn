@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { Profile } from '../hooks/useProfiles'
@@ -51,6 +52,8 @@ export function Feed(props: {
     onOpenThread,
   } = props
 
+  const { t } = useTranslation()
+
   // Client row cap (media lazy in PostContent); relay older = onLoadMore.
   const [displayLimit, setDisplayLimit] = useState(FEED_RENDER_CHUNK)
 
@@ -83,35 +86,32 @@ export function Feed(props: {
     <main className="mx-auto max-w-xl px-3 pb-24 pt-12">
       {isOffline ? (
         <div className="mb-2 rounded-lg border border-brezn-border bg-brezn-panel p-2 text-xs text-brezn-muted">
-          Offline - showing last seen posts (read-only).
+          {t('feed.offlineBanner')}
         </div>
       ) : null}
       
       {feedState.kind === 'need-location' && (
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
-          <div className="text-sm font-semibold">Location for local feed</div>
+          <div className="text-sm font-semibold">{t('feed.locationTitle')}</div>
           <div className="mt-1 text-sm text-brezn-muted">
-            This app needs your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.
+            {t('feed.locationBody')}
           </div>
           {showCookieNotice ? (
             <div className="mt-2 text-sm text-brezn-muted space-y-1">
               <p>
-                This app uses local storage on your device. No tracking and no personal data is sent to us. See the{' '}
+                {t('feed.privacyStorage')}{' '}
                 <a
                   href={REPO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brezn-link underline"
                 >
-                  source, README & license
+                  {t('feed.privacyLink')}
                 </a>
                 .
               </p>
-              <p>
-                This app loads user content from external sources (nostr relays, file servers). We accept no liability for any external
-                content.
-              </p>
-              <p>By continuing you confirm: I informed myself and accept.</p>
+              <p>{t('feed.privacyDisclaimer')}</p>
+              <p>{t('feed.privacyConfirm')}</p>
             </div>
           ) : null}
           <div className="mt-2 flex gap-2">
@@ -119,7 +119,7 @@ export function Feed(props: {
               onClick={() => onRequestLocation()}
               className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${buttonBase}`}
             >
-              Allow location
+              {t('feed.allowLocation')}
             </button>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function Feed(props: {
 
       {feedState.kind === 'error' && (
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
-          <div className="text-sm font-semibold">Error</div>
+          <div className="text-sm font-semibold">{t('feed.errorTitle')}</div>
           <div className="mt-1 text-sm text-brezn-muted">{feedState.message}</div>
           {!feedState.message.includes('No relays configured') ? (
             <div className="mt-2 flex gap-2">
@@ -135,7 +135,7 @@ export function Feed(props: {
                 onClick={onRequestLocation}
                 className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${buttonBase}`}
               >
-                Try again
+                {t('feed.tryAgain')}
               </button>
             </div>
           ) : null}
@@ -149,8 +149,8 @@ export function Feed(props: {
               {feedState.kind === 'loading' ? (
                 initialTimedOut ? (
                   <>
-                    {lastCloseReasons?.length ? 'Relay connection failed. ' : null}
-                    No response from relays. Check the relay list or try again later.
+                    {lastCloseReasons?.length ? t('feed.relayFailPrefix') : null}
+                    {t('feed.noRelayResponse')}
                     {lastCloseReasons?.length ? (
                       <div className="mt-2 rounded-xl border border-brezn-border bg-brezn-panel p-2 font-mono text-xs">
                         {lastCloseReasons.join(' • ')}
@@ -158,10 +158,10 @@ export function Feed(props: {
                     ) : null}
                   </>
                 ) : (
-                  <>No events received yet (waiting for EOSE)…</>
+                  <>{t('feed.waitingEose')}</>
                 )
               ) : (
-                <>No posts found yet. Try again later or try different relays.</>
+                <>{t('feed.noPostsYet')}</>
               )}
             </div>
           ) : (

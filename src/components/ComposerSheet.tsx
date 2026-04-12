@@ -1,5 +1,5 @@
-
 import { type ChangeEvent, useId, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
@@ -16,6 +16,7 @@ export function ComposerSheet(props: {
   onPublish: (content: string) => Promise<void>
   mediaUploadEndpoint?: string
 }) {
+  const { t } = useTranslation()
   const { open, onClose, viewerGeo5, onRequestLocation, onSelectCell, onPublish, mediaUploadEndpoint } = props
 
   const [composerText, setComposerText] = useState('')
@@ -39,7 +40,7 @@ export function ComposerSheet(props: {
     if (!file) return
     if (!mediaUploadEndpoint) {
       setUploadState('error')
-      setUploadError('No upload endpoint configured (Settings → Media Upload).')
+      setUploadError(t('composer.noUploadEndpoint'))
       return
     }
 
@@ -63,7 +64,7 @@ export function ComposerSheet(props: {
       name.endsWith('.ogv')
     if (!isImage && !isVideo) {
       setUploadState('error')
-      setUploadError('Only images or videos are supported.')
+      setUploadError(t('composer.onlyImagesVideos'))
       return
     }
 
@@ -76,7 +77,7 @@ export function ComposerSheet(props: {
         fileToUpload = await compressImage(file, 1920, 1920, 0.85)
       } catch (err) {
         setUploadState('error')
-        setUploadError(err instanceof Error ? err.message : 'Failed to compress image.')
+        setUploadError(err instanceof Error ? err.message : t('composer.compressFailed'))
         return
       }
     }
@@ -84,7 +85,7 @@ export function ComposerSheet(props: {
     const limit = isVideo ? maxVideoBytes : maxImageBytes
     if (fileToUpload.size > limit) {
       setUploadState('error')
-      setUploadError(isVideo ? 'Video is too large (max. 25 MB).' : 'Image is too large (max. 12 MB).')
+      setUploadError(isVideo ? t('composer.videoTooLarge') : t('composer.imageTooLarge'))
       return
     }
 
@@ -94,7 +95,7 @@ export function ComposerSheet(props: {
       setUploadState('idle')
     } catch (err) {
       setUploadState('error')
-      setUploadError(err instanceof Error ? err.message : 'Upload failed.')
+      setUploadError(err instanceof Error ? err.message : t('composer.uploadFailed'))
     }
   }
 
@@ -121,7 +122,7 @@ export function ComposerSheet(props: {
       onClose()
     } catch (e) {
       setPublishState('error')
-      setPublishError(e instanceof Error ? e.message : 'Publish failed.')
+      setPublishError(e instanceof Error ? e.message : t('composer.publishFailed'))
     }
   }
 
@@ -129,7 +130,7 @@ export function ComposerSheet(props: {
     <div className="text-xs font-semibold">
       {viewerGeo5 ? (
         <span>
-          create new post in cell{' '}
+          {t('composer.createInCell')}{' '}
           <button
             type="button"
             onClick={e => {
@@ -137,14 +138,14 @@ export function ComposerSheet(props: {
               setShowGeoMap(v => !v)
             }}
             className="font-mono text-brezn-link underline underline-offset-2 hover:opacity-90"
-            aria-label={`Show cell ${viewerGeo5} on map`}
-            title="Show cell on map"
+            aria-label={t('composer.showMapAria', { cell: viewerGeo5 })}
+            title={t('composer.showMapTitle')}
           >
             {viewerGeo5}
           </button>
         </span>
       ) : (
-        'create new post'
+        t('composer.createNew')
       )}
     </div>
   )
@@ -154,7 +155,7 @@ export function ComposerSheet(props: {
   return (
     <Sheet
       open={open}
-      titleElement={<span className="sr-only">New post</span>}
+      titleElement={<span className="sr-only">{t('composer.srTitle')}</span>}
       headerStart={
         <button
           type="button"
@@ -164,10 +165,10 @@ export function ComposerSheet(props: {
             uploadState === 'uploading' ||
             (!composerText.trim() && mediaUrls.length === 0)
           }
-          aria-label="Publish post"
+          aria-label={t('composer.publishAria')}
           className={headerToolbarBtn}
         >
-          {publishState === 'publishing' ? 'Publishing…' : 'Publish'}
+          {publishState === 'publishing' ? t('composer.publishing') : t('composer.publish')}
         </button>
       }
       headerCenter={
@@ -181,6 +182,7 @@ export function ComposerSheet(props: {
           />
           <label
             htmlFor={fileInputId}
+            aria-label={t('composer.mediaAria')}
             className={`${headerToolbarBtn} max-w-full ${uploadState === 'uploading' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
             tabIndex={uploadState === 'uploading' ? -1 : 0}
             role="button"
@@ -196,7 +198,7 @@ export function ComposerSheet(props: {
               }
             }}
           >
-            {uploadState === 'uploading' ? 'Uploading…' : 'Media'}
+            {uploadState === 'uploading' ? t('composer.uploading') : t('composer.media')}
           </label>
         </>
       }
@@ -212,6 +214,8 @@ export function ComposerSheet(props: {
             className="h-full w-full"
             onCellSelect={onSelectCell}
             onRequestLocation={onRequestLocation}
+            gpsAriaLabel={t('geohashMap.gpsAria')}
+            gpsTitle={t('geohashMap.gpsTitle')}
           />
         </div>
       ) : null}
@@ -274,7 +278,7 @@ export function ComposerSheet(props: {
                     e.stopPropagation()
                     setMediaUrls(prev => prev.filter((_, i) => i !== idx))
                   }}
-                  aria-label="Remove media"
+                  aria-label={t('composer.removeMediaAria')}
                   className="absolute right-0.5 top-0.5 rounded p-0.5 focus:outline-none"
                 >
                   <CloseIcon size={14} />
@@ -294,7 +298,7 @@ export function ComposerSheet(props: {
           el.style.height = 'auto'
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
-        placeholder="What's happening in your area?"
+        placeholder={t('composer.placeholder')}
         className="mt-2 mb-[env(safe-area-inset-bottom)] min-h-[120px] w-full resize-none border border-brezn-text p-3 text-base outline-none"
         rows={5}
       />

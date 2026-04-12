@@ -1,5 +1,6 @@
 import React, { Component, type ReactNode } from 'react'
 import { buttonBase } from '../lib/buttonStyles'
+import { i18n } from '../i18n/i18n'
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -68,28 +69,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="min-h-dvh bg-brezn-bg text-brezn-text flex items-center justify-center p-4">
           <div className="max-w-xl w-full rounded-lg border border-brezn-border bg-brezn-panel p-6">
-            <div className="mb-2 text-lg font-semibold text-brezn-error">Something went wrong</div>
-            <div className="text-sm text-brezn-muted mb-4">
-              An unexpected error occurred. Please try refreshing the page.
-            </div>
+            <div className="mb-2 text-lg font-semibold text-brezn-error">{i18n.t('errorBoundary.title')}</div>
+            <div className="text-sm text-brezn-muted mb-4">{i18n.t('errorBoundary.body')}</div>
             {this.state.error && (
               <details className="mb-4">
                 <summary className="text-xs text-brezn-muted cursor-pointer hover:text-brezn-text mb-2">
-                  Error details
+                  {i18n.t('errorBoundary.details')}
                 </summary>
                 <div className="rounded-xl border border-brezn-border bg-brezn-panel p-3 font-mono text-xs text-brezn-muted overflow-auto max-h-64">
                   <div className="mb-2">
-                    <strong>Error:</strong> {this.state.error.message}
+                    <strong>{i18n.t('errorBoundary.errorLabel')}</strong> {this.state.error.message}
                   </div>
                   {this.state.error.stack && (
                     <div className="mb-2">
-                      <strong>Stack trace:</strong>
+                      <strong>{i18n.t('errorBoundary.stack')}</strong>
                       <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.error.stack}</pre>
                     </div>
                   )}
                   {this.state.errorInfo && (
                     <div>
-                      <strong>Component stack:</strong>
+                      <strong>{i18n.t('errorBoundary.componentStack')}</strong>
                       <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.errorInfo.componentStack}</pre>
                     </div>
                   )}
@@ -101,13 +100,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 onClick={this.handleReset}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold ${buttonBase}`}
               >
-                Try again
+                {i18n.t('errorBoundary.tryAgain')}
               </button>
               <button
                 onClick={() => window.location.reload()}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold ${buttonBase}`}
               >
-                Reload page
+                {i18n.t('errorBoundary.reload')}
               </button>
             </div>
           </div>

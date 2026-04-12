@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Event } from 'nostr-tools'
 import * as nip19 from 'nostr-tools/nip19'
 import { buttonBase } from '../lib/buttonStyles'
+import { formatRelativeChatTime } from '../lib/formatRelativeTime'
+import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
 import type { BreznNostrClient, DecryptedDM } from '../lib/nostrClient'
 import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
@@ -27,6 +30,7 @@ export function DMSheet(props: {
   client: BreznNostrClient
   otherPubkey: string
 }) {
+  const { t } = useTranslation()
   const { open, onClose, client, otherPubkey } = props
   const [messages, setMessages] = useState<DecryptedDM[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,21 +55,44 @@ export function DMSheet(props: {
     setMessageText('')
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setError('Offline - Please check your internet connection.')
+      setError(t('dm.offline'))
       setLoading(false)
       return
     }
 
+    let uiTimeout: ReturnType<typeof setTimeout> | undefined
+    const clearUiTimeout = () => {
+      if (uiTimeout !== undefined) {
+        clearTimeout(uiTimeout)
+        uiTimeout = undefined
+      }
+    }
+
+    uiTimeout = setTimeout(() => {
+      if (!alive) return
+      setError(t('dm.timeout'))
+      setLoading(false)
+    }, GET_CONVERSATIONS_UI_TIMEOUT_MS)
+
     void client
-      .getDMsWith(peer)
+      .getDMsWith(peer, {
+        onProgress: msgs => {
+          if (!alive) return
+          clearUiTimeout()
+          setMessages(msgs)
+          setLoading(false)
+        },
+      })
       .then(msgs => {
         if (!alive) return
+        clearUiTimeout()
         setMessages(msgs)
         setLoading(false)
       })
       .catch(err => {
         if (!alive) return
-        setError(err instanceof Error ? err.message : 'Error loading messages')
+        clearUiTimeout()
+        setError(err instanceof Error ? err.message : t('dm.loadError'))
         setLoading(false)
       })
 
@@ -104,9 +131,10 @@ export function DMSheet(props: {
 
     return () => {
       alive = false
+      clearUiTimeout()
       unsub()
     }
-  }, [open, peer, myPubkey, client])
+  }, [open, peer, myPubkey, client, t])
 
   useEffect(() => {
     if (open && messages.length > 0) {
@@ -119,7 +147,7 @@ export function DMSheet(props: {
     if (!content || sending) return
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setError('Offline - Message cannot be sent.')
+      setError(t('dm.offlineSend'))
       return
     }
 
@@ -134,7 +162,7 @@ export function DMSheet(props: {
         created_at: Math.floor(Date.now() / 1000),
         kind: 4,
         tags: [['p', peer]],
-        content: '[sending...]',
+        content: t('dm.sendingContent'),
         sig: '',
       },
       decryptedContent: content,
@@ -156,31 +184,16 @@ export function DMSheet(props: {
       }, 5000)
     } catch (e) {
       setMessages(prev => prev.filter(m => m.event.id !== tempId))
-      setError(e instanceof Error ? e.message : 'Error sending message')
+      setError(e instanceof Error ? e.message : t('dm.sendError'))
     } finally {
       setSending(false)
     }
   }
 
-  function formatTime(timestamp: number): string {
-    const date = new Date(timestamp * 1000)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
-
   return (
     <Sheet
       open={open}
-      title={`DM: ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`}
+      title={`${t('dm.titlePrefix')} ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`}
       onClose={onClose}
       bodyVariant="fill"
     >
@@ -188,7 +201,7 @@ export function DMSheet(props: {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex min-h-full flex-col items-center justify-center gap-2 px-1 py-8 text-center text-sm text-brezn-muted">
-              Loading messages…
+              {t('dm.loading')}
             </div>
           ) : error && messages.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-1 py-8 text-center text-sm text-brezn-error">
@@ -196,7 +209,7 @@ export function DMSheet(props: {
             </div>
           ) : !error && messages.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center gap-2 px-1 py-8 text-center text-sm text-brezn-muted">
-              No messages yet
+              {t('dm.empty')}
             </div>
           ) : (
             <div className="space-y-3 pb-4">
@@ -219,7 +232,7 @@ export function DMSheet(props: {
                   >
                     <div className="text-sm whitespace-pre-wrap break-words">{msg.decryptedContent}</div>
                     <div className="mt-1 text-[10px] text-brezn-text">
-                      {formatTime(msg.event.created_at)}
+                      {formatRelativeChatTime(t, msg.event.created_at)}
                     </div>
                   </div>
                 </div>
@@ -241,14 +254,14 @@ export function DMSheet(props: {
                   void sendMessage()
                 }
               }}
-              placeholder="Write message…"
+              placeholder={t('dm.placeholder')}
               className="basis-[62%] h-20 resize-none border border-brezn-text p-3 text-base outline-none"
               disabled={sending}
             />
             <button
               onClick={sendMessage}
               disabled={sending || !messageText.trim()}
-              aria-label="Send message"
+              aria-label={t('dm.sendAria')}
               className={`basis-[38%] rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
             >
               {sending ? '…' : '→'}

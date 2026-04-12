@@ -19,7 +19,8 @@ const GPS_BUTTON_SVG =
 function addGpsControl(
   L: typeof import('leaflet'),
   map: L.Map,
-  onRequestLocation: (onFinished?: () => void) => void
+  onRequestLocation: (onFinished?: () => void) => void,
+  gpsLabels: { ariaLabel: string; title: string },
 ): L.Control {
   const Control = L.Control.extend({
     onAdd() {
@@ -30,8 +31,8 @@ function addGpsControl(
       btn.type = 'button'
       btn.className =
         'flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white ring-2 ring-white/30 hover:bg-black/50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white'
-      btn.setAttribute('aria-label', 'GPS location')
-      btn.title = 'GPS location'
+      btn.setAttribute('aria-label', gpsLabels.ariaLabel)
+      btn.title = gpsLabels.title
       btn.innerHTML = GPS_BUTTON_SVG
       L.DomEvent.disableClickPropagation(btn)
       L.DomEvent.on(btn, 'click', () => {
@@ -52,8 +53,15 @@ export function GeohashMap(props: {
   className?: string
   onCellSelect?: (geohash5: string) => void
   onRequestLocation?: (onFinished?: () => void) => void
+  /** Localized GPS control (defaults for rare non-composer use). */
+  gpsAriaLabel?: string
+  gpsTitle?: string
 }) {
-  const { geohash, className, onCellSelect, onRequestLocation } = props
+  const { geohash, className, onCellSelect, onRequestLocation, gpsAriaLabel, gpsTitle } = props
+  const gpsLabels = {
+    ariaLabel: gpsAriaLabel ?? 'GPS location',
+    title: gpsTitle ?? 'GPS location',
+  }
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const rectangleRef = useRef<L.Rectangle | null>(null)
@@ -63,6 +71,16 @@ export function GeohashMap(props: {
   onCellSelectRef.current = onCellSelect
   const onRequestLocationRef = useRef(onRequestLocation)
   onRequestLocationRef.current = onRequestLocation
+  const gpsLabelsRef = useRef(gpsLabels)
+  gpsLabelsRef.current = gpsLabels
+
+  useEffect(() => {
+    const root = mapContainerRef.current
+    const btn = root?.querySelector<HTMLButtonElement>('.leaflet-control-gps button')
+    if (!btn) return
+    btn.setAttribute('aria-label', gpsLabels.ariaLabel)
+    btn.title = gpsLabels.title
+  }, [gpsLabels.ariaLabel, gpsLabels.title])
 
   // Unmount only: remove map so no Leaflet callbacks run after DOM is gone
   useEffect(() => {
@@ -159,7 +177,8 @@ export function GeohashMap(props: {
           gpsControlRef.current = addGpsControl(
             L,
             newMap,
-            (onFinished) => onRequestLocationRef.current?.(onFinished)
+            (onFinished) => onRequestLocationRef.current?.(onFinished),
+            gpsLabelsRef.current,
           )
         }
 

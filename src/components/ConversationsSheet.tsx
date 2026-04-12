@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as nip19 from 'nostr-tools/nip19'
+import { formatRelativeChatTime } from '../lib/formatRelativeTime'
 import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
 import type { BreznNostrClient, Conversation } from '../lib/nostrClient'
 import { shortNpub } from '../lib/nostrUtils'
@@ -11,6 +13,7 @@ export function ConversationsSheet(props: {
   onClose: () => void
   client: BreznNostrClient
 }) {
+  const { t } = useTranslation()
   const { open, onClose, client } = props
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,58 +33,57 @@ export function ConversationsSheet(props: {
     // Check if browser reports offline
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       Promise.resolve().then(() => {
-        setError('Offline - Please check your internet connection.')
+        setError(t('chat.offline'))
         setLoading(false)
       })
       return
     }
 
-    const timeout = setTimeout(() => {
-      setError('Timeout - Relays are not responding. Please check your relay settings.')
+    let uiTimeout: ReturnType<typeof setTimeout> | undefined
+    const clearUiTimeout = () => {
+      if (uiTimeout !== undefined) {
+        clearTimeout(uiTimeout)
+        uiTimeout = undefined
+      }
+    }
+
+    uiTimeout = setTimeout(() => {
+      setError(t('chat.timeout'))
       setLoading(false)
     }, GET_CONVERSATIONS_UI_TIMEOUT_MS)
 
     client
-      .getConversations()
+      .getConversations({
+        onProgress: convos => {
+          clearUiTimeout()
+          setConversations(convos)
+          setLoading(false)
+        },
+      })
       .then(convos => {
-        clearTimeout(timeout)
+        clearUiTimeout()
         setConversations(convos)
         setLoading(false)
       })
       .catch(err => {
-        clearTimeout(timeout)
-        setError(err instanceof Error ? err.message : 'Error loading conversations')
+        clearUiTimeout()
+        setError(err instanceof Error ? err.message : t('chat.loadError'))
         setLoading(false)
       })
 
-    return () => clearTimeout(timeout)
-  }, [open, client])
-
-  function formatTime(timestamp: number): string {
-    const date = new Date(timestamp * 1000)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+    return () => clearUiTimeout()
+  }, [open, client, t])
 
   return (
     <>
-      <Sheet open={open && !selectedPubkey} title="Chat" onClose={onClose}>
+      <Sheet open={open && !selectedPubkey} title={t('chat.title')} onClose={onClose}>
         <div className="mt-4 space-y-2">
           {loading ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Loading conversations…</div>
+            <div className="text-center text-sm text-brezn-muted py-8">{t('chat.loading')}</div>
           ) : error ? (
             <div className="py-8 text-center text-sm text-brezn-error">{error}</div>
           ) : conversations.length === 0 ? (
-            <div className="text-center text-sm text-brezn-muted py-8">No conversations yet</div>
+            <div className="text-center text-sm text-brezn-muted py-8">{t('chat.empty')}</div>
           ) : (
             conversations.map(conv => (
               <button
@@ -94,7 +96,9 @@ export function ConversationsSheet(props: {
                     <div className="font-mono text-sm font-semibold text-brezn-text truncate">{shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}</div>
                     <div className="mt-1 text-xs text-brezn-muted truncate">{conv.lastMessagePreview}</div>
                   </div>
-                  <div className="shrink-0 text-[10px] text-brezn-text">{formatTime(conv.lastMessageAt)}</div>
+                  <div className="shrink-0 text-[10px] text-brezn-text">
+                    {formatRelativeChatTime(t, conv.lastMessageAt)}
+                  </div>
                 </div>
               </button>
             ))

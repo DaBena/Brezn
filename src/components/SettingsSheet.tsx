@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { Sheet } from './Sheet'
 import { GeohashSettings } from './settings/GeohashSettings'
@@ -22,6 +23,7 @@ export function SettingsSheet(props: {
 }) {
   const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange, onRelaysChanged } = props
 
+  const { t } = useTranslation()
   const { theme, setTheme } = useTheme(client)
   const [mediaEndpoint, setMediaEndpoint] = useState<string>(() => client.getMediaUploadEndpoint() ?? '')
   const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string; about: string } | null>(null)
@@ -119,7 +121,7 @@ export function SettingsSheet(props: {
   }
 
   return (
-    <Sheet open={open} title="Settings" onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving}>
+    <Sheet open={open} title={t('settings.title')} onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving}>
       <div className="mt-4 space-y-3">
         <ThemeSettings theme={theme} onThemeChange={setTheme} />
 
@@ -146,14 +148,14 @@ export function SettingsSheet(props: {
 
         <div className="p-3 pt-6 border-t border-brezn-border">
           <div className="text-xs text-brezn-muted">
-            Source {' '}
+            {t('settings.source')}{' '}
             <a
               href="https://github.com/dabena/Brezn"
               target="_blank"
               rel="noopener noreferrer"
               className="text-brezn-link underline transition-colors hover:opacity-90"
             >
-              GitHub
+              {t('settings.github')}
             </a>
           </div>
         </div>

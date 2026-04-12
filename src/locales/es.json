@@ -1,0 +1,265 @@
+{
+  "root": {
+    "loading": "Cargando…"
+  },
+  "nav": {
+    "searchPlaceholder": "Buscar publicaciones…",
+    "openChat": "Abrir chat",
+    "openMenu": "Abrir menú"
+  },
+  "feed": {
+    "offlineBanner": "Sin conexión: mostrando últimas publicaciones (solo lectura).",
+    "locationTitle": "Ubicación para el feed local",
+    "locationBody": "La app necesita tu zona aproximada para mostrar publicaciones locales. Puedes cambiarla después. Tu posición se reduce a una celda geohash (~5 km).",
+    "privacyStorage": "Esta app usa almacenamiento local en tu dispositivo. Sin seguimiento ni datos personales a nosotros. Ver",
+    "privacyLink": "código, README y licencia",
+    "privacyDisclaimer": "La app carga contenido de fuentes externas (relays Nostr, servidores). No nos hacemos responsables del contenido externo.",
+    "privacyConfirm": "Al continuar confirmas: me he informado y acepto.",
+    "allowLocation": "Permitir ubicación",
+    "errorTitle": "Error",
+    "tryAgain": "Reintentar",
+    "relayFailPrefix": "Fallo de conexión al relay. ",
+    "noRelayResponse": "Sin respuesta de los relays. Revisa la lista o inténtalo más tarde.",
+    "waitingEose": "Aún no hay eventos (esperando EOSE)…",
+    "noPostsYet": "Aún no hay publicaciones. Inténtalo más tarde u otros relays."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "source": "Código",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Tema",
+    "switchToDark": "Cambiar a oscuro",
+    "switchToLight": "Cambiar a claro"
+  },
+  "geohash": {
+    "searchRadius": "Radio de búsqueda",
+    "lengthLabel": "Longitud geohash:",
+    "length0": "0 (actual + este/oeste)",
+    "queries3": "3 consultas",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Reducir radio",
+    "increaseRadius": "Aumentar radio",
+    "length": "Longitud {{n}}",
+    "queriesCurrent": "3 consultas (actual + este/oeste)",
+    "precisionFallback": "Mayor = más pequeño (más preciso), pero menos resultados.",
+    "cellSize": "{{w}} × {{h}} por celda"
+  },
+  "moderation": {
+    "blocklist": "Lista de bloqueo",
+    "oneLineOneTerm": "1 línea = 1 término ({{count}}/200)",
+    "placeholder": "ej.\nspam\ncompra ya\nevil.example",
+    "saved": "Lista guardada.",
+    "blockedUsers": "Usuarios bloqueados",
+    "blockedCount": "{{count}} bloqueados",
+    "unblock": "Desbloquear",
+    "noBlocked": "Ningún usuario bloqueado",
+    "unblockedMsg": "Usuario desbloqueado."
+  },
+  "keyMgmt": {
+    "title": "Identidad",
+    "npub": "npub",
+    "copy": "Copiar",
+    "nsec": "nsec",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "neverShareNsec": "No compartas nunca tu nsec.",
+    "npubCopied": "npub copiado.",
+    "copyNpubHint": "Mostrar y copiar npub.",
+    "nsecCopied": "nsec copiado.",
+    "copyNsecHint": "Mostrar y copiar nsec.",
+    "importTitle": "Importar identidad",
+    "importNsec": "Importar nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Introduce un nsec",
+    "importSuccess": "Identidad importada. La página se recargará...",
+    "importing": "Importando...",
+    "import": "Importar",
+    "cancel": "Cancelar",
+    "importFailed": "No se pudo importar el nsec"
+  },
+  "relay": {
+    "title": "Relays",
+    "hint": "Relays para el feed, DMs y publicación.",
+    "empty": "Sin relays. No se pueden cargar ni publicar posts sin al menos un relay. Añade uno abajo o usa «Predeterminado».",
+    "removeAria": "Quitar relay",
+    "placeholder": "wss://relay.example",
+    "add": "Añadir",
+    "default": "Predeterminado",
+    "test": "Probar",
+    "testing": "Probando…",
+    "removed": "Relay quitado.",
+    "added": "Relay añadido.",
+    "resetDefault": "Restaurar relays predeterminados.",
+    "unknown": "desconocido",
+    "reachable": "accesible",
+    "unreachable": "inaccesible",
+    "reachableWithRtt": "accesible • {{rtt}}ms",
+    "unreachableWithErr": "inaccesible • {{error}}",
+    "statusAria": "Estado del relay: {{state}}"
+  },
+  "mediaUpload": {
+    "title": "Subida de medios",
+    "hint": "URL directa o NIP-96. Por defecto: {{default}}. Vacío = desactivado.",
+    "defaultBtn": "Predeterminado"
+  },
+  "profileSettings": {
+    "title": "Perfil",
+    "loading": "Cargando perfil…",
+    "name": "Nombre",
+    "namePlaceholder": "Tu nombre (opcional)",
+    "about": "Acerca de",
+    "aboutPlaceholder": "Bio breve (opcional)",
+    "picture": "Foto de perfil",
+    "pictureAlt": "Foto de perfil",
+    "onlyImages": "Solo se admiten imágenes.",
+    "imageTooLarge5": "Imagen demasiado grande (máx. 5 MB).",
+    "configureEndpointFirst": "Configura primero el endpoint de subida.",
+    "uploading": "Subiendo…",
+    "changeImage": "Cambiar imagen",
+    "uploadImage": "Subir imagen",
+    "resetConfirm": "¿Restablecer perfil? Se quitarán nombre, bio e imagen.",
+    "reset": "Restablecer",
+    "removeImage": "Quitar imagen",
+    "urlPlaceholder": "O introduce la URL",
+    "resetDone": "Perfil restablecido.",
+    "resetError": "Error al restablecer el perfil"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Cargando conversaciones…",
+    "offline": "Sin conexión. Comprueba tu red.",
+    "timeout": "Tiempo agotado: los relays no responden. Revisa la configuración.",
+    "loadError": "Error al cargar conversaciones",
+    "empty": "Aún no hay conversaciones"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Sin conexión: no se puede enviar el mensaje.",
+    "offline": "Sin conexión. Comprueba tu red.",
+    "timeout": "Tiempo agotado: los relays no responden.",
+    "loadError": "Error al cargar mensajes",
+    "loading": "Cargando mensajes…",
+    "empty": "Aún no hay mensajes",
+    "placeholder": "Escribe un mensaje…",
+    "sendAria": "Enviar mensaje",
+    "sendingContent": "[enviando...]",
+    "sendError": "Error al enviar"
+  },
+  "composer": {
+    "srTitle": "Nueva publicación",
+    "publish": "Publicar",
+    "publishing": "Publicando…",
+    "publishAria": "Publicar",
+    "media": "Medios",
+    "uploading": "Subiendo…",
+    "mediaAria": "Añadir medios",
+    "createInCell": "nueva publicación en celda",
+    "createNew": "nueva publicación",
+    "showMapAria": "Mostrar celda {{cell}} en el mapa",
+    "showMapTitle": "Ver celda en el mapa",
+    "placeholder": "¿Qué pasa en tu zona?",
+    "removeMediaAria": "Quitar medio",
+    "noUploadEndpoint": "Sin endpoint de subida (Ajustes → Subida de medios).",
+    "onlyImagesVideos": "Solo imágenes o vídeos.",
+    "videoTooLarge": "Vídeo demasiado grande (máx. 25 MB).",
+    "imageTooLarge": "Imagen demasiado grande (máx. 12 MB).",
+    "compressFailed": "Error al comprimir la imagen.",
+    "uploadFailed": "Error en la subida.",
+    "publishFailed": "Error al publicar."
+  },
+  "feedArticle": {
+    "deleted": "Eliminado – propagando a relays",
+    "deletedAria": "Publicación eliminada",
+    "openPost": "Abrir publicación",
+    "sendReaction": "Enviar reacción",
+    "sendReactionCount": "Enviar reacción ({{count}})",
+    "loadOlder": "Ver más",
+    "loading": "Cargando…"
+  },
+  "pwa": {
+    "title": "Actualización disponible",
+    "body": "Se cargó una nueva versión. Recarga para activarla.",
+    "reload": "Recargar",
+    "close": "Cerrar"
+  },
+  "adblock": {
+    "title": "Service Worker bloqueado",
+    "body": "Un bloqueador puede estar bloqueando el service worker. Desactívalo o añade una excepción.",
+    "close": "Cerrar"
+  },
+  "composeBtn": {
+    "aria": "Crear publicación"
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "body": "Error inesperado. Intenta recargar la página.",
+    "details": "Detalles del error",
+    "errorLabel": "Error:",
+    "stack": "Pila:",
+    "componentStack": "Pila de componentes:",
+    "tryAgain": "Reintentar",
+    "reload": "Recargar página"
+  },
+  "app": {
+    "publishFailed": "Error al publicar.",
+    "offlineComments": "Sin conexión: comentarios solo lectura.",
+    "offlineDelete": "Sin conexión: no se puede enviar el evento de borrado."
+  },
+  "thread": {
+    "reportRoot": "Denunciar publicación raíz",
+    "reportReply": "Denunciar respuesta",
+    "reportReason": "Motivo (opcional)",
+    "submitReport": "Enviar denuncia",
+    "replies": "Respuestas ({{count}})",
+    "offline": "Sin conexión",
+    "replyPlaceholder": "Escribe una respuesta…",
+    "sendDeletionAria": "Enviar evento de borrado NIP-09",
+    "blockUserAria": "Bloquear usuario",
+    "blockUserTitle": "Bloquear usuario",
+    "delete": "Eliminar",
+    "deleteSending": "Enviando…",
+    "block": "Bloquear",
+    "blocking": "Bloqueando…",
+    "blockHeading": "Bloquear a {{label}}",
+    "reportHint": "Opcional: motivo de la denuncia. Se enviará a los relays mediante NIP-56.",
+    "reply": "Responder",
+    "replySending": "Enviando…",
+    "userBlocked": "Usuario bloqueado.",
+    "blockingFailed": "Error al bloquear.",
+    "offlineBlock": "Sin conexión: no se puede bloquear al usuario.",
+    "deleteFailed": "No se pudo enviar el evento de borrado.",
+    "publishFailedFallback": "Error al publicar."
+  },
+  "profileSheet": {
+    "openPictureAria": "Abrir foto de perfil",
+    "dmAria": "Abrir mensaje directo",
+    "offlineHint": "Sin conexión: las publicaciones del perfil pueden estar incompletas.",
+    "loadingPosts": "Cargando publicaciones…",
+    "noPosts": "Aún no hay publicaciones",
+    "loadError": "No se pudieron cargar las publicaciones."
+  },
+  "geohashMap": {
+    "gpsAria": "Ubicación GPS",
+    "gpsTitle": "Ubicación GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Abrir perfil"
+  },
+  "time": {
+    "justNow": "ahora",
+    "minutesAgo": "hace {{count}} min",
+    "hoursAgo": "hace {{count}} h",
+    "daysAgo": "hace {{count}} d"
+  },
+  "common": {
+    "loading": "Cargando…",
+    "close": "Cerrar"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Cargando publicación citada…",
+    "noText": "(sin texto)"
+  }
+}
