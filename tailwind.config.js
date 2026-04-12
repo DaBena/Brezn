@@ -8,21 +8,21 @@ export default {
         brezn: {
           bg: 'var(--brezn-bg)',
           panel: 'var(--brezn-panel)',
-          panel2: 'var(--brezn-panel2)',
           button: 'var(--brezn-button)',
           buttonDisabled: 'var(--brezn-buttonDisabled)',
           border: 'var(--brezn-border)',
           text: 'var(--brezn-text)',
           muted: 'var(--brezn-muted)',
-          gold: '#d6b25e',
-          danger: '#e05a4f',
+          overlay: 'var(--brezn-overlay)',
+          link: 'var(--brezn-link)',
+          error: 'var(--brezn-error)',
+          errorSurface: 'var(--brezn-error-surface)',
+          errorBorder: 'var(--brezn-error-border)',
+          success: 'var(--brezn-success)',
+          heart: 'var(--brezn-heart)',
         },
-      },
-      boxShadow: {
-        soft: '0 8px 24px rgba(0,0,0,0.15)',
       },
     },
   },
   plugins: [],
 }
-

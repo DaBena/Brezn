@@ -1,7 +1,3 @@
-export function breznClientTag(): string[] {
-  return ['client', 'brezn']
-}
-
 export const NOSTR_KINDS = {
   metadata: 0,
   note: 1,

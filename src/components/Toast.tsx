@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { cn } from '../lib/cn'
 import { CloseIcon } from './CloseIcon'
 import { ToastContext, type Toast, type ToastType } from './ToastContext'
 
@@ -69,25 +70,25 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 
   const typeStyles = {
     info: 'border-brezn-border bg-brezn-panel/95',
-    error: 'border-brezn-danger/50 bg-brezn-danger/10',
+    error: 'border border-brezn-errorBorder bg-brezn-errorSurface',
   }
 
   const iconStyles = {
     info: 'text-brezn-muted',
-    error: 'text-brezn-danger',
+    error: 'text-brezn-error',
   }
 
   return (
     <div
-      className={[
-        'rounded-lg border p-3 shadow-soft backdrop-blur transition-all duration-200',
+      className={cn(
+        'rounded-lg border p-3 backdrop-blur transition-all duration-200',
         typeStyles[toast.type],
-        isExiting ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0',
-      ].join(' ')}
+        isExiting ? 'translate-y-[-10px] opacity-0' : 'translate-y-0 opacity-100',
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 flex items-start gap-2">
-          <div className={['shrink-0 text-lg', iconStyles[toast.type]].join(' ')}>
+          <div className={cn('shrink-0 text-lg', iconStyles[toast.type])}>
             {toast.type === 'error' ? '✕' : 'ℹ'}
           </div>
           <div className="min-w-0 flex-1">

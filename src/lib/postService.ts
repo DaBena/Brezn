@@ -1,6 +1,6 @@
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from './nostrClient'
-import { breznClientTag, NOSTR_KINDS } from './breznNostr'
+import { NOSTR_KINDS } from './breznNostr'
 import { generateGeohashTags } from './geo'
 
 function createGeoTags(geohash: string): [string, string][] {
@@ -22,7 +22,7 @@ export async function publishPost(
   await client.publish({
     kind: NOSTR_KINDS.note,
     content,
-    tags: [breznClientTag(), ...geoTags],
+    tags: [...geoTags],
   })
 }
 
@@ -40,7 +40,6 @@ export async function publishReply(
   const g = rootGeo ?? viewerGeo5
 
   const tags: string[][] = [
-    breznClientTag(),
     // NIP-10 threading (reply-to == root in our UI)
     ['e', root.id, '', 'root'],
     ['e', root.id, '', 'reply'],
@@ -68,6 +67,6 @@ export async function deletePost(
   await client.publish({
     kind: NOSTR_KINDS.deletion,
     content: '',
-    tags: [breznClientTag(), ['e', evt.id]],
+    tags: [['e', evt.id]],
   })
 }

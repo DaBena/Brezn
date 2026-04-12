@@ -28,12 +28,17 @@ dist-ssr
 android/.gradle/
 android/build/
 android/app/build/
+android/app/release/
+android/captures/
 android/android.keystore
 android/*.jks.b64
 android/*.apk
 android/*.aab
 android/*.idsig
 android/local.properties
+*.iml
+android/.idea/
+**/problems-report.html
 
 # Environment / local secrets
 .env

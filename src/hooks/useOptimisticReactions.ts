@@ -1,33 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactionSummary } from './useReactions'
 
-const REACTED_STORAGE_KEY = 'brezn:reacted'
-
 export function useOptimisticReactions(reactionsByNoteId: Record<string, ReactionSummary>) {
-  const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>(() => {
-    // Load persisted reacted note IDs from localStorage
-    try {
-      const stored = localStorage.getItem(REACTED_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored) as string[]
-        return Object.fromEntries(parsed.map(id => [id, true]))
-      }
-    } catch {
-      // Ignore errors
-    }
-    return {}
-  })
-  const reactedNoteIdsRef = useRef<Set<string>>(new Set(Object.keys(optimisticReactedByNoteId)))
+  const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>({})
+  const reactedNoteIdsRef = useRef<Set<string>>(new Set())
 
-  // Persist reacted note IDs to localStorage
   useEffect(() => {
-    const ids = Object.keys(optimisticReactedByNoteId)
-    reactedNoteIdsRef.current = new Set(ids)
-    try {
-      localStorage.setItem(REACTED_STORAGE_KEY, JSON.stringify(ids))
-    } catch {
-      // Ignore errors (localStorage might be full or disabled)
-    }
+    reactedNoteIdsRef.current = new Set(Object.keys(optimisticReactedByNoteId))
   }, [optimisticReactedByNoteId])
 
   const addOptimisticReaction = (noteId: string) => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as nip19 from 'nostr-tools/nip19'
+import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
 import type { BreznNostrClient, Conversation } from '../lib/nostrClient'
 import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
@@ -38,7 +39,7 @@ export function ConversationsSheet(props: {
     const timeout = setTimeout(() => {
       setError('Timeout - Relays are not responding. Please check your relay settings.')
       setLoading(false)
-    }, 5000) // Reduced from 10000 to 5000
+    }, GET_CONVERSATIONS_UI_TIMEOUT_MS)
 
     client
       .getConversations()
@@ -68,7 +69,7 @@ export function ConversationsSheet(props: {
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
+    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   return (
@@ -78,7 +79,7 @@ export function ConversationsSheet(props: {
           {loading ? (
             <div className="text-center text-sm text-brezn-muted py-8">Loading conversations…</div>
           ) : error ? (
-            <div className="text-center text-sm text-brezn-danger py-8">{error}</div>
+            <div className="py-8 text-center text-sm text-brezn-error">{error}</div>
           ) : conversations.length === 0 ? (
             <div className="text-center text-sm text-brezn-muted py-8">No conversations yet</div>
           ) : (
@@ -86,14 +87,14 @@ export function ConversationsSheet(props: {
               <button
                 key={conv.pubkey}
                 onClick={() => setSelectedPubkey(conv.pubkey)}
-                className="w-full text-left rounded-lg border border-brezn-border bg-brezn-panel2 p-4 hover:bg-brezn-panel transition-colors focus:outline-none"
+                className="w-full text-left rounded-lg border border-brezn-border bg-brezn-bg p-4 focus:outline-none"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-sm font-semibold truncate">{shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}</div>
+                    <div className="font-mono text-sm font-semibold text-brezn-text truncate">{shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}</div>
                     <div className="mt-1 text-xs text-brezn-muted truncate">{conv.lastMessagePreview}</div>
                   </div>
-                  <div className="shrink-0 text-[10px] text-brezn-muted">{formatTime(conv.lastMessageAt)}</div>
+                  <div className="shrink-0 text-[10px] text-brezn-text">{formatTime(conv.lastMessageAt)}</div>
                 </div>
               </button>
             ))

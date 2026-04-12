@@ -6,8 +6,14 @@ import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
 import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
-import { hasLocationConsent } from './lastLocation'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
+import {
+  GET_DM_HISTORY_MAX_WAIT_MS,
+  GET_DM_HISTORY_TIMEOUT_MS,
+  GET_MY_PROFILE_FETCH_TIMEOUT_MS,
+  IDENTITY_INIT_TIMEOUT_MS,
+  SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
+} from './constants'
 
 // Bootstrap relays: keep this list small-ish (each subscription connects to all of them)
 export const DEFAULT_RELAYS = [
@@ -114,6 +120,17 @@ export type BreznNostrClient = {
   subscribe(filter: Filter, opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean }): () => void
 
   /**
+   * Subscribe with multiple filters merged into one REQ per relay (NIP-01 filter array).
+   * Prefer this over multiple `subscribe` calls for the same logical fetch (e.g. DMs) to avoid
+   * relay limits like "too many concurrent REQs".
+   */
+  subscribeGrouped(
+    filters: Filter[],
+    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void },
+    traceLabel?: string,
+  ): () => void
+
+  /**
    * Get list of configured relay URLs.
    * Returns default relays if none configured.
    * @returns Array of WebSocket URLs (wss://...)
@@ -210,10 +227,10 @@ export type BreznNostrClient = {
    * Decrypt a direct message event (NIP-04).
    * Handles both sent and received messages.
    * @param event - Encrypted DM event (kind 4)
-   * @returns Promise resolving to decrypted plaintext
+   * @returns Decrypted plaintext (NIP-04 uses sync crypto)
    * @throws If decryption fails
    */
-  decryptDM(event: Event): Promise<string>
+  decryptDM(event: Event): string
 
   /**
    * Get list of conversations (unique DM partners).
@@ -252,8 +269,7 @@ export type BreznNostrClient = {
   setIdentity(nsec: string): void
 
   /**
-   * Persist current state to storage (e.g. after user has consented and location was saved).
-   * Call this after the user clicks "Allow location" so that nsec is written for the first time.
+   * Flush in-memory state to localStorage / IndexedDB (e.g. after location consent ensures storage is ready).
    */
   persistStateNow(): void
 }
@@ -262,11 +278,21 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000)
 }
 
+/** Lowercase hex pubkey from the first `p` tag (NIP-04 DM recipient). */
+function dmRecipientPubkeyLower(evt: Event): string | null {
+  const p = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]
+  return p && /^[0-9a-fA-F]{64}$/.test(p) ? p.toLowerCase() : null
+}
+
 // State cache for fast synchronous access
 let stateCache: StoredStateV1 | null = null
 let stateCacheInitialized = false
 
-const IDENTITY_INIT_TIMEOUT_MS = 5000
+/**
+ * While `skHex` is still encrypted (IndexedDB decrypt pending), we must not mint a new random
+ * key on every `ensureIdentity()` call — that breaks signing vs UI pubkey, DMs, and reaction subs.
+ */
+let ephemeralIdentityWhileEncrypted: { skHex: string; pubkey: string; npub: string } | null = null
 
 // Initialize state cache asynchronously from IndexedDB (best effort)
 async function initializeStateCache() {
@@ -274,16 +300,13 @@ async function initializeStateCache() {
   stateCacheInitialized = true
 
   try {
-    // Load with automatic decryption of skHex
     const loaded = await loadEncryptedJson<StoredStateV1>(
       LS_KEY,
       { mutedTerms: [], blockedPubkeys: [] },
       ['skHex'],
     )
     stateCache = loaded
-    // Do not write decrypted skHex to localStorage; it stays only in IndexedDB (encrypted) and in memory.
   } catch {
-    // If IndexedDB fails, fallback to localStorage
     const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
     stateCache = loaded
   }
@@ -293,6 +316,11 @@ function fallbackStateFromLocalStorage(): void {
   if (stateCache !== null) return
   stateCacheInitialized = true
   stateCache = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+}
+
+// `whenIdentityReady` runs at import time; IndexedDB must be open before that load (createNostrClient() runs later).
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  setStorageConsentGiven(true)
 }
 
 /** Resolves when identity/storage is ready (IndexedDB decrypted or fallback applied). Await before using client identity. */
@@ -311,39 +339,31 @@ export const whenIdentityReady: Promise<void> =
     : Promise.resolve()
 
 function loadState(): StoredStateV1 {
-  // Use cache if available (from IndexedDB or localStorage, already decrypted)
   if (stateCache !== null) {
     return stateCache
   }
-  // Fallback to synchronous localStorage read (no skHex there; only IndexedDB has it, encrypted)
-  // initializeStateCache() populates stateCache from IndexedDB before app uses identity
   const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
   stateCache = loaded
-  
-  // If we got a value with skHex that looks encrypted (contains ':'), trigger async decryption
+
   if (loaded.skHex && loaded.skHex.includes(':')) {
-    // This is likely an encrypted value that wasn't decrypted yet
-    // Trigger async initialization to decrypt it
     initializeStateCache().catch(() => {
       // Ignore errors
     })
   }
-  
+
   return loaded
 }
 
-/** User has consented (clicked Allow location) = we may persist nsec. No nsec is stored before consent. */
-function hasConsent(): boolean {
-  if (typeof localStorage === 'undefined') return false
-  return hasLocationConsent()
+/** Persist settings and encrypted skHex whenever localStorage exists (browser). Geolocation is unrelated. */
+function canPersistState(): boolean {
+  return typeof localStorage !== 'undefined'
 }
 
 function saveState(patch: Partial<StoredStateV1>) {
   const next = { ...loadState(), ...patch }
   stateCache = next
 
-  // No persistence before user has consented (saw notice and clicked Allow location)
-  if (!hasConsent()) return
+  if (!canPersistState()) return
 
   // Save to localStorage without skHex (secret key only in IndexedDB, encrypted)
   const forLocal: Partial<StoredStateV1> = { ...next }
@@ -398,7 +418,7 @@ function normalizeRelays(relays: string[]): string[] {
  * @returns BreznNostrClient instance
  */
 export function createNostrClient(): BreznNostrClient {
-  setStorageConsentGiven(hasConsent())
+  setStorageConsentGiven(canPersistState())
   const pool = new SimplePool({ enablePing: true, enableReconnect: true })
 
   type SubCloser = { close: (reason?: string) => void | Promise<void> }
@@ -496,9 +516,7 @@ export function createNostrClient(): BreznNostrClient {
       return
     }
     s.closer = pool.subscribeMany(relays, s.filter, {
-      onevent: evt => {
-        s.opts.onevent(evt)
-      },
+      onevent: s.opts.onevent,
       oneose: () => {
         try {
           s.opts.oneose?.()
@@ -510,7 +528,7 @@ export function createNostrClient(): BreznNostrClient {
       onclose: reasons => {
         s.opts.onclose?.(reasons)
       },
-      maxWait: 12_000,
+      maxWait: SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
       label: 'brezn',
     }) as unknown as SubCloser
   }
@@ -540,7 +558,11 @@ export function createNostrClient(): BreznNostrClient {
   function ensureIdentity(): { skHex: string; pubkey: string; npub: string } {
     const s = loadState()
     let skHex = s.skHex
-    
+
+    if (skHex && skHex.length === 64 && !skHex.includes(':') && /^[0-9a-f]{64}$/i.test(skHex)) {
+      ephemeralIdentityWhileEncrypted = null
+    }
+
     // Validate skHex: must be 64 hex characters (32 bytes)
     if (skHex && (skHex.includes(':') || skHex.length !== 64)) {
       // Encrypted value or invalid format - handle race condition on first load
@@ -550,13 +572,16 @@ export function createNostrClient(): BreznNostrClient {
         if (retry.skHex && !retry.skHex.includes(':') && retry.skHex.length === 64) {
           skHex = retry.skHex
           stateCache = retry
+          ephemeralIdentityWhileEncrypted = null
         } else {
-          // Still encrypted on first load - generate temporary identity (async init will restore real one)
+          // Still encrypted on first load — reuse one temporary identity until decrypt finishes
+          if (ephemeralIdentityWhileEncrypted) return ephemeralIdentityWhileEncrypted
           const sk = generateSecretKey()
           skHex = bytesToHex(sk)
           const pubkey = getPublicKey(sk)
           const npub = nip19.npubEncode(pubkey)
-          return { skHex, pubkey, npub }
+          ephemeralIdentityWhileEncrypted = { skHex, pubkey, npub }
+          return ephemeralIdentityWhileEncrypted
         }
       } else {
         // Invalid format - generate new identity
@@ -620,8 +645,12 @@ export function createNostrClient(): BreznNostrClient {
     )
 
     const relays = getRelays()
+    if (relays.length === 0) {
+      throw new Error('No relays configured')
+    }
     const pubs = pool.publish(relays, evt)
-    return await Promise.any(pubs)
+    await Promise.any(pubs)
+    return evt.id
   }
 
   function subscribe(
@@ -634,7 +663,7 @@ export function createNostrClient(): BreznNostrClient {
     
     // Stagger subscriptions to avoid "too many concurrent REQs"; feed (immediate) always starts at once
     const delay = opts.immediate ? 0 : (activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200)
-    
+
     if (delay === 0) {
       startOrRestartSub(s, 'subscribe')
     } else {
@@ -649,6 +678,35 @@ export function createNostrClient(): BreznNostrClient {
         closeSubSafely(s.closer, 'ui-unsubscribe')
         s.closer = null
       }
+    }
+  }
+
+  /**
+   * One REQ per relay with multiple filters (nostr-tools merges same-relay filters into one subscription).
+   */
+  function subscribeGrouped(
+    filters: Filter[],
+    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void },
+    traceLabel = 'grouped',
+  ): () => void {
+    const relays = getRelays()
+    if (relays.length === 0 || filters.length === 0) {
+      opts.onclose?.(['No relays configured'])
+      return () => {}
+    }
+    const requests: { url: string; filter: Filter }[] = []
+    for (const url of relays) {
+      for (const f of filters) {
+        requests.push({ url, filter: f })
+      }
+    }
+    const closer = pool.subscribeMap(requests, {
+      ...opts,
+      maxWait: SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
+      label: `brezn-${traceLabel}`,
+    }) as SubCloser
+    return () => {
+      closeSubSafely(closer, 'ui-unsubscribe')
     }
   }
 
@@ -740,249 +798,227 @@ export function createNostrClient(): BreznNostrClient {
 
   // Direct Messages (NIP-04)
   async function sendDM(recipientPubkey: string, content: string): Promise<string> {
+    await whenIdentityReady
     const { skHex } = ensureIdentity()
-    const encrypted = await nip04.encrypt(hexToBytes(skHex), recipientPubkey, content)
+    const peerHex = recipientPubkey.trim().toLowerCase()
+    const encrypted = nip04.encrypt(hexToBytes(skHex), peerHex, content)
     return await publish({
       kind: 4,
       content: encrypted,
-      tags: [['p', recipientPubkey]],
+      tags: [['p', peerHex]],
     })
   }
 
-  async function decryptDM(event: Event): Promise<string> {
+  function decryptDM(event: Event): string {
     const { skHex, pubkey } = ensureIdentity()
+    const me = pubkey.toLowerCase()
     const senderPubkey = event.pubkey
-    const isFromMe = senderPubkey === pubkey
-    
+    const isFromMe = senderPubkey.toLowerCase() === me
+
     try {
       if (isFromMe) {
-        // For messages I sent, I need to decrypt with the recipient's pubkey
-        // The recipient pubkey is in the 'p' tag
         const recipientPubkey = event.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]
         if (!recipientPubkey) {
           throw new Error('Recipient pubkey not found in tags')
         }
-        return await nip04.decrypt(hexToBytes(skHex), recipientPubkey, event.content)
-      } else {
-        // For messages I received, decrypt with sender's pubkey
-        return await nip04.decrypt(hexToBytes(skHex), senderPubkey, event.content)
+        return nip04.decrypt(hexToBytes(skHex), recipientPubkey.toLowerCase(), event.content)
       }
+      return nip04.decrypt(hexToBytes(skHex), senderPubkey.toLowerCase(), event.content)
     } catch (e) {
       throw new Error(`Failed to decrypt DM: ${e instanceof Error ? e.message : 'Unknown error'}`)
     }
   }
 
   async function getConversations(): Promise<Conversation[]> {
+    await whenIdentityReady
     const { pubkey } = ensureIdentity()
+    const me = pubkey.trim().toLowerCase()
+
+    const relays = getRelays()
+    const primary = relays[0]
+    if (!primary) {
+      return Promise.reject(new Error('No relays configured'))
+    }
 
     return new Promise((resolve, reject) => {
       const conversations = new Map<string, { pubkey: string; lastMessageAt: number; lastMessagePreview: string }>()
-      const unsubs: Array<() => void> = []
       let resolved = false
-      let eoseCount = 0
-      const expectedEose = 2 // incoming + outgoing
 
       const finish = () => {
         if (resolved) return
         resolved = true
-        for (const unsub of unsubs) unsub()
+        clearTimeout(timeout)
+        closeSubSafely(closer, 'ui-unsubscribe')
         resolve(Array.from(conversations.values()).sort((a, b) => b.lastMessageAt - a.lastMessageAt))
       }
 
-      const timeout = setTimeout(finish, 3000) // Reduced from 5000 to 3000
+      const timeout = setTimeout(finish, GET_DM_HISTORY_TIMEOUT_MS)
       const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
+      const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
+      const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
 
-      // Subscribe to incoming DMs
-      unsubs.push(
-        subscribe(
-          { kinds: [4], '#p': [pubkey], since, limit: 100 },
-          {
-            onevent: async evt => {
-              try {
-                const otherPubkey = evt.pubkey
+      function mergeConversation(otherPubkey: string, evt: Event) {
+        let preview = '[encrypted]'
+        try {
+          const decrypted = decryptDM(evt)
+          preview = decrypted.slice(0, 50)
+        } catch {
+          // keep default preview
+        }
+        const existing = conversations.get(otherPubkey)
+        if (!existing || evt.created_at > existing.lastMessageAt) {
+          conversations.set(otherPubkey, {
+            pubkey: otherPubkey,
+            lastMessageAt: evt.created_at,
+            lastMessagePreview: preview,
+          })
+        }
+      }
+
+      const closer = pool.subscribeMap(
+        [
+          { url: primary, filter: filterIn },
+          { url: primary, filter: filterOut },
+        ],
+        {
+          onevent: evt => {
+            try {
+              if (evt.pubkey.toLowerCase() === me) {
+                const raw = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
+                const otherPubkey = raw?.toLowerCase() ?? null
                 if (!otherPubkey) return
-
-                let preview = '[encrypted]'
-                try {
-                  const decrypted = await decryptDM(evt)
-                  preview = decrypted.slice(0, 50)
-                } catch {
-                  // Keep encrypted preview if decryption fails
-                }
-
-                const existing = conversations.get(otherPubkey)
-                if (!existing || evt.created_at > existing.lastMessageAt) {
-                  conversations.set(otherPubkey, {
-                    pubkey: otherPubkey,
-                    lastMessageAt: evt.created_at,
-                    lastMessagePreview: preview,
-                  })
-                }
-              } catch {
-                // Ignore errors for individual events
-              }
-            },
-            oneose: () => {
-              eoseCount++
-              if (eoseCount >= expectedEose) {
-                clearTimeout(timeout)
-                finish()
-              }
-            },
-            onclose: reasons => {
-              clearTimeout(timeout)
-              if (reasons.length > 0) {
-                reject(new Error(`Subscription closed: ${reasons.join(', ')}`))
+                mergeConversation(otherPubkey, evt)
               } else {
-                finish()
-              }
-            },
-          },
-        ),
-      )
-
-      // Subscribe to outgoing DMs
-      unsubs.push(
-        subscribe(
-          { kinds: [4], authors: [pubkey], since, limit: 100 },
-          {
-            onevent: async evt => {
-              try {
-                const otherPubkey = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
+                const otherPubkey = evt.pubkey?.toLowerCase()
                 if (!otherPubkey) return
-
-                let preview = '[encrypted]'
-                try {
-                  const decrypted = await decryptDM(evt)
-                  preview = decrypted.slice(0, 50)
-                } catch {
-                  // Keep encrypted preview if decryption fails
-                }
-
-                const existing = conversations.get(otherPubkey)
-                if (!existing || evt.created_at > existing.lastMessageAt) {
-                  conversations.set(otherPubkey, {
-                    pubkey: otherPubkey,
-                    lastMessageAt: evt.created_at,
-                    lastMessagePreview: preview,
-                  })
-                }
-              } catch {
-                // Ignore errors for individual events
+                mergeConversation(otherPubkey, evt)
               }
-            },
-            oneose: () => {
-              eoseCount++
-              if (eoseCount >= expectedEose) {
-                clearTimeout(timeout)
-                finish()
-              }
-            },
-            onclose: reasons => {
-              clearTimeout(timeout)
-              if (reasons.length > 0) {
-                reject(new Error(`Subscription closed: ${reasons.join(', ')}`))
-              } else {
-                finish()
-              }
-            },
+            } catch {
+              // ignore single-event errors
+            }
           },
-        ),
-      )
+          oneose: () => {
+            clearTimeout(timeout)
+            finish()
+          },
+          onclose: reasons => {
+            if (resolved) return
+            const significant = reasons.filter(
+              r => r && !String(r).includes('ui-unsubscribe') && r !== 'connection timed out',
+            )
+            if (significant.length > 0) {
+              resolved = true
+              clearTimeout(timeout)
+              closeSubSafely(closer, 'ui-unsubscribe')
+              reject(new Error(`Subscription closed: ${significant.join(', ')}`))
+            } else if (!resolved) {
+              finish()
+            }
+          },
+          maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
+          label: 'brezn-conversations',
+        },
+      ) as SubCloser
     })
   }
 
   async function getDMsWith(otherPubkey: string): Promise<DecryptedDM[]> {
+    await whenIdentityReady
     const { pubkey } = ensureIdentity()
+    const me = pubkey.trim().toLowerCase()
+    const peer = otherPubkey.trim().toLowerCase()
+
+    const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
+    const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 500 }
+    const filterIn: Filter = { kinds: [4], authors: [peer], '#p': [me], since, limit: 200 }
+
+    const relays = getRelays()
+    const primary = relays[0]
+    if (!primary) {
+      return Promise.reject(new Error('No relays configured'))
+    }
 
     return new Promise((resolve, reject) => {
       const messages: DecryptedDM[] = []
-      const unsubs: Array<() => void> = []
       let resolved = false
-      let eoseCount = 0
-      const expectedEose = 2 // sent + received
+      let unsubDm: (() => void) | null = null
 
       const finish = () => {
         if (resolved) return
         resolved = true
-        for (const unsub of unsubs) unsub()
-        resolve(messages.sort((a, b) => a.event.created_at - b.event.created_at))
+        clearTimeout(timeout)
+        unsubDm?.()
+        unsubDm = null
+        const byId = new Map<string, DecryptedDM>()
+        for (const m of messages) {
+          if (!byId.has(m.event.id)) byId.set(m.event.id, m)
+        }
+        const sorted = [...byId.values()].sort((a, b) => a.event.created_at - b.event.created_at)
+        resolve(sorted)
       }
 
-      const timeout = setTimeout(finish, 3000) // Reduced from 5000 to 3000
-      const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
+      const timeout = setTimeout(() => finish(), GET_DM_HISTORY_TIMEOUT_MS)
 
-      // Subscribe to messages I sent
-      unsubs.push(
-        subscribe(
-          { kinds: [4], authors: [pubkey], '#p': [otherPubkey], since, limit: 200 },
-          {
-            onevent: async evt => {
-              try {
-                const decryptedContent = await decryptDM(evt)
-                messages.push({
-                  event: evt,
-                  decryptedContent,
-                  isFromMe: true,
-                })
-              } catch {
-                // Skip messages that can't be decrypted
-              }
-            },
-            oneose: () => {
-              eoseCount++
-              if (eoseCount >= expectedEose) {
-                clearTimeout(timeout)
-                finish()
-              }
-            },
-            onclose: reasons => {
-              clearTimeout(timeout)
-              if (reasons.length > 0) {
-                reject(new Error(`Subscription closed: ${reasons.join(', ')}`))
-              } else {
-                finish()
-              }
-            },
-          },
-        ),
-      )
+      // One relay only: nostr-tools `oneose` waits for every relay in the map; using the first
+      // relay avoids waiting on the slowest of N connections (live DM still uses all relays).
+      const requests: { url: string; filter: Filter }[] = [
+        { url: primary, filter: filterOut },
+        { url: primary, filter: filterIn },
+      ]
+      const closer = pool.subscribeMap(requests, {
+        onevent: evt => {
+          const author = evt.pubkey.toLowerCase()
+          if (author === me) {
+            const rec = dmRecipientPubkeyLower(evt)
+            if (rec !== peer) return
+            try {
+              const decryptedContent = decryptDM(evt)
+              messages.push({
+                event: evt,
+                decryptedContent,
+                isFromMe: true,
+              })
+            } catch {
+              // Skip undecryptable outgoing events
+            }
+          } else if (author === peer) {
+            try {
+              const decryptedContent = decryptDM(evt)
+              messages.push({
+                event: evt,
+                decryptedContent,
+                isFromMe: false,
+              })
+            } catch {
+              // Skip undecryptable incoming events
+            }
+          }
+        },
+        oneose: () => {
+          finish()
+        },
+        onclose: reasons => {
+          if (resolved) return
+          const significant = reasons.filter(
+            r => r && !String(r).includes('ui-unsubscribe') && r !== 'connection timed out',
+          )
+          if (significant.length > 0) {
+            resolved = true
+            clearTimeout(timeout)
+            unsubDm?.()
+            unsubDm = null
+            reject(new Error(`Subscription closed: ${significant.join(', ')}`))
+          } else if (!resolved) {
+            finish()
+          }
+        },
+        maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
+        label: 'brezn-dm-history',
+      }) as SubCloser
 
-      // Subscribe to messages I received
-      unsubs.push(
-        subscribe(
-          { kinds: [4], authors: [otherPubkey], '#p': [pubkey], since, limit: 200 },
-          {
-            onevent: async evt => {
-              try {
-                const decryptedContent = await decryptDM(evt)
-                messages.push({
-                  event: evt,
-                  decryptedContent,
-                  isFromMe: false,
-                })
-              } catch {
-                // Skip messages that can't be decrypted
-              }
-            },
-            oneose: () => {
-              eoseCount++
-              if (eoseCount >= expectedEose) {
-                clearTimeout(timeout)
-                finish()
-              }
-            },
-            onclose: reasons => {
-              clearTimeout(timeout)
-              if (reasons.length > 0) {
-                reject(new Error(`Subscription closed: ${reasons.join(', ')}`))
-              } else {
-                finish()
-              }
-            },
-          },
-        ),
-      )
+      unsubDm = () => {
+        closeSubSafely(closer, 'ui-unsubscribe')
+      }
     })
   }
 
@@ -997,7 +1033,7 @@ export function createNostrClient(): BreznNostrClient {
           resolved = true
           resolve(null)
         }
-      }, 3000)
+      }, GET_MY_PROFILE_FETCH_TIMEOUT_MS)
 
       const unsub = subscribe(
         { kinds: [0], authors: [pubkey], limit: 1 },
@@ -1093,6 +1129,7 @@ export function createNostrClient(): BreznNostrClient {
       // Clear state cache to force reload
       stateCache = null
       stateCacheInitialized = false
+      ephemeralIdentityWhileEncrypted = null
 
       // Save new identity (this will encrypt it automatically)
       saveState({ skHex, pubkey, npub })
@@ -1115,6 +1152,7 @@ export function createNostrClient(): BreznNostrClient {
     getPrivateIdentity,
     publish,
     subscribe,
+    subscribeGrouped,
     getRelays,
     setRelays,
     getMutedTerms,

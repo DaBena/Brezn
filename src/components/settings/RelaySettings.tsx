@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { buttonBase } from '../../lib/buttonStyles'
+import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
+import { RELAY_WEBSOCKET_TEST_TIMEOUT_MS } from '../../lib/constants'
 import { DEFAULT_RELAYS } from '../../lib/nostrClient'
 import { CloseIcon } from '../CloseIcon'
 
@@ -106,7 +108,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
     setRelayTestError(null)
 
     const urls = relays
-    const timeoutMs = 3500
+    const timeoutMs = RELAY_WEBSOCKET_TEST_TIMEOUT_MS
 
     // Pre-fill unknown for all current relays.
     setRelayStatusesByUrl(prev => {
@@ -137,10 +139,13 @@ export function RelaySettings({ client }: RelaySettingsProps) {
   return (
     <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">Relays</div>
-      <div className="mt-1 text-xs text-brezn-muted">Relays for loading & posting.</div>
+      <div className="mt-1 text-xs text-brezn-muted">
+        Relays for loading & posting. The <span className="font-medium text-brezn-text">first relay</span> is used for
+        the DM inbox (chat list & history) so it finishes quickly—put your most reliable relay at the top.
+      </div>
 
       {relays.length === 0 ? (
-        <div className="mt-3 rounded-xl border border-brezn-border bg-brezn-panel2 p-3 text-xs text-brezn-muted">
+        <div className="mt-3 rounded-xl border border-brezn-border bg-brezn-panel p-3 text-xs text-brezn-muted">
           No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the "Default" button to restore default relays.
         </div>
       ) : null}
@@ -190,7 +195,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           value={newRelay}
           onChange={e => setNewRelay(e.target.value)}
           placeholder="wss://relay.example"
-          className="w-full border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
+          className="w-full border border-brezn-text p-2 text-base outline-none"
         />
         <button
           type="submit"
@@ -223,7 +228,9 @@ export function RelaySettings({ client }: RelaySettingsProps) {
 
       {relayMsg ? <div className="mt-2 text-xs text-brezn-muted">{relayMsg}</div> : null}
 
-      {relayTestState === 'error' && relayTestError ? <div className="mt-2 text-xs text-brezn-danger">{relayTestError}</div> : null}
+      {relayTestState === 'error' && relayTestError ? (
+        <div className="mt-2 text-xs text-brezn-error">{relayTestError}</div>
+      ) : null}
 
       {relayTestTriggered ? (
         <div className="mt-3 space-y-2">
@@ -242,10 +249,10 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                   </div>
                 </div>
                 <div
-                  className={[
+                  className={cn(
                     'h-2.5 w-2.5 shrink-0 rounded-full',
-                    s.reachable === 'unknown' ? 'bg-brezn-muted/50' : s.reachable ? 'bg-emerald-400' : 'bg-brezn-danger',
-                  ].join(' ')}
+                    s.reachable === 'unknown' ? 'bg-brezn-muted/50' : s.reachable ? 'bg-brezn-success' : 'bg-brezn-error',
+                  )}
                   aria-label={`Relay status: ${s.reachable === 'unknown' ? 'unknown' : s.reachable ? 'reachable' : 'unreachable'}`}
                 />
               </div>

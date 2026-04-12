@@ -2,46 +2,21 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { Profile } from '../hooks/useProfiles'
+import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
 import { buttonBase } from '../lib/buttonStyles'
-import { PostContent } from './PostContent'
-import { PostIdentity } from './PostIdentity'
-import { FEED_INITIAL_DISPLAY_LIMIT, REPO_URL } from '../lib/constants'
-import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from '../lib/urls'
-
-const FEED_MAX_FLOWTEXT_LENGTH = 280
-
-function truncateContentForFeed(content: string): string {
-  const links = extractLinks(content)
-  let flowText = ''
-  let cursor = 0
-  for (const link of links) {
-    flowText += content.slice(cursor, link.start)
-    cursor = link.end
-  }
-  flowText += content.slice(cursor)
-
-  const needsTruncation = flowText.length > FEED_MAX_FLOWTEXT_LENGTH
-  const truncatedText = needsTruncation
-    ? `${flowText.slice(0, FEED_MAX_FLOWTEXT_LENGTH).trimEnd()}\n...`
-    : flowText
-
-  const mediaUrls = uniqueUrls(links.map(l => l.href)).filter(
-    url => isLikelyImageUrl(url) || isLikelyVideoUrl(url),
-  )
-  if (!mediaUrls.length) return truncatedText
-
-  const mediaBlock = mediaUrls.join('\n')
-  return `${truncatedText}\n\n${mediaBlock}`
-}
+import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
+import { FEED_RENDER_CHUNK, REPO_URL } from '../lib/constants'
+import { truncateFeedCardContent } from '../lib/feedContentPreview'
 
 export function Feed(props: {
+  client: BreznNostrClient
   feedState: FeedState
   geoCell: string | null
   viewerPoint: GeoPoint | null
   isOffline: boolean
-  /** Show cookie/consent notice only on first run (no stored location yet). */
+  /** No stored cell yet: show first-run / consent UI above the feed. */
   showCookieNotice: boolean
   profilesByPubkey: Map<string, Profile>
   reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
@@ -59,6 +34,7 @@ export function Feed(props: {
 }) {
   const {
     feedState,
+    client,
     geoCell,
     viewerPoint,
     isOffline,
@@ -75,10 +51,11 @@ export function Feed(props: {
     onOpenThread,
   } = props
 
-  const [displayLimit, setDisplayLimit] = useState(FEED_INITIAL_DISPLAY_LIMIT)
+  // Client row cap (media lazy in PostContent); relay older = onLoadMore.
+  const [displayLimit, setDisplayLimit] = useState(FEED_RENDER_CHUNK)
 
   const displayedEvents = useMemo(() => events.slice(0, displayLimit), [events, displayLimit])
-  const hasMore = events.length > displayLimit
+  const hasMoreInBuffer = events.length > displayLimit
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -95,8 +72,8 @@ export function Feed(props: {
   }, [displayedEvents, viewerPoint])
 
   const handleLoadMore = () => {
-    if (hasMore) {
-      setDisplayLimit(prev => prev + FEED_INITIAL_DISPLAY_LIMIT)
+    if (hasMoreInBuffer) {
+      setDisplayLimit(prev => prev + FEED_RENDER_CHUNK)
     } else {
       onLoadMore()
     }
@@ -105,13 +82,13 @@ export function Feed(props: {
   return (
     <main className="mx-auto max-w-xl px-3 pb-24 pt-12">
       {isOffline ? (
-        <div className="mb-2 rounded-lg border border-brezn-border bg-brezn-panel2 p-2 text-xs text-brezn-muted shadow-soft">
+        <div className="mb-2 rounded-lg border border-brezn-border bg-brezn-panel p-2 text-xs text-brezn-muted">
           Offline - showing last seen posts (read-only).
         </div>
       ) : null}
       
       {feedState.kind === 'need-location' && (
-        <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 shadow-soft">
+        <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">Location for local feed</div>
           <div className="mt-1 text-sm text-brezn-muted">
             This app needs your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.
@@ -124,7 +101,7 @@ export function Feed(props: {
                   href={REPO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 underline"
+                  className="text-brezn-link underline"
                 >
                   source, README & license
                 </a>
@@ -149,7 +126,7 @@ export function Feed(props: {
       )}
 
       {feedState.kind === 'error' && (
-        <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 shadow-soft">
+        <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">Error</div>
           <div className="mt-1 text-sm text-brezn-muted">{feedState.message}</div>
           {!feedState.message.includes('No relays configured') ? (
@@ -168,14 +145,14 @@ export function Feed(props: {
       {(feedState.kind === 'loading' || feedState.kind === 'live') && Boolean(geoCell) && (
         <>
           {displayedEvents.length === 0 ? (
-            <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted shadow-soft">
+            <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted">
               {feedState.kind === 'loading' ? (
                 initialTimedOut ? (
                   <>
                     {lastCloseReasons?.length ? 'Relay connection failed. ' : null}
                     No response from relays. Check the relay list or try again later.
                     {lastCloseReasons?.length ? (
-                      <div className="mt-2 rounded-xl border border-brezn-border bg-brezn-panel2 p-2 font-mono text-xs">
+                      <div className="mt-2 rounded-xl border border-brezn-border bg-brezn-panel p-2 font-mono text-xs">
                         {lastCloseReasons.join(' • ')}
                       </div>
                     ) : null}
@@ -190,97 +167,25 @@ export function Feed(props: {
           ) : (
             <>
               <div className="space-y-2">
-                {displayedEvents.map(evt => {
-                    const isDeleted = deletedNoteIds.has(evt.id)
-                    if (isDeleted) {
-                      return (
-                        <article
-                          key={evt.id}
-                          className="rounded-lg border border-brezn-border bg-brezn-muted/20 px-3 py-2 shadow-soft opacity-80"
-                          aria-label="Deleted post"
-                        >
-                          <div className="text-[11px] font-medium text-brezn-muted">
-                            Deleted – propagating to relays
-                          </div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <PostIdentity
-                                pubkey={evt.pubkey}
-                                profile={profilesByPubkey.get(evt.pubkey)}
-                                displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
-                              />
-                            </div>
-                            <div className="shrink-0 text-[11px] text-brezn-muted">
-                              {new Date(evt.created_at * 1000).toLocaleString(undefined, {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                              {approxDistanceById[evt.id] ? <span> / {approxDistanceById[evt.id]}</span> : null}
-                            </div>
-                          </div>
-                          <div className="mt-2">
-                            <PostContent content={truncateContentForFeed(evt.content)} interactive compact />
-                          </div>
-                        </article>
-                      )
-                    }
-                    return (
-                  <article
+                {displayedEvents.map(evt => (
+                  <FeedEventArticle
                     key={evt.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onOpenThread(evt)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        onOpenThread(evt)
-                      }
-                    }}
-                    className="cursor-pointer rounded-lg border border-brezn-border bg-brezn-panel px-3 py-2 shadow-soft hover:bg-brezn-panel/80 focus:outline-none"
-                    aria-label="Open post"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <PostIdentity 
-                          pubkey={evt.pubkey} 
-                          profile={profilesByPubkey.get(evt.pubkey)}
-                          displayNameOverride={evt.tags.find(t => t[0] === 'n')?.[1]}
-                        />
-                      </div>
-                      <div className="shrink-0 text-[11px] text-brezn-muted">
-                        {new Date(evt.created_at * 1000).toLocaleString(undefined, {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                        {approxDistanceById[evt.id] ? <span> / {approxDistanceById[evt.id]}</span> : null}
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <PostContent 
-                        content={truncateContentForFeed(evt.content)} 
-                        interactive 
-                        compact 
-                      />
-                    </div>
-                  </article>
-                    )
-                  })}
+                    variant="feed"
+                    evt={evt}
+                    isDeleted={deletedNoteIds.has(evt.id)}
+                    contentPreview={truncateFeedCardContent(evt.content)}
+                    profilesByPubkey={profilesByPubkey}
+                    distanceLabel={approxDistanceById[evt.id]}
+                    client={client}
+                    onOpenThread={onOpenThread}
+                  />
+                ))}
               </div>
-              <div className="mt-3">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={isLoadingMore && !hasMore}
-                  className={`w-full rounded-lg px-3 py-2 text-sm font-semibold ${buttonBase}`}
-                >
-                  {isLoadingMore && !hasMore ? 'Loading more…' : hasMore ? 'Show more' : 'Load more'}
-                </button>
-              </div>
+              <LoadOlderPostsButton
+                wrapWithMargin
+                onClick={handleLoadMore}
+                loading={isLoadingMore && !hasMoreInBuffer}
+              />
             </>
           )}
         </>

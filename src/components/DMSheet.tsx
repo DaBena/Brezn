@@ -36,12 +36,14 @@ export function DMSheet(props: {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
-  const identity = client.getPublicIdentity()
+  const myPubkey = client.getPublicIdentity().pubkey
+  const peer = otherPubkey.trim().toLowerCase()
 
   useEffect(() => {
     if (!open) return
 
     let alive = true
+    const me = myPubkey.trim().toLowerCase()
 
     setLoading(true)
     setError(null)
@@ -55,7 +57,7 @@ export function DMSheet(props: {
     }
 
     void client
-      .getDMsWith(otherPubkey)
+      .getDMsWith(peer)
       .then(msgs => {
         if (!alive) return
         setMessages(msgs)
@@ -69,9 +71,9 @@ export function DMSheet(props: {
 
     const since = Math.floor(Date.now() / 1000) - 60
 
-    async function onIncomingDm(fromMe: boolean, evt: Event) {
+    function onIncomingDm(fromMe: boolean, evt: Event) {
       try {
-        const decryptedContent = await client.decryptDM(evt)
+        const decryptedContent = client.decryptDM(evt)
         const newMessage: DecryptedDM = { event: evt, decryptedContent, isFromMe: fromMe }
         if (!alive) return
         setMessages(prev => mergeIncomingDm(prev, newMessage, fromMe))
@@ -80,23 +82,31 @@ export function DMSheet(props: {
       }
     }
 
-    const unsub1 = client.subscribe(
-      { kinds: [4], authors: [identity.pubkey], '#p': [otherPubkey], since },
-      { onevent: evt => void onIncomingDm(true, evt) },
-    )
-    const unsub2 = client.subscribe(
-      { kinds: [4], authors: [otherPubkey], '#p': [identity.pubkey], since },
-      { onevent: evt => void onIncomingDm(false, evt) },
+    const unsub = client.subscribeGrouped(
+      [
+        { kinds: [4], authors: [me], since, limit: 200 },
+        { kinds: [4], authors: [peer], '#p': [me], since },
+      ],
+      {
+        onevent: evt => {
+          const author = evt.pubkey.toLowerCase()
+          if (author === me) {
+            const p = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]?.toLowerCase()
+            if (p !== peer) return
+            onIncomingDm(true, evt)
+          } else if (author === peer) {
+            onIncomingDm(false, evt)
+          }
+        },
+      },
+      'dm-live',
     )
 
     return () => {
       alive = false
-      unsub1()
-      unsub2()
+      unsub()
     }
-    // Intentionally only open + peer: avoids re-running on every client/identity change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- client is stable; identity read inside effect
-  }, [open, otherPubkey])
+  }, [open, peer, myPubkey, client])
 
   useEffect(() => {
     if (open && messages.length > 0) {
@@ -120,10 +130,10 @@ export function DMSheet(props: {
     const optimisticMessage: DecryptedDM = {
       event: {
         id: tempId,
-        pubkey: identity.pubkey,
+        pubkey: myPubkey,
         created_at: Math.floor(Date.now() / 1000),
         kind: 4,
-        tags: [['p', otherPubkey]],
+        tags: [['p', peer]],
         content: '[sending...]',
         sig: '',
       },
@@ -133,7 +143,7 @@ export function DMSheet(props: {
     setMessages(prev => sortDms([...prev, optimisticMessage]))
 
     try {
-      await client.sendDM(otherPubkey, content)
+      await client.sendDM(peer, content)
       setMessageText('')
       window.setTimeout(() => {
         setMessages(prev => {
@@ -164,49 +174,62 @@ export function DMSheet(props: {
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
+    return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   return (
-    <Sheet open={open} title={`DM: ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`} onClose={onClose}>
-      <div className="flex flex-col" style={{ height: 'calc(100dvh - 8rem)' }}>
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pb-4">
+    <Sheet
+      open={open}
+      title={`DM: ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`}
+      onClose={onClose}
+      bodyVariant="fill"
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="text-center text-sm text-brezn-muted py-8">Loading messages…</div>
-          ) : error ? (
-            <div className="text-center text-sm text-brezn-danger py-8">{error}</div>
-          ) : messages.length === 0 ? (
-            <div className="text-center text-sm text-brezn-muted py-8">No messages yet</div>
+            <div className="flex min-h-full flex-col items-center justify-center gap-2 px-1 py-8 text-center text-sm text-brezn-muted">
+              Loading messages…
+            </div>
+          ) : error && messages.length === 0 ? (
+            <div className="flex min-h-full flex-col items-center justify-center px-1 py-8 text-center text-sm text-brezn-error">
+              {error}
+            </div>
+          ) : !error && messages.length === 0 ? (
+            <div className="flex min-h-full flex-col items-center justify-center gap-2 px-1 py-8 text-center text-sm text-brezn-muted">
+              No messages yet
+            </div>
           ) : (
-            messages.map(msg => (
-              <div
-                key={msg.event.id}
-                className={`flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}`}
-              >
+            <div className="space-y-3 pb-4">
+              {error ? (
+                <div className="rounded-lg border border-brezn-border bg-brezn-panel px-3 py-2 text-center text-xs text-brezn-error">
+                  {error}
+                </div>
+              ) : null}
+              {messages.map(msg => (
                 <div
-                  className={`max-w-[75%] rounded-lg px-4 py-2 ${
-                    msg.isFromMe
-                      ? 'bg-brezn-gold text-brezn-bg'
-                      : 'bg-brezn-panel2 border border-brezn-border'
-                  }`}
+                  key={msg.event.id}
+                  className={`flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className="text-sm whitespace-pre-wrap break-words">{msg.decryptedContent}</div>
                   <div
-                    className={`text-[10px] mt-1 ${
-                      msg.isFromMe ? 'text-brezn-bg/70' : 'text-brezn-muted'
+                    className={`max-w-[62%] rounded-lg px-4 py-2 ${
+                      msg.isFromMe
+                        ? 'bg-brezn-button text-brezn-text'
+                        : 'bg-brezn-panel border border-brezn-border'
                     }`}
                   >
-                    {formatTime(msg.event.created_at)}
+                    <div className="text-sm whitespace-pre-wrap break-words">{msg.decryptedContent}</div>
+                    <div className="mt-1 text-[10px] text-brezn-text">
+                      {formatTime(msg.event.created_at)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
 
-        <div className="sticky bottom-0 -mx-4 border-t border-brezn-border bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
-          {error ? <div className="mb-2 text-xs text-brezn-danger">{error}</div> : null}
+        <div className="shrink-0 border-t border-brezn-border bg-brezn-panel pt-3">
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -219,14 +242,14 @@ export function DMSheet(props: {
                 }
               }}
               placeholder="Write message…"
-              className="flex-1 h-20 resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base outline-none"
+              className="basis-[62%] h-20 resize-none border border-brezn-text p-3 text-base outline-none"
               disabled={sending}
             />
             <button
               onClick={sendMessage}
               disabled={sending || !messageText.trim()}
               aria-label="Send message"
-              className={`rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
+              className={`basis-[38%] rounded-lg px-4 py-3 text-sm font-semibold ${buttonBase}`}
             >
               {sending ? '…' : '→'}
             </button>

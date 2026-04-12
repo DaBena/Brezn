@@ -235,7 +235,6 @@ describe('nostrClient NIP-56 report events', () => {
         kind: 1984, // NIP-56 report
         content: reportReason, // Report reason in content field (correct NIP-56 format)
         tags: [
-          ['client', 'brezn'],
           ['p', targetPubkey],
           ['e', targetEventId],
           // Note: NO ['report', ...] tag - that would be incorrect

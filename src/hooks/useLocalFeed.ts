@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import {
@@ -10,15 +10,21 @@ import {
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { getSavedGeo5, setSavedGeo5 } from '../lib/lastLocation'
-import { loadJsonSync, saveJsonSync, setStorageConsentGiven } from '../lib/storage'
+import { setStorageConsentGiven } from '../lib/storage'
 import { deletePost } from '../lib/postService'
 import {
   RESEND_DELETION_COOLDOWN_MS,
   FEED_INITIAL_MIN_POSTS,
   FEED_AUTO_BACKFILL_MAX_ATTEMPTS,
   FEED_QUERY_LIMIT,
-  FEED_CACHE_MAX_EVENTS,
 } from '../lib/constants'
+import { computeNextUntilCursor } from '../lib/loadMoreCursor'
+
+export type LoadMorePageResult = {
+  added: number
+  /** More older roots may exist (or we can advance `until` after an empty duplicate page). */
+  canLoadOlder: boolean
+}
 
 export type FeedState =
   | { kind: 'need-location'; locationError?: string }
@@ -26,12 +32,20 @@ export type FeedState =
   | { kind: 'live' }
   | { kind: 'error'; message: string }
 
-const FEED_CACHE_KEY = 'brezn:feed-cache:v1'
-
 function isReplyNote(evt: Event): boolean {
-  // NIP-10 replies are kind:1 with at least one `e` tag.
-  // We keep the main feed "root posts only" and show replies in a thread view.
+  // NIP-10 reply: kind 1 + `e` tag; feed stays roots-only.
   return evt.kind === 1 && evt.tags.some(t => t[0] === 'e')
+}
+
+/**
+ * Mode 0 (precision "cell"): coarse 1-char + east/west plus the saved 5-char `#g`.
+ * Many relays match `#g` literally; notes tagged only with the full cell never match `['u']` alone.
+ */
+function gCellsCoarsePlusFine(queryGeohash: string): string[] {
+  const oneCharHash = queryGeohash.slice(0, 1)
+  const neighbors = getEastWestNeighbors(oneCharHash)
+  const coarse = neighbors ? [oneCharHash, neighbors.east, neighbors.west] : [oneCharHash]
+  return coarse.includes(queryGeohash) ? coarse : [...coarse, queryGeohash]
 }
 
 export function useLocalFeed(params: {
@@ -47,39 +61,38 @@ export function useLocalFeed(params: {
   deletedNoteIdsRef.current = deletedNoteIds
   const lastResendTimeByNoteIdRef = useRef<Record<string, number>>({})
 
-  const cached = loadJsonSync<{ updatedAt: number; geoCell?: string; events: Event[] } | null>(FEED_CACHE_KEY, null)
-
   const [isOffline, setIsOffline] = useState(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false))
 
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
+  // Precision 0 → query full 5-char cell (wide REQ); else prefix length matches UI selector.
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
       ? initialSavedGeo5.slice(0, initialGeohashLength)
-      : initialSavedGeo5 // Use full 5-digit geohash when length is 0
+      : initialSavedGeo5
 
   const [geohashLength, setGeohashLength] = useState<number>(initialGeohashLength)
-  const [feedState, setFeedState] = useState<FeedState>(() => {
-    if (cached?.events?.length && isOffline) return { kind: 'live' }
-    return initialQueryGeohash ? { kind: 'loading' } : { kind: 'need-location' }
-  })
-  const [events, setEvents] = useState<Event[]>(() => (cached?.events?.length ? cached.events : []))
+  const [feedState, setFeedState] = useState<FeedState>(() =>
+    initialQueryGeohash ? { kind: 'loading' } : { kind: 'need-location' },
+  )
+  const [events, setEvents] = useState<Event[]>([])
   const [queryGeohash, setQueryGeohash] = useState<string | null>(() => (isOffline ? null : initialQueryGeohash))
   const [initialTimedOut, setInitialTimedOut] = useState(false)
   const [lastCloseReasons, setLastCloseReasons] = useState<string[] | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-  // geoCell is the same as queryGeohash (for UI display, can be 1-5 characters)
   const geoCell = queryGeohash
-  // viewerGeo5 is the full 5-digit geohash (for posting, always 5 characters)
-  // Read from lastLocation - will be updated when location changes
   const [viewerGeo5, setViewerGeo5] = useState<string | null>(() => getSavedGeo5())
-  // viewerPoint is derived from saved 5-digit geohash
   const viewerPoint = useMemo(() => {
     return viewerGeo5 ? decodeGeohashCenter(viewerGeo5) : null
   }, [viewerGeo5])
 
   const unsubRef = useRef<null | (() => void)>(null)
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+  /** Next `until` after duplicate/empty relay page. */
+  const loadMoreCursorRef = useRef<number | null>(null)
+  const loadMoreQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
   const viewerGeo5Ref = useRef<string | null>(viewerGeo5)
   viewerGeo5Ref.current = viewerGeo5
@@ -108,8 +121,7 @@ export function useLocalFeed(params: {
     }
   }, [])
 
-  // Re-sync online state after load (e.g. after "Allow location" reload). Some environments
-  // report navigator.onLine as false briefly on first paint; correct it so we don't stay offline.
+  // Fix flaky navigator.onLine on first paint (e.g. after geo reload).
   useEffect(() => {
     if (typeof window === 'undefined') return
     const t = window.setTimeout(() => {
@@ -118,16 +130,14 @@ export function useLocalFeed(params: {
     return () => window.clearTimeout(t)
   }, [])
 
-  // Clear events when relays change
   const relaysRef = useRef<string[]>([])
   useEffect(() => {
     const currentRelays = client.getRelays()
     const prevRelays = relaysRef.current
-    // Check if relays have changed (by comparing sorted arrays)
     const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...prevRelays].sort())
     if (relaysChanged && prevRelays.length > 0) {
-      // Relays changed - clear events to avoid showing posts from removed relays
       setEvents([])
+      loadMoreCursorRef.current = null
       setFeedState({ kind: 'loading' })
       setInitialTimedOut(false)
       setLastCloseReasons(null)
@@ -135,18 +145,10 @@ export function useLocalFeed(params: {
     relaysRef.current = currentRelays
   }, [client])
 
-  // Persist a small "last seen" cache for offline read-only mode.
-  useEffect(() => {
-    if (!sortedEvents.length) return
-    // Keep it small and recent.
-    const top = sortedEvents.slice(0, FEED_CACHE_MAX_EVENTS)
-    saveJsonSync(FEED_CACHE_KEY, { updatedAt: Date.now(), geoCell: geoCell ?? undefined, events: top })
-  }, [geoCell, sortedEvents])
-
   function setLocalQueryFromGeo5(geo5: string, len: number) {
     setEvents([])
+    loadMoreCursorRef.current = null
     if (len === 0) {
-      // Use full 5-digit geohash when len is 0 (will query current + east/west)
       setQueryGeohash(geo5)
     } else {
       const clampedLen = Math.max(1, Math.min(5, Math.round(len))) as 1 | 2 | 3 | 4 | 5
@@ -176,8 +178,6 @@ export function useLocalFeed(params: {
         }
       }
 
-      // Only clear to need-location when we have no saved location (single source of truth).
-      // If we have a saved location and browser location fails, we keep using the saved one.
       const savedBeforeRequest = getSavedGeo5()
       if (!savedBeforeRequest) {
         setFeedState({ kind: 'need-location' }) // clear previous error while retrying
@@ -188,7 +188,7 @@ export function useLocalFeed(params: {
       setStorageConsentGiven(true) // allow IndexedDB (brezn-storage) from now on
       client.persistStateNow() // persist nsec now that user has consented (Allow location)
     } catch (e) {
-      // Single source of truth: if we have a saved location, use it and never show "allow location".
+      // Browser location failed: fall back to last saved cell if any (stay off need-location).
       const savedGeo5 = getSavedGeo5()
       if (savedGeo5) {
         applyGeo5AsLocation(savedGeo5)
@@ -205,7 +205,6 @@ export function useLocalFeed(params: {
     applyGeo5AsLocation(geo5)
   }
 
-  // Auto-prompt for location on first open (no stored location).
   const autoPromptedRef = useRef(false)
   useEffect(() => {
     if (autoPromptedRef.current) return
@@ -213,15 +212,12 @@ export function useLocalFeed(params: {
     if (feedState.kind !== 'need-location') return
     autoPromptedRef.current = true
     void requestLocationAndLoad({ forceBrowser: true })
-    // Intentionally depend on coarse state; prompt should run at most once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per need-location
   }, [feedState.kind, isOffline])
 
-  // Simple query: use the selected geohash length
-  // New posts have tuple tags (1-5), so they'll be found regardless of query length
-  // Old posts without tuple tags will only be found if query matches exactly
+  // New notes use hierarchical `#g` tags; legacy posts may need exact `queryGeohash` match.
   const currentRelays = client.getRelays()
-  const relaysKey = currentRelays.join(',')
+  const relaysKey = [...currentRelays].sort().join(',')
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return
@@ -232,6 +228,7 @@ export function useLocalFeed(params: {
     unsubRef.current?.()
 
     setEvents([])
+    loadMoreCursorRef.current = null
     setFeedState({ kind: 'loading' })
     setInitialTimedOut(false)
     setLastCloseReasons(null)
@@ -248,14 +245,13 @@ export function useLocalFeed(params: {
 
       eventCount++
       if (eventCount === 1) setFeedState({ kind: 'live' })
-      // Must not wrap setEvents in startTransition: setFeedState('live') would commit first and
-      // the feed could briefly render "No posts found" while events are still deferred.
+      // No startTransition here: would flash empty feed before events land.
       setEvents(prev => {
         if (prev.some(e => e.id === evt.id)) return prev
         return [evt, ...prev]
       })
 
-      // If this is a post we deleted and it’s our own: resend NIP-09 with rate limit (10s)
+      // Our delete still visible: re-broadcast NIP-09 (rate limited).
       if (
         evt.kind === 1 &&
         identityPubkeyRef.current &&
@@ -281,64 +277,51 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // Special case: length 0 means query current cell plus east/west neighbor cells (3 queries) for wider local coverage.
-    // Otherwise, single query with the selected geohash length.
-    // No 'since' filter - find all posts regardless of age (important for apps with few users)
+    // Mode 0: band + exact 5-char; else single `#g`. No `since` (sparse feeds).
     if (geohashLength === 0 && queryGeohash.length === 5) {
-      const oneCharHash = queryGeohash.slice(0, 1)
-      const neighbors = getEastWestNeighbors(oneCharHash)
-      if (neighbors) {
-        const cellsToQuery = [oneCharHash, neighbors.east, neighbors.west]
-        const totalQueries = cellsToQuery.length
-        let currentIndex = 0
-        let eoseCount = 0
-        const unsubs: (() => void)[] = []
+      const cellsToQuery = gCellsCoarsePlusFine(queryGeohash)
+      const totalQueries = cellsToQuery.length
+      let currentIndex = 0
+      let eoseCount = 0
+      const unsubs: (() => void)[] = []
 
-        const checkAllComplete = () => {
-          if (eoseCount >= totalQueries) {
-            didEose = true
-            setFeedState({ kind: 'live' })
-          }
+      const checkAllComplete = () => {
+        if (eoseCount >= totalQueries) {
+          didEose = true
+          setFeedState({ kind: 'live' })
         }
-
-        const runNextQuery = () => {
-          if (currentIndex >= cellsToQuery.length) {
-            checkAllComplete()
-            return
-          }
-
-          const cell = cellsToQuery[currentIndex]
-          currentIndex++
-          const unsub = client.subscribe(
-            { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT },
-            {
-              onevent: onEvent,
-              oneose: () => {
-                if (cancelled) return
-                eoseCount++
-                checkAllComplete()
-                if (currentIndex < cellsToQuery.length) {
-                  const id = window.setTimeout(runNextQuery, 100)
-                  timerIds.push(id)
-                }
-              },
-              onclose: onClose,
-              immediate: true,
-            },
-          )
-          unsubs.push(unsub)
-          unsubRef.current = () => unsubs.forEach(u => u())
-        }
-
-        runNextQuery()
-      } else {
-        const fallbackHash = queryGeohash.slice(0, 1)
-        const unsubMain = client.subscribe(
-          { kinds: [1], '#g': [fallbackHash], limit: FEED_QUERY_LIMIT },
-          { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
-        )
-        unsubRef.current = unsubMain
       }
+
+      const runNextQuery = () => {
+        if (currentIndex >= cellsToQuery.length) {
+          checkAllComplete()
+          return
+        }
+
+        const cell = cellsToQuery[currentIndex]
+        currentIndex++
+        const unsub = client.subscribe(
+          { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT },
+          {
+            onevent: onEvent,
+            oneose: () => {
+              if (cancelled) return
+              eoseCount++
+              checkAllComplete()
+              if (currentIndex < cellsToQuery.length) {
+                const id = window.setTimeout(runNextQuery, 100)
+                timerIds.push(id)
+              }
+            },
+            onclose: onClose,
+            immediate: true,
+          },
+        )
+        unsubs.push(unsub)
+        unsubRef.current = () => unsubs.forEach(u => u())
+      }
+
+      runNextQuery()
     } else {
       const unsub = client.subscribe(
         { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
@@ -351,61 +334,146 @@ export function useLocalFeed(params: {
       for (const id of timerIds) window.clearTimeout(id)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, viewerGeo5, isOffline, relaysKey, currentRelays.length, geohashLength])
+  }, [client, queryGeohash, viewerGeo5, isOffline, relaysKey, geohashLength, currentRelays.length])
 
-  function loadMore() {
-    if (isLoadingMore) return
-    if (!queryGeohash) return
+  const runLoadMorePage = useRef<() => Promise<LoadMorePageResult>>(() =>
+    Promise.resolve({ added: 0, canLoadOlder: false }),
+  )
+  runLoadMorePage.current = () => {
+    if (!queryGeohash) {
+      return Promise.resolve({ added: 0, canLoadOlder: false })
+    }
     const relays = client.getRelays()
     if (relays.length === 0) {
       setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
-      return
+      return Promise.resolve({ added: 0, canLoadOlder: false })
     }
 
-    const oldest = events.reduce((min, e) => Math.min(min, e.created_at), Number.POSITIVE_INFINITY)
-    if (!Number.isFinite(oldest) || oldest <= 0) return
-
-    setIsLoadingMore(true)
-
-    const until = oldest - 1
-
-    const onEventLoadMore = (evt: Event) => {
-      if (evt.kind !== 1) return
-      if (isReplyNote(evt)) return
-      setEvents(prev => (prev.some(e => e.id === evt.id) ? prev : [evt, ...prev]))
+    const ev = eventsRef.current
+    const oldest = ev.reduce((min, e) => Math.min(min, e.created_at), Number.POSITIVE_INFINITY)
+    if (!Number.isFinite(oldest) || oldest <= 0) {
+      return Promise.resolve({ added: 0, canLoadOlder: false })
     }
 
-    const clear = () => setIsLoadingMore(false)
-    const timeoutMs = 15_000
-    const timeoutId = window.setTimeout(clear, timeoutMs)
-    let cleanupTimerId: number | null = null
-    let hardStopTimerId: number | null = null
+    const defaultUntil = oldest - 1
+    const until = loadMoreCursorRef.current ?? defaultUntil
 
-    const unsub = client.subscribe(
-      { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT, until },
-      {
-        onevent: onEventLoadMore,
-        oneose: () => {
+    const cellsForLoadMore =
+      geohashLength === 0 && queryGeohash.length === 5
+        ? gCellsCoarsePlusFine(queryGeohash)
+        : [queryGeohash]
+
+    return new Promise<LoadMorePageResult>(resolve => {
+      let settled = false
+      let timeoutId = 0
+
+      let batchRelayCount = 0
+      let batchMinCreated: number | null = null
+
+      const unsubs: (() => void)[] = []
+
+      const finish = (n: number) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timeoutId)
+        for (const u of unsubs) {
+          try {
+            u()
+          } catch {
+            /* ignore */
+          }
+        }
+        setIsLoadingMore(false)
+        const listAfter = eventsRef.current
+        const feedLo = listAfter.length
+          ? Math.min(...listAfter.map(e => e.created_at))
+          : oldest
+        const feedHi = listAfter.length
+          ? Math.max(...listAfter.map(e => e.created_at))
+          : oldest
+        loadMoreCursorRef.current =
+          n > 0
+            ? null
+            : computeNextUntilCursor({
+                mergedNewCount: n,
+                requestUntil: until,
+                batchRelayCount,
+                batchMinCreated,
+                feedOldestCreated: feedLo,
+                feedNewestCreated: feedHi,
+              })
+        const canLoadOlder = n > 0 || loadMoreCursorRef.current !== null
+        resolve({ added: n, canLoadOlder })
+      }
+
+      setIsLoadingMore(true)
+      /** Sync count: state updaters can lag EOSE. */
+      let newEventCount = 0
+      const relayRootIdsThisBatch = new Set<string>()
+      const timeoutMs = 15_000
+
+      const onEventLoadMore = (evt: Event) => {
+        if (evt.kind !== 1) return
+        if (isReplyNote(evt)) return
+        batchRelayCount++
+        batchMinCreated =
+          batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
+        if (relayRootIdsThisBatch.has(evt.id)) return
+        if (eventsRef.current.some(e => e.id === evt.id)) return
+        relayRootIdsThisBatch.add(evt.id)
+        newEventCount++
+        setEvents(prev => {
+          if (prev.some(e => e.id === evt.id)) return prev
+          return [evt, ...prev]
+        })
+      }
+
+      let subsRemaining = cellsForLoadMore.length
+
+      const onOneSubClosed = () => {
+        subsRemaining--
+        if (subsRemaining <= 0) {
           window.clearTimeout(timeoutId)
-          clear()
-          // Close subscription after EOSE to avoid keeping it open
-          cleanupTimerId = window.setTimeout(() => unsub(), 100)
-        },
-        onclose: () => {
-          window.clearTimeout(timeoutId)
-          if (cleanupTimerId !== null) window.clearTimeout(cleanupTimerId)
-          if (hardStopTimerId !== null) window.clearTimeout(hardStopTimerId)
-          clear()
-        },
-      },
-    )
-    hardStopTimerId = window.setTimeout(() => {
-      unsub()
-    }, timeoutMs)
+          finish(newEventCount)
+        }
+      }
+
+      for (const cell of cellsForLoadMore) {
+        let closed = false
+        const markClosed = () => {
+          if (closed) return
+          closed = true
+          onOneSubClosed()
+        }
+        const unsub = client.subscribe(
+          { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT, until },
+          {
+            onevent: onEventLoadMore,
+            oneose: markClosed,
+            onclose: markClosed,
+            immediate: true,
+          },
+        )
+        unsubs.push(unsub)
+      }
+
+      timeoutId = window.setTimeout(() => {
+        for (const u of unsubs) u()
+      }, timeoutMs)
+    })
   }
 
-  // Auto-backfill: if there are too few posts, automatically load older ones,
-  // so the feed is meaningfully filled without needing "Load more".
+  const loadMorePage = useCallback((): Promise<LoadMorePageResult> => {
+    const next = loadMoreQueueRef.current.then(() => runLoadMorePage.current())
+    loadMoreQueueRef.current = next.then(() => undefined, () => undefined)
+    return next
+  }, [])
+
+  function loadMore() {
+    void loadMorePage()
+  }
+
+  // If the feed is very short, pull older pages automatically (bounded attempts).
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return
@@ -413,22 +481,19 @@ export function useLocalFeed(params: {
     if (sortedEvents.length >= FEED_INITIAL_MIN_POSTS) return
     if (isLoadingMore) return
 
-    // Only try to backfill a few times per geo-query.
     const key = queryGeohash
     if (autoBackfillRef.current.key !== key) autoBackfillRef.current = { key, attempts: 0 }
     if (autoBackfillRef.current.attempts >= FEED_AUTO_BACKFILL_MAX_ATTEMPTS) return
 
     autoBackfillRef.current.attempts++
     loadMore()
-    // Intentionally omit loadMore from deps; we only need the current render values.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stale loadMore OK
   }, [queryGeohash, isLoadingMore, isOffline, sortedEvents.length])
 
   function applyGeohashLength(nextLength: number) {
     client.setGeohashLength(nextLength)
     setGeohashLength(nextLength)
 
-    // If we already have a stored last location, rebuild the query without prompting.
     const savedGeo5 = getSavedGeo5()
     if (savedGeo5) {
       setLocalQueryFromGeo5(savedGeo5, nextLength)
@@ -440,7 +505,7 @@ export function useLocalFeed(params: {
     requestLocationAndLoad,
     setLocationFromGeohash,
     geoCell,
-    viewerGeo5, // Full 5-digit geohash for posting
+    viewerGeo5,
     isOffline,
     sortedEvents,
     viewerPoint,
@@ -449,6 +514,7 @@ export function useLocalFeed(params: {
     lastCloseReasons,
     isLoadingMore,
     loadMore,
+    loadMorePage,
     applyGeohashLength,
   }
 }

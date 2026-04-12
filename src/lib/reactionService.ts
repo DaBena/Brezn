@@ -1,6 +1,6 @@
 import type { Event } from 'nostr-tools'
 import type { BreznNostrClient } from './nostrClient'
-import { breznClientTag, NOSTR_KINDS } from './breznNostr'
+import { NOSTR_KINDS } from './breznNostr'
 
 export async function reactToPost(
   client: BreznNostrClient,
@@ -13,7 +13,7 @@ export async function reactToPost(
     await client.publish({
       kind: NOSTR_KINDS.reaction,
       content: '+',
-      tags: [breznClientTag(), ['e', evt.id], ['p', evt.pubkey]],
+      tags: [['e', evt.id], ['p', evt.pubkey]],
     })
     onSuccess?.()
   } catch (error) {

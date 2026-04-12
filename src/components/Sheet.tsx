@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
+import { cn } from '../lib/cn'
 import { CloseIcon } from './CloseIcon'
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
@@ -24,14 +25,35 @@ function getFocusableElements(root: HTMLElement): HTMLElement[] {
 export function Sheet(props: {
   open: boolean
   title?: string
-  titleElement?: React.ReactNode
+  titleElement?: ReactNode
+  /** Shown in the header row, left column (e.g. toolbar controls). Close stays on the right. */
+  headerStart?: ReactNode
+  /** Shown in the header row, centered between left content and the close button. */
+  headerCenter?: ReactNode
   onClose: () => void
-  children: React.ReactNode
+  children: ReactNode
   zIndexClassName?: string
   dismissible?: boolean
   scrollable?: boolean
+  /**
+   * `scroll` (default): body scrolls as one column (typical lists).
+   * `fill`: body is a flex column filling the golden-ratio min height — use when children manage their own scroll (e.g. chat: messages + pinned composer).
+   */
+  bodyVariant?: 'scroll' | 'fill'
 }) {
-  const { open, title, titleElement, onClose, children, zIndexClassName, dismissible = true, scrollable = true } = props
+  const {
+    open,
+    title,
+    titleElement,
+    headerStart,
+    headerCenter,
+    onClose,
+    children,
+    zIndexClassName,
+    dismissible = true,
+    scrollable = true,
+    bodyVariant = 'scroll',
+  } = props
   const reactId = useId()
   const titleId = `sheet-${reactId}`
   const dialogRef = useRef<HTMLDivElement | null>(null)
@@ -299,48 +321,86 @@ export function Sheet(props: {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={[
+        className={cn(
           'absolute top-[calc(env(safe-area-inset-top,0px)+0.5rem)] left-0 right-0 mx-auto w-full max-w-xl',
-          'max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.5rem)] overflow-hidden flex flex-col',
-          'border shadow-soft p-2 transition-transform duration-200 ease-out',
-        ].join(' ')}
+          'min-h-[61.8dvh] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.5rem)] flex flex-col overflow-hidden',
+          'border border-brezn-border bg-brezn-panel p-2 transition-transform duration-200 ease-out',
+        )}
         style={{
-          transform: swipeOffset > 0 
-            ? `translateX(${swipeDirection === 'left' ? '-' : ''}${swipeOffset}px)` 
-            : undefined,
-          backgroundColor: 'var(--brezn-panel)',
-          borderColor: 'var(--brezn-border)',
+          transform:
+            swipeOffset > 0
+              ? `translateX(${swipeDirection === 'left' ? '-' : ''}${swipeOffset}px)`
+              : undefined,
         }}
       >
-        <div ref={headerRef} className="flex items-center justify-between">
-          <div className="flex-1">
-            {titleElement ? (
-              <div id={titleId}>{titleElement}</div>
-            ) : title ? (
-              <div id={titleId} className="text-sm font-semibold">
-                {title}
+        <div
+          ref={headerRef}
+          className={
+            headerStart != null || headerCenter != null
+              ? 'grid grid-cols-[1fr_auto_1fr] items-center gap-x-2'
+              : 'flex items-center justify-between'
+          }
+        >
+          {headerStart != null || headerCenter != null ? (
+            <>
+              <div className="flex min-w-0 items-center justify-self-start gap-2">
+                {titleElement ? (
+                  <div id={titleId}>{titleElement}</div>
+                ) : title ? (
+                  <div id={titleId} className="text-sm font-semibold">
+                    {title}
+                  </div>
+                ) : null}
+                {headerStart}
               </div>
-            ) : null}
-          </div>
-          {dismissible ? (
-            <button
-              ref={closeButtonRef}
-              onClick={onClose}
-              aria-label="Close"
-              className="ml-auto shrink-0 rounded-xl p-2 hover:opacity-80 focus:outline-none"
-              style={{
-                backgroundColor: 'var(--brezn-button)',
-                color: 'var(--brezn-text)',
-              }}
-            >
-              <CloseIcon size={24} />
-            </button>
-          ) : null}
+              <div className="flex justify-self-center">{headerCenter}</div>
+              {dismissible ? (
+                <button
+                  ref={closeButtonRef}
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="justify-self-end rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
+                >
+                  <CloseIcon size={24} />
+                </button>
+              ) : (
+                <div />
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex-1">
+                {titleElement ? (
+                  <div id={titleId}>{titleElement}</div>
+                ) : title ? (
+                  <div id={titleId} className="text-sm font-semibold">
+                    {title}
+                  </div>
+                ) : null}
+              </div>
+              {dismissible ? (
+                <button
+                  ref={closeButtonRef}
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="ml-auto shrink-0 rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
+                >
+                  <CloseIcon size={24} />
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
-        <div className={[
-          'mt-1.5 flex-1 min-h-0 overflow-x-hidden pb-[env(safe-area-inset-bottom)]',
-          scrollable ? 'hide-scrollbar overflow-y-auto' : 'overflow-y-visible',
-        ].join(' ')}>
+        <div
+          className={cn(
+            'mt-1.5 min-h-0 flex-1 overflow-x-hidden pb-[env(safe-area-inset-bottom)]',
+            bodyVariant === 'fill'
+              ? 'flex min-h-0 flex-col overflow-y-hidden'
+              : scrollable
+                ? 'hide-scrollbar overflow-y-auto'
+                : 'overflow-y-visible',
+          )}
+        >
           {children}
         </div>
       </div>

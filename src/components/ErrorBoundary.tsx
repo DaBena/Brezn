@@ -67,8 +67,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-dvh bg-brezn-bg text-brezn-text flex items-center justify-center p-4">
-          <div className="max-w-xl w-full rounded-lg border border-brezn-border bg-brezn-panel p-6 shadow-soft">
-            <div className="text-lg font-semibold text-brezn-danger mb-2">Something went wrong</div>
+          <div className="max-w-xl w-full rounded-lg border border-brezn-border bg-brezn-panel p-6">
+            <div className="mb-2 text-lg font-semibold text-brezn-error">Something went wrong</div>
             <div className="text-sm text-brezn-muted mb-4">
               An unexpected error occurred. Please try refreshing the page.
             </div>
@@ -77,7 +77,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <summary className="text-xs text-brezn-muted cursor-pointer hover:text-brezn-text mb-2">
                   Error details
                 </summary>
-                <div className="rounded-xl border border-brezn-border bg-brezn-panel2 p-3 font-mono text-xs text-brezn-muted overflow-auto max-h-64">
+                <div className="rounded-xl border border-brezn-border bg-brezn-panel p-3 font-mono text-xs text-brezn-muted overflow-auto max-h-64">
                   <div className="mb-2">
                     <strong>Error:</strong> {this.state.error.message}
                   </div>

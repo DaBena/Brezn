@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
 import type { BreznNostrClient } from '../lib/nostrClient'
 
 export function useIdentity(client: BreznNostrClient) {
-  const identity = useMemo(() => client.getPublicIdentity(), [client])
+  // Must not cache on [client] only: after IndexedDB decrypt, pubkey updates without a new client instance.
+  const identity = client.getPublicIdentity()
   return { identity }
 }
 

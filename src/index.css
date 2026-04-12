@@ -1,39 +1,51 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
-/* Default: Light mode for new users */
 :root {
   color-scheme: light;
   --brezn-bg: #ffffff;
   --brezn-panel: #ffffff;
-  --brezn-panel2: #fafafa;
   --brezn-button: #e8e6e3;
   --brezn-buttonDisabled: #c5c2be;
-  --brezn-border: #e5e3e0;
   --brezn-text: #161618;
+  --brezn-border: #dadada;
   --brezn-muted: #6b6659;
   --brezn-overlay: rgba(0, 0, 0, 0.2);
+  --brezn-link: #3c83f7;
+  --brezn-error: #dc2626;
+  --brezn-error-surface: rgba(220, 38, 38, 0.1);
+  --brezn-error-border: rgba(220, 38, 38, 0.45);
+  --brezn-success: #059669;
+  --brezn-heart: #e05a4f;
+  --brezn-meta-theme: #f4f1ea;
+  --brezn-tap: rgba(22, 22, 24, 0.12);
 }
 
-/* Dark mode (explicit) */
 html.dark {
   color-scheme: dark;
   --brezn-bg: #161618;
-  --brezn-panel: #121216;
-  --brezn-panel2: #17171d;
+  --brezn-panel: #161618;
   --brezn-button: #4a4a52;
   --brezn-buttonDisabled: #2a2a30;
-  --brezn-border: #242430;
   --brezn-text: #f4f1ea;
+  --brezn-border: #3a3a3a;
   --brezn-muted: #b8b0a3;
   --brezn-overlay: rgba(0, 0, 0, 0.75);
+  --brezn-link: #3c83f7;
+  --brezn-error: #f87171;
+  --brezn-error-surface: rgba(248, 113, 113, 0.12);
+  --brezn-error-border: rgba(248, 113, 113, 0.35);
+  --brezn-success: #34d399;
+  --brezn-heart: #e05a4f;
+  --brezn-meta-theme: #161618;
+  --brezn-tap: rgba(244, 241, 234, 0.14);
 }
 
 html,
 body {
   height: 100%;
-  /* hide browser scrollbars in main view while keeping scroll */
-  -ms-overflow-style: none; /* IE/Edge legacy */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 body {
@@ -43,24 +55,49 @@ body {
 }
 
 body::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
-/* Slightly nicer tap highlights on mobile */
 * {
-  -webkit-tap-highlight-color: rgba(214, 178, 94, 0.18);
+  -webkit-tap-highlight-color: var(--brezn-tap);
 }
 
-/* Hide scrollbars but keep scroll (Sheet/post detail) */
+textarea,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]) {
+  background-color: var(--brezn-panel);
+  color: var(--brezn-text);
+}
+textarea:focus,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):focus {
+  background-color: var(--brezn-panel);
+}
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:hover,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:focus,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:active {
+  -webkit-text-fill-color: var(--brezn-text);
+  caret-color: var(--brezn-text);
+  box-shadow: 0 0 0 1000px var(--brezn-panel) inset;
+  transition: background-color 99999s ease-out 0s;
+}
+textarea:-moz-autofill,
+input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-moz-autofill {
+  background-color: var(--brezn-panel);
+  color: var(--brezn-text);
+}
+
 .hide-scrollbar {
-  -ms-overflow-style: none; /* IE/Edge legacy */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 .hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
-/* Button styles using CSS variables */
 .btn-base {
   background-color: var(--brezn-button);
   color: var(--brezn-text);
@@ -74,4 +111,3 @@ body::-webkit-scrollbar {
   background-color: var(--brezn-buttonDisabled);
   opacity: 1;
 }
-

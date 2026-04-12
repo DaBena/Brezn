@@ -8,13 +8,10 @@ export function useNavigation() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
       if (currentScrollY < 10) {
-        // Always show at top
         setShowNav(true)
       } else if (currentScrollY > lastScrollY.current) {
-        // Scrolling down - hide
         setShowNav(false)
       } else {
-        // Scrolling up - show
         setShowNav(true)
       }
       lastScrollY.current = currentScrollY

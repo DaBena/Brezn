@@ -22,7 +22,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
   const displayName = displayNameOverride?.trim() || profile?.name?.trim() || null
   const picture = profile?.picture?.trim() || null
 
-  const avatarClass = `${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel2 overflow-hidden`
+  const avatarClass = `${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel overflow-hidden`
 
   const avatarInner = picture ? (
     <img
@@ -35,19 +35,19 @@ export const PostIdentity = memo(function PostIdentity(props: {
         if (parent) {
           target.style.display = 'none'
           const placeholder = document.createElement('div')
-          placeholder.className = `${sizeClass} shrink-0 rounded-full border-0 bg-brezn-panel2 flex items-center justify-center`
+          placeholder.className = `${sizeClass} shrink-0 rounded-full border-0 bg-brezn-panel flex items-center justify-center`
           placeholder.setAttribute('aria-hidden', 'true')
-          placeholder.innerHTML = `<svg viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>`
+          placeholder.innerHTML = `<svg viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-text"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>`
           parent.appendChild(placeholder)
         }
       }}
     />
   ) : (
     <div
-      className={`${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel2 flex items-center justify-center`}
+      className={`${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center`}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 24 24" width={iconSize} height={iconSize} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-muted">
+      <svg viewBox="0 0 24 24" width={iconSize} height={iconSize} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-text">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>
@@ -98,7 +98,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
         {displayName ? (
           <div className="truncate text-sm font-semibold text-brezn-text">{displayName}</div>
         ) : null}
-        <div className={`truncate font-mono text-[11px] ${displayName ? 'text-brezn-muted' : 'text-brezn-text'}`}>
+        <div className="truncate font-mono text-[11px] text-brezn-text">
           {shortNpub(nip19.npubEncode(pubkey), 8, 4)}
         </div>
       </div>

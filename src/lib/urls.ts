@@ -1,3 +1,5 @@
+import * as nip19 from 'nostr-tools/nip19'
+
 export type ExtractedUrl = {
   raw: string
   url: string
@@ -13,6 +15,11 @@ export type ExtractedLink = {
   end: number
 }
 
+export type ExtractedPostReference = {
+  link: ExtractedLink
+  eventId: string
+}
+
 // Rough URL matcher: good enough for plaintext posts.
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+/g
 
@@ -20,6 +27,8 @@ const URL_RE = /\bhttps?:\/\/[^\s<>()]+/g
 // We keep this intentionally rough (plaintext posts, no full URI parser).
 const NOSTR_URI_RE = /\bnostr:(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
 const NIP19_BARE_RE = /\b(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
+const BRACKET_E_POINTER_RE = /\[\[\s*e\s+([0-9a-f]{64})\s*\]\]/gi
+const BRACKET_E_POINTER_EXACT_RE = /^\[\[\s*e\s+([0-9a-f]{64})\s*\]\]$/i
 
 // Remove punctuation that often follows URLs in prose.
 function trimTrailingPunctuation(s: string): string {
@@ -49,6 +58,10 @@ function toNostrHref(display: string): string {
   if (!s) return s
   const lower = s.toLowerCase()
   const NIP19_PREFIXES = ['nprofile1', 'npub1', 'note1', 'nevent1', 'naddr1']
+  const bracketMatch = s.match(BRACKET_E_POINTER_EXACT_RE)
+  if (bracketMatch?.[1]) {
+    return `https://njump.me/${bracketMatch[1]}`
+  }
   
   if (lower.startsWith('nostr:')) {
     return `https://njump.me/${s.slice('nostr:'.length)}`
@@ -59,17 +72,40 @@ function toNostrHref(display: string): string {
   return s
 }
 
+function parseEventIdFromNostrToken(token: string): string | null {
+  const value = (token ?? '').trim()
+  if (!value) return null
+
+  const bracketMatch = value.match(BRACKET_E_POINTER_EXACT_RE)
+  if (bracketMatch?.[1]) return bracketMatch[1].toLowerCase()
+
+  const lower = value.toLowerCase()
+  const payload = lower.startsWith('nostr:') ? value.slice('nostr:'.length) : value
+  try {
+    const decoded = nip19.decode(payload)
+    if (decoded.type === 'note' && typeof decoded.data === 'string') {
+      return decoded.data.toLowerCase()
+    }
+    if (decoded.type === 'nevent' && decoded.data && typeof decoded.data.id === 'string') {
+      return decoded.data.id.toLowerCase()
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function extractLinks(text: string): ExtractedLink[] {
   const input = (text ?? '').toString()
   const matches: Array<{ raw: string; display: string; start: number; end: number }> = []
 
-  const collect = (re: RegExp) => {
+  const collect = (re: RegExp, trim = true) => {
     re.lastIndex = 0
     for (;;) {
       const m = re.exec(input)
       if (!m) break
       const raw = m[0]
-      const trimmed = trimTrailingPunctuation(raw)
+      const trimmed = trim ? trimTrailingPunctuation(raw) : raw
       const start = m.index
       const end = m.index + trimmed.length
       matches.push({ raw, display: trimmed, start, end })
@@ -80,6 +116,7 @@ export function extractLinks(text: string): ExtractedLink[] {
   collect(URL_RE)
   collect(NOSTR_URI_RE)
   collect(NIP19_BARE_RE)
+  collect(BRACKET_E_POINTER_RE, false)
 
   matches.sort((a, b) => (a.start !== b.start ? a.start - b.start : b.end - b.start - (a.end - a.start)))
 
@@ -90,6 +127,22 @@ export function extractLinks(text: string): ExtractedLink[] {
     const href = m.display.startsWith('http://') || m.display.startsWith('https://') ? m.display : toNostrHref(m.display)
     out.push({ raw: m.raw, display: m.display, href, start: m.start, end: m.end })
     cursorEnd = m.end
+  }
+  return out
+}
+
+export function extractPostReferences(text: string): ExtractedPostReference[] {
+  const links = extractLinks(text)
+  const out: ExtractedPostReference[] = []
+  const seen = new Set<string>()
+  for (const link of links) {
+    const eventId = parseEventIdFromNostrToken(link.display) ?? parseEventIdFromNostrToken(link.href)
+    if (!eventId) continue
+    if (!/^[0-9a-f]{64}$/.test(eventId)) continue
+    const key = `${eventId}:${link.start}:${link.end}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ link, eventId })
   }
   return out
 }

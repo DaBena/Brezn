@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { buttonBase } from '../../lib/buttonStyles'
+import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 
@@ -108,7 +109,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               onChange={e => setProfileName(e.target.value)}
               placeholder="Your name (optional)"
               maxLength={100}
-              className="w-full border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
+              className="w-full border border-brezn-text p-2 text-base outline-none"
             />
           </div>
 
@@ -123,7 +124,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               placeholder="Short bio (optional)"
               maxLength={PROFILE_ABOUT_MAX_LENGTH}
               rows={4}
-              className="w-full resize-y border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
+              className="w-full resize-y border border-brezn-text p-2 text-base outline-none"
             />
             <div className="mt-1 text-[10px] text-brezn-muted">
               {profileAbout.length}/{PROFILE_ABOUT_MAX_LENGTH}
@@ -148,14 +149,14 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       target.style.display = 'none'
                       const placeholder = document.createElement('div')
                       placeholder.className = 'h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center'
-                      placeholder.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>'
+                      placeholder.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-text"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>'
                       parent.appendChild(placeholder)
                     }
                   }}
                 />
               ) : (
                 <div className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-muted">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-text">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -218,11 +219,12 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                 <div className="flex gap-2">
                   <label
                     htmlFor={profileFileInputId}
-                    className={[
-                      `flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-center ${buttonBase}`,
+                    className={cn(
+                      'flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-center',
+                      buttonBase,
                       'focus:outline-none',
-                      profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90 cursor-pointer',
-                    ].join(' ')}
+                      profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-90',
+                    )}
                     tabIndex={profileUploadState === 'uploading' ? -1 : 0}
                     role="button"
                     onKeyDown={e => {
@@ -274,7 +276,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               </div>
             </div>
             {profileUploadState === 'error' && profileUploadError ? (
-              <div className="mt-2 text-xs text-brezn-danger">{profileUploadError}</div>
+              <div className="mt-2 text-xs text-brezn-error">{profileUploadError}</div>
             ) : null}
             {profilePicture ? (
               <div className="mt-2">
@@ -283,7 +285,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   value={profilePicture}
                   onChange={e => setProfilePicture(e.target.value)}
                   placeholder="Or enter URL directly"
-                  className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-base outline-none"
+                  className="w-full border border-brezn-text p-2 font-mono text-base outline-none"
                 />
               </div>
             ) : null}

@@ -6,11 +6,11 @@ const STORE_NAME = 'keyValueStore'
 // Encryption key storage key (separate from data)
 const ENCRYPTION_KEY_STORAGE_KEY = 'brezn:encryption-key'
 
-/** IndexedDB is only opened after user has consented (first "Allow location"). */
+/** IndexedDB gate; set true when the app may use device storage (browser: on client init). */
 let storageConsentGiven = false
 let dbPromise: Promise<IDBDatabase> | null = null
 
-/** Call with true after user has clicked "Allow location". Enables opening brezn-storage (IndexedDB). */
+/** Enable brezn-storage (IndexedDB). Nostr client sets this when localStorage is available. */
 export function setStorageConsentGiven(value: boolean): void {
   storageConsentGiven = value
   if (value) dbPromise = null

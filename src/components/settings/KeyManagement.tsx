@@ -106,7 +106,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
               value={importNsec}
               onChange={e => setImportNsec(e.target.value)}
               placeholder="nsec1..."
-              className="w-full border border-brezn-border bg-brezn-panel p-2 font-mono text-base focus:outline-none"
+              className="w-full border border-brezn-text p-2 font-mono text-base focus:outline-none"
               disabled={isImporting}
             />
             <div className="flex gap-2">
@@ -115,7 +115,6 @@ export function KeyManagement({ client }: KeyManagementProps) {
                 onClick={async () => {
                   const trimmed = importNsec.trim()
                   if (!trimmed) {
-                    console.log('[Brezn] toast: Please enter an nsec')
                     showToast('Please enter an nsec', 'error')
                     return
                   }
@@ -132,7 +131,6 @@ export function KeyManagement({ client }: KeyManagementProps) {
                     }, 1000)
                   } catch (error) {
                     const msg = error instanceof Error ? error.message : 'Failed to import nsec'
-                    console.log('[Brezn] toast: Failed to import nsec', { error: msg })
                     showToast(msg, 'error')
                   } finally {
                     setIsImporting(false)

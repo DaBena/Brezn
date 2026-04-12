@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Filter } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
-import { loadStoredProfiles, saveStoredProfiles } from '../lib/profileCache'
 
 export type Profile = {
   pubkey: string
@@ -30,36 +29,22 @@ export function useProfiles(params: {
 }) {
   const { client, pubkeys, isOffline } = params
 
-  const limitedPubkeys = useMemo(() => Array.from(new Set(pubkeys)).slice(0, 500), [pubkeys])
-  const pubkeyKey = limitedPubkeys.join(',')
+  // Same multiset must produce the same key even if `pubkeys` order changes each render.
+  const pubkeyKey = [...new Set(pubkeys)].sort().join(',')
+  const limitedPubkeys = useMemo(
+    () => (pubkeyKey ? pubkeyKey.split(',').filter(Boolean).slice(0, 500) : []),
+    [pubkeyKey],
+  )
   const activeKey = pubkeyKey
 
-  const initialDisk = useMemo(() => loadStoredProfiles(), [])
-  const latestDiskForSaveRef = useRef<Map<string, Profile>>(initialDisk)
-  const saveTimerRef = useRef<number | undefined>(undefined)
-
-  const [state, setState] = useState<{
-    key: string
-    live: Map<string, Profile>
-    disk: Map<string, Profile>
-  }>({
+  const [state, setState] = useState<{ key: string; map: Map<string, Profile> }>({
     key: '',
-    live: new Map(),
-    disk: initialDisk,
+    map: new Map(),
   })
 
   const seenMetadataIdsRef = useRef<Set<string>>(new Set())
   const latestKind0TimeRef = useRef<Map<string, number>>(new Map())
   const scopeKeyRef = useRef<string>('')
-
-  function scheduleSaveDisk(): void {
-    if (typeof window === 'undefined') return
-    window.clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = window.setTimeout(() => {
-      saveTimerRef.current = undefined
-      saveStoredProfiles(latestDiskForSaveRef.current)
-    }, 600)
-  }
 
   useEffect(() => {
     if (isOffline) return
@@ -89,7 +74,7 @@ export function useProfiles(params: {
 
         const parsed = parseMetadata(evt.content ?? '')
         setState(prevState => {
-          const base = prevState.key === activeKey ? prevState.live : new Map()
+          const base = prevState.key === activeKey ? prevState.map : new Map()
           const prev = base.get(evt.pubkey)
           const merged: Profile = {
             pubkey: evt.pubkey,
@@ -98,45 +83,26 @@ export function useProfiles(params: {
             about: parsed.about ?? prev?.about,
           }
           if (!merged.name && !merged.picture && !merged.about) return prevState
-          const nextLive = new Map(base)
-          nextLive.set(evt.pubkey, merged)
-          const nextDisk = new Map(prevState.disk)
-          nextDisk.set(evt.pubkey, merged)
-          latestDiskForSaveRef.current = nextDisk
-          scheduleSaveDisk()
-          return { key: activeKey, live: nextLive, disk: nextDisk }
+          const next = new Map(base)
+          next.set(evt.pubkey, merged)
+          return { key: activeKey, map: next }
         })
       },
     })
 
     return () => unsub()
-  }, [client, isOffline, activeKey, pubkeyKey, limitedPubkeys])
+  }, [client, isOffline, activeKey, limitedPubkeys, pubkeyKey])
 
   const profilesByPubkey = useMemo(() => {
-    const live = state.key === activeKey ? state.live : new Map<string, Profile>()
-    const disk = state.disk
+    const map = state.key === activeKey ? state.map : new Map<string, Profile>()
     const out = new Map<string, Profile>()
-    for (const pk of limitedPubkeys) {
-      const L = live.get(pk)
-      const D = disk.get(pk)
-      if (!L && !D) continue
-      if (!L) {
-        out.set(pk, { pubkey: pk, name: D?.name, picture: D?.picture, about: D?.about })
-        continue
-      }
-      if (!D) {
-        out.set(pk, L)
-        continue
-      }
-      out.set(pk, {
-        pubkey: pk,
-        name: L.name ?? D.name,
-        picture: L.picture ?? D.picture,
-        about: L.about ?? D.about,
-      })
+    const pkList = pubkeyKey ? pubkeyKey.split(',').filter(Boolean).slice(0, 500) : []
+    for (const pk of pkList) {
+      const p = map.get(pk)
+      if (p) out.set(pk, p)
     }
     return out
-  }, [state, activeKey, limitedPubkeys])
+  }, [state, activeKey, pubkeyKey])
 
   return { profilesByPubkey }
 }

@@ -21,8 +21,8 @@ import { useAppState } from './hooks/useAppState'
 import { useSearch } from './hooks/useSearch'
 import { useModeration } from './hooks/useModeration'
 import { useOptimisticReactions } from './hooks/useOptimisticReactions'
-import { useNavigation } from './hooks/useNavigation'
 import { useTheme } from './hooks/useTheme'
+import { useNavigation } from './hooks/useNavigation'
 import { publishPost, publishReply, deletePost } from './lib/postService'
 import { reactToPost } from './lib/reactionService'
 import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
@@ -32,11 +32,11 @@ export default function App() {
   const { identity } = useIdentity(client)
   const { showToast } = useToast()
 
-  // Custom Hooks
   const appState = useAppState()
   const moderation = useModeration(client)
+  useTheme(client)
+
   const navigation = useNavigation()
-  useTheme(client) // Initialize theme management
 
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(
     () => new Set(loadDeletedNoteIds())
@@ -61,7 +61,7 @@ export default function App() {
     requestLocationAndLoad,
     setLocationFromGeohash,
     geoCell,
-    viewerGeo5, // Full 5-digit geohash for posting
+    viewerGeo5, // saved 5-char cell; used when composing geotags + distance
     sortedEvents,
     viewerPoint,
     geohashLength,
@@ -69,6 +69,7 @@ export default function App() {
     lastCloseReasons,
     isLoadingMore,
     loadMore,
+    loadMorePage,
     isOffline,
     applyGeohashLength,
   } = useLocalFeed({
@@ -81,7 +82,7 @@ export default function App() {
 
   const profileSheetPubkey = appState.sheets.profile.pubkey
   const threadRootPubkey = appState.sheets.thread.root?.pubkey ?? null
-  // Include open profile / thread root so metadata matches feed cache (same subscription)
+  // Profile sheet + thread root: same profile sub as feed.
   const pubkeysForProfiles = useMemo(() => {
     const fromFeed = sortedEvents.map(e => e.pubkey)
     const extra: string[] = []
@@ -92,10 +93,18 @@ export default function App() {
 
   const { profilesByPubkey } = useProfiles({ client, pubkeys: pubkeysForProfiles, isOffline })
 
-  // Search functionality
-  const search = useSearch(sortedEvents, profilesByPubkey)
+  const searchFeedPrefetch = useMemo(
+    () => ({
+      isOffline,
+      canPrefetchFeed: feedState.kind === 'live' && Boolean(geoCell),
+      loadMorePage,
+    }),
+    [isOffline, feedState.kind, geoCell, loadMorePage],
+  )
 
-  // Keep thread/profile note IDs first so they are not dropped by reaction slicing.
+  const search = useSearch(sortedEvents, profilesByPubkey, searchFeedPrefetch)
+
+  // Thread/profile ids first (reaction slice cap).
   const noteIdsForReactions = useMemo(() => {
     const fromFeed = sortedEvents.map(e => e.id)
     const root = appState.sheets.thread.root
@@ -144,14 +153,12 @@ export default function App() {
       await publishPost(client, content, viewerGeo5)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Publish failed.'
-      console.log('[Brezn] toast: Publish post failed', { error: msg })
       showToast(msg, 'error')
     }
   }
 
   const handlePublishReply = async (root: Event, content: string) => {
     if (isOffline) {
-      console.log('[Brezn] toast: Offline - Comments read-only')
       showToast('Offline - Comments are read-only.', 'error')
       return
     }
@@ -159,7 +166,6 @@ export default function App() {
       await publishReply(client, root, content, viewerGeo5)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Publish failed.'
-      console.log('[Brezn] toast: Publish reply failed', { error: msg })
       showToast(msg, 'error')
     }
   }
@@ -183,7 +189,6 @@ export default function App() {
     optimisticReactions.addOptimisticReaction(evt.id)
     await reactToPost(client, evt, identity.pubkey, undefined, error => {
       optimisticReactions.removeOptimisticReaction(evt.id)
-      console.log('[Brezn] toast: Reaction failed', { error: error.message })
       showToast(error.message, 'error')
     })
   }
@@ -202,6 +207,7 @@ export default function App() {
 
       <Feed
         key={search.searchQuery}
+        client={client}
         feedState={feedState}
         geoCell={geoCell}
         viewerPoint={viewerPoint}
@@ -292,6 +298,10 @@ export default function App() {
           onReact={evt => void handleReactToPost(evt)}
           onThreadRepliesChange={setThreadReplyNoteIds}
           onOpenProfile={handleOpenProfile}
+          onOpenThread={evt => {
+            if (moderation.blockedPubkeys.includes(evt.pubkey)) return
+            appState.openSheet('thread', { threadRoot: evt })
+          }}
         />
       ) : null}
 

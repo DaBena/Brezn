@@ -1,5 +1,18 @@
 import type { Event } from 'nostr-tools'
 
+const EVENT_CARD_DATE_OPTS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+}
+
+/** Timestamp line for feed / profile post cards (locale-aware). */
+export function formatEventCardTimestamp(createdAtSec: number): string {
+  return new Date(createdAtSec * 1000).toLocaleString(undefined, EVENT_CARD_DATE_OPTS)
+}
+
 export function shortHex(hex: string, head = 8, tail = 4): string {
   const v = (hex ?? '').toString()
   if (!v) return ''

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { encodeGeohash, getGeohashMapParams } from '../lib/geo'
+import { readCssVar } from '../lib/readCssVar'
 import type L from 'leaflet'
 
 function attachCellSelectClick(map: L.Map, onSelect: ((geohash5: string) => void) | undefined): () => void {
@@ -28,7 +29,7 @@ function addGpsControl(
       const btn = L.DomUtil.create('button', '', div) as HTMLButtonElement
       btn.type = 'button'
       btn.className =
-        'flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white shadow-lg ring-2 ring-white/30 hover:bg-black/50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white'
+        'flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white ring-2 ring-white/30 hover:bg-black/50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white'
       btn.setAttribute('aria-label', 'GPS location')
       btn.title = 'GPS location'
       btn.innerHTML = GPS_BUTTON_SVG
@@ -128,14 +129,15 @@ export function GeohashMap(props: {
           maxZoom: 19,
         }).addTo(newMap)
 
+        const hilite = readCssVar('--brezn-link', '#3c83f7')
         const rectangle = L.rectangle(
           [
             [bounds.minLat, bounds.minLon],
             [bounds.maxLat, bounds.maxLon],
           ],
           {
-            color: '#3b82f6',
-            fillColor: '#3b82f6',
+            color: hilite,
+            fillColor: hilite,
             fillOpacity: 0.3,
             weight: 2,
           },

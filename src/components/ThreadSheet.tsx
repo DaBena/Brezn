@@ -4,43 +4,30 @@ import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
 import { buttonBase, reactionButtonClasses } from '../lib/buttonStyles'
-import { breznClientTag, NOSTR_KINDS } from '../lib/breznNostr'
+import { NOSTR_KINDS } from '../lib/breznNostr'
 import { useReplies } from '../hooks/useReplies'
 import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
-import { shortNpub } from '../lib/nostrUtils'
+import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
+import { sheetPostCardClass } from '../lib/uiClasses'
 import * as nip19 from 'nostr-tools/nip19'
-
-const HEART_RED = '#e05a4f'
-
-function HeartIcon({ liked }: { liked: boolean }) {
-  const heartPath = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
-  return (
-    <span
-      aria-hidden="true"
-      className={liked ? '' : 'text-brezn-muted'}
-      style={liked ? { color: HEART_RED } : undefined}
-    >
-      <svg viewBox="0 0 24 24" width="14" height="14" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d={heartPath} />
-      </svg>
-    </span>
-  )
-}
+import { HeartIcon } from './HeartIcon'
 
 function PostCard(props: {
   evt: Event
   viewerPoint: GeoPoint | null
+  client: BreznNostrClient
   profile?: { pubkey: string; name?: string; picture?: string; about?: string }
   onOpenProfile?: (pubkey: string) => void
+  onOpenThread?: (evt: Event) => void
 }) {
-  const { evt, viewerPoint, profile, onOpenProfile } = props
+  const { evt, viewerPoint, profile, onOpenProfile, client, onOpenThread } = props
   const dist = calculateApproxDistance(evt, viewerPoint)
   return (
-    <article className="rounded-lg bg-brezn-panel2 p-3 shadow-soft">
+    <article className={sheetPostCardClass}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <PostIdentity 
@@ -51,13 +38,13 @@ function PostCard(props: {
             avatarSize="large"
           />
         </div>
-        <div className="shrink-0 text-[11px] text-brezn-muted">
-          {new Date(evt.created_at * 1000).toLocaleString()}
+        <div className="shrink-0 text-[11px] text-brezn-text">
+          {formatEventCardTimestamp(evt.created_at)}
           {dist ? <span> / {dist}</span> : null}
         </div>
       </div>
       <div className="mt-2">
-        <PostContent content={evt.content} linkMedia mediaStacked />
+        <PostContent content={evt.content} tags={evt.tags} linkMedia mediaStacked client={client} onOpenThread={onOpenThread} />
       </div>
     </article>
   )
@@ -67,7 +54,7 @@ export function ThreadSheet(props: {
   open: boolean
   onClose: () => void
   root: Event
-  /** Profiles already loaded in App (feed + thread root); merged with thread subscription. */
+  /** From App (feed + thread root); merged with thread-specific profile fetch. */
   feedProfilesByPubkey: Map<string, Profile>
   client: BreznNostrClient
   mutedTerms: string[]
@@ -82,6 +69,7 @@ export function ThreadSheet(props: {
   onReact: (evt: Event) => void
   onThreadRepliesChange?: (noteIds: string[]) => void
   onOpenProfile?: (pubkey: string) => void
+  onOpenThread?: (evt: Event) => void
 }) {
   const {
     open,
@@ -101,6 +89,7 @@ export function ThreadSheet(props: {
     onReact,
     onThreadRepliesChange,
     onOpenProfile,
+    onOpenThread,
   } = props
   const { showToast } = useToast()
 
@@ -219,20 +208,15 @@ export function ThreadSheet(props: {
   async function handleBlock() {
     if (!onBlockUser) return
     if (isOffline) {
-      console.log('[Brezn] toast: Offline - Cannot block user')
       showToast('Offline - Cannot block user.', 'error')
       return
     }
-    
+
     setBlockState('blocking')
     try {
       // Send NIP-56 report event if reason is provided
       if (reportReason.trim()) {
-        const tags: string[][] = [
-          breznClientTag(),
-          ['p', root.pubkey],
-          ['e', root.id],
-        ]
+        const tags: string[][] = [['p', root.pubkey], ['e', root.id]]
         await client.publish({
           kind: NOSTR_KINDS.report,
           content: reportReason.trim(), // NIP-56: Report reason goes in content field
@@ -250,7 +234,6 @@ export function ThreadSheet(props: {
     } catch (e) {
       setBlockState('idle')
       const msg = e instanceof Error ? e.message : 'Blocking failed.'
-      console.log('[Brezn] toast: Blocking failed', { error: msg })
       showToast(msg, 'error')
     }
   }
@@ -263,20 +246,15 @@ export function ThreadSheet(props: {
   async function handleBlockReplyWithReport(reply: Event) {
     if (!onBlockUser) return
     if (isOffline) {
-      console.log('[Brezn] toast: Offline - Cannot block user')
       showToast('Offline - Cannot block user.', 'error')
       return
     }
-    
+
     setBlockState('blocking')
     try {
       // Send NIP-56 report event if reason is provided
       if (replyReportReason.trim()) {
-        const tags: string[][] = [
-          breznClientTag(),
-          ['p', reply.pubkey],
-          ['e', reply.id],
-        ]
+        const tags: string[][] = [['p', reply.pubkey], ['e', reply.id]]
         await client.publish({
           kind: NOSTR_KINDS.report,
           content: replyReportReason.trim(), // NIP-56: Report reason goes in content field
@@ -293,7 +271,6 @@ export function ThreadSheet(props: {
     } catch (e) {
       setBlockState('idle')
       const msg = e instanceof Error ? e.message : 'Blocking failed.'
-      console.log('[Brezn] toast: Blocking failed', { error: msg })
       showToast(msg, 'error')
     }
   }
@@ -339,7 +316,7 @@ export function ThreadSheet(props: {
     >
       <div className="space-y-3">
         {deleteState === 'error' && deleteError ? (
-          <div className="rounded-lg border border-brezn-border bg-brezn-panel2 p-3 text-sm text-brezn-danger">
+          <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-error">
             {deleteError}
           </div>
         ) : null}
@@ -357,7 +334,7 @@ export function ThreadSheet(props: {
               value={reportReason}
               onChange={e => setReportReason(e.target.value)}
               placeholder="Reason for reporting (optional)"
-              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
+              className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
               disabled={blockState === 'blocking' || isOffline}
             />
             <div className="flex justify-center">
@@ -375,8 +352,10 @@ export function ThreadSheet(props: {
             <PostCard
               evt={root}
               viewerPoint={viewerPoint}
+              client={client}
               profile={profilesByPubkey.get(root.pubkey)}
               onOpenProfile={onOpenProfile}
+              onOpenThread={onOpenThread}
             />
             <div className="mt-3 flex items-center justify-between">
               <div className="text-xs font-semibold text-brezn-muted">Replies ({replyCount})</div>
@@ -418,7 +397,7 @@ export function ThreadSheet(props: {
                     return (
                       <div key={r.id} className="space-y-2">
                         {isReportingReply && !isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
-                          <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel2 p-3">
+                          <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel p-3">
                             <div className="text-xs font-semibold text-brezn-muted">
                               Block {shortNpub(nip19.npubEncode(r.pubkey), 8, 4)}
                             </div>
@@ -430,7 +409,7 @@ export function ThreadSheet(props: {
                               value={replyReportReason}
                               onChange={e => setReplyReportReason(e.target.value)}
                               placeholder="Reason for reporting (optional)"
-                              className="w-full min-h-[80px] resize-none border border-brezn-border bg-brezn-panel p-2 text-base outline-none"
+                              className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
                               disabled={blockState === 'blocking' || isOffline}
                             />
                             <div className="flex justify-center">
@@ -444,7 +423,7 @@ export function ThreadSheet(props: {
                             </div>
                           </div>
                         ) : (
-                          <article className="rounded-lg bg-brezn-panel2 p-3 shadow-soft">
+                          <article className={sheetPostCardClass}>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-6 min-w-0 flex-1">
                                 <PostIdentity
@@ -469,7 +448,7 @@ export function ThreadSheet(props: {
                                   </button>
                                 ) : null}
                               </div>
-                              <span className="shrink-0 text-[11px] text-brezn-muted">
+                              <span className="shrink-0 text-[11px] text-brezn-text">
                                 {new Date(r.created_at * 1000).toLocaleString()}
                                 {(() => {
                                   const dist = viewerPoint ? calculateApproxDistance(r, viewerPoint) : null
@@ -479,7 +458,14 @@ export function ThreadSheet(props: {
                             </div>
                             <div className="mt-2 flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <PostContent content={r.content} linkMedia mediaStacked />
+                                <PostContent
+                                  content={r.content}
+                                  tags={r.tags}
+                                  linkMedia
+                                  mediaStacked
+                                  client={client}
+                                  onOpenThread={onOpenThread}
+                                />
                               </div>
                               <button
                                 type="button"
@@ -509,11 +495,11 @@ export function ThreadSheet(props: {
                 value={text}
                 onChange={e => setText(e.target.value)}
                 placeholder="Write reply…"
-                className="mt-2 h-24 w-full resize-none border border-brezn-border bg-brezn-panel2 p-3 text-base outline-none"
+                className="mt-2 h-24 w-full resize-none border border-brezn-text p-3 text-base outline-none"
                 disabled={isOffline}
               />
               {publishState === 'error' && publishError ? (
-                <div className="mt-2 text-sm text-brezn-danger">{publishError}</div>
+                <div className="mt-2 text-sm text-brezn-error">{publishError}</div>
               ) : null}
               <div className="mt-2 flex justify-center">
                 <button
