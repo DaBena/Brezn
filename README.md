@@ -43,7 +43,7 @@ With the same keys and relays you can see the same content on other Nostr client
 
 ## Development
 
-Requires **Node.js 20+**
+Requires **Node.js 24+**
 
 ```bash
 npm install

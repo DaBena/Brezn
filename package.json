@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,11 +19,13 @@
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
+    "i18next": "^26.0.4",
     "leaflet": "^1.9.4",
     "ngeohash": "^0.6.3",
     "nostr-tools": "^2.19.4",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
