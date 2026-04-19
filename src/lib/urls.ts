@@ -20,13 +20,20 @@ export type ExtractedPostReference = {
   eventId: string
 }
 
+export type ExtractedProfileReference = {
+  link: ExtractedLink
+  pubkey: string
+}
+
 // Rough URL matcher: good enough for plaintext posts.
 const URL_RE = /\bhttps?:\/\/[^\s<>()]+/g
 
 // Nostr links in plaintext (NIP-19 identifiers).
 // We keep this intentionally rough (plaintext posts, no full URI parser).
-const NOSTR_URI_RE = /\bnostr:(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
-const NIP19_BARE_RE = /\b(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
+const NOSTR_URI_RE =
+  /\bnostr:(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
+const NIP19_BARE_RE =
+  /\b(nprofile1[02-9ac-hj-np-z]+|npub1[02-9ac-hj-np-z]+|note1[02-9ac-hj-np-z]+|nevent1[02-9ac-hj-np-z]+|naddr1[02-9ac-hj-np-z]+)\b/gi
 const BRACKET_E_POINTER_RE = /\[\[\s*e\s+([0-9a-f]{64})\s*\]\]/gi
 const BRACKET_E_POINTER_EXACT_RE = /^\[\[\s*e\s+([0-9a-f]{64})\s*\]\]$/i
 
@@ -62,11 +69,11 @@ function toNostrHref(display: string): string {
   if (bracketMatch?.[1]) {
     return `https://njump.me/${bracketMatch[1]}`
   }
-  
+
   if (lower.startsWith('nostr:')) {
     return `https://njump.me/${s.slice('nostr:'.length)}`
   }
-  if (NIP19_PREFIXES.some(prefix => lower.startsWith(prefix))) {
+  if (NIP19_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
     return `https://njump.me/${s}`
   }
   return s
@@ -88,6 +95,43 @@ function parseEventIdFromNostrToken(token: string): string | null {
     }
     if (decoded.type === 'nevent' && decoded.data && typeof decoded.data.id === 'string') {
       return decoded.data.id.toLowerCase()
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function parseProfilePubkeyFromNostrToken(token: string): string | null {
+  const value = (token ?? '').trim()
+  if (!value) return null
+
+  const normalizeCandidate = (candidate: string): string | null => {
+    const c = candidate.trim()
+    if (!c) return null
+    const lower = c.toLowerCase()
+    if (lower.startsWith('nostr:')) return c.slice('nostr:'.length)
+    if (/^https?:\/\//i.test(c)) {
+      try {
+        const parsed = new URL(c)
+        if (parsed.hostname.toLowerCase() !== 'njump.me') return null
+        return decodeURIComponent(parsed.pathname.replace(/^\/+/, ''))
+      } catch {
+        return null
+      }
+    }
+    return c
+  }
+
+  const payload = normalizeCandidate(value)
+  if (!payload) return null
+  try {
+    const decoded = nip19.decode(payload)
+    if (decoded.type === 'npub' && typeof decoded.data === 'string') {
+      return decoded.data.toLowerCase()
+    }
+    if (decoded.type === 'nprofile' && decoded.data && typeof decoded.data.pubkey === 'string') {
+      return decoded.data.pubkey.toLowerCase()
     }
   } catch {
     return null
@@ -118,13 +162,18 @@ export function extractLinks(text: string): ExtractedLink[] {
   collect(NIP19_BARE_RE)
   collect(BRACKET_E_POINTER_RE, false)
 
-  matches.sort((a, b) => (a.start !== b.start ? a.start - b.start : b.end - b.start - (a.end - a.start)))
+  matches.sort((a, b) =>
+    a.start !== b.start ? a.start - b.start : b.end - b.start - (a.end - a.start),
+  )
 
   const out: ExtractedLink[] = []
   let cursorEnd = -1
   for (const m of matches) {
     if (m.start < cursorEnd) continue // avoid overlaps (e.g. bare nip19 inside nostr:...)
-    const href = m.display.startsWith('http://') || m.display.startsWith('https://') ? m.display : toNostrHref(m.display)
+    const href =
+      m.display.startsWith('http://') || m.display.startsWith('https://')
+        ? m.display
+        : toNostrHref(m.display)
     out.push({ raw: m.raw, display: m.display, href, start: m.start, end: m.end })
     cursorEnd = m.end
   }
@@ -136,13 +185,31 @@ export function extractPostReferences(text: string): ExtractedPostReference[] {
   const out: ExtractedPostReference[] = []
   const seen = new Set<string>()
   for (const link of links) {
-    const eventId = parseEventIdFromNostrToken(link.display) ?? parseEventIdFromNostrToken(link.href)
+    const eventId =
+      parseEventIdFromNostrToken(link.display) ?? parseEventIdFromNostrToken(link.href)
     if (!eventId) continue
     if (!/^[0-9a-f]{64}$/.test(eventId)) continue
     const key = `${eventId}:${link.start}:${link.end}`
     if (seen.has(key)) continue
     seen.add(key)
     out.push({ link, eventId })
+  }
+  return out
+}
+
+export function extractProfileReferences(text: string): ExtractedProfileReference[] {
+  const links = extractLinks(text)
+  const out: ExtractedProfileReference[] = []
+  const seen = new Set<string>()
+  for (const link of links) {
+    const pubkey =
+      parseProfilePubkeyFromNostrToken(link.display) ?? parseProfilePubkeyFromNostrToken(link.href)
+    if (!pubkey) continue
+    if (!/^[0-9a-f]{64}$/.test(pubkey)) continue
+    const key = `${pubkey}:${link.start}:${link.end}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ link, pubkey })
   }
   return out
 }
@@ -167,7 +234,7 @@ function hasExtension(url: string, extensions: string[]): boolean {
   try {
     const u = new URL(url)
     const path = u.pathname.toLowerCase()
-    return extensions.some(ext => path.endsWith(ext))
+    return extensions.some((ext) => path.endsWith(ext))
   } catch {
     return false
   }
@@ -184,21 +251,21 @@ export function isLikelyVideoUrl(url: string): boolean {
 // Validate that a URL is safe to use in href attributes
 export function isSafeUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false
-  
+
   const trimmed = url.trim()
   if (!trimmed) return false
-  
+
   // Allow Nostr identifiers (npub, nprofile, note, nevent, naddr)
   // These are converted to https://njump.me/ links in extractLinks
   if (/^(npub1|nprofile1|note1|nevent1|naddr1)[02-9ac-hj-np-z]+$/i.test(trimmed)) {
     return true
   }
-  
+
   // Allow nostr: protocol
   if (trimmed.toLowerCase().startsWith('nostr:')) {
     return true
   }
-  
+
   // Only allow http and https protocols
   try {
     const parsed = new URL(trimmed)

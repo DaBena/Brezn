@@ -4,7 +4,8 @@ const DEFAULT_SERVER = process.env.MEDIA_SERVER?.trim() || 'https://nostrcheck.m
 const FIXTURE = process.env.MEDIA_FILE?.trim() || null
 
 // 1x1 transparent PNG (base64). Used when MEDIA_FILE is not set.
-const DEFAULT_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Ww0kAAAAASUVORK5CYII='
+const DEFAULT_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Ww0kAAAAASUVORK5CYII='
 
 function nowSec() {
   return Math.floor(Date.now() / 1000)
@@ -23,13 +24,14 @@ async function discoverNip96(serverBase) {
   const wellKnown = toNip96WellKnownUrl(serverBase)
   const res = await fetch(wellKnown)
   const body = await res.json().catch(() => null)
-  if (!res.ok || !body || typeof body !== 'object') throw new Error(`NIP-96 discovery failed (${res.status})`)
+  if (!res.ok || !body || typeof body !== 'object')
+    throw new Error(`NIP-96 discovery failed (${res.status})`)
 
   const apiUrl = typeof body.api_url === 'string' ? body.api_url.trim() : ''
   if (!apiUrl) throw new Error('NIP-96 discovery returned no api_url')
 
   const plans = body.plans && typeof body.plans === 'object' ? Object.values(body.plans) : []
-  const requiresNip98 = plans.some(p => Boolean(p?.is_nip98_required))
+  const requiresNip98 = plans.some((p) => Boolean(p?.is_nip98_required))
   return { apiUrl, requiresNip98, wellKnown, raw: body }
 }
 
@@ -91,7 +93,9 @@ async function main() {
   if (FIXTURE) {
     const { readFile } = await import('node:fs/promises')
     const buf = await readFile(FIXTURE)
-    file = new File([buf], FIXTURE.split('/').pop() || 'upload.bin', { type: 'application/octet-stream' })
+    file = new File([buf], FIXTURE.split('/').pop() || 'upload.bin', {
+      type: 'application/octet-stream',
+    })
   } else {
     const buf = Buffer.from(DEFAULT_PNG_BASE64, 'base64')
     file = new File([buf], 'test.png', { type: 'image/png' })
@@ -104,10 +108,13 @@ async function main() {
 
   const res = await fetch(apiUrl, { method: 'POST', body: fd, headers })
   const ct = res.headers.get('content-type') ?? ''
-  const payload = ct.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => '')
+  const payload = ct.includes('application/json')
+    ? await res.json().catch(() => null)
+    : await res.text().catch(() => '')
 
   if (!res.ok) {
-    const hint = typeof payload === 'string' ? payload.slice(0, 400) : JSON.stringify(payload).slice(0, 400)
+    const hint =
+      typeof payload === 'string' ? payload.slice(0, 400) : JSON.stringify(payload).slice(0, 400)
     throw new Error(`Upload failed (${res.status}). ${hint}`.trim())
   }
 
@@ -120,8 +127,7 @@ async function main() {
   console.log('Result URL:', url)
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err instanceof Error ? err.message : err)
   process.exitCode = 1
 })
-

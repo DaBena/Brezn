@@ -20,6 +20,7 @@ export type FeedEventArticleProps =
       distanceLabel?: string | null
       client: BreznNostrClient
       onOpenThread: (evt: Event) => void
+      onOpenProfile?: (pubkey: string) => void
     }
   | {
       variant: 'profile'
@@ -32,10 +33,11 @@ export type FeedEventArticleProps =
       canReact: boolean
       onReact: (evt: Event) => void
       onOpenThread: (evt: Event) => void
+      onOpenProfile?: (pubkey: string) => void
     }
 
 function displayNameFromTags(evt: Event): string | undefined {
-  return evt.tags.find(t => t[0] === 'n')?.[1]
+  return evt.tags.find((t) => t[0] === 'n')?.[1]
 }
 
 function distanceSuffix(distanceLabel?: string | null) {
@@ -73,7 +75,15 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
           </div>
         )}
         <div className="mt-2">
-          <PostContent content={contentPreview} tags={evt.tags} interactive compact client={client} onOpenThread={onOpenThread} />
+          <PostContent
+            content={contentPreview}
+            tags={evt.tags}
+            interactive
+            compact
+            client={client}
+            onOpenThread={onOpenThread}
+            onOpenProfile={props.onOpenProfile}
+          />
         </div>
       </article>
     )
@@ -110,7 +120,15 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
           </div>
         </div>
         <div className="mt-2">
-          <PostContent content={contentPreview} tags={evt.tags} interactive compact client={client} onOpenThread={onOpenThread} />
+          <PostContent
+            content={contentPreview}
+            tags={evt.tags}
+            interactive
+            compact
+            client={client}
+            onOpenThread={onOpenThread}
+            onOpenProfile={props.onOpenProfile}
+          />
         </div>
       </article>
     )
@@ -133,7 +151,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
         </span>
         <button
           type="button"
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation()
             onReact(evt)
           }}
@@ -153,7 +171,15 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
         </button>
       </div>
       <div className="mt-2">
-        <PostContent content={contentPreview} tags={evt.tags} interactive compact client={client} onOpenThread={onOpenThread} />
+        <PostContent
+          content={contentPreview}
+          tags={evt.tags}
+          interactive
+          compact
+          client={client}
+          onOpenThread={onOpenThread}
+          onOpenProfile={props.onOpenProfile}
+        />
       </div>
     </article>
   )

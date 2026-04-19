@@ -10,4 +10,3 @@ declare module 'ngeohash' {
   }
   export default geohash
 }
-

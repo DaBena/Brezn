@@ -18,11 +18,14 @@ type GeohashSettingsProps = {
   onGeohashLengthChange: (length: number) => void
 }
 
-export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange }: GeohashSettingsProps) {
+export function GeohashSettings({
+  geohashLength,
+  geoCell,
+  onGeohashLengthChange,
+}: GeohashSettingsProps) {
   const { t } = useTranslation()
 
-  const precisionLine =
-    geohashLength === 0 ? t('geohash.queries3') : cellSizeHint(geohashLength, t)
+  const precisionLine = geohashLength === 0 ? t('geohash.queries3') : cellSizeHint(geohashLength, t)
 
   const lengthSubline =
     geohashLength === 0 ? t('geohash.queriesCurrent') : cellSizeHint(geohashLength, t)
@@ -31,8 +34,8 @@ export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange 
     <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">{t('geohash.searchRadius')}</div>
       <div className="mt-1 text-xs text-brezn-muted">
-        {t('geohash.lengthLabel')}{' '}
-        {geohashLength === 0 ? t('geohash.length0') : geohashLength} • {precisionLine}
+        {t('geohash.lengthLabel')} {geohashLength === 0 ? t('geohash.length0') : geohashLength} •{' '}
+        {precisionLine}
       </div>
       {geoCell ? (
         <div className="mt-1 text-xs text-brezn-muted">
@@ -53,9 +56,7 @@ export function GeohashSettings({ geohashLength, geoCell, onGeohashLengthChange 
           -
         </button>
         <div className="px-2">
-          <div className="text-sm font-semibold">
-            {t('geohash.length', { n: geohashLength })}
-          </div>
+          <div className="text-sm font-semibold">{t('geohash.length', { n: geohashLength })}</div>
           <div className="text-xs text-brezn-muted">{lengthSubline}</div>
         </div>
         <button

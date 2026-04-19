@@ -20,12 +20,22 @@ type RelaySettingsProps = {
   client: BreznNostrClient
 }
 
-function testRelay(url: string, timeoutMs: number): Promise<{ url: string; ok: boolean; rttMs?: number; error?: string }> {
+function testRelay(
+  url: string,
+  timeoutMs: number,
+): Promise<{ url: string; ok: boolean; rttMs?: number; error?: string }> {
   if (typeof WebSocket === 'undefined') {
-    return Promise.resolve({ url, ok: false, error: 'WebSocket not available in this environment.' })
+    return Promise.resolve({
+      url,
+      ok: false,
+      error: 'WebSocket not available in this environment.',
+    })
   }
-  return new Promise(resolve => {
-    const started = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now()
+  return new Promise((resolve) => {
+    const started =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
     let done = false
     let opened = false
 
@@ -51,7 +61,10 @@ function testRelay(url: string, timeoutMs: number): Promise<{ url: string; ok: b
 
     ws.onopen = () => {
       opened = true
-      const ended = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now()
+      const ended =
+        typeof performance !== 'undefined' && typeof performance.now === 'function'
+          ? performance.now()
+          : Date.now()
       const rttMs = Math.max(0, Math.round(ended - started))
       try {
         ws.close(1000, 'brezn-test')
@@ -65,7 +78,7 @@ function testRelay(url: string, timeoutMs: number): Promise<{ url: string; ok: b
       finish({ url, ok: false, error: 'WebSocket error' })
     }
 
-    ws.onclose = ev => {
+    ws.onclose = (ev) => {
       // If it closed before open and without a prior onerror, treat as failure.
       if (done) return
       if (opened) return
@@ -94,7 +107,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
   // Keep relay status list in sync with current enabled relays.
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- merge new relay URLs into status map */
-    setRelayStatusesByUrl(prev => {
+    setRelayStatusesByUrl((prev) => {
       const next: Record<string, RelayStatusLite> = {}
       for (const url of relays) {
         next[url] = prev[url] ?? { url, reachable: 'unknown' }
@@ -113,7 +126,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
     const timeoutMs = RELAY_WEBSOCKET_TEST_TIMEOUT_MS
 
     // Pre-fill unknown for all current relays.
-    setRelayStatusesByUrl(prev => {
+    setRelayStatusesByUrl((prev) => {
       const next = { ...prev }
       for (const url of urls) next[url] = next[url] ?? { url, reachable: 'unknown' }
       return next
@@ -121,9 +134,9 @@ export function RelaySettings({ client }: RelaySettingsProps) {
 
     try {
       await Promise.all(
-        urls.map(async url => {
+        urls.map(async (url) => {
           const r = await testRelay(url, timeoutMs)
-          setRelayStatusesByUrl(prev => ({
+          setRelayStatusesByUrl((prev) => ({
             ...prev,
             [url]: r.ok
               ? { url, reachable: true, rttMs: r.rttMs, lastError: undefined }
@@ -150,7 +163,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
       ) : null}
 
       <div className="mt-3 space-y-2">
-        {relays.map(r => {
+        {relays.map((r) => {
           return (
             <div
               key={r}
@@ -159,9 +172,9 @@ export function RelaySettings({ client }: RelaySettingsProps) {
               <span className="min-w-0 truncate font-mono text-xs">{r}</span>
               <button
                 type="button"
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault()
-                  const next = relays.filter(x => x !== r)
+                  const next = relays.filter((x) => x !== r)
                   client.setRelays(next)
                   setRelays(next)
                   setRelayMsg(t('relay.removed'))
@@ -177,8 +190,8 @@ export function RelaySettings({ client }: RelaySettingsProps) {
       </div>
 
       <form
-        className="mt-3 flex gap-2"
-        onSubmit={e => {
+        className="mt-3 flex flex-col gap-2"
+        onSubmit={(e) => {
           e.preventDefault()
           const trimmed = newRelay.trim()
           if (!trimmed) return
@@ -190,39 +203,43 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           setRelayTestTriggered(false)
         }}
       >
-        <input
-          value={newRelay}
-          onChange={e => setNewRelay(e.target.value)}
-          placeholder={t('relay.placeholder')}
-          className="w-full border border-brezn-text p-2 text-base outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!newRelay.trim()}
-          className={`rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-        >
-          {t('relay.add')}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            client.setRelays([...DEFAULT_RELAYS])
-            setRelays(client.getRelays())
-            setRelayMsg(t('relay.resetDefault'))
-            setRelayTestTriggered(false)
-          }}
-          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
-        >
-          {t('relay.default')}
-        </button>
-        <button
-          type="button"
-          onClick={() => void runRelayTests()}
-          disabled={relayTestState === 'running' || relays.length === 0}
-          className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
-        >
-          {relayTestState === 'running' ? t('relay.testing') : t('relay.test')}
-        </button>
+        <div className="flex min-w-0 gap-2">
+          <input
+            value={newRelay}
+            onChange={(e) => setNewRelay(e.target.value)}
+            placeholder={t('relay.placeholder')}
+            className="min-w-0 flex-1 border border-brezn-text p-2 text-base outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!newRelay.trim()}
+            className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
+          >
+            {t('relay.add')}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              client.setRelays([...DEFAULT_RELAYS])
+              setRelays(client.getRelays())
+              setRelayMsg(t('relay.resetDefault'))
+              setRelayTestTriggered(false)
+            }}
+            className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
+          >
+            {t('relay.default')}
+          </button>
+          <button
+            type="button"
+            onClick={() => void runRelayTests()}
+            disabled={relayTestState === 'running' || relays.length === 0}
+            className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
+          >
+            {relayTestState === 'running' ? t('relay.testing') : t('relay.test')}
+          </button>
+        </div>
       </form>
 
       {relayMsg ? <div className="mt-2 text-xs text-brezn-muted">{relayMsg}</div> : null}
@@ -233,10 +250,13 @@ export function RelaySettings({ client }: RelaySettingsProps) {
 
       {relayTestTriggered ? (
         <div className="mt-3 space-y-2">
-          {relays.map(url => {
+          {relays.map((url) => {
             const s = relayStatusesByUrl[url] ?? { url, reachable: 'unknown' as const }
             return (
-              <div key={url} className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2">
+              <div
+                key={url}
+                className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
+              >
                 <div className="min-w-0">
                   <div className="truncate font-mono text-xs">{url}</div>
                   <div className="truncate text-[11px] text-brezn-muted">
@@ -254,7 +274,11 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                 <div
                   className={cn(
                     'h-2.5 w-2.5 shrink-0 rounded-full',
-                    s.reachable === 'unknown' ? 'bg-brezn-muted/50' : s.reachable ? 'bg-brezn-success' : 'bg-brezn-error',
+                    s.reachable === 'unknown'
+                      ? 'bg-brezn-muted/50'
+                      : s.reachable
+                        ? 'bg-brezn-success'
+                        : 'bg-brezn-error',
                   )}
                   aria-label={t('relay.statusAria', {
                     state:
@@ -273,4 +297,3 @@ export function RelaySettings({ client }: RelaySettingsProps) {
     </div>
   )
 }
-

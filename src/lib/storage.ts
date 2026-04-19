@@ -165,7 +165,10 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
   try {
     const keyData = await loadFromIndexedDB<ArrayBuffer>(ENCRYPTION_KEY_STORAGE_KEY)
     if (keyData && keyData.byteLength > 0) {
-      const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+      const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, [
+        'encrypt',
+        'decrypt',
+      ])
       encryptionKeyCache = key
       return key
     }
@@ -175,9 +178,12 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
   }
 
   // Generate new encryption key
-  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
+    'encrypt',
+    'decrypt',
+  ])
   encryptionKeyCache = key
-  
+
   // Export and save the key
   try {
     const exportedKey = await crypto.subtle.exportKey('raw', key)
@@ -187,7 +193,7 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
     // The key will be regenerated on next load, but that's acceptable for obfuscation
     console.warn('Failed to save encryption key to IndexedDB:', error)
   }
-  
+
   return key
 }
 
@@ -201,16 +207,16 @@ async function encryptText(plaintext: string): Promise<string> {
     const key = await getOrCreateEncryptionKey()
     const encoder = new TextEncoder()
     const data = encoder.encode(plaintext)
-    
+
     // Generate random IV for each encryption
     const iv = crypto.getRandomValues(new Uint8Array(12))
-    
+
     const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data)
-    
+
     // Combine IV and encrypted data: base64(iv) + ':' + base64(encrypted)
     const ivBase64 = btoa(String.fromCharCode(...iv))
     const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encrypted)))
-    
+
     return `${ivBase64}:${encryptedBase64}`
   } catch {
     // Encryption failed, return plaintext (fallback)
@@ -238,20 +244,19 @@ async function decryptText(ciphertext: string): Promise<string> {
     }
 
     const key = await getOrCreateEncryptionKey()
-    
+
     // Decode IV and encrypted data
-    const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0))
-    const encrypted = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0))
-    
+    const iv = Uint8Array.from(atob(ivBase64), (c) => c.charCodeAt(0))
+    const encrypted = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0))
+
     const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted)
-    
+
     const decoder = new TextDecoder()
     return decoder.decode(decrypted)
   } catch (error) {
     // Decryption failed - e.g. wrong key (IndexedDB cleared / consent flow), corrupted data, or old plaintext
     // Return as-is; caller treats as plaintext. Avoid noisy warn for expected OperationError.
-    const isOperationError =
-      error instanceof DOMException && error.name === 'OperationError'
+    const isOperationError = error instanceof DOMException && error.name === 'OperationError'
     if (!isOperationError) {
       console.warn('Decryption failed, assuming plaintext:', error)
     }
@@ -266,7 +271,7 @@ export async function loadEncryptedJson<T extends Record<string, unknown>>(
   encryptedFields: (keyof T)[],
 ): Promise<T> {
   const data = await loadJson<T>(key, fallback)
-  
+
   // Decrypt specified fields
   for (const field of encryptedFields) {
     const value = data[field]
@@ -279,7 +284,7 @@ export async function loadEncryptedJson<T extends Record<string, unknown>>(
       }
     }
   }
-  
+
   return data
 }
 
@@ -290,7 +295,7 @@ export async function saveEncryptedJson<T extends Record<string, unknown>>(
 ): Promise<void> {
   // Create a copy to avoid mutating the original
   const data = { ...value }
-  
+
   // Encrypt specified fields
   for (const field of encryptedFields) {
     const fieldValue = data[field]
@@ -303,7 +308,6 @@ export async function saveEncryptedJson<T extends Record<string, unknown>>(
       }
     }
   }
-  
+
   await saveJson(key, data)
 }
-

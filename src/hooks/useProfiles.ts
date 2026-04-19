@@ -61,7 +61,7 @@ export function useProfiles(params: {
     const filter: Filter = { kinds: [0], authors: limitedPubkeys, limit: 500 }
 
     const unsub = client.subscribe(filter, {
-      onevent: evt => {
+      onevent: (evt) => {
         if (evt.kind !== 0) return
         if (!pubkeySet.has(evt.pubkey)) return
         if (seenMetadataIdsRef.current.has(evt.id)) return
@@ -73,7 +73,7 @@ export function useProfiles(params: {
         latestKind0TimeRef.current.set(evt.pubkey, Math.max(prevBest, evt.created_at))
 
         const parsed = parseMetadata(evt.content ?? '')
-        setState(prevState => {
+        setState((prevState) => {
           const base = prevState.key === activeKey ? prevState.map : new Map()
           const prev = base.get(evt.pubkey)
           const merged: Profile = {

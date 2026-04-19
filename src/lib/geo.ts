@@ -7,7 +7,6 @@ export const GEOHASH_LEN_MAX_UI = 5
 
 export type GeohashLength = 1 | 2 | 3 | 4 | 5
 
-
 /**
  * Geographic point with latitude and longitude.
  */
@@ -120,7 +119,6 @@ export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number
   return getCellSizeKm(len)
 }
 
-
 /**
  * Encodes a geographic point to a geohash string.
  * @param p - Geographic point
@@ -134,10 +132,10 @@ export function encodeGeohash(p: GeoPoint, len = 4): string {
 /**
  * Generates all geohash prefixes for a given geohash.
  * All lengths from 1 to the actual length are generated for maximum discoverability.
- * 
+ *
  * @param geohash - A geohash (at least 1 character, ideally 5 characters)
  * @returns Array of geohash prefixes from length 1 to the actual length
- * 
+ *
  * @example
  * generateGeohashTags('u0m1x') // ['u', 'u0', 'u0m', 'u0m1', 'u0m1x']
  * generateGeohashTags('u0m')   // ['u', 'u0', 'u0m']
@@ -145,14 +143,14 @@ export function encodeGeohash(p: GeoPoint, len = 4): string {
 export function generateGeohashTags(geohash: string): string[] {
   const hash = (geohash ?? '').trim()
   if (!hash || hash.length < 1) return []
-  
+
   // Generate all prefixes from length 1 to the actual length
   // No padding - only use real prefixes
   const tags: string[] = []
   for (let len = 1; len <= hash.length && len <= 5; len++) {
     tags.push(hash.slice(0, len))
   }
-  
+
   return tags
 }
 
@@ -201,10 +199,10 @@ export async function getBrowserLocation(opts?: {
       return
     }
     navigator.geolocation.getCurrentPosition(
-      pos => {
+      (pos) => {
         resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude })
       },
-      err => {
+      (err) => {
         reject(new Error(err.message || 'Failed to get location.'))
       },
       { enableHighAccuracy, timeout, maximumAge },
@@ -237,15 +235,24 @@ export function calculateApproxDistance(evt: Event, viewerPoint: GeoPoint | null
  * @param hash - Geohash string
  * @returns Bounding box with min/max lat/lon, or null if invalid
  */
-export function getGeohashBounds(hash: string): { minLat: number; maxLat: number; minLon: number; maxLon: number } | null {
+export function getGeohashBounds(
+  hash: string,
+): { minLat: number; maxLat: number; minLon: number; maxLon: number } | null {
   const h = (hash ?? '').trim()
   if (!h) return null
   try {
     // ngeohash provides decode_bbox; @types/ngeohash does not declare it
-    const bbox = (geohash as unknown as { decode_bbox: (s: string) => [number, number, number, number] }).decode_bbox(h)
+    const bbox = (
+      geohash as unknown as { decode_bbox: (s: string) => [number, number, number, number] }
+    ).decode_bbox(h)
     if (!bbox || bbox.length !== 4) return null
     const [minLat, minLon, maxLat, maxLon] = bbox
-    if (!Number.isFinite(minLat) || !Number.isFinite(maxLat) || !Number.isFinite(minLon) || !Number.isFinite(maxLon))
+    if (
+      !Number.isFinite(minLat) ||
+      !Number.isFinite(maxLat) ||
+      !Number.isFinite(minLon) ||
+      !Number.isFinite(maxLon)
+    )
       return null
     return { minLat, maxLat, minLon, maxLon }
   } catch {
@@ -273,9 +280,11 @@ export function getGeohashZoomLevel(hash: string): number {
  * Params for centering a map on a geohash cell (center, bounds, zoom).
  * @returns Object or null if geohash invalid
  */
-export function getGeohashMapParams(
-  hash: string
-): { center: GeoPoint; bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }; zoom: number } | null {
+export function getGeohashMapParams(hash: string): {
+  center: GeoPoint
+  bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }
+  zoom: number
+} | null {
   const center = decodeGeohashCenter(hash)
   const bounds = getGeohashBounds(hash)
   const zoom = getGeohashZoomLevel(hash)

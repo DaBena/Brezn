@@ -2,7 +2,6 @@
  * Utility functions for consistent button styling across the app
  */
 
-
 /**
  * Base button classes for standard buttons
  */
@@ -14,7 +13,8 @@ export const buttonBase = 'btn-base focus:outline-none'
  * @param canReact - Whether the user can react
  */
 export function reactionButtonClasses(isReacted: boolean, canReact: boolean): string {
-  const base = 'inline-flex items-center gap-1.5 py-1 pr-0.5 text-xs font-semibold focus:outline-none min-w-0'
+  const base =
+    'inline-flex items-center gap-1.5 py-1 pr-0.5 text-xs font-semibold focus:outline-none min-w-0'
   if (isReacted || !canReact) {
     return `${base} cursor-default`
   }

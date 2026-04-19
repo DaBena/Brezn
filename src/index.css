@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @config "../tailwind.config.js";
 
 :root {
@@ -63,29 +63,57 @@ body::-webkit-scrollbar {
 }
 
 textarea,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]) {
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ) {
   background-color: var(--brezn-panel);
   color: var(--brezn-text);
 }
 textarea:focus,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):focus {
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):focus {
   background-color: var(--brezn-panel);
 }
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus,
 textarea:-webkit-autofill:active,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:hover,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:focus,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-webkit-autofill:active {
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):-webkit-autofill,
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):-webkit-autofill:hover,
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):-webkit-autofill:focus,
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):-webkit-autofill:active {
   -webkit-text-fill-color: var(--brezn-text);
   caret-color: var(--brezn-text);
   box-shadow: 0 0 0 1000px var(--brezn-panel) inset;
   transition: background-color 99999s ease-out 0s;
 }
 textarea:-moz-autofill,
-input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="radio"]):not([type="range"]):not([type="reset"]):not([type="submit"]):-moz-autofill {
+input:not([type='button']):not([type='checkbox']):not([type='color']):not([type='file']):not(
+    [type='hidden']
+  ):not([type='image']):not([type='radio']):not([type='range']):not([type='reset']):not(
+    [type='submit']
+  ):-moz-autofill {
   background-color: var(--brezn-panel);
   color: var(--brezn-text);
 }

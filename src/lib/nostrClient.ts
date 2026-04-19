@@ -5,7 +5,13 @@ import { SimplePool } from 'nostr-tools/pool'
 import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { normalizeMutedTerms } from './moderation'
-import { loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
+import {
+  loadJsonSync,
+  saveJsonSync,
+  loadEncryptedJson,
+  saveEncryptedJson,
+  setStorageConsentGiven,
+} from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
   GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
@@ -20,7 +26,7 @@ import {
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
-  'wss://relay.snort.social'
+  'wss://offchain.pub',
 ] as const
 
 const LS_KEY = 'brezn:v1'
@@ -79,7 +85,7 @@ export type GetDMsWithOptions = {
 
 /**
  * Main client interface for Nostr operations in Brezn.
- * 
+ *
  * The client manages:
  * - Identity (auto-created on first use)
  * - Network connections to Nostr relays
@@ -87,7 +93,7 @@ export type GetDMsWithOptions = {
  * - Feed preferences (geohash length)
  * - Direct messages (NIP-04 encrypted)
  * - Profile metadata
- * 
+ *
  * All state is persisted to localStorage/IndexedDB and survives page reloads.
  */
 export type BreznNostrClient = {
@@ -116,11 +122,11 @@ export type BreznNostrClient = {
   /**
    * Subscribe to Nostr events matching a filter.
    * Subscriptions are automatically staggered to avoid relay rate limits.
-   * 
+   *
    * @param filter - Nostr filter (kinds, authors, tags, etc.)
    * @param opts - Callbacks for events, EOSE, and close events
    * @returns Unsubscribe function - call to close the subscription
-   * 
+   *
    * @example
    * ```ts
    * const unsub = client.subscribe(
@@ -130,7 +136,15 @@ export type BreznNostrClient = {
    * // Later: unsub()
    * ```
    */
-  subscribe(filter: Filter, opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean }): () => void
+  subscribe(
+    filter: Filter,
+    opts: {
+      onevent: (evt: Event) => void
+      oneose?: () => void
+      onclose?: (reasons: string[]) => void
+      immediate?: boolean
+    },
+  ): () => void
 
   /**
    * Subscribe with multiple filters merged into one REQ per relay (NIP-01 filter array).
@@ -139,7 +153,11 @@ export type BreznNostrClient = {
    */
   subscribeGrouped(
     filters: Filter[],
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void },
+    opts: {
+      onevent: (evt: Event) => void
+      oneose?: () => void
+      onclose?: (reasons: string[]) => void
+    },
     traceLabel?: string,
   ): () => void
 
@@ -192,7 +210,7 @@ export type BreznNostrClient = {
    * - 3: ~156km × ~78km per cell
    * - 4: ~39km × ~19km per cell
    * - 5: ~4.9km × ~4.9km per cell (smallest, most precise)
-   * 
+   *
    * @returns Geohash length (0-5), default: 1
    */
   getGeohashLength(): number
@@ -295,7 +313,7 @@ function nowSec(): number {
 
 /** Lowercase hex pubkey from the first `p` tag (NIP-04 DM recipient). */
 function dmRecipientPubkeyLower(evt: Event): string | null {
-  const p = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]
+  const p = evt.tags.find((t) => t[0] === 'p' && typeof t[1] === 'string')?.[1]
   return p && /^[0-9a-fA-F]{64}$/.test(p) ? p.toLowerCase() : null
 }
 
@@ -343,7 +361,7 @@ export const whenIdentityReady: Promise<void> =
   typeof window !== 'undefined'
     ? Promise.race([
         initializeStateCache().then(() => {}),
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           setTimeout(() => {
             // On GitHub Pages / strict environments IndexedDB can hang; ensure app still loads
             fallbackStateFromLocalStorage()
@@ -422,14 +440,14 @@ function normalizeRelays(relays: string[]): string[] {
 
 /**
  * Creates a new Nostr client instance.
- * 
+ *
  * The client is a singleton-like instance that manages:
  * - WebSocket connections to relays (via SimplePool)
  * - Active subscriptions with automatic cleanup
  * - Persistent state (identity, settings) in localStorage/IndexedDB
- * 
+ *
  * Multiple calls return the same client instance (shared state).
- * 
+ *
  * @returns BreznNostrClient instance
  */
 export function createNostrClient(): BreznNostrClient {
@@ -440,7 +458,12 @@ export function createNostrClient(): BreznNostrClient {
   type ActiveSub = {
     id: string
     filter: Filter
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean }
+    opts: {
+      onevent: (evt: Event) => void
+      oneose?: () => void
+      onclose?: (reasons: string[]) => void
+      immediate?: boolean
+    }
     closer: SubCloser | null
   }
 
@@ -449,7 +472,7 @@ export function createNostrClient(): BreznNostrClient {
     try {
       const result = closer.close(reason)
       if (result != null && typeof (result as Promise<unknown>).catch === 'function') {
-        (result as Promise<void>).catch(() => {})
+        ;(result as Promise<void>).catch(() => {})
       }
     } catch {
       // Ignore sync errors (e.g. WebSocket already CLOSING/CLOSED)
@@ -464,19 +487,19 @@ export function createNostrClient(): BreznNostrClient {
   function scheduleSubscription(s: ActiveSub, delay: number) {
     pendingSubs.push({ id: s.id, s, delay })
     if (subSchedulerTimeout) return // Already scheduling
-    
+
     // Sort by delay (earliest first)
     pendingSubs.sort((a, b) => a.delay - b.delay)
-    
+
     const processNext = () => {
       if (pendingSubs.length === 0) {
         subSchedulerTimeout = null
         return
       }
-      
+
       const next = pendingSubs.shift()!
       startOrRestartSub(next.s, 'subscribe')
-      
+
       if (pendingSubs.length > 0) {
         const nextDelay = pendingSubs[0].delay - next.delay
         subSchedulerTimeout = setTimeout(processNext, Math.max(0, nextDelay))
@@ -484,7 +507,7 @@ export function createNostrClient(): BreznNostrClient {
         subSchedulerTimeout = null
       }
     }
-    
+
     subSchedulerTimeout = setTimeout(processNext, delay)
   }
 
@@ -540,7 +563,7 @@ export function createNostrClient(): BreznNostrClient {
           console.warn('Error in oneose callback:', err)
         }
       },
-      onclose: reasons => {
+      onclose: (reasons) => {
         s.opts.onclose?.(reasons)
       },
       maxWait: SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
@@ -608,7 +631,7 @@ export function createNostrClient(): BreznNostrClient {
         return { skHex, pubkey, npub }
       }
     }
-    
+
     if (!skHex || skHex.length !== 64 || !/^[0-9a-f]{64}$/i.test(skHex)) {
       // Invalid or missing key - generate new one
       const sk = generateSecretKey()
@@ -618,7 +641,7 @@ export function createNostrClient(): BreznNostrClient {
       saveState({ skHex, pubkey, npub })
       return { skHex, pubkey, npub }
     }
-    
+
     try {
       const pubkey = getPublicKey(hexToBytes(skHex))
       const npub = nip19.npubEncode(pubkey)
@@ -670,25 +693,30 @@ export function createNostrClient(): BreznNostrClient {
 
   function subscribe(
     filter: Filter,
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void; immediate?: boolean },
+    opts: {
+      onevent: (evt: Event) => void
+      oneose?: () => void
+      onclose?: (reasons: string[]) => void
+      immediate?: boolean
+    },
   ): () => void {
     const id = `sub_${++subSeq}`
     const s: ActiveSub = { id, filter, opts, closer: null }
     activeSubs.set(id, s)
-    
+
     // Stagger subscriptions to avoid "too many concurrent REQs"; feed (immediate) always starts at once
-    const delay = opts.immediate ? 0 : (activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200)
+    const delay = opts.immediate ? 0 : activeSubs.size === 1 ? 0 : (activeSubs.size - 1) * 200
 
     if (delay === 0) {
       startOrRestartSub(s, 'subscribe')
     } else {
       scheduleSubscription(s, delay)
     }
-    
+
     return () => {
       activeSubs.delete(id)
       // Remove from pending if not yet started
-      pendingSubs = pendingSubs.filter(p => p.id !== id)
+      pendingSubs = pendingSubs.filter((p) => p.id !== id)
       if (s.closer) {
         closeSubSafely(s.closer, 'ui-unsubscribe')
         s.closer = null
@@ -701,7 +729,11 @@ export function createNostrClient(): BreznNostrClient {
    */
   function subscribeGrouped(
     filters: Filter[],
-    opts: { onevent: (evt: Event) => void; oneose?: () => void; onclose?: (reasons: string[]) => void },
+    opts: {
+      onevent: (evt: Event) => void
+      oneose?: () => void
+      onclose?: (reasons: string[]) => void
+    },
     traceLabel = 'grouped',
   ): () => void {
     const relays = getRelays()
@@ -750,7 +782,7 @@ export function createNostrClient(): BreznNostrClient {
       normalized.push(trimmed)
       if (normalized.length >= 1000) break // Reasonable limit
     }
-    
+
     // Save locally (blocklist is private, not shared with relays)
     // Blocklist is only shared with relays via NIP-56 report events when a report reason is provided
     saveState({ blockedPubkeys: normalized })
@@ -758,14 +790,14 @@ export function createNostrClient(): BreznNostrClient {
 
   function getGeohashLength(): number {
     const s = loadState()
-    
+
     // Check if geohashLength is set
     if (typeof s.settings?.geohashLength === 'number') {
       const len = Math.round(s.settings.geohashLength)
       if (len === 0) return 0
       if (len >= 1 && len <= 5) return len
     }
-    
+
     return 1
   }
 
@@ -832,7 +864,9 @@ export function createNostrClient(): BreznNostrClient {
 
     try {
       if (isFromMe) {
-        const recipientPubkey = event.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]
+        const recipientPubkey = event.tags.find(
+          (t) => t[0] === 'p' && typeof t[1] === 'string',
+        )?.[1]
         if (!recipientPubkey) {
           throw new Error('Recipient pubkey not found in tags')
         }
@@ -856,7 +890,7 @@ export function createNostrClient(): BreznNostrClient {
     label: string,
     timeoutMs: number = GET_DM_HISTORY_TIMEOUT_MS,
   ): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       let resolved = false
       let closer: SubCloser | null = null
 
@@ -896,7 +930,10 @@ export function createNostrClient(): BreznNostrClient {
       return Promise.reject(new Error('No relays configured'))
     }
 
-    const conversations = new Map<string, { pubkey: string; lastMessageAt: number; lastMessagePreview: string }>()
+    const conversations = new Map<
+      string,
+      { pubkey: string; lastMessageAt: number; lastMessagePreview: string }
+    >()
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
     const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
     const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
@@ -930,10 +967,11 @@ export function createNostrClient(): BreznNostrClient {
           relayUrl,
           filterIn,
           filterOut,
-          evt => {
+          (evt) => {
             try {
               if (evt.pubkey.toLowerCase() === me) {
-                const raw = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
+                const raw =
+                  evt.tags.find((t) => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
                 const otherPubkey = raw?.toLowerCase() ?? null
                 if (!otherPubkey) return
                 mergeConversation(otherPubkey, evt)
@@ -957,7 +995,10 @@ export function createNostrClient(): BreznNostrClient {
     return snapshot()
   }
 
-  async function getDMsWith(otherPubkey: string, options?: GetDMsWithOptions): Promise<DecryptedDM[]> {
+  async function getDMsWith(
+    otherPubkey: string,
+    options?: GetDMsWithOptions,
+  ): Promise<DecryptedDM[]> {
     await whenIdentityReady
     const { pubkey } = ensureIdentity()
     const me = pubkey.trim().toLowerCase()
@@ -990,7 +1031,7 @@ export function createNostrClient(): BreznNostrClient {
           relayUrl,
           filterOut,
           filterIn,
-          evt => {
+          (evt) => {
             const author = evt.pubkey.toLowerCase()
             if (author === me) {
               const rec = dmRecipientPubkeyLower(evt)
@@ -1030,7 +1071,11 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   // Profile metadata (kind 0)
-  async function getMyProfile(): Promise<{ name?: string; picture?: string; about?: string } | null> {
+  async function getMyProfile(): Promise<{
+    name?: string
+    picture?: string
+    about?: string
+  } | null> {
     const { pubkey } = ensureIdentity()
 
     return new Promise((resolve, reject) => {
@@ -1045,7 +1090,7 @@ export function createNostrClient(): BreznNostrClient {
       const unsub = subscribe(
         { kinds: [0], authors: [pubkey], limit: 1 },
         {
-          onevent: evt => {
+          onevent: (evt) => {
             if (evt.kind !== 0 || evt.pubkey !== pubkey) return
             try {
               const data = JSON.parse(evt.content ?? '{}')
@@ -1071,7 +1116,7 @@ export function createNostrClient(): BreznNostrClient {
               unsub()
             }
           },
-          onclose: reasons => {
+          onclose: (reasons) => {
             clearTimeout(timeout)
             if (!resolved) {
               resolved = true
@@ -1087,7 +1132,11 @@ export function createNostrClient(): BreznNostrClient {
     })
   }
 
-  async function updateProfile(metadata: { name?: string; picture?: string; about?: string }): Promise<string> {
+  async function updateProfile(metadata: {
+    name?: string
+    picture?: string
+    about?: string
+  }): Promise<string> {
     // Nostr events are append-only, so we can just publish the new metadata
     // Clients will use the latest event
     const next: Record<string, unknown> = {}
@@ -1120,10 +1169,10 @@ export function createNostrClient(): BreznNostrClient {
       if (decoded.type !== 'nsec') {
         throw new Error('Invalid nsec: must start with "nsec1"')
       }
-      
+
       const skBytes = decoded.data
       const skHex = bytesToHex(skBytes)
-      
+
       // Validate: secret key should be 32 bytes (64 hex chars)
       if (skHex.length !== 64) {
         throw new Error('Invalid nsec: secret key must be 32 bytes')
@@ -1184,4 +1233,3 @@ export function createNostrClient(): BreznNostrClient {
     },
   }
 }
-

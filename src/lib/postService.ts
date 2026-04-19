@@ -4,13 +4,13 @@ import { NOSTR_KINDS } from './breznNostr'
 import { generateGeohashTags } from './geo'
 
 function createGeoTags(geohash: string): [string, string][] {
-  return generateGeohashTags(geohash).map(g => ['g', g] as [string, string])
+  return generateGeohashTags(geohash).map((g) => ['g', g] as [string, string])
 }
 
 export async function publishPost(
   client: BreznNostrClient,
   content: string,
-  viewerGeo5: string | null
+  viewerGeo5: string | null,
 ): Promise<void> {
   // Use full 5-digit geohash for posting (not the shortened geoCell)
   if (!viewerGeo5) throw new Error('Location missing (reload feed).')
@@ -30,12 +30,12 @@ export async function publishReply(
   client: BreznNostrClient,
   root: Event,
   content: string,
-  viewerGeo5: string | null
+  viewerGeo5: string | null,
 ): Promise<void> {
   const trimmedContent = content.trim()
   if (!trimmedContent) return
 
-  const rootGeo = root.tags.find(t => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
+  const rootGeo = root.tags.find((t) => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
   // Use full 5-digit geohash for replies (not the shortened geoCell)
   const g = rootGeo ?? viewerGeo5
 
@@ -58,15 +58,30 @@ export async function publishReply(
 export async function deletePost(
   client: BreznNostrClient,
   evt: Event,
-  identityPubkey: string
+  identityPubkey: string,
 ): Promise<void> {
-  if (evt.pubkey !== identityPubkey) {
-    throw new Error('Only your own posts can be marked with a deletion event.')
+  await deletePosts(client, [evt], identityPubkey)
+}
+
+export async function deletePosts(
+  client: BreznNostrClient,
+  events: Event[],
+  identityPubkey: string,
+): Promise<void> {
+  const ownEvents = events.filter(Boolean)
+  if (!ownEvents.length) return
+  for (const evt of ownEvents) {
+    if (evt.pubkey !== identityPubkey) {
+      throw new Error('Only your own posts can be marked with a deletion event.')
+    }
   }
-  // NIP-09: Event Deletion (kind 5)
+  const ids = [...new Set(ownEvents.map((evt) => evt.id))]
+  if (!ids.length) return
+  // NIP-09: Event Deletion (kind 5), supports deleting multiple events in one request.
+  const tags = ids.map((id) => ['e', id] as [string, string])
   await client.publish({
     kind: NOSTR_KINDS.deletion,
     content: '',
-    tags: [['e', evt.id]],
+    tags,
   })
 }

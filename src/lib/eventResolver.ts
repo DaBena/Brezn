@@ -33,13 +33,16 @@ function writeCache(eventId: string, value: Event | null): void {
   if (oldest) cache.delete(oldest)
 }
 
-function fetchIdsChunk(client: BreznNostrClient, ids: string[]): Promise<Record<string, Event | null>> {
+function fetchIdsChunk(
+  client: BreznNostrClient,
+  ids: string[],
+): Promise<Record<string, Event | null>> {
   if (ids.length === 0) return Promise.resolve({})
   const idSet = new Set(ids)
   const found: Record<string, Event | null> = {}
   for (const id of ids) found[id] = null
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let settled = false
     let unsub = () => {}
     const timer: { id: ReturnType<typeof setTimeout> | null } = { id: null }
@@ -51,9 +54,11 @@ function fetchIdsChunk(client: BreznNostrClient, ids: string[]): Promise<Record<
       resolve(found)
     }
     unsub = client.subscribe(
-      { ids, kinds: [1], limit: ids.length },
+      // Resolve by event id across all kinds (not only kind:1),
+      // otherwise quoted nevent references (e.g. kind:20) fall back to external links.
+      { ids, limit: ids.length },
       {
-        onevent: evt => {
+        onevent: (evt) => {
           const lo = evt.id.toLowerCase()
           if (!idSet.has(lo)) return
           found[lo] = evt
@@ -65,7 +70,10 @@ function fetchIdsChunk(client: BreznNostrClient, ids: string[]): Promise<Record<
   })
 }
 
-async function fetchEventsByIdsUncached(client: BreznNostrClient, ids: string[]): Promise<Record<string, Event | null>> {
+async function fetchEventsByIdsUncached(
+  client: BreznNostrClient,
+  ids: string[],
+): Promise<Record<string, Event | null>> {
   const merged: Record<string, Event | null> = {}
   for (let i = 0; i < ids.length; i += IDS_CHUNK) {
     const chunk = ids.slice(i, i + IDS_CHUNK)
@@ -79,7 +87,9 @@ export async function resolveEventsById(
   client: BreznNostrClient,
   eventIdsInput: string[],
 ): Promise<Record<string, Event | null>> {
-  const eventIds = [...new Set(eventIdsInput.map(normalizeEventId).filter(id => /^[0-9a-f]{64}$/.test(id)))]
+  const eventIds = [
+    ...new Set(eventIdsInput.map(normalizeEventId).filter((id) => /^[0-9a-f]{64}$/.test(id))),
+  ]
   const out: Record<string, Event | null> = {}
   const need: string[] = []
   for (const id of eventIds) {
@@ -93,7 +103,7 @@ export async function resolveEventsById(
   let p = batchInflight.get(batchKey)
   if (!p) {
     p = fetchEventsByIdsUncached(client, need)
-      .then(fetched => {
+      .then((fetched) => {
         const res: Record<string, Event | null> = {}
         for (const id of need) {
           const v = fetched[id] ?? null
@@ -112,7 +122,10 @@ export async function resolveEventsById(
   return { ...out, ...batchResult }
 }
 
-export async function resolveEventById(client: BreznNostrClient, eventIdInput: string): Promise<Event | null> {
+export async function resolveEventById(
+  client: BreznNostrClient,
+  eventIdInput: string,
+): Promise<Event | null> {
   const eventId = normalizeEventId(eventIdInput)
   if (!/^[0-9a-f]{64}$/.test(eventId)) return null
   const r = await resolveEventsById(client, [eventId])

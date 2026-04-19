@@ -21,12 +21,27 @@ export function SettingsSheet(props: {
   onGeohashLengthChange: (length: number) => void
   onRelaysChanged?: () => void
 }) {
-  const { open, onClose, client, onModerationChanged, geohashLength, geoCell, onGeohashLengthChange, onRelaysChanged } = props
+  const {
+    open,
+    onClose,
+    client,
+    onModerationChanged,
+    geohashLength,
+    geoCell,
+    onGeohashLengthChange,
+    onRelaysChanged,
+  } = props
 
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme(client)
-  const [mediaEndpoint, setMediaEndpoint] = useState<string>(() => client.getMediaUploadEndpoint() ?? '')
-  const [currentProfile, setCurrentProfile] = useState<{ name: string; picture: string; about: string } | null>(null)
+  const [mediaEndpoint, setMediaEndpoint] = useState<string>(
+    () => client.getMediaUploadEndpoint() ?? '',
+  )
+  const [currentProfile, setCurrentProfile] = useState<{
+    name: string
+    picture: string
+    about: string
+  } | null>(null)
   const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
   const initialMediaEndpointRef = useRef<string>('')
   const initialRelaysRef = useRef<string[]>([])
@@ -35,12 +50,15 @@ export function SettingsSheet(props: {
   const [profileSaving, setProfileSaving] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
-  const handleProfileChange = useCallback((profile: { name: string; picture: string; about: string }) => {
-    if (!initialProfileRef.current) {
-      initialProfileRef.current = profile
-    }
-    setCurrentProfile(profile)
-  }, [])
+  const handleProfileChange = useCallback(
+    (profile: { name: string; picture: string; about: string }) => {
+      if (!initialProfileRef.current) {
+        initialProfileRef.current = profile
+      }
+      setCurrentProfile(profile)
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!open) return
@@ -48,8 +66,8 @@ export function SettingsSheet(props: {
       if (typeof queueMicrotask === 'function') queueMicrotask(fn)
       else window.setTimeout(fn, 0)
     }
-      schedule(() => {
-        setClosing(false)
+    schedule(() => {
+      setClosing(false)
       {
         const ep = client.getMediaUploadEndpoint() ?? ''
         initialMediaEndpointRef.current = ep
@@ -57,7 +75,7 @@ export function SettingsSheet(props: {
       }
       initialRelaysRef.current = [...client.getRelays()]
       setCurrentProfile(null)
-      setResetKey(prev => prev + 1)
+      setResetKey((prev) => prev + 1)
     })
   }, [client, open])
 
@@ -82,36 +100,37 @@ export function SettingsSheet(props: {
     }
 
     if (currentProfile) {
-    try {
-      const initial = initialProfileRef.current ?? { name: '', picture: '', about: '' }
+      try {
+        const initial = initialProfileRef.current ?? { name: '', picture: '', about: '' }
         const nextName = currentProfile.name.trim()
         const nextPicture = currentProfile.picture.trim()
         const nextAbout = currentProfile.about.trim()
-      const changed =
-        initial.name.trim() !== nextName ||
-        initial.picture.trim() !== nextPicture ||
-        (initial.about ?? '').trim() !== nextAbout
-      if (changed) {
-        setProfileSaving(true)
+        const changed =
+          initial.name.trim() !== nextName ||
+          initial.picture.trim() !== nextPicture ||
+          (initial.about ?? '').trim() !== nextAbout
+        if (changed) {
+          setProfileSaving(true)
           await client.updateProfile({
             name: currentProfile.name,
             picture: currentProfile.picture,
             about: currentProfile.about,
           })
-        initialProfileRef.current = { name: nextName, picture: nextPicture, about: nextAbout }
-      }
-    } catch {
-      setClosing(false)
-      setProfileSaving(false)
-      return
-    } finally {
-      setProfileSaving(false)
+          initialProfileRef.current = { name: nextName, picture: nextPicture, about: nextAbout }
+        }
+      } catch {
+        setClosing(false)
+        setProfileSaving(false)
+        return
+      } finally {
+        setProfileSaving(false)
       }
     }
 
     const currentRelays = client.getRelays()
     const initialRelays = initialRelaysRef.current
-    const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...initialRelays].sort())
+    const relaysChanged =
+      JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...initialRelays].sort())
     if (relaysChanged && onRelaysChanged) {
       onRelaysChanged()
     }
@@ -121,13 +140,26 @@ export function SettingsSheet(props: {
   }
 
   return (
-    <Sheet open={open} title={t('settings.title')} onClose={() => void persistAndClose()} dismissible={!closing && !profileSaving}>
+    <Sheet
+      open={open}
+      title={t('settings.title')}
+      onClose={() => void persistAndClose()}
+      dismissible={!closing && !profileSaving}
+    >
       <div className="mt-4 space-y-3">
         <ThemeSettings theme={theme} onThemeChange={setTheme} />
 
-        <GeohashSettings geohashLength={geohashLength} geoCell={geoCell} onGeohashLengthChange={onGeohashLengthChange} />
+        <GeohashSettings
+          geohashLength={geohashLength}
+          geoCell={geoCell}
+          onGeohashLengthChange={onGeohashLengthChange}
+        />
 
-        <ModerationSettings key={`moderation-${resetKey}`} client={client} onModerationChanged={onModerationChanged} />
+        <ModerationSettings
+          key={`moderation-${resetKey}`}
+          client={client}
+          onModerationChanged={onModerationChanged}
+        />
 
         <KeyManagement client={client} />
 

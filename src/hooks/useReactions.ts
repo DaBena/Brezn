@@ -41,12 +41,19 @@ export function useReactions(params: {
   const debouncedNoteIdKey = pipe === -1 ? debouncedScopeKey : debouncedScopeKey.slice(0, pipe)
   const debouncedViewerPubkey = pipe === -1 ? '' : debouncedScopeKey.slice(pipe + 1)
   const debouncedLimitedIds = useMemo(
-    () => debouncedNoteIdKey.split(',').filter(id => /^[0-9a-f]{64}$/i.test(id)).slice(0, 300),
+    () =>
+      debouncedNoteIdKey
+        .split(',')
+        .filter((id) => /^[0-9a-f]{64}$/i.test(id))
+        .slice(0, 300),
     [debouncedNoteIdKey],
   )
   const activeKey = debouncedScopeKey
 
-  const [state, setState] = useState<{ key: string; byNote: Record<string, ReactionSummary> }>({ key: '', byNote: {} })
+  const [state, setState] = useState<{ key: string; byNote: Record<string, ReactionSummary> }>({
+    key: '',
+    byNote: {},
+  })
   const seenReactionIdsRef = useRef<Set<string>>(new Set())
   const countedPubkeysByNoteRef = useRef<Map<string, Set<string>>>(new Map())
   const scopeKeyRef = useRef<string>('')
@@ -73,7 +80,7 @@ export function useReactions(params: {
     const filter: Filter = { kinds: [7], '#e': debouncedLimitedIds, since, limit: 5000 }
 
     const unsub = client.subscribe(filter, {
-      onevent: evt => {
+      onevent: (evt) => {
         if (evt.kind !== 7) return
         if (!isCountedReaction(evt)) return
         if (seenReactionIdsRef.current.has(evt.id)) return
@@ -93,13 +100,17 @@ export function useReactions(params: {
           countedByNote.set(noteId, countedPubkeys)
         }
 
-        setState(prev => {
+        setState((prev) => {
           const base = prev.key === activeKey ? prev.byNote : {}
           const cur = base[noteId] ?? { total: 0, viewerReacted: false }
           const nextTotal = cur.total + (isNewPubkey ? 1 : 0)
           const nextViewerReacted =
-            cur.viewerReacted || (debouncedViewerPubkey ? evt.pubkey === debouncedViewerPubkey : false)
-          return { key: activeKey, byNote: { ...base, [noteId]: { total: nextTotal, viewerReacted: nextViewerReacted } } }
+            cur.viewerReacted ||
+            (debouncedViewerPubkey ? evt.pubkey === debouncedViewerPubkey : false)
+          return {
+            key: activeKey,
+            byNote: { ...base, [noteId]: { total: nextTotal, viewerReacted: nextViewerReacted } },
+          }
         })
       },
     })
@@ -112,7 +123,7 @@ export function useReactions(params: {
     if (state.key !== activeKey) return
     const allowed = new Set(debouncedLimitedIds)
     // eslint-disable-next-line react-hooks/set-state-in-effect -- derive sticky counts from live sub state
-    setStableByNote(prev => {
+    setStableByNote((prev) => {
       const next = { ...prev }
       for (const [id, sum] of Object.entries(state.byNote)) {
         if (allowed.has(id)) next[id] = sum

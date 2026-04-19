@@ -7,11 +7,6 @@ import { contentMatchesMutedTerms } from '../lib/moderation'
 
 const HISTORY_SECONDS = 60 * 60 * 24 * 365
 
-/** Kind-1 root (NIP-10): no `e` tag — same rule as `isReplyNote` in useLocalFeed. */
-function isRootNote(evt: Event): boolean {
-  return evt.kind === 1 && !evt.tags.some(t => t[0] === 'e')
-}
-
 function mergeAndSort(prev: Event[], incoming: Event[]): Event[] {
   const byId = new Map<string, Event>()
   for (const e of prev) byId.set(e.id, e)
@@ -24,14 +19,12 @@ export function useAuthorNotes(params: {
   authorPubkey: string | null
   mutedTerms: string[]
   blockedPubkeys: string[]
-  deletedNoteIds: Set<string>
   isOffline: boolean
 }) {
-  const { client, authorPubkey, mutedTerms, blockedPubkeys, deletedNoteIds, isOffline } = params
+  const { client, authorPubkey, mutedTerms, blockedPubkeys, isOffline } = params
 
   const mutedRef = useRef(mutedTerms)
   const blockedRef = useRef(blockedPubkeys)
-  const deletedRef = useRef(deletedNoteIds)
 
   const [events, setEvents] = useState<Event[]>([])
   const [hasMore, setHasMore] = useState(true)
@@ -43,8 +36,7 @@ export function useAuthorNotes(params: {
   useLayoutEffect(() => {
     mutedRef.current = mutedTerms
     blockedRef.current = blockedPubkeys
-    deletedRef.current = deletedNoteIds
-  }, [mutedTerms, blockedPubkeys, deletedNoteIds])
+  }, [mutedTerms, blockedPubkeys])
 
   useLayoutEffect(() => {
     eventsRef.current = events
@@ -82,19 +74,17 @@ export function useAuthorNotes(params: {
 
     const accept = (evt: Event): boolean => {
       if (evt.kind !== 1 || evt.pubkey !== authorPubkey) return false
-      if (!isRootNote(evt)) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
       if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-      if (deletedRef.current.has(evt.id)) return false
       return true
     }
 
     const unsub = client.subscribe(filter, {
-      onevent: evt => {
+      onevent: (evt) => {
         if (!accept(evt)) return
         if (seenIdsRef.current.has(evt.id)) return
         seenIdsRef.current.add(evt.id)
-        setEvents(prev => mergeAndSort(prev, [evt]))
+        setEvents((prev) => mergeAndSort(prev, [evt]))
       },
     })
 
@@ -109,7 +99,9 @@ export function useAuthorNotes(params: {
     if (blockedRef.current.includes(authorPubkey)) return
 
     const current = eventsRef.current
-    const oldest = current.length ? Math.min(...current.map(e => e.created_at)) : Math.floor(Date.now() / 1000)
+    const oldest = current.length
+      ? Math.min(...current.map((e) => e.created_at))
+      : Math.floor(Date.now() / 1000)
     const defaultUntil = oldest - 1
     if (!Number.isFinite(defaultUntil) || defaultUntil <= 0) {
       setHasMore(false)
@@ -127,10 +119,8 @@ export function useAuthorNotes(params: {
 
     const accept = (evt: Event): boolean => {
       if (evt.kind !== 1 || evt.pubkey !== authorPubkey) return false
-      if (!isRootNote(evt)) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
       if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-      if (deletedRef.current.has(evt.id)) return false
       return true
     }
 
@@ -148,15 +138,11 @@ export function useAuthorNotes(params: {
       setLoadingMore(false)
       const merged = batchById.size
       for (const evt of batchById.values()) seenIdsRef.current.add(evt.id)
-      if (merged) setEvents(prev => mergeAndSort(prev, [...batchById.values()]))
+      if (merged) setEvents((prev) => mergeAndSort(prev, [...batchById.values()]))
 
       const listAfter = eventsRef.current
-      const feedLo = listAfter.length
-        ? Math.min(...listAfter.map(e => e.created_at))
-        : oldest
-      const feedHi = listAfter.length
-        ? Math.max(...listAfter.map(e => e.created_at))
-        : oldest
+      const feedLo = listAfter.length ? Math.min(...listAfter.map((e) => e.created_at)) : oldest
+      const feedHi = listAfter.length ? Math.max(...listAfter.map((e) => e.created_at)) : oldest
       if (merged > 0) {
         loadMoreCursorRef.current = null
       } else {
@@ -172,26 +158,26 @@ export function useAuthorNotes(params: {
       setHasMore(merged > 0 || loadMoreCursorRef.current !== null)
     }
 
-    cleanup.unsub = client.subscribe(
-      filter,
-      {
-        onevent: evt => {
-          if (!accept(evt)) return
-          batchRelayCount++
-          batchMinCreated =
-            batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
-          if (seenIdsRef.current.has(evt.id)) return
-          batchById.set(evt.id, evt)
-        },
-        oneose: finish,
-        immediate: true,
+    cleanup.unsub = client.subscribe(filter, {
+      onevent: (evt) => {
+        if (!accept(evt)) return
+        batchRelayCount++
+        batchMinCreated =
+          batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
+        if (seenIdsRef.current.has(evt.id)) return
+        batchById.set(evt.id, evt)
       },
-    )
+      oneose: finish,
+      immediate: true,
+    })
 
     cleanup.timeoutId = window.setTimeout(finish, 15_000)
   }, [authorPubkey, client, hasMore, isOffline, loadingMore])
 
-  const sortedEvents = useMemo(() => [...events].sort((a, b) => b.created_at - a.created_at), [events])
+  const sortedEvents = useMemo(
+    () => [...events].sort((a, b) => b.created_at - a.created_at),
+    [events],
+  )
 
   return { events: sortedEvents, hasMore, loadingMore, loadMore }
 }

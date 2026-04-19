@@ -10,7 +10,11 @@ type ErrorBoundaryState = {
 
 type ErrorBoundaryProps = {
   children: ReactNode
-  fallback?: (error: Error | null, errorInfo: React.ErrorInfo | null, reset: () => void) => ReactNode
+  fallback?: (
+    error: Error | null,
+    errorInfo: React.ErrorInfo | null,
+    reset: () => void,
+  ) => ReactNode
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -37,9 +41,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       url: typeof window !== 'undefined' ? window.location.href : 'unknown',
     }
-    
+
     console.error('ErrorBoundary caught an error:', errorDetails)
-    
+
     // In development, log full details
     if (process.env.NODE_ENV === 'development') {
       console.error('Full error object:', error)
@@ -69,7 +73,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="min-h-dvh bg-brezn-bg text-brezn-text flex items-center justify-center p-4">
           <div className="max-w-xl w-full rounded-lg border border-brezn-border bg-brezn-panel p-6">
-            <div className="mb-2 text-lg font-semibold text-brezn-error">{i18n.t('errorBoundary.title')}</div>
+            <div className="mb-2 text-lg font-semibold text-brezn-error">
+              {i18n.t('errorBoundary.title')}
+            </div>
             <div className="text-sm text-brezn-muted mb-4">{i18n.t('errorBoundary.body')}</div>
             {this.state.error && (
               <details className="mb-4">
@@ -83,13 +89,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   {this.state.error.stack && (
                     <div className="mb-2">
                       <strong>{i18n.t('errorBoundary.stack')}</strong>
-                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.error.stack}</pre>
+                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">
+                        {this.state.error.stack}
+                      </pre>
                     </div>
                   )}
                   {this.state.errorInfo && (
                     <div>
                       <strong>{i18n.t('errorBoundary.componentStack')}</strong>
-                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">{this.state.errorInfo.componentStack}</pre>
+                      <pre className="mt-1 whitespace-pre-wrap text-[10px]">
+                        {this.state.errorInfo.componentStack}
+                      </pre>
                     </div>
                   )}
                 </div>
@@ -117,4 +127,3 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return this.props.children
   }
 }
-

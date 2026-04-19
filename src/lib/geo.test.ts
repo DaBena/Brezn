@@ -29,11 +29,13 @@ describe('geo', () => {
   })
 
   it('getBrowserLocation uses fast defaults (no high accuracy)', async () => {
-    const getCurrentPosition = vi.fn((success: PositionCallback) => {
-      success({
-        coords: { latitude: 48.1, longitude: 11.5 } as GeolocationCoordinates,
-      } as GeolocationPosition)
-    })
+    const getCurrentPosition = vi.fn(
+      (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
+        success({
+          coords: { latitude: 48.1, longitude: 11.5 } as GeolocationCoordinates,
+        } as GeolocationPosition)
+      },
+    )
     vi.stubGlobal('navigator', {
       geolocation: { getCurrentPosition },
     })
@@ -49,11 +51,13 @@ describe('geo', () => {
   })
 
   it('getBrowserLocation forwards custom geolocation options', async () => {
-    const getCurrentPosition = vi.fn((success: PositionCallback) => {
-      success({
-        coords: { latitude: 47.9, longitude: 12.2 } as GeolocationCoordinates,
-      } as GeolocationPosition)
-    })
+    const getCurrentPosition = vi.fn(
+      (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
+        success({
+          coords: { latitude: 47.9, longitude: 12.2 } as GeolocationCoordinates,
+        } as GeolocationPosition)
+      },
+    )
     vi.stubGlobal('navigator', {
       geolocation: { getCurrentPosition },
     })
@@ -70,4 +74,3 @@ describe('geo', () => {
 afterEach(() => {
   vi.unstubAllGlobals()
 })
-

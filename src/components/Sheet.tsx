@@ -13,7 +13,7 @@ function getFocusableElements(root: HTMLElement): HTMLElement[] {
     '[tabindex]:not([tabindex="-1"])',
   ].join(',')
   const all = Array.from(root.querySelectorAll<HTMLElement>(selector))
-  return all.filter(el => {
+  return all.filter((el) => {
     // Skip hidden/disabled-ish elements.
     const style = window.getComputedStyle(el)
     if (style.display === 'none' || style.visibility === 'hidden') return false
@@ -31,6 +31,8 @@ export function Sheet(props: {
   headerStart?: ReactNode
   /** Shown in the header row, centered between left content and the close button. */
   headerCenter?: ReactNode
+  /** Shown in the header row to the left of the close button (e.g. composer media). */
+  headerEnd?: ReactNode
   onClose: () => void
   children: ReactNode
   zIndexClassName?: string
@@ -48,6 +50,7 @@ export function Sheet(props: {
     titleElement,
     headerStart,
     headerCenter,
+    headerEnd,
     onClose,
     children,
     zIndexClassName,
@@ -67,7 +70,7 @@ export function Sheet(props: {
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
-  
+
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
@@ -106,7 +109,9 @@ export function Sheet(props: {
     // Find scrollable element
     const dialog = dialogRef.current
     if (dialog) {
-      const scrollableEl = dialog.querySelector<HTMLElement>('.hide-scrollbar, [class*="overflow-y-auto"]')
+      const scrollableEl = dialog.querySelector<HTMLElement>(
+        '.hide-scrollbar, [class*="overflow-y-auto"]',
+      )
       scrollableElementRef.current = scrollableEl ?? null
     }
 
@@ -202,14 +207,14 @@ export function Sheet(props: {
   // Swipe gesture handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!dismissible) return
-    
+
     const touch = e.touches[0]
     const target = e.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
-    
+
     // Get Y position relative to the dialog element
     const elementY = touch.clientY - rect.top
-    
+
     touchStartX.current = touch.clientX
     touchStartY.current = touch.clientY
     touchStartElementY.current = elementY
@@ -218,17 +223,23 @@ export function Sheet(props: {
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!dismissible || touchStartX.current === null || touchStartY.current === null || touchStartElementY.current === null) return
-    
+    if (
+      !dismissible ||
+      touchStartX.current === null ||
+      touchStartY.current === null ||
+      touchStartElementY.current === null
+    )
+      return
+
     const currentX = e.touches[0].clientX
     const currentY = e.touches[0].clientY
     const deltaX = currentX - touchStartX.current
     const deltaY = currentY - touchStartY.current
-    
+
     // Check if user is primarily scrolling vertically
     const absDeltaX = Math.abs(deltaX)
     const absDeltaY = Math.abs(deltaY)
-    
+
     // If vertical movement is significantly more than horizontal, treat as scroll
     if (absDeltaY > absDeltaX * 1.5) {
       isScrolling.current = true
@@ -236,11 +247,11 @@ export function Sheet(props: {
       setSwipeDirection(null)
       return
     }
-    
+
     // Only allow swipe if touch started in header area (first ~80px) or at scroll edge
     const headerHeight = 80 // Approximate header height including padding
     const startedInHeader = touchStartElementY.current < headerHeight
-    
+
     // Only allow horizontal swipe if:
     // 1. Horizontal movement is dominant, AND
     // 2. Either started in header, or at scroll edge in the direction of movement
@@ -256,9 +267,9 @@ export function Sheet(props: {
           return
         }
       }
-      
+
       // Determine direction on first significant movement
-      setSwipeDirection(prev => (prev === null ? (deltaX < 0 ? 'left' : 'right') : prev))
+      setSwipeDirection((prev) => (prev === null ? (deltaX < 0 ? 'left' : 'right') : prev))
       setSwipeOffset(absDeltaX)
     }
   }
@@ -286,14 +297,14 @@ export function Sheet(props: {
 
     const minSwipeDistance = 50
     const maxSwipeTime = 300
-    
+
     const swipeTime = touchStartTime.current ? Date.now() - touchStartTime.current : Infinity
-    
+
     // Close on swipe in either direction if threshold is met
     if (swipeOffset > minSwipeDistance && swipeTime < maxSwipeTime) {
       onCloseRef.current()
     }
-    
+
     setSwipeOffset(0)
     setSwipeDirection(null)
     touchStartX.current = null
@@ -337,12 +348,14 @@ export function Sheet(props: {
         <div
           ref={headerRef}
           className={
-            headerStart != null || headerCenter != null
-              ? 'grid grid-cols-[1fr_auto_1fr] items-center gap-x-2'
+            headerStart != null || headerCenter != null || headerEnd != null
+              ? headerCenter != null
+                ? 'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2'
+                : 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2'
               : 'flex items-center justify-between'
           }
         >
-          {headerStart != null || headerCenter != null ? (
+          {headerStart != null || headerCenter != null || headerEnd != null ? (
             <>
               <div className="flex min-w-0 items-center justify-self-start gap-2">
                 {titleElement ? (
@@ -354,19 +367,22 @@ export function Sheet(props: {
                 ) : null}
                 {headerStart}
               </div>
-              <div className="flex justify-self-center">{headerCenter}</div>
-              {dismissible ? (
-                <button
-                  ref={closeButtonRef}
-                  onClick={onClose}
-                  aria-label={i18n.t('common.close')}
-                  className="justify-self-end rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
-                >
-                  <CloseIcon size={24} />
-                </button>
-              ) : (
-                <div />
-              )}
+              {headerCenter != null ? (
+                <div className="flex justify-self-center">{headerCenter}</div>
+              ) : null}
+              <div className="flex items-center justify-end justify-self-end gap-8">
+                {headerEnd}
+                {dismissible ? (
+                  <button
+                    ref={closeButtonRef}
+                    onClick={onClose}
+                    aria-label={i18n.t('common.close')}
+                    className="shrink-0 rounded-xl bg-brezn-button p-2 text-brezn-text hover:opacity-80 focus:outline-none"
+                  >
+                    <CloseIcon size={24} />
+                  </button>
+                ) : null}
+              </div>
             </>
           ) : (
             <>
@@ -408,4 +424,3 @@ export function Sheet(props: {
     </div>
   )
 }
-

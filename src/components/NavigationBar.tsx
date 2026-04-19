@@ -45,7 +45,7 @@ export function NavigationBar({
           name="search"
           type="text"
           value={searchQuery}
-          onChange={e => onSearchChange(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder={t('nav.searchPlaceholder')}
           className="flex-1 rounded-lg border border-black bg-brezn-panel px-2.5 py-1.5 text-base !text-black caret-black outline-none ring-0 !placeholder:text-black/50 focus:outline-none focus:ring-0 sm:text-xs dark:border-white dark:!text-white dark:caret-white dark:!placeholder:text-white/50"
         />

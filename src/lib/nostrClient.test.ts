@@ -56,10 +56,15 @@ describe('nostrClient blocked pubkeys', () => {
     const validPubkey = 'a'.repeat(64)
     const invalidPubkey = 'b'.repeat(32) // too short
     const emptyPubkey = ''
-    
-    await client.setBlockedPubkeys([validPubkey, invalidPubkey, emptyPubkey, '  ' + validPubkey + '  '])
+
+    await client.setBlockedPubkeys([
+      validPubkey,
+      invalidPubkey,
+      emptyPubkey,
+      '  ' + validPubkey + '  ',
+    ])
     const blocked = client.getBlockedPubkeys()
-    
+
     expect(blocked).toEqual([validPubkey])
   })
 
@@ -81,7 +86,7 @@ describe('nostrClient blocked pubkeys', () => {
     const client = createNostrClient()
     const pubkey = 'a'.repeat(64)
     await client.setBlockedPubkeys([pubkey])
-    
+
     const client2 = createNostrClient()
     expect(client2.getBlockedPubkeys()).toEqual([pubkey])
   })
@@ -104,10 +109,10 @@ describe('nostrClient geohash length', () => {
     const client = createNostrClient()
     client.setGeohashLength(0)
     expect(client.getGeohashLength()).toBe(0) // 0 is now a valid value (queries current + east/west)
-    
+
     client.setGeohashLength(10)
     expect(client.getGeohashLength()).toBe(5)
-    
+
     client.setGeohashLength(3.7)
     expect(client.getGeohashLength()).toBe(4) // rounded
   })
@@ -123,7 +128,7 @@ describe('nostrClient relays', () => {
     const client = createNostrClient()
     const relays = client.getRelays()
     expect(relays.length).toBeGreaterThan(0)
-    expect(relays.every(r => r.startsWith('wss://'))).toBe(true)
+    expect(relays.every((r) => r.startsWith('wss://'))).toBe(true)
   })
 
   it('normalizes relay URLs', () => {
@@ -135,16 +140,14 @@ describe('nostrClient relays', () => {
       'invalid-url',
       'https://not-ws.com',
     ])
-    
+
     const relays = client.getRelays()
     expect(relays).toContain('wss://relay.example.com')
     expect(relays).not.toContain('wss://relay.example.com/') // trailing slash removed
     // ws:// is actually accepted (for local testing), so we check it's normalized
     expect(
       relays.some(
-        r =>
-          r.startsWith('wss://relay.example.com') ||
-          r.startsWith('ws://relay.example.com'),
+        (r) => r.startsWith('wss://relay.example.com') || r.startsWith('ws://relay.example.com'),
       ),
     ).toBe(true)
     expect(relays).not.toContain('invalid-url')
@@ -158,9 +161,9 @@ describe('nostrClient relays', () => {
       'wss://RELAY.EXAMPLE.COM', // case-insensitive duplicate
       'wss://relay.example.com',
     ])
-    
+
     const relays = client.getRelays()
-    expect(relays.filter(r => r.toLowerCase() === 'wss://relay.example.com').length).toBe(1)
+    expect(relays.filter((r) => r.toLowerCase() === 'wss://relay.example.com').length).toBe(1)
   })
 
   it('limits relays to 30', () => {
@@ -173,7 +176,7 @@ describe('nostrClient relays', () => {
   it('persists relay configuration', () => {
     const client = createNostrClient()
     client.setRelays(['wss://custom.relay.com'])
-    
+
     const client2 = createNostrClient()
     const relays = client2.getRelays()
     expect(relays).toContain('wss://custom.relay.com')
@@ -208,7 +211,7 @@ describe('nostrClient media upload endpoint', () => {
   it('persists media upload endpoint', () => {
     const client = createNostrClient()
     client.setMediaUploadEndpoint('https://custom.upload.com')
-    
+
     const client2 = createNostrClient()
     expect(client2.getMediaUploadEndpoint()).toBe('https://custom.upload.com')
   })
@@ -245,7 +248,11 @@ describe('nostrClient NIP-56 report events', () => {
     } catch (error) {
       // Only fail if it's a format error, not a network error
       const errorMessage = error instanceof Error ? error.message : String(error)
-      if (errorMessage.includes('content') || errorMessage.includes('tag') || errorMessage.includes('format')) {
+      if (
+        errorMessage.includes('content') ||
+        errorMessage.includes('tag') ||
+        errorMessage.includes('format')
+      ) {
         throw error
       }
       // Network/relay errors are expected in tests and can be ignored
@@ -271,9 +278,9 @@ describe('nostrClient NIP-56 report events', () => {
     // Verify structure
     expect(correctEvent.kind).toBe(1984)
     expect(correctEvent.content).toBe(reportReason)
-    expect(correctEvent.tags.some(t => t[0] === 'p' && t[1] === targetPubkey)).toBe(true)
-    expect(correctEvent.tags.some(t => t[0] === 'e' && t[1] === targetEventId)).toBe(true)
-    expect(correctEvent.tags.some(t => t[0] === 'report')).toBe(false) // Should NOT have report tag
+    expect(correctEvent.tags.some((t) => t[0] === 'p' && t[1] === targetPubkey)).toBe(true)
+    expect(correctEvent.tags.some((t) => t[0] === 'e' && t[1] === targetEventId)).toBe(true)
+    expect(correctEvent.tags.some((t) => t[0] === 'report')).toBe(false) // Should NOT have report tag
 
     // Incorrect format (what we had before):
     const incorrectEvent = {
@@ -288,6 +295,6 @@ describe('nostrClient NIP-56 report events', () => {
 
     // Verify this is incorrect
     expect(incorrectEvent.content).toBe('')
-    expect(incorrectEvent.tags.some(t => t[0] === 'report')).toBe(true)
+    expect(incorrectEvent.tags.some((t) => t[0] === 'report')).toBe(true)
   })
 })

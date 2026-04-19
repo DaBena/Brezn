@@ -54,18 +54,18 @@ export function ConversationsSheet(props: {
 
     client
       .getConversations({
-        onProgress: convos => {
+        onProgress: (convos) => {
           clearUiTimeout()
           setConversations(convos)
           setLoading(false)
         },
       })
-      .then(convos => {
+      .then((convos) => {
         clearUiTimeout()
         setConversations(convos)
         setLoading(false)
       })
-      .catch(err => {
+      .catch((err) => {
         clearUiTimeout()
         setError(err instanceof Error ? err.message : t('chat.loadError'))
         setLoading(false)
@@ -85,7 +85,7 @@ export function ConversationsSheet(props: {
           ) : conversations.length === 0 ? (
             <div className="text-center text-sm text-brezn-muted py-8">{t('chat.empty')}</div>
           ) : (
-            conversations.map(conv => (
+            conversations.map((conv) => (
               <button
                 key={conv.pubkey}
                 onClick={() => setSelectedPubkey(conv.pubkey)}
@@ -93,8 +93,12 @@ export function ConversationsSheet(props: {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-sm font-semibold text-brezn-text truncate">{shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}</div>
-                    <div className="mt-1 text-xs text-brezn-muted truncate">{conv.lastMessagePreview}</div>
+                    <div className="font-mono text-sm font-semibold text-brezn-text truncate">
+                      {shortNpub(nip19.npubEncode(conv.pubkey), 12, 8)}
+                    </div>
+                    <div className="mt-1 text-xs text-brezn-muted truncate">
+                      {conv.lastMessagePreview}
+                    </div>
                   </div>
                   <div className="shrink-0 text-[10px] text-brezn-text">
                     {formatRelativeChatTime(t, conv.lastMessageAt)}
@@ -120,4 +124,3 @@ export function ConversationsSheet(props: {
     </>
   )
 }
-

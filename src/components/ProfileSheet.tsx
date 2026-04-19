@@ -22,12 +22,12 @@ export function ProfileSheet(props: {
   viewerPoint: GeoPoint | null
   mutedTerms: string[]
   blockedPubkeys: string[]
-  deletedNoteIds: Set<string>
   isOffline: boolean
   reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
   canReact: boolean
   onReact: (evt: Event) => void
   onOpenThread: (evt: Event) => void
+  onOpenProfile?: (pubkey: string) => void
   onNoteIdsChange?: (noteIds: string[]) => void
   /** Optional; hide for self or blocked peer. */
   onOpenDM?: () => void
@@ -43,12 +43,12 @@ export function ProfileSheet(props: {
     viewerPoint,
     mutedTerms,
     blockedPubkeys,
-    deletedNoteIds,
     isOffline,
     reactionsByNoteId,
     canReact,
     onReact,
     onOpenThread,
+    onOpenProfile,
     onNoteIdsChange,
     onOpenDM,
   } = props
@@ -72,7 +72,6 @@ export function ProfileSheet(props: {
     authorPubkey: pubkey,
     mutedTerms,
     blockedPubkeys,
-    deletedNoteIds,
     isOffline,
   })
 
@@ -90,7 +89,7 @@ export function ProfileSheet(props: {
   }, [open, pubkey])
 
   useEffect(() => {
-    onNoteIdsChange?.(events.map(e => e.id))
+    onNoteIdsChange?.(events.map((e) => e.id))
   }, [events, onNoteIdsChange])
 
   const displayName = profile?.name?.trim() || null
@@ -107,7 +106,7 @@ export function ProfileSheet(props: {
 
   const handleShowMore = () => {
     if (hasMoreDisplayed) {
-      setDisplayLimit(prev => prev + FEED_RENDER_CHUNK)
+      setDisplayLimit((prev) => prev + FEED_RENDER_CHUNK)
     } else {
       loadMore()
     }
@@ -127,7 +126,7 @@ export function ProfileSheet(props: {
                 rel="noopener noreferrer"
                 className="block h-20 w-20 shrink-0 overflow-hidden rounded-full border border-brezn-border outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brezn-border"
                 aria-label={t('profileSheet.openPictureAria')}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
                 <img src={picture} alt="" className="h-full w-full object-cover" />
               </a>
@@ -136,7 +135,15 @@ export function ProfileSheet(props: {
                 className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-brezn-border bg-brezn-panel"
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="2" className="text-brezn-text">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="40"
+                  height="40"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-brezn-text"
+                >
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -147,9 +154,13 @@ export function ProfileSheet(props: {
                 {displayName ? (
                   <div className="text-lg font-semibold text-brezn-text">{displayName}</div>
                 ) : null}
-                <div className="font-mono text-[11px] text-brezn-text">{shortNpub(nip19.npubEncode(pubkey), 12, 6)}</div>
+                <div className="font-mono text-[11px] text-brezn-text">
+                  {shortNpub(nip19.npubEncode(pubkey), 12, 6)}
+                </div>
                 {about ? (
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-brezn-text">{about}</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-brezn-text">
+                    {about}
+                  </p>
                 ) : null}
               </div>
               {onOpenDM ? (
@@ -160,7 +171,13 @@ export function ProfileSheet(props: {
                   aria-label="Open direct message"
                   className={`flex shrink-0 items-center justify-center gap-2 self-center rounded-xl px-4 py-2.5 text-sm font-semibold sm:self-start ${buttonBase}`}
                 >
-                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" className="opacity-90">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    aria-hidden="true"
+                    className="opacity-90"
+                  >
                     <path
                       fill="currentColor"
                       d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
@@ -184,12 +201,12 @@ export function ProfileSheet(props: {
             </div>
           ) : null}
 
-          {events.map(evt => (
+          {events.map((evt) => (
             <FeedEventArticle
               key={evt.id}
               variant="profile"
               evt={evt}
-              isDeleted={deletedNoteIds.has(evt.id)}
+              isDeleted={false}
               contentPreview={truncateProfileCardContent(evt.content)}
               distanceLabel={approxDistanceById[evt.id]}
               client={client}
@@ -197,6 +214,7 @@ export function ProfileSheet(props: {
               canReact={canReact}
               onReact={onReact}
               onOpenThread={onOpenThread}
+              onOpenProfile={onOpenProfile}
             />
           ))}
         </div>

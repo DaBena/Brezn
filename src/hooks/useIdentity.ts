@@ -5,4 +5,3 @@ export function useIdentity(client: BreznNostrClient) {
   const identity = client.getPublicIdentity()
   return { identity }
 }
-

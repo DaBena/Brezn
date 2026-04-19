@@ -7,7 +7,10 @@ type MediaUploadSettingsProps = {
   onMediaEndpointChange: (endpoint: string) => void
 }
 
-export function MediaUploadSettings({ mediaEndpoint, onMediaEndpointChange }: MediaUploadSettingsProps) {
+export function MediaUploadSettings({
+  mediaEndpoint,
+  onMediaEndpointChange,
+}: MediaUploadSettingsProps) {
   const { t } = useTranslation()
 
   return (
@@ -20,7 +23,7 @@ export function MediaUploadSettings({ mediaEndpoint, onMediaEndpointChange }: Me
       <div className="mt-2 flex gap-2">
         <input
           value={mediaEndpoint}
-          onChange={e => onMediaEndpointChange(e.target.value)}
+          onChange={(e) => onMediaEndpointChange(e.target.value)}
           placeholder={DEFAULT_NIP96_SERVER}
           className="w-full border border-brezn-text p-2 text-base outline-none"
         />
@@ -35,4 +38,3 @@ export function MediaUploadSettings({ mediaEndpoint, onMediaEndpointChange }: Me
     </div>
   )
 }
-

@@ -17,7 +17,15 @@ export function ComposerSheet(props: {
   mediaUploadEndpoint?: string
 }) {
   const { t } = useTranslation()
-  const { open, onClose, viewerGeo5, onRequestLocation, onSelectCell, onPublish, mediaUploadEndpoint } = props
+  const {
+    open,
+    onClose,
+    viewerGeo5,
+    onRequestLocation,
+    onSelectCell,
+    onPublish,
+    mediaUploadEndpoint,
+  } = props
 
   const [composerText, setComposerText] = useState('')
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
@@ -91,7 +99,7 @@ export function ComposerSheet(props: {
 
     try {
       const { url } = await uploadMediaFile({ endpoint: mediaUploadEndpoint, file: fileToUpload })
-      setMediaUrls(prev => [...prev, url])
+      setMediaUrls((prev) => [...prev, url])
       setUploadState('idle')
     } catch (err) {
       setUploadState('error')
@@ -102,7 +110,7 @@ export function ComposerSheet(props: {
   async function publishPost() {
     const text = composerText.trim()
     if (!text && mediaUrls.length === 0) return
-    
+
     // Combine text and media URLs
     const parts: string[] = []
     if (text) parts.push(text)
@@ -111,7 +119,7 @@ export function ComposerSheet(props: {
       parts.push(...mediaUrls)
     }
     const content = parts.join('\n')
-    
+
     setPublishState('publishing')
     setPublishError(null)
     try {
@@ -133,9 +141,9 @@ export function ComposerSheet(props: {
           {t('composer.createInCell')}{' '}
           <button
             type="button"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation()
-              setShowGeoMap(v => !v)
+              setShowGeoMap((v) => !v)
             }}
             className="font-mono text-brezn-link underline underline-offset-2 hover:opacity-90"
             aria-label={t('composer.showMapAria', { cell: viewerGeo5 })}
@@ -171,14 +179,14 @@ export function ComposerSheet(props: {
           {publishState === 'publishing' ? t('composer.publishing') : t('composer.publish')}
         </button>
       }
-      headerCenter={
+      headerEnd={
         <>
           <input
             id={fileInputId}
             type="file"
             accept="image/*,video/*"
             className="hidden"
-            onChange={e => void handleFileChange(e)}
+            onChange={(e) => void handleFileChange(e)}
           />
           <label
             htmlFor={fileInputId}
@@ -186,10 +194,10 @@ export function ComposerSheet(props: {
             className={`${headerToolbarBtn} max-w-full ${uploadState === 'uploading' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
             tabIndex={uploadState === 'uploading' ? -1 : 0}
             role="button"
-            onClick={e => {
+            onClick={(e) => {
               if (uploadState === 'uploading') e.preventDefault()
             }}
-            onKeyDown={e => {
+            onKeyDown={(e) => {
               if (uploadState === 'uploading') return
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
@@ -234,7 +242,7 @@ export function ComposerSheet(props: {
                     src={url}
                     alt=""
                     className="h-full w-full object-cover"
-                    onError={e => {
+                    onError={(e) => {
                       // Fallback to text if image fails to load
                       const target = e.currentTarget
                       target.style.display = 'none'
@@ -253,7 +261,7 @@ export function ComposerSheet(props: {
                     className="h-full w-full object-cover"
                     preload="metadata"
                     muted
-                    onError={e => {
+                    onError={(e) => {
                       // Fallback to text if video fails to load
                       const target = e.currentTarget
                       target.style.display = 'none'
@@ -274,9 +282,9 @@ export function ComposerSheet(props: {
                   </div>
                 )}
                 <button
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation()
-                    setMediaUrls(prev => prev.filter((_, i) => i !== idx))
+                    setMediaUrls((prev) => prev.filter((_, i) => i !== idx))
                   }}
                   aria-label={t('composer.removeMediaAria')}
                   className="absolute right-0.5 top-0.5 rounded p-0.5 focus:outline-none"
@@ -291,7 +299,7 @@ export function ComposerSheet(props: {
       <textarea
         ref={textareaRef}
         value={composerText}
-        onChange={e => {
+        onChange={(e) => {
           setComposerText(e.target.value)
           // Auto-resize textarea
           const el = e.target
@@ -311,4 +319,3 @@ export function ComposerSheet(props: {
     </Sheet>
   )
 }
-

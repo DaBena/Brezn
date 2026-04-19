@@ -7,8 +7,14 @@ function isPostReferenceLink(link: ExtractedLink): boolean {
   const href = link.href.trim().toLowerCase()
 
   if (/^\[\[\s*e\s+[0-9a-f]{64}\s*\]\]$/.test(display)) return true
-  if (display.startsWith('nostr:note1') || display.startsWith('nostr:nevent1') || display.startsWith('nostr:naddr1')) return true
-  if (display.startsWith('note1') || display.startsWith('nevent1') || display.startsWith('naddr1')) return true
+  if (
+    display.startsWith('nostr:note1') ||
+    display.startsWith('nostr:nevent1') ||
+    display.startsWith('nostr:naddr1')
+  )
+    return true
+  if (display.startsWith('note1') || display.startsWith('nevent1') || display.startsWith('naddr1'))
+    return true
   if (/^https:\/\/njump\.me\/(note1|nevent1|naddr1)/.test(href)) return true
   if (/^https:\/\/njump\.me\/[0-9a-f]{64}$/.test(href)) return true
 
@@ -31,8 +37,8 @@ export function truncateFeedCardContent(content: string): string {
   const needsTruncation = flowText.length > max
   const truncatedText = needsTruncation ? `${flowText.slice(0, max).trimEnd()}\n...` : flowText
 
-  const mediaUrls = uniqueUrls(links.map(l => l.href)).filter(
-    url => isLikelyImageUrl(url) || isLikelyVideoUrl(url),
+  const mediaUrls = uniqueUrls(links.map((l) => l.href)).filter(
+    (url) => isLikelyImageUrl(url) || isLikelyVideoUrl(url),
   )
   if (!mediaUrls.length) return truncatedText
 

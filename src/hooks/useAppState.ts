@@ -29,11 +29,7 @@ export function useAppState() {
       profilePubkey?: string
     },
   ) => {
-    if (
-      type === 'thread' &&
-      options?.threadRoot &&
-      options.retainProfileWhenOpeningThread
-    ) {
+    if (type === 'thread' && options?.threadRoot && options.retainProfileWhenOpeningThread) {
       setIsComposerOpen(false)
       setFilterOpen(false)
       setDmOpen(false)

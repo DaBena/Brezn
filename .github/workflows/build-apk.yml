@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # read + write for creating releases and uploading assets
+  contents: write # read + write for creating releases and uploading assets
 
 jobs:
   timestampit:
     runs-on: ubuntu-latest
-    name: "Create a trusted timestamp for this repo"
+    name: 'Create a trusted timestamp for this repo'
     steps:
       - uses: timestampit/github_action@v1.0
 
@@ -26,13 +26,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '24'
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
@@ -81,4 +81,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

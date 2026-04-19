@@ -34,7 +34,7 @@ export type FeedState =
 
 function isReplyNote(evt: Event): boolean {
   // NIP-10 reply: kind 1 + `e` tag; feed stays roots-only.
-  return evt.kind === 1 && evt.tags.some(t => t[0] === 'e')
+  return evt.kind === 1 && evt.tags.some((t) => t[0] === 'e')
 }
 
 /**
@@ -61,7 +61,9 @@ export function useLocalFeed(params: {
   deletedNoteIdsRef.current = deletedNoteIds
   const lastResendTimeByNoteIdRef = useRef<Record<string, number>>({})
 
-  const [isOffline, setIsOffline] = useState(() => (typeof navigator !== 'undefined' ? !navigator.onLine : false))
+  const [isOffline, setIsOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  )
 
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
@@ -76,7 +78,9 @@ export function useLocalFeed(params: {
     initialQueryGeohash ? { kind: 'loading' } : { kind: 'need-location' },
   )
   const [events, setEvents] = useState<Event[]>([])
-  const [queryGeohash, setQueryGeohash] = useState<string | null>(() => (isOffline ? null : initialQueryGeohash))
+  const [queryGeohash, setQueryGeohash] = useState<string | null>(() =>
+    isOffline ? null : initialQueryGeohash,
+  )
   const [initialTimedOut, setInitialTimedOut] = useState(false)
   const [lastCloseReasons, setLastCloseReasons] = useState<string[] | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -101,7 +105,7 @@ export function useLocalFeed(params: {
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
   const sortedEvents = useMemo(() => {
-    const filtered = events.filter(e => {
+    const filtered = events.filter((e) => {
       if (blockedSet.has(e.pubkey)) return false
       if (mutedTerms.length && contentMatchesMutedTerms(e.content ?? '', mutedTerms)) return false
       return true
@@ -134,7 +138,8 @@ export function useLocalFeed(params: {
   useEffect(() => {
     const currentRelays = client.getRelays()
     const prevRelays = relaysRef.current
-    const relaysChanged = JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...prevRelays].sort())
+    const relaysChanged =
+      JSON.stringify([...currentRelays].sort()) !== JSON.stringify([...prevRelays].sort())
     if (relaysChanged && prevRelays.length > 0) {
       setEvents([])
       loadMoreCursorRef.current = null
@@ -167,7 +172,10 @@ export function useLocalFeed(params: {
     setLocalQueryFromGeo5(geo5, geohashLength)
   }
 
-  async function requestLocationAndLoad(opts?: { forceBrowser?: boolean; onFinished?: () => void }) {
+  async function requestLocationAndLoad(opts?: {
+    forceBrowser?: boolean
+    onFinished?: () => void
+  }) {
     try {
       if (!opts?.forceBrowser) {
         const savedGeo5 = getSavedGeo5()
@@ -222,7 +230,10 @@ export function useLocalFeed(params: {
     if (isOffline) return
     if (!queryGeohash) return
     if (currentRelays.length === 0) {
-      setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
+      setFeedState({
+        kind: 'error',
+        message: 'No relays configured. Please add at least one relay in Settings.',
+      })
       return
     }
     unsubRef.current?.()
@@ -246,8 +257,8 @@ export function useLocalFeed(params: {
       eventCount++
       if (eventCount === 1) setFeedState({ kind: 'live' })
       // No startTransition here: would flash empty feed before events land.
-      setEvents(prev => {
-        if (prev.some(e => e.id === evt.id)) return prev
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === evt.id)) return prev
         return [evt, ...prev]
       })
 
@@ -318,7 +329,7 @@ export function useLocalFeed(params: {
           },
         )
         unsubs.push(unsub)
-        unsubRef.current = () => unsubs.forEach(u => u())
+        unsubRef.current = () => unsubs.forEach((u) => u())
       }
 
       runNextQuery()
@@ -345,7 +356,10 @@ export function useLocalFeed(params: {
     }
     const relays = client.getRelays()
     if (relays.length === 0) {
-      setFeedState({ kind: 'error', message: 'No relays configured. Please add at least one relay in Settings.' })
+      setFeedState({
+        kind: 'error',
+        message: 'No relays configured. Please add at least one relay in Settings.',
+      })
       return Promise.resolve({ added: 0, canLoadOlder: false })
     }
 
@@ -363,7 +377,7 @@ export function useLocalFeed(params: {
         ? gCellsCoarsePlusFine(queryGeohash)
         : [queryGeohash]
 
-    return new Promise<LoadMorePageResult>(resolve => {
+    return new Promise<LoadMorePageResult>((resolve) => {
       let settled = false
       let timeoutId = 0
 
@@ -385,12 +399,8 @@ export function useLocalFeed(params: {
         }
         setIsLoadingMore(false)
         const listAfter = eventsRef.current
-        const feedLo = listAfter.length
-          ? Math.min(...listAfter.map(e => e.created_at))
-          : oldest
-        const feedHi = listAfter.length
-          ? Math.max(...listAfter.map(e => e.created_at))
-          : oldest
+        const feedLo = listAfter.length ? Math.min(...listAfter.map((e) => e.created_at)) : oldest
+        const feedHi = listAfter.length ? Math.max(...listAfter.map((e) => e.created_at)) : oldest
         loadMoreCursorRef.current =
           n > 0
             ? null
@@ -419,11 +429,11 @@ export function useLocalFeed(params: {
         batchMinCreated =
           batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
         if (relayRootIdsThisBatch.has(evt.id)) return
-        if (eventsRef.current.some(e => e.id === evt.id)) return
+        if (eventsRef.current.some((e) => e.id === evt.id)) return
         relayRootIdsThisBatch.add(evt.id)
         newEventCount++
-        setEvents(prev => {
-          if (prev.some(e => e.id === evt.id)) return prev
+        setEvents((prev) => {
+          if (prev.some((e) => e.id === evt.id)) return prev
           return [evt, ...prev]
         })
       }
@@ -465,7 +475,10 @@ export function useLocalFeed(params: {
 
   const loadMorePage = useCallback((): Promise<LoadMorePageResult> => {
     const next = loadMoreQueueRef.current.then(() => runLoadMorePage.current())
-    loadMoreQueueRef.current = next.then(() => undefined, () => undefined)
+    loadMoreQueueRef.current = next.then(
+      () => undefined,
+      () => undefined,
+    )
     return next
   }, [])
 

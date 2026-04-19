@@ -14,11 +14,16 @@ function sortDms(list: DecryptedDM[]): DecryptedDM[] {
 }
 
 function mergeIncomingDm(prev: DecryptedDM[], msg: DecryptedDM, fromMe: boolean): DecryptedDM[] {
-  if (prev.some(m => m.event.id === msg.event.id)) return prev
+  if (prev.some((m) => m.event.id === msg.event.id)) return prev
   let next = prev
   if (fromMe) {
     next = prev.filter(
-      m => !(m.event.id.startsWith('temp-') && m.decryptedContent === msg.decryptedContent && m.isFromMe),
+      (m) =>
+        !(
+          m.event.id.startsWith('temp-') &&
+          m.decryptedContent === msg.decryptedContent &&
+          m.isFromMe
+        ),
     )
   }
   return sortDms([...next, msg])
@@ -76,20 +81,20 @@ export function DMSheet(props: {
 
     void client
       .getDMsWith(peer, {
-        onProgress: msgs => {
+        onProgress: (msgs) => {
           if (!alive) return
           clearUiTimeout()
           setMessages(msgs)
           setLoading(false)
         },
       })
-      .then(msgs => {
+      .then((msgs) => {
         if (!alive) return
         clearUiTimeout()
         setMessages(msgs)
         setLoading(false)
       })
-      .catch(err => {
+      .catch((err) => {
         if (!alive) return
         clearUiTimeout()
         setError(err instanceof Error ? err.message : t('dm.loadError'))
@@ -103,7 +108,7 @@ export function DMSheet(props: {
         const decryptedContent = client.decryptDM(evt)
         const newMessage: DecryptedDM = { event: evt, decryptedContent, isFromMe: fromMe }
         if (!alive) return
-        setMessages(prev => mergeIncomingDm(prev, newMessage, fromMe))
+        setMessages((prev) => mergeIncomingDm(prev, newMessage, fromMe))
       } catch (e) {
         console.error('Failed to decrypt DM:', e)
       }
@@ -115,10 +120,12 @@ export function DMSheet(props: {
         { kinds: [4], authors: [peer], '#p': [me], since },
       ],
       {
-        onevent: evt => {
+        onevent: (evt) => {
           const author = evt.pubkey.toLowerCase()
           if (author === me) {
-            const p = evt.tags.find(t => t[0] === 'p' && typeof t[1] === 'string')?.[1]?.toLowerCase()
+            const p = evt.tags
+              .find((t) => t[0] === 'p' && typeof t[1] === 'string')?.[1]
+              ?.toLowerCase()
             if (p !== peer) return
             onIncomingDm(true, evt)
           } else if (author === peer) {
@@ -168,22 +175,22 @@ export function DMSheet(props: {
       decryptedContent: content,
       isFromMe: true,
     }
-    setMessages(prev => sortDms([...prev, optimisticMessage]))
+    setMessages((prev) => sortDms([...prev, optimisticMessage]))
 
     try {
       await client.sendDM(peer, content)
       setMessageText('')
       window.setTimeout(() => {
-        setMessages(prev => {
+        setMessages((prev) => {
           const hasRealMessage = prev.some(
-            m => m.event.id !== tempId && m.isFromMe && m.decryptedContent === content,
+            (m) => m.event.id !== tempId && m.isFromMe && m.decryptedContent === content,
           )
           if (!hasRealMessage) return prev
-          return prev.filter(m => m.event.id !== tempId)
+          return prev.filter((m) => m.event.id !== tempId)
         })
       }, 5000)
     } catch (e) {
-      setMessages(prev => prev.filter(m => m.event.id !== tempId))
+      setMessages((prev) => prev.filter((m) => m.event.id !== tempId))
       setError(e instanceof Error ? e.message : t('dm.sendError'))
     } finally {
       setSending(false)
@@ -218,7 +225,7 @@ export function DMSheet(props: {
                   {error}
                 </div>
               ) : null}
-              {messages.map(msg => (
+              {messages.map((msg) => (
                 <div
                   key={msg.event.id}
                   className={`flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}`}
@@ -230,7 +237,9 @@ export function DMSheet(props: {
                         : 'bg-brezn-panel border border-brezn-border'
                     }`}
                   >
-                    <div className="text-sm whitespace-pre-wrap break-words">{msg.decryptedContent}</div>
+                    <div className="text-sm whitespace-pre-wrap break-words">
+                      {msg.decryptedContent}
+                    </div>
                     <div className="mt-1 text-[10px] text-brezn-text">
                       {formatRelativeChatTime(t, msg.event.created_at)}
                     </div>
@@ -247,8 +256,8 @@ export function DMSheet(props: {
             <textarea
               ref={textareaRef}
               value={messageText}
-              onChange={e => setMessageText(e.target.value)}
-              onKeyDown={e => {
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
                   void sendMessage()

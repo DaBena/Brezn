@@ -14,7 +14,10 @@ export function useReplies(params: {
 
   const termsKey = useMemo(() => mutedTerms.join(','), [mutedTerms])
   const blockedKey = useMemo(() => blockedPubkeys.join(','), [blockedPubkeys])
-  const queryKey = useMemo(() => `${rootId ?? ''}|${termsKey}|${blockedKey}|${isOffline ? 'offline' : 'online'}`, [rootId, termsKey, blockedKey, isOffline])
+  const queryKey = useMemo(
+    () => `${rootId ?? ''}|${termsKey}|${blockedKey}|${isOffline ? 'offline' : 'online'}`,
+    [rootId, termsKey, blockedKey, isOffline],
+  )
 
   const [events, setEvents] = useState<Event[]>([])
   const seenRef = useRef<Set<string>>(new Set())
@@ -24,19 +27,18 @@ export function useReplies(params: {
     seenRef.current = new Set()
     if (isOffline || !rootId) return
 
-    const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 14 // last 14d
-    const filter: Filter = { kinds: [1], '#e': [rootId], since, limit: 500 }
+    const filter: Filter = { kinds: [1], '#e': [rootId], limit: 500 }
 
     const blockedSet = new Set(blockedPubkeys)
     const unsub = client.subscribe(filter, {
-      onevent: evt => {
+      onevent: (evt) => {
         if (evt.kind !== 1) return
         if (evt.id === rootId) return
         if (blockedSet.has(evt.pubkey)) return
         if (mutedTerms.length && contentMatchesMutedTerms(evt.content ?? '', mutedTerms)) return
         if (seenRef.current.has(evt.id)) return
         seenRef.current.add(evt.id)
-        setEvents(prev => [...prev, evt])
+        setEvents((prev) => [...prev, evt])
       },
     })
 
@@ -51,4 +53,3 @@ export function useReplies(params: {
 
   return { replies }
 }
-

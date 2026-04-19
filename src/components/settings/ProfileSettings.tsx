@@ -19,11 +19,7 @@ function sanitizeProfilePictureUrl(url: string | null): string | null {
   try {
     const parsed = new URL(url, window.location.origin)
     const protocol = parsed.protocol
-    if (
-      protocol === 'http:' ||
-      protocol === 'https:' ||
-      protocol === 'data:'
-    ) {
+    if (protocol === 'http:' || protocol === 'https:' || protocol === 'data:') {
       return parsed.toString()
     }
   } catch {
@@ -40,7 +36,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMsg, setProfileMsg] = useState<string | null>(null)
-  const [profileUploadState, setProfileUploadState] = useState<'idle' | 'uploading' | 'error'>('idle')
+  const [profileUploadState, setProfileUploadState] = useState<'idle' | 'uploading' | 'error'>(
+    'idle',
+  )
   const [profileUploadError, setProfileUploadError] = useState<string | null>(null)
   const profileFileInputId = useId()
   const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
@@ -54,7 +52,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
     setProfileLoading(true)
     client
       .getMyProfile()
-      .then(profile => {
+      .then((profile) => {
         const name = profile?.name ?? ''
         const picture = profile?.picture ?? ''
         const about = profile?.about ?? ''
@@ -108,7 +106,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
               id="profile-name"
               type="text"
               value={profileName}
-              onChange={e => setProfileName(e.target.value)}
+              onChange={(e) => setProfileName(e.target.value)}
               placeholder={t('profileSettings.namePlaceholder')}
               maxLength={100}
               className="w-full border border-brezn-text p-2 text-base outline-none"
@@ -122,7 +120,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
             <textarea
               id="profile-about"
               value={profileAbout}
-              onChange={e => setProfileAbout(e.target.value)}
+              onChange={(e) => setProfileAbout(e.target.value)}
               placeholder={t('profileSettings.aboutPlaceholder')}
               maxLength={PROFILE_ABOUT_MAX_LENGTH}
               rows={4}
@@ -143,22 +141,34 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   src={safeProfilePictureSrc}
                   alt={t('profileSettings.pictureAlt')}
                   className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
-                  onError={e => {
+                  onError={(e) => {
                     // Replace image with placeholder icon on error
                     const target = e.currentTarget
                     const parent = target.parentElement
                     if (parent) {
                       target.style.display = 'none'
                       const placeholder = document.createElement('div')
-                      placeholder.className = 'h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center'
-                      placeholder.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-text"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>'
+                      placeholder.className =
+                        'h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center'
+                      placeholder.innerHTML =
+                        '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brezn-text"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>'
                       parent.appendChild(placeholder)
                     }
                   }}
                 />
               ) : (
                 <div className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brezn-text">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="32"
+                    height="32"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-brezn-text"
+                  >
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -170,7 +180,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={async e => {
+                  onChange={async (e) => {
                     const file = e.currentTarget.files?.[0] ?? null
                     e.currentTarget.value = ''
                     if (!file) return
@@ -214,7 +224,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       setProfileUploadState('idle')
                     } catch (err) {
                       setProfileUploadState('error')
-                      setProfileUploadError(err instanceof Error ? err.message : t('composer.uploadFailed'))
+                      setProfileUploadError(
+                        err instanceof Error ? err.message : t('composer.uploadFailed'),
+                      )
                     }
                   }}
                 />
@@ -225,15 +237,19 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       'flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-center',
                       buttonBase,
                       'focus:outline-none',
-                      profileUploadState === 'uploading' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-90',
+                      profileUploadState === 'uploading'
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'cursor-pointer hover:opacity-90',
                     )}
                     tabIndex={profileUploadState === 'uploading' ? -1 : 0}
                     role="button"
-                    onKeyDown={e => {
+                    onKeyDown={(e) => {
                       if (profileUploadState === 'uploading') return
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        const input = document.getElementById(profileFileInputId) as HTMLInputElement | null
+                        const input = document.getElementById(
+                          profileFileInputId,
+                        ) as HTMLInputElement | null
                         input?.click()
                       }
                     }}
@@ -259,7 +275,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                         setProfileMsg(t('profileSettings.resetDone'))
                         onProfileChange?.({ name: '', picture: '', about: '' })
                       } catch (e) {
-                        setProfileMsg(e instanceof Error ? e.message : t('profileSettings.resetError'))
+                        setProfileMsg(
+                          e instanceof Error ? e.message : t('profileSettings.resetError'),
+                        )
                       } finally {
                         setProfileSaving(false)
                       }
@@ -289,7 +307,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                 <input
                   type="text"
                   value={profilePicture}
-                  onChange={e => setProfilePicture(e.target.value)}
+                  onChange={(e) => setProfilePicture(e.target.value)}
                   placeholder={t('profileSettings.urlPlaceholder')}
                   className="w-full border border-brezn-text p-2 font-mono text-base outline-none"
                 />
@@ -303,4 +321,3 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
     </div>
   )
 }
-

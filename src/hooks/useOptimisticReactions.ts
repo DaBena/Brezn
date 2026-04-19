@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactionSummary } from './useReactions'
 
 export function useOptimisticReactions(reactionsByNoteId: Record<string, ReactionSummary>) {
-  const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>({})
+  const [optimisticReactedByNoteId, setOptimisticReactedByNoteId] = useState<Record<string, true>>(
+    {},
+  )
   const reactedNoteIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -10,11 +12,11 @@ export function useOptimisticReactions(reactionsByNoteId: Record<string, Reactio
   }, [optimisticReactedByNoteId])
 
   const addOptimisticReaction = (noteId: string) => {
-    setOptimisticReactedByNoteId(prev => (prev[noteId] ? prev : { ...prev, [noteId]: true }))
+    setOptimisticReactedByNoteId((prev) => (prev[noteId] ? prev : { ...prev, [noteId]: true }))
   }
 
   const removeOptimisticReaction = (noteId: string) => {
-    setOptimisticReactedByNoteId(prev => {
+    setOptimisticReactedByNoteId((prev) => {
       if (!prev[noteId]) return prev
       const next = { ...prev }
       delete next[noteId]

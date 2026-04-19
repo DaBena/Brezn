@@ -41,7 +41,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
   }
 
   async function unblockUser(pubkey: string) {
-    const next = blockedPubkeys.filter(p => p !== pubkey)
+    const next = blockedPubkeys.filter((p) => p !== pubkey)
     await client.setBlockedPubkeys(next)
     setBlockedPubkeys(client.getBlockedPubkeys())
     setBlockedMsg(t('moderation.unblockedMsg'))
@@ -60,17 +60,22 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
         </div>
         <textarea
           value={mutedTermsText}
-          onChange={e => setMutedTermsText(e.target.value)}
+          onChange={(e) => setMutedTermsText(e.target.value)}
           onBlur={() =>
             saveMutedTerms(
-              mutedTermsText.split('\n').map(l => l.trim()).filter(Boolean),
+              mutedTermsText
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean),
               t('moderation.saved'),
             )
           }
           placeholder={t('moderation.placeholder')}
           className="mt-2 h-28 w-full resize-none border border-brezn-text p-2 font-mono text-base outline-none"
         />
-        {mutedTermsMsg ? <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div> : null}
+        {mutedTermsMsg ? (
+          <div className="mt-2 text-xs text-brezn-muted">{mutedTermsMsg}</div>
+        ) : null}
       </div>
 
       <div className="p-3">
@@ -80,7 +85,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
         </div>
         {blockedPubkeys.length > 0 ? (
           <div className="mt-3 space-y-2">
-            {blockedPubkeys.map(pubkey => (
+            {blockedPubkeys.map((pubkey) => (
               <div
                 key={pubkey}
                 className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
@@ -104,4 +109,3 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
     </>
   )
 }
-

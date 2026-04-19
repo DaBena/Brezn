@@ -6,7 +6,7 @@ permissions:
 
 on:
   workflow_run:
-    workflows: ["Build Android APK"]
+    workflows: ['Build Android APK']
     types: [completed]
     branches: [main]
   workflow_dispatch:

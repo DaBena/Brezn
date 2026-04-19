@@ -3,7 +3,10 @@ import { encodeGeohash, getGeohashMapParams } from '../lib/geo'
 import { readCssVar } from '../lib/readCssVar'
 import type L from 'leaflet'
 
-function attachCellSelectClick(map: L.Map, onSelect: ((geohash5: string) => void) | undefined): () => void {
+function attachCellSelectClick(
+  map: L.Map,
+  onSelect: ((geohash5: string) => void) | undefined,
+): () => void {
   if (!onSelect) return () => {}
   const handler = (e: L.LeafletMouseEvent) => {
     const geo5 = encodeGeohash({ lat: e.latlng.lat, lon: e.latlng.lng }, 5)
@@ -113,12 +116,10 @@ export function GeohashMap(props: {
       map.setView([center.lat, center.lon], zoom)
       const rect = rectangleRef.current
       if (rect) {
-        rect.setBounds(
-          [
-            [bounds.minLat, bounds.minLon],
-            [bounds.maxLat, bounds.maxLon],
-          ] as L.LatLngBoundsLiteral
-        )
+        rect.setBounds([
+          [bounds.minLat, bounds.minLon],
+          [bounds.maxLat, bounds.maxLon],
+        ] as L.LatLngBoundsLiteral)
         map.fitBounds(rect.getBounds(), { padding: [20, 20] })
       }
       const cleanupClick = attachCellSelectClick(map, onCellSelectRef.current ?? undefined)
@@ -143,7 +144,8 @@ export function GeohashMap(props: {
         })
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          attribution:
+            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         }).addTo(newMap)
 
@@ -208,4 +210,3 @@ export function GeohashMap(props: {
     />
   )
 }
-

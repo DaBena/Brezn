@@ -27,11 +27,11 @@ export function Feed(props: {
   initialTimedOut: boolean
   lastCloseReasons: string[] | null
   isLoadingMore: boolean
-  deletedNoteIds: Set<string>
   onRequestLocation: () => void
   onLoadMore: () => void
   onReact: (evt: Event) => void
   onOpenThread: (evt: Event) => void
+  onOpenProfile?: (pubkey: string) => void
 }) {
   const {
     feedState,
@@ -46,10 +46,10 @@ export function Feed(props: {
     initialTimedOut,
     lastCloseReasons,
     isLoadingMore,
-    deletedNoteIds,
     onRequestLocation,
     onLoadMore,
     onOpenThread,
+    onOpenProfile,
   } = props
 
   const { t } = useTranslation()
@@ -76,7 +76,7 @@ export function Feed(props: {
 
   const handleLoadMore = () => {
     if (hasMoreInBuffer) {
-      setDisplayLimit(prev => prev + FEED_RENDER_CHUNK)
+      setDisplayLimit((prev) => prev + FEED_RENDER_CHUNK)
     } else {
       onLoadMore()
     }
@@ -89,13 +89,11 @@ export function Feed(props: {
           {t('feed.offlineBanner')}
         </div>
       ) : null}
-      
+
       {feedState.kind === 'need-location' && (
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">{t('feed.locationTitle')}</div>
-          <div className="mt-1 text-sm text-brezn-muted">
-            {t('feed.locationBody')}
-          </div>
+          <div className="mt-1 text-sm text-brezn-muted">{t('feed.locationBody')}</div>
           {showCookieNotice ? (
             <div className="mt-2 text-sm text-brezn-muted space-y-1">
               <p>
@@ -167,17 +165,18 @@ export function Feed(props: {
           ) : (
             <>
               <div className="space-y-2">
-                {displayedEvents.map(evt => (
+                {displayedEvents.map((evt) => (
                   <FeedEventArticle
                     key={evt.id}
                     variant="feed"
                     evt={evt}
-                    isDeleted={deletedNoteIds.has(evt.id)}
+                    isDeleted={false}
                     contentPreview={truncateFeedCardContent(evt.content)}
                     profilesByPubkey={profilesByPubkey}
                     distanceLabel={approxDistanceById[evt.id]}
                     client={client}
                     onOpenThread={onOpenThread}
+                    onOpenProfile={onOpenProfile}
                   />
                 ))}
               </div>

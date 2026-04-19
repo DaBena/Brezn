@@ -10,22 +10,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
+    setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration = 5000) => {
-    const id = `toast-${Date.now()}-${Math.random()}`
-    const toast: Toast = { id, message, type, duration }
-    setToasts(prev => [...prev, toast])
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'info', duration = 5000) => {
+      const id = `toast-${Date.now()}-${Math.random()}`
+      const toast: Toast = { id, message, type, duration }
+      setToasts((prev) => [...prev, toast])
 
-    if (duration > 0) {
-      setTimeout(() => {
-        removeToast(id)
-      }, duration)
-    }
-  }, [removeToast])
+      if (duration > 0) {
+        setTimeout(() => {
+          removeToast(id)
+        }, duration)
+      }
+    },
+    [removeToast],
+  )
 
-  const contextValue = useMemo(() => ({ toasts, showToast, removeToast }), [toasts, showToast, removeToast])
+  const contextValue = useMemo(
+    () => ({ toasts, showToast, removeToast }),
+    [toasts, showToast, removeToast],
+  )
 
   return (
     <ToastContext.Provider value={contextValue}>
@@ -40,7 +46,7 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 
   return (
     <div className="fixed left-1/2 z-[70] flex w-[calc(min(560px,100vw)-32px)] -translate-x-1/2 flex-col gap-2 top-2 top-[calc(env(safe-area-inset-top,0px)+0.5rem)]">
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
     </div>

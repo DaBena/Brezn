@@ -5,4 +5,3 @@ export const NOSTR_KINDS = {
   reaction: 7,
   report: 1984, // NIP-56: Reporting content
 } as const
-

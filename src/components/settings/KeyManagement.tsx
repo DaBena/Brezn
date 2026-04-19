@@ -46,7 +46,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
         <button
           type="button"
           onClick={() => {
-            void copyToClipboard(identity.npub).then(ok => {
+            void copyToClipboard(identity.npub).then((ok) => {
               setKeyMsg(ok ? t('keyMgmt.npubCopied') : t('keyMgmt.copyNpubHint'))
             })
           }}
@@ -65,7 +65,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
         </div>
         <button
           type="button"
-          onClick={() => setShowPrivKey(v => !v)}
+          onClick={() => setShowPrivKey((v) => !v)}
           className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
         >
           {showPrivKey ? t('keyMgmt.hide') : t('keyMgmt.show')}
@@ -73,7 +73,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
         <button
           type="button"
           onClick={() => {
-            void copyToClipboard(privateIdentity.nsec).then(ok => {
+            void copyToClipboard(privateIdentity.nsec).then((ok) => {
               setKeyMsg(ok ? t('keyMgmt.nsecCopied') : t('keyMgmt.copyNsecHint'))
             })
           }}
@@ -104,7 +104,7 @@ export function KeyManagement({ client }: KeyManagementProps) {
             <input
               type="text"
               value={importNsec}
-              onChange={e => setImportNsec(e.target.value)}
+              onChange={(e) => setImportNsec(e.target.value)}
               placeholder={t('keyMgmt.importPlaceholder')}
               className="w-full border border-brezn-text p-2 font-mono text-base focus:outline-none"
               disabled={isImporting}
@@ -159,4 +159,3 @@ export function KeyManagement({ client }: KeyManagementProps) {
     </div>
   )
 }
-

@@ -24,4 +24,3 @@ describe('moderation', () => {
     expect(contentMatchesMutedTerms('anything', [])).toBe(false)
   })
 })
-

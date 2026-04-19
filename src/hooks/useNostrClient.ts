@@ -5,4 +5,3 @@ export function useNostrClient() {
   // Create once per app lifetime.
   return useMemo(() => createNostrClient(), [])
 }
-

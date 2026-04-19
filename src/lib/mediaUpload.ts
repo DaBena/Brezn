@@ -14,7 +14,7 @@ function firstStringUrlInObject(x: unknown): string | null {
     if (!trimmed) return null
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
     // Sometimes APIs return a string containing a URL (e.g. "ok: https://...").
-    const urls = extractUrls(trimmed).map(u => u.url)
+    const urls = extractUrls(trimmed).map((u) => u.url)
     return urls[0] ?? null
   }
   if (Array.isArray(x)) {
@@ -68,8 +68,11 @@ function toBase64(text: string): string {
   // Browser + Node.
   if (typeof btoa === 'function') return btoa(text)
   // Node fallback (avoid hard dependency on Buffer types in the app tsconfig).
-  const BufferCtor = (globalThis as unknown as { Buffer?: { from: (input: string, enc: string) => { toString: (enc: string) => string } } })
-    .Buffer
+  const BufferCtor = (
+    globalThis as unknown as {
+      Buffer?: { from: (input: string, enc: string) => { toString: (enc: string) => string } }
+    }
+  ).Buffer
   if (BufferCtor) return BufferCtor.from(text, 'utf8').toString('base64')
   throw new Error('Base64 encoding not available in this environment.')
 }
@@ -81,10 +84,10 @@ function nowSec(): number {
 function normalizeHttpUrl(input: string): URL {
   const trimmed = input.trim()
   if (!trimmed) throw new Error('Media upload endpoint is not configured.')
-  if (!/^https?:\/\//i.test(trimmed)) throw new Error('Media upload endpoint must start with http(s)://')
+  if (!/^https?:\/\//i.test(trimmed))
+    throw new Error('Media upload endpoint must start with http(s)://')
   return new URL(trimmed)
 }
-
 
 export function toNip96WellKnownUrl(serverBase: string): string {
   const u = normalizeHttpUrl(serverBase)
@@ -92,7 +95,10 @@ export function toNip96WellKnownUrl(serverBase: string): string {
   return `${u.origin}/.well-known/nostr/nip96.json`
 }
 
-export async function discoverNip96(serverBase: string, opts?: { signal?: AbortSignal }): Promise<{
+export async function discoverNip96(
+  serverBase: string,
+  opts?: { signal?: AbortSignal },
+): Promise<{
   apiUrl: string
   requiresNip98: boolean
   raw: Nip96Discovery
@@ -106,14 +112,19 @@ export async function discoverNip96(serverBase: string, opts?: { signal?: AbortS
 
   const data = payload as Nip96Discovery
   const apiUrl = typeof data.api_url === 'string' ? data.api_url.trim() : ''
-  if (!apiUrl || !/^https?:\/\//i.test(apiUrl)) throw new Error('NIP-96 discovery returned no api_url.')
+  if (!apiUrl || !/^https?:\/\//i.test(apiUrl))
+    throw new Error('NIP-96 discovery returned no api_url.')
 
   const plans = data.plans && typeof data.plans === 'object' ? Object.values(data.plans) : []
-  const requiresNip98 = plans.some(p => Boolean(p?.is_nip98_required))
+  const requiresNip98 = plans.some((p) => Boolean(p?.is_nip98_required))
   return { apiUrl, requiresNip98, raw: data }
 }
 
-export function createNip98AuthHeader(opts: { url: string; method: string; skHex?: string }): string {
+export function createNip98AuthHeader(opts: {
+  url: string
+  method: string
+  skHex?: string
+}): string {
   // NIP-98: Authorization: Nostr <base64(JSON(event))>
   // We intentionally omit the optional "payload" tag because for multipart bodies
   // browsers generate the boundary internally, making stable hashing impractical here.
@@ -134,7 +145,10 @@ export function createNip98AuthHeader(opts: { url: string; method: string; skHex
   return `Nostr ${toBase64(JSON.stringify(evt))}`
 }
 
-async function resolveUploadEndpoint(input: string, opts?: { signal?: AbortSignal }): Promise<{ url: string; requiresNip98: boolean }> {
+async function resolveUploadEndpoint(
+  input: string,
+  opts?: { signal?: AbortSignal },
+): Promise<{ url: string; requiresNip98: boolean }> {
   const u = normalizeHttpUrl(input)
 
   // Allow user to paste the well-known URL directly.
@@ -148,9 +162,10 @@ async function resolveUploadEndpoint(input: string, opts?: { signal?: AbortSigna
     }
     const data = payload as Nip96Discovery
     const apiUrl = typeof data.api_url === 'string' ? data.api_url.trim() : ''
-    if (!apiUrl || !/^https?:\/\//i.test(apiUrl)) throw new Error('NIP-96 discovery returned no api_url.')
+    if (!apiUrl || !/^https?:\/\//i.test(apiUrl))
+      throw new Error('NIP-96 discovery returned no api_url.')
     const plans = data.plans && typeof data.plans === 'object' ? Object.values(data.plans) : []
-    const requiresNip98 = plans.some(p => Boolean(p?.is_nip98_required))
+    const requiresNip98 = plans.some((p) => Boolean(p?.is_nip98_required))
     return { url: apiUrl, requiresNip98 }
   }
 
@@ -177,7 +192,7 @@ export async function compressImage(
   file: File,
   maxWidth = 1920,
   maxHeight = 1920,
-  quality = 0.85
+  quality = 0.85,
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -187,13 +202,13 @@ export async function compressImage(
         // Calculate new dimensions while maintaining aspect ratio
         let width = img.width
         let height = img.height
-        
+
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height)
           width = Math.round(width * ratio)
           height = Math.round(height * ratio)
         }
-        
+
         // Create canvas and draw resized image
         const canvas = document.createElement('canvas')
         canvas.width = width
@@ -203,9 +218,9 @@ export async function compressImage(
           reject(new Error('Canvas context not available'))
           return
         }
-        
+
         ctx.drawImage(img, 0, 0, width, height)
-        
+
         // Convert to blob and then to File
         canvas.toBlob(
           (blob) => {
@@ -222,7 +237,7 @@ export async function compressImage(
             resolve(compressedFile)
           },
           'image/jpeg',
-          quality
+          quality,
         )
       }
       img.onerror = () => reject(new Error('Failed to load image'))
@@ -247,9 +262,16 @@ export async function uploadMediaFile(opts: {
   async function postUpload(authHeader?: string): Promise<{ res: Response; payload: unknown }> {
     const headers: Record<string, string> = {}
     if (authHeader) headers.authorization = authHeader
-    const res = await fetch(resolved.url, { method: 'POST', body: fd, signal: opts.signal, headers })
+    const res = await fetch(resolved.url, {
+      method: 'POST',
+      body: fd,
+      signal: opts.signal,
+      headers,
+    })
     const ct = res.headers.get('content-type') ?? ''
-    const payload: unknown = ct.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => '')
+    const payload: unknown = ct.includes('application/json')
+      ? await res.json().catch(() => null)
+      : await res.text().catch(() => '')
     return { res, payload }
   }
 
@@ -261,7 +283,11 @@ export async function uploadMediaFile(opts: {
 
   // If the user pasted a direct upload URL (no discovery), some servers require NIP-98 and return 401/403.
   if (!res.ok && !initialAuth && (res.status === 401 || res.status === 403)) {
-    const retryAuth = createNip98AuthHeader({ url: resolved.url, method: 'POST', skHex: opts.nip98?.skHex })
+    const retryAuth = createNip98AuthHeader({
+      url: resolved.url,
+      method: 'POST',
+      skHex: opts.nip98?.skHex,
+    })
     ;({ res, payload } = await postUpload(retryAuth))
   }
 
@@ -279,5 +305,3 @@ export async function uploadMediaFile(opts: {
   if (!url) throw new Error('Upload succeeded but no URL was found in the response.')
   return { url }
 }
-
-

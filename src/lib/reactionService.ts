@@ -7,13 +7,16 @@ export async function reactToPost(
   evt: Event,
   _identityPubkey: string,
   onSuccess?: () => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
 ): Promise<void> {
   try {
     await client.publish({
       kind: NOSTR_KINDS.reaction,
       content: '+',
-      tags: [['e', evt.id], ['p', evt.pubkey]],
+      tags: [
+        ['e', evt.id],
+        ['p', evt.pubkey],
+      ],
     })
     onSuccess?.()
   } catch (error) {

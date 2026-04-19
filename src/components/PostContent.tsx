@@ -4,6 +4,7 @@ import { cn } from '../lib/cn'
 import {
   extractLinks,
   extractPostReferences,
+  extractProfileReferences,
   isLikelyImageUrl,
   isLikelyVideoUrl,
   uniqueUrls,
@@ -20,15 +21,17 @@ function stop(e: React.SyntheticEvent) {
 function mediaGridClassName(mediaStacked: boolean, compact: boolean, count: number) {
   return cn(
     'mt-2 grid w-full gap-2',
-    mediaStacked ? 'grid-cols-1' : compact
-      ? count === 1
-        ? 'grid-cols-1'
-        : count <= 4
-          ? 'grid-cols-2'
-          : 'grid-cols-4'
-      : count === 1
-        ? 'grid-cols-1'
-        : 'grid-cols-2',
+    mediaStacked
+      ? 'grid-cols-1'
+      : compact
+        ? count === 1
+          ? 'grid-cols-1'
+          : count <= 4
+            ? 'grid-cols-2'
+            : 'grid-cols-4'
+        : count === 1
+          ? 'grid-cols-1'
+          : 'grid-cols-2',
   )
 }
 
@@ -43,7 +46,7 @@ function DeferUntilInView(props: {
     const el = ref.current
     if (!el || mediaReady) return
     const io = new IntersectionObserver(
-      entries => {
+      (entries) => {
         if (entries[0]?.isIntersecting) {
           setMediaReady(true)
           io.disconnect()
@@ -88,16 +91,16 @@ function ImagePreview(props: {
   }
 
   const image = (
-      <img
-        src={url}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className={`block w-full object-cover ${compact ? 'max-h-64' : ''}`}
-        onError={() => onFail?.(url)}
-      />
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      className={`block w-full object-cover ${compact ? 'max-h-64' : ''}`}
+      onError={() => onFail?.(url)}
+    />
   )
-  
+
   if (linkMedia) {
     return (
       <a
@@ -111,12 +114,8 @@ function ImagePreview(props: {
       </a>
     )
   }
-  
-  return (
-    <div className="block overflow-hidden">
-      {image}
-    </div>
-  )
+
+  return <div className="block overflow-hidden">{image}</div>
 }
 
 function VideoPreview(props: {
@@ -144,16 +143,16 @@ function VideoPreview(props: {
   }
 
   const video = (
-      <video
-        src={url}
-        controls
-        playsInline
-        preload="metadata"
-        className={`block w-full ${compact ? 'max-h-64' : ''}`}
-        onError={() => onFail?.(url)}
-      />
+    <video
+      src={url}
+      controls
+      playsInline
+      preload="metadata"
+      className={`block w-full ${compact ? 'max-h-64' : ''}`}
+      onError={() => onFail?.(url)}
+    />
   )
-  
+
   if (linkMedia) {
     return (
       <a
@@ -167,7 +166,7 @@ function VideoPreview(props: {
       </a>
     )
   }
-  
+
   return (
     <div className="overflow-hidden" onClick={interactive ? stop : undefined}>
       {video}
@@ -175,7 +174,7 @@ function VideoPreview(props: {
   )
 }
 
-export const PostContent = memo(function PostContent(props: { 
+export const PostContent = memo(function PostContent(props: {
   content: string
   tags?: string[][]
   interactive?: boolean
@@ -185,6 +184,7 @@ export const PostContent = memo(function PostContent(props: {
   mediaStacked?: boolean
   client?: BreznNostrClient
   onOpenThread?: (evt: Event) => void
+  onOpenProfile?: (pubkey: string) => void
 }) {
   const {
     content,
@@ -196,14 +196,24 @@ export const PostContent = memo(function PostContent(props: {
     mediaStacked = false,
     client,
     onOpenThread,
+    onOpenProfile,
   } = props
 
-  const { parts, imageUrls, videoUrls, referencedEventIdsByPartKey } = useMemo(() => {
+  const {
+    parts,
+    imageUrls,
+    videoUrls,
+    referencedEventIdsByPartKey,
+    referencedProfilePubkeysByPartKey,
+  } = useMemo(() => {
     const links = extractLinks(content)
     const refs = extractPostReferences(content)
+    const profileRefs = extractProfileReferences(content)
     const refByRange = new Map<string, string>()
+    const profileRefByRange = new Map<string, string>()
     for (const r of refs) refByRange.set(`${r.link.start}:${r.link.end}`, r.eventId)
-    const urlStrings = uniqueUrls(links.map(u => u.href))
+    for (const r of profileRefs) profileRefByRange.set(`${r.link.start}:${r.link.end}`, r.pubkey)
+    const urlStrings = uniqueUrls(links.map((u) => u.href))
     const imageUrlSet = new Set(urlStrings.filter(isLikelyImageUrl))
     const videoUrlSet = new Set(urlStrings.filter(isLikelyVideoUrl))
 
@@ -227,9 +237,11 @@ export const PostContent = memo(function PostContent(props: {
     const videoUrls = [...videoUrlSet]
 
     const parts: Array<
-      { kind: 'text'; value: string } | { kind: 'link'; display: string; href: string; partKey: string }
+      | { kind: 'text'; value: string }
+      | { kind: 'link'; display: string; href: string; partKey: string }
     > = []
     const referencedEventIdsByPartKey: Record<string, string> = {}
+    const referencedProfilePubkeysByPartKey: Record<string, string> = {}
     let cursor = 0
     for (let i = 0; i < links.length; i += 1) {
       const u = links[i]!
@@ -238,11 +250,19 @@ export const PostContent = memo(function PostContent(props: {
       parts.push({ kind: 'link', display: u.display, href: u.href, partKey })
       const refId = refByRange.get(`${u.start}:${u.end}`)
       if (refId) referencedEventIdsByPartKey[partKey] = refId
+      const profilePubkey = profileRefByRange.get(`${u.start}:${u.end}`)
+      if (profilePubkey) referencedProfilePubkeysByPartKey[partKey] = profilePubkey
       cursor = u.end
     }
     if (cursor < content.length) parts.push({ kind: 'text', value: content.slice(cursor) })
 
-    return { parts, imageUrls, videoUrls, referencedEventIdsByPartKey }
+    return {
+      parts,
+      imageUrls,
+      videoUrls,
+      referencedEventIdsByPartKey,
+      referencedProfilePubkeysByPartKey,
+    }
   }, [content, tags])
 
   const [failedMedia, setFailedMedia] = useState<Record<string, true>>({})
@@ -266,76 +286,92 @@ export const PostContent = memo(function PostContent(props: {
   return (
     <div className="break-words">
       {parts.map((p, idx) => {
-          if (p.kind === 'text') {
-            const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
-            if (ellipsisMatch) {
-              const body = (ellipsisMatch[1] ?? '').replace(/^\n+|\n+$/g, '')
-              const trailingWs = ellipsisMatch[2] ?? ''
-              return (
-                <span key={idx}>
-                  {body}
-                  {'\n'}
-                  <span className="block text-center font-semibold text-brezn-muted">...</span>
-                  {trailingWs}
-                </span>
-              )
-            }
-            // Trim edge newlines (media stripped from flow).
-            const text = p.value.replace(/^\n+|\n+$/g, '')
-            return <span key={idx}>{text}</span>
-          }
-          
-          if (!isSafeUrl(p.href)) {
-            return <span key={idx}>{p.display}</span>
-          }
-          
-          const isMediaUrl = mediaUrlSet.has(p.href)
-          const isFailedMedia = Boolean(failedMedia[p.href])
-          if (isMediaUrl && !isFailedMedia) return null
-
-          const referencedEventId = referencedEventIdsByPartKey[p.partKey]
-          if (referencedEventId) {
+        if (p.kind === 'text') {
+          const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
+          if (ellipsisMatch) {
+            const body = (ellipsisMatch[1] ?? '').replace(/^\n+|\n+$/g, '')
+            const trailingWs = ellipsisMatch[2] ?? ''
             return (
-              <QuotedPostCard
-                key={`${p.href}_${idx}`}
-                event={referencedPostsById[referencedEventId]}
-                loading={Boolean(loadingIds[referencedEventId])}
-                href={p.href}
-                display={p.display}
-                compact={compact}
-                interactive={interactive}
-                onOpenThread={onOpenThread}
-              />
+              <span key={idx}>
+                {body}
+                {'\n'}
+                <span className="block text-center font-semibold text-brezn-muted">...</span>
+                {trailingWs}
+              </span>
             )
           }
+          // Trim edge newlines (media stripped from flow).
+          const text = p.value.replace(/^\n+|\n+$/g, '')
+          return <span key={idx}>{text}</span>
+        }
+
+        if (!isSafeUrl(p.href)) {
+          return <span key={idx}>{p.display}</span>
+        }
+
+        const isMediaUrl = mediaUrlSet.has(p.href)
+        const isFailedMedia = Boolean(failedMedia[p.href])
+        if (isMediaUrl && !isFailedMedia) return null
+
+        const referencedEventId = referencedEventIdsByPartKey[p.partKey]
+        if (referencedEventId) {
           return (
-            <a
+            <QuotedPostCard
               key={`${p.href}_${idx}`}
+              event={referencedPostsById[referencedEventId]}
+              loading={Boolean(loadingIds[referencedEventId])}
               href={p.href}
-              target="_blank"
-              rel="noreferrer"
-              onClick={interactive ? stop : undefined}
+              display={p.display}
+              compact={compact}
+              interactive={interactive}
+              onOpenThread={onOpenThread}
+            />
+          )
+        }
+        const referencedProfilePubkey = referencedProfilePubkeysByPartKey[p.partKey]
+        if (referencedProfilePubkey && onOpenProfile) {
+          return (
+            <button
+              key={`${p.href}_${idx}`}
+              type="button"
+              onClick={(e) => {
+                if (interactive) stop(e)
+                onOpenProfile(referencedProfilePubkey)
+              }}
               className="focus:outline-none rounded break-words font-medium text-brezn-link underline underline-offset-2 hover:opacity-90"
             >
               {p.display}
-            </a>
+            </button>
           )
-        })}
+        }
+        return (
+          <a
+            key={`${p.href}_${idx}`}
+            href={p.href}
+            target="_blank"
+            rel="noreferrer"
+            onClick={interactive ? stop : undefined}
+            className="focus:outline-none rounded break-words font-medium text-brezn-link underline underline-offset-2 hover:opacity-90"
+          >
+            {p.display}
+          </a>
+        )
+      })}
 
       {(() => {
-        const okVideos = videoUrls.filter(u => !failedMedia[u])
+        const okVideos = videoUrls.filter((u) => !failedMedia[u])
         if (!okVideos.length) return null
         return (
           <div className={mediaGridClassName(mediaStacked, compact, okVideos.length)}>
-            {okVideos.map(u => (
+            {okVideos.map((u) => (
               <DeferUntilInView key={u} className="overflow-hidden">
-                {ready => (
+                {(ready) => (
                   <VideoPreview
                     url={u}
                     loadMedia={ready}
                     interactive={interactive}
                     failed={false}
-                    onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
+                    onFail={(url) => setFailedMedia((prev) => ({ ...prev, [url]: true }))}
                     compact={compact}
                     linkMedia={linkMedia}
                   />
@@ -347,19 +383,19 @@ export const PostContent = memo(function PostContent(props: {
       })()}
 
       {(() => {
-        const okImages = imageUrls.filter(u => !failedMedia[u])
+        const okImages = imageUrls.filter((u) => !failedMedia[u])
         if (!okImages.length) return null
         return (
           <div className={mediaGridClassName(mediaStacked, compact, okImages.length)}>
-            {okImages.map(u => (
+            {okImages.map((u) => (
               <DeferUntilInView key={u} className="overflow-hidden">
-                {ready => (
+                {(ready) => (
                   <ImagePreview
                     url={u}
                     loadMedia={ready}
                     interactive={interactive}
                     failed={false}
-                    onFail={url => setFailedMedia(prev => ({ ...prev, [url]: true }))}
+                    onFail={(url) => setFailedMedia((prev) => ({ ...prev, [url]: true }))}
                     compact={compact}
                     linkMedia={linkMedia}
                   />
@@ -369,14 +405,11 @@ export const PostContent = memo(function PostContent(props: {
           </div>
         )
       })()}
-      
+
       {/* Compact row: reactions */}
       {compact && reactionButton ? (
-        <div className="mt-1.5 flex items-center justify-end">
-          {reactionButton}
-        </div>
+        <div className="mt-1.5 flex items-center justify-end">{reactionButton}</div>
       ) : null}
     </div>
   )
 })
-

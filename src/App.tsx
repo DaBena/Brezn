@@ -24,7 +24,7 @@ import { useModeration } from './hooks/useModeration'
 import { useOptimisticReactions } from './hooks/useOptimisticReactions'
 import { useTheme } from './hooks/useTheme'
 import { useNavigation } from './hooks/useNavigation'
-import { publishPost, publishReply, deletePost } from './lib/postService'
+import { publishPost, publishReply, deletePost, deletePosts } from './lib/postService'
 import { reactToPost } from './lib/reactionService'
 import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
 
@@ -41,7 +41,7 @@ export default function App() {
   const navigation = useNavigation()
 
   const [deletedNoteIds, setDeletedNoteIds] = useState<Set<string>>(
-    () => new Set(loadDeletedNoteIds())
+    () => new Set(loadDeletedNoteIds()),
   )
   const [threadReplyNoteIds, setThreadReplyNoteIds] = useState<string[]>([])
   const [profileNoteIds, setProfileNoteIds] = useState<string[]>([])
@@ -86,7 +86,7 @@ export default function App() {
   const threadRootPubkey = appState.sheets.thread.root?.pubkey ?? null
   // Profile sheet + thread root: same profile sub as feed.
   const pubkeysForProfiles = useMemo(() => {
-    const fromFeed = sortedEvents.map(e => e.pubkey)
+    const fromFeed = sortedEvents.map((e) => e.pubkey)
     const extra: string[] = []
     if (profileSheetPubkey) extra.push(profileSheetPubkey)
     if (threadRootPubkey) extra.push(threadRootPubkey)
@@ -108,14 +108,20 @@ export default function App() {
 
   // Thread/profile ids first (reaction slice cap).
   const noteIdsForReactions = useMemo(() => {
-    const fromFeed = sortedEvents.map(e => e.id)
+    const fromFeed = sortedEvents.map((e) => e.id)
     const root = appState.sheets.thread.root
     const threadIds = root ? [root.id, ...threadReplyNoteIds] : []
     const profileIds = appState.sheets.profile.pubkey ? profileNoteIds : []
     const merged = [...profileIds, ...threadIds]
-    const rest = fromFeed.filter(id => !merged.includes(id))
+    const rest = fromFeed.filter((id) => !merged.includes(id))
     return [...merged, ...rest]
-  }, [sortedEvents, appState.sheets.thread.root, threadReplyNoteIds, appState.sheets.profile.pubkey, profileNoteIds])
+  }, [
+    sortedEvents,
+    appState.sheets.thread.root,
+    threadReplyNoteIds,
+    appState.sheets.profile.pubkey,
+    profileNoteIds,
+  ])
 
   const { reactionsByNoteId } = useReactions({
     client,
@@ -172,11 +178,22 @@ export default function App() {
     }
   }
 
-  const handleDeletePost = async (evt: Event) => {
+  const handleDeletePost = async (evt: Event, childOwnEvents?: Event[]) => {
     if (isOffline) throw new Error(t('app.offlineDelete'))
-    await deletePost(client, evt, identity.pubkey)
-    addDeletedNoteId(evt.id)
-    setDeletedNoteIds(prev => new Set(prev).add(evt.id))
+    const toDelete = [evt, ...(childOwnEvents ?? [])]
+    if (toDelete.length === 1) {
+      await deletePost(client, evt, identity.pubkey)
+    } else {
+      await deletePosts(client, toDelete, identity.pubkey)
+    }
+    setDeletedNoteIds((prev) => {
+      const next = new Set(prev)
+      for (const eventToDelete of toDelete) {
+        addDeletedNoteId(eventToDelete.id)
+        next.add(eventToDelete.id)
+      }
+      return next
+    })
   }
 
   const handleReactToPost = async (evt: Event) => {
@@ -189,7 +206,7 @@ export default function App() {
       return
     // Optimistically prevent double-like while relay echo is pending.
     optimisticReactions.addOptimisticReaction(evt.id)
-    await reactToPost(client, evt, identity.pubkey, undefined, error => {
+    await reactToPost(client, evt, identity.pubkey, undefined, (error) => {
       optimisticReactions.removeOptimisticReaction(evt.id)
       showToast(error.message, 'error')
     })
@@ -223,11 +240,11 @@ export default function App() {
         initialTimedOut={initialTimedOut}
         lastCloseReasons={lastCloseReasons}
         isLoadingMore={isLoadingMore}
-        deletedNoteIds={deletedNoteIds}
         onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
         onLoadMore={loadMore}
-        onReact={evt => void handleReactToPost(evt)}
-        onOpenThread={evt => {
+        onReact={(evt) => void handleReactToPost(evt)}
+        onOpenProfile={handleOpenProfile}
+        onOpenThread={(evt) => {
           // Don't open thread if user is blocked
           if (!moderation.blockedPubkeys.includes(evt.pubkey)) {
             appState.openSheet('thread', { threadRoot: evt })
@@ -241,7 +258,7 @@ export default function App() {
         open={appState.sheets.composer.open}
         onClose={() => appState.closeSheet('composer')}
         viewerGeo5={viewerGeo5}
-        onRequestLocation={onFinished =>
+        onRequestLocation={(onFinished) =>
           void requestLocationAndLoad({ forceBrowser: true, onFinished })
         }
         onSelectCell={setLocationFromGeohash}
@@ -258,13 +275,13 @@ export default function App() {
           viewerPoint={viewerPoint}
           mutedTerms={moderation.mutedTerms}
           blockedPubkeys={moderation.blockedPubkeys}
-          deletedNoteIds={deletedNoteIds}
           isOffline={isOffline}
           reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
           canReact={!isOffline}
-          onReact={evt => void handleReactToPost(evt)}
+          onReact={(evt) => void handleReactToPost(evt)}
           onNoteIdsChange={setProfileNoteIds}
-          onOpenThread={evt => {
+          onOpenProfile={handleOpenProfile}
+          onOpenThread={(evt) => {
             if (moderation.blockedPubkeys.includes(evt.pubkey)) return
             appState.openSheet('thread', { threadRoot: evt, retainProfileWhenOpeningThread: true })
           }}
@@ -288,19 +305,21 @@ export default function App() {
           isOffline={isOffline}
           viewerPoint={viewerPoint}
           onClose={() => appState.closeSheet('thread')}
-          onPublishReply={content => void handlePublishReply(appState.sheets.thread.root!, content)}
-          onDelete={evt => void handleDeletePost(evt)}
-          onBlockUser={async pubkey => {
+          onPublishReply={(content) =>
+            void handlePublishReply(appState.sheets.thread.root!, content)
+          }
+          onDelete={(evt) => void handleDeletePost(evt)}
+          onBlockUser={async (pubkey) => {
             const next = [...moderation.blockedPubkeys, pubkey]
             await client.setBlockedPubkeys(next)
             moderation.refreshFromClient()
           }}
           reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
           canReact={!isOffline}
-          onReact={evt => void handleReactToPost(evt)}
+          onReact={(evt) => void handleReactToPost(evt)}
           onThreadRepliesChange={setThreadReplyNoteIds}
           onOpenProfile={handleOpenProfile}
-          onOpenThread={evt => {
+          onOpenThread={(evt) => {
             if (moderation.blockedPubkeys.includes(evt.pubkey)) return
             appState.openSheet('thread', { threadRoot: evt })
           }}

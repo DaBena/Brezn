@@ -9,7 +9,10 @@ function emptyPageBackstepSec(feedOldestCreated: number, feedNewestCreated: numb
   return Math.max(1, nowSec - feedOldestCreated)
 }
 
-function boundsFromFeedTimes(feedOldestCreated: number, feedNewestCreated: number): {
+function boundsFromFeedTimes(
+  feedOldestCreated: number,
+  feedNewestCreated: number,
+): {
   lo: number
   hi: number
 } {

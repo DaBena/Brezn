@@ -31,8 +31,8 @@ function PostCard(props: {
     <article className={sheetPostCardClass}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <PostIdentity 
-            pubkey={evt.pubkey} 
+          <PostIdentity
+            pubkey={evt.pubkey}
             profile={profile}
             onClick={onOpenProfile ? () => onOpenProfile(evt.pubkey) : undefined}
             onAvatarClick={onOpenProfile ? () => onOpenProfile(evt.pubkey) : undefined}
@@ -45,7 +45,15 @@ function PostCard(props: {
         </div>
       </div>
       <div className="mt-2">
-        <PostContent content={evt.content} tags={evt.tags} linkMedia mediaStacked client={client} onOpenThread={onOpenThread} />
+        <PostContent
+          content={evt.content}
+          tags={evt.tags}
+          linkMedia
+          mediaStacked
+          client={client}
+          onOpenThread={onOpenThread}
+          onOpenProfile={onOpenProfile}
+        />
       </div>
     </article>
   )
@@ -63,7 +71,7 @@ export function ThreadSheet(props: {
   isOffline: boolean
   viewerPoint: GeoPoint | null
   onPublishReply: (content: string) => Promise<void> | void
-  onDelete?: (evt: Event) => Promise<void> | void
+  onDelete?: (evt: Event, childOwnEvents?: Event[]) => Promise<void> | void
   onBlockUser?: (pubkey: string) => Promise<void> | void
   reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
   canReact: boolean
@@ -98,13 +106,20 @@ export function ThreadSheet(props: {
   const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
 
   useEffect(() => {
-    onThreadRepliesChange?.(replies.map(r => r.id))
+    onThreadRepliesChange?.(replies.map((r) => r.id))
   }, [replies, onThreadRepliesChange])
 
   const replyCount = replies.length
 
-  const allPubkeys = useMemo(() => [root.pubkey, ...replies.map(r => r.pubkey)], [root.pubkey, replies])
-  const { profilesByPubkey: subProfilesByPubkey } = useProfiles({ client, pubkeys: allPubkeys, isOffline })
+  const allPubkeys = useMemo(
+    () => [root.pubkey, ...replies.map((r) => r.pubkey)],
+    [root.pubkey, replies],
+  )
+  const { profilesByPubkey: subProfilesByPubkey } = useProfiles({
+    client,
+    pubkeys: allPubkeys,
+    isOffline,
+  })
   const profilesByPubkey = useMemo(() => {
     const out = new Map<string, Profile>()
     for (const pk of allPubkeys) {
@@ -190,7 +205,8 @@ export function ThreadSheet(props: {
     setDeleteState('deleting')
     setDeleteError(null)
     try {
-      await onDelete(root)
+      const ownReplies = replies.filter((reply) => reply.pubkey === identity.pubkey)
+      await onDelete(root, ownReplies)
       setDeleteState('idle')
       onClose()
     } catch (e) {
@@ -218,14 +234,17 @@ export function ThreadSheet(props: {
     try {
       // Send NIP-56 report event if reason is provided
       if (reportReason.trim()) {
-        const tags: string[][] = [['p', root.pubkey], ['e', root.id]]
+        const tags: string[][] = [
+          ['p', root.pubkey],
+          ['e', root.id],
+        ]
         await client.publish({
           kind: NOSTR_KINDS.report,
           content: reportReason.trim(), // NIP-56: Report reason goes in content field
           tags,
         })
       }
-      
+
       // Block the user
       await onBlockUser(root.pubkey)
       setBlockState('idle')
@@ -256,14 +275,17 @@ export function ThreadSheet(props: {
     try {
       // Send NIP-56 report event if reason is provided
       if (replyReportReason.trim()) {
-        const tags: string[][] = [['p', reply.pubkey], ['e', reply.id]]
+        const tags: string[][] = [
+          ['p', reply.pubkey],
+          ['e', reply.id],
+        ]
         await client.publish({
           kind: NOSTR_KINDS.report,
           content: replyReportReason.trim(), // NIP-56: Report reason goes in content field
           tags,
         })
       }
-      
+
       // Block the user
       await onBlockUser(reply.pubkey)
       setBlockState('idle')
@@ -289,13 +311,21 @@ export function ThreadSheet(props: {
             aria-label={t('thread.sendDeletionAria')}
             className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
           >
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="opacity-90">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              className="opacity-90"
+            >
               <path
                 fill="currentColor"
                 d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
               />
             </svg>
-            <span>{deleteState === 'deleting' ? t('thread.deleteSending') : t('thread.delete')}</span>
+            <span>
+              {deleteState === 'deleting' ? t('thread.deleteSending') : t('thread.delete')}
+            </span>
           </button>
         ) : !isOwnPost && onBlockUser && !isBlocked && !showReportField ? (
           <button
@@ -306,9 +336,20 @@ export function ThreadSheet(props: {
             className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
             title={t('thread.blockUserTitle')}
           >
-            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              aria-hidden="true"
+              className="opacity-90"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
             </svg>
             <span>{blockState === 'blocking' ? '…' : t('thread.block')}</span>
           </button>
@@ -332,19 +373,19 @@ export function ThreadSheet(props: {
             <textarea
               ref={reportTextareaRef}
               value={reportReason}
-              onChange={e => setReportReason(e.target.value)}
+              onChange={(e) => setReportReason(e.target.value)}
               placeholder={t('thread.reportReason')}
               className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
               disabled={blockState === 'blocking' || isOffline}
             />
             <div className="flex justify-center">
-            <button
-              onClick={() => void handleBlock()}
-              disabled={blockState === 'blocking' || isOffline}
+              <button
+                onClick={() => void handleBlock()}
+                disabled={blockState === 'blocking' || isOffline}
                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-            >
-              {blockState === 'blocking' ? t('thread.blocking') : t('thread.block')}
-            </button>
+              >
+                {blockState === 'blocking' ? t('thread.blocking') : t('thread.block')}
+              </button>
             </div>
           </div>
         ) : (
@@ -372,7 +413,9 @@ export function ThreadSheet(props: {
                   )}
                   aria-label={
                     reactionsByNoteId[root.id]?.total
-                      ? t('feedArticle.sendReactionCount', { count: reactionsByNoteId[root.id]?.total ?? 0 })
+                      ? t('feedArticle.sendReactionCount', {
+                          count: reactionsByNoteId[root.id]?.total ?? 0,
+                        })
                       : t('feedArticle.sendReaction')
                   }
                 >
@@ -393,7 +436,7 @@ export function ThreadSheet(props: {
               ) : null}
               {replies.length ? (
                 <div className="space-y-2">
-                  {replies.map(r => {
+                  {replies.map((r) => {
                     const replyProfile = profilesByPubkey.get(r.pubkey)
                     const isReplyOwnPost = r.pubkey === identity.pubkey
                     const isReplyBlocked = blockedPubkeys.includes(r.pubkey)
@@ -403,25 +446,29 @@ export function ThreadSheet(props: {
                         {isReportingReply && !isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
                           <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel p-3">
                             <div className="text-xs font-semibold text-brezn-muted">
-                              {t('thread.blockHeading', { label: shortNpub(nip19.npubEncode(r.pubkey), 8, 4) })}
+                              {t('thread.blockHeading', {
+                                label: shortNpub(nip19.npubEncode(r.pubkey), 8, 4),
+                              })}
                             </div>
                             <div className="text-xs text-brezn-text">{t('thread.reportHint')}</div>
                             <textarea
                               ref={replyReportTextareaRef}
                               value={replyReportReason}
-                              onChange={e => setReplyReportReason(e.target.value)}
+                              onChange={(e) => setReplyReportReason(e.target.value)}
                               placeholder={t('thread.reportReason')}
                               className="w-full min-h-[80px] resize-none border border-brezn-text p-2 text-base outline-none"
                               disabled={blockState === 'blocking' || isOffline}
                             />
                             <div className="flex justify-center">
-                            <button
-                              onClick={() => void handleBlockReplyWithReport(r)}
-                              disabled={blockState === 'blocking' || isOffline}
+                              <button
+                                onClick={() => void handleBlockReplyWithReport(r)}
+                                disabled={blockState === 'blocking' || isOffline}
                                 className={`w-1/2 rounded-xl px-3 py-2 text-xs font-semibold ${buttonBase}`}
-                            >
-                              {blockState === 'blocking' ? t('thread.blocking') : t('thread.block')}
-                            </button>
+                              >
+                                {blockState === 'blocking'
+                                  ? t('thread.blocking')
+                                  : t('thread.block')}
+                              </button>
                             </div>
                           </div>
                         ) : (
@@ -431,8 +478,12 @@ export function ThreadSheet(props: {
                                 <PostIdentity
                                   pubkey={r.pubkey}
                                   profile={replyProfile}
-                                  onClick={onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined}
-                                  onAvatarClick={onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined}
+                                  onClick={
+                                    onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined
+                                  }
+                                  onAvatarClick={
+                                    onOpenProfile ? () => onOpenProfile(r.pubkey) : undefined
+                                  }
                                   avatarSize="large"
                                 />
                                 {!isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
@@ -444,9 +495,20 @@ export function ThreadSheet(props: {
                                     className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ${buttonBase}`}
                                     title={t('thread.blockUserTitle')}
                                   >
-                                    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" className="opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <circle cx="12" cy="12" r="10"/>
-                                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      width="12"
+                                      height="12"
+                                      aria-hidden="true"
+                                      className="opacity-90"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <circle cx="12" cy="12" r="10" />
+                                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                                     </svg>
                                   </button>
                                 ) : null}
@@ -454,7 +516,9 @@ export function ThreadSheet(props: {
                               <span className="shrink-0 text-[11px] text-brezn-text">
                                 {new Date(r.created_at * 1000).toLocaleString()}
                                 {(() => {
-                                  const dist = viewerPoint ? calculateApproxDistance(r, viewerPoint) : null
+                                  const dist = viewerPoint
+                                    ? calculateApproxDistance(r, viewerPoint)
+                                    : null
                                   return dist ? <span> / {dist}</span> : null
                                 })()}
                               </span>
@@ -468,24 +532,33 @@ export function ThreadSheet(props: {
                                   mediaStacked
                                   client={client}
                                   onOpenThread={onOpenThread}
+                                  onOpenProfile={onOpenProfile}
                                 />
                               </div>
                               <button
                                 type="button"
                                 onClick={() => onReact(r)}
-                                disabled={!canReact || Boolean(reactionsByNoteId[r.id]?.viewerReacted)}
+                                disabled={
+                                  !canReact || Boolean(reactionsByNoteId[r.id]?.viewerReacted)
+                                }
                                 className={`shrink-0 ${reactionButtonClasses(
                                   Boolean(reactionsByNoteId[r.id]?.viewerReacted),
-                                  canReact
+                                  canReact,
                                 )}`}
                                 aria-label={
                                   reactionsByNoteId[r.id]?.total
-                                    ? t('feedArticle.sendReactionCount', { count: reactionsByNoteId[r.id]?.total ?? 0 })
+                                    ? t('feedArticle.sendReactionCount', {
+                                        count: reactionsByNoteId[r.id]?.total ?? 0,
+                                      })
                                     : t('feedArticle.sendReaction')
                                 }
                               >
-                                <HeartIcon liked={Boolean(reactionsByNoteId[r.id]?.viewerReacted)} />
-                                <span className="font-mono">{reactionsByNoteId[r.id]?.total ?? 0}</span>
+                                <HeartIcon
+                                  liked={Boolean(reactionsByNoteId[r.id]?.viewerReacted)}
+                                />
+                                <span className="font-mono">
+                                  {reactionsByNoteId[r.id]?.total ?? 0}
+                                </span>
                               </button>
                             </div>
                           </article>
@@ -500,7 +573,7 @@ export function ThreadSheet(props: {
             <div className="-mx-4 mt-3 bg-brezn-panel px-4 pb-[env(safe-area-inset-bottom)] pt-3">
               <textarea
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={(e) => setText(e.target.value)}
                 placeholder={t('thread.replyPlaceholder')}
                 className="mt-2 h-24 w-full resize-none border border-brezn-text p-3 text-base outline-none"
                 disabled={isOffline}
@@ -524,4 +597,3 @@ export function ThreadSheet(props: {
     </Sheet>
   )
 }
-

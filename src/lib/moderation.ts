@@ -52,4 +52,3 @@ export function contentMatchesMutedTerms(content: string, mutedTerms: string[]):
   }
   return false
 }
-

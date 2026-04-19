@@ -29,7 +29,15 @@ export function QuotedPostCard(props: {
   onOpenThread?: (evt: Event) => void
 }) {
   const { t } = useTranslation()
-  const { event, loading = false, href, display, compact = false, interactive, onOpenThread } = props
+  const {
+    event,
+    loading = false,
+    href,
+    display,
+    compact = false,
+    interactive,
+    onOpenThread,
+  } = props
 
   if (!event) {
     return (
@@ -65,7 +73,7 @@ export function QuotedPostCard(props: {
     return (
       <button
         type="button"
-        onClick={e => {
+        onClick={(e) => {
           if (interactive) stop(e)
           onOpenThread(event)
         }}

@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadJson, saveJson, loadJsonSync, saveJsonSync, loadEncryptedJson, saveEncryptedJson, setStorageConsentGiven } from './storage'
+import {
+  loadJson,
+  saveJson,
+  loadJsonSync,
+  saveJsonSync,
+  loadEncryptedJson,
+  saveEncryptedJson,
+  setStorageConsentGiven,
+} from './storage'
 
 describe('storage', () => {
   beforeEach(async () => {
@@ -14,7 +22,7 @@ describe('storage', () => {
         deleteReq.onblocked = () => resolve() // Resolve even if blocked
       })
       // Wait a bit for IndexedDB to fully close
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
   })
 
@@ -54,19 +62,19 @@ describe('storage', () => {
   it('encrypts and decrypts sensitive fields', async () => {
     // Note: The encryption key is stored in IndexedDB and must persist between encrypt and decrypt
     const data = { secret: 'my-secret-key', public: 'public-data' }
-    
+
     // Save encrypted data (this will generate and store the encryption key)
     await saveEncryptedJson('encrypted-key', data, ['secret'])
-    
+
     // Wait for IndexedDB operations to complete
-    await new Promise(resolve => setTimeout(resolve, 200))
-    
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
     // Load and decrypt (should use the same encryption key)
     const loaded = await loadEncryptedJson('encrypted-key', { secret: '', public: '' }, ['secret'])
-    
+
     expect(loaded.secret).toBe('my-secret-key')
     expect(loaded.public).toBe('public-data')
-    
+
     // Verify that the stored value is actually encrypted (contains ':')
     // Check both localStorage and IndexedDB
     const storedLocal = JSON.parse(localStorage.getItem('encrypted-key') || '{}')
@@ -82,19 +90,18 @@ describe('storage', () => {
     // This test verifies that encryption/decryption works in a normal browser environment
     // Web Crypto API should be available in Node.js test environment
     const data = { secret: 'test-key', public: 'data' }
-    
+
     // Save encrypted
     await saveEncryptedJson('fallback-key', data, ['secret'])
-    
+
     // Wait for IndexedDB operations
-    await new Promise(resolve => setTimeout(resolve, 200))
-    
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
     // Load and decrypt
     const loaded = await loadEncryptedJson('fallback-key', { secret: '', public: '' }, ['secret'])
-    
+
     // Should work correctly with Web Crypto API
     expect(loaded.secret).toBe('test-key')
     expect(loaded.public).toBe('data')
   })
 })
-

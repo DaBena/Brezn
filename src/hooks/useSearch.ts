@@ -72,7 +72,7 @@ export function useSearch(
   const filteredEvents = useMemo(() => {
     if (!debouncedSearchQuery.trim()) return sortedEvents
     const query = debouncedSearchQuery.toLowerCase().trim()
-    return sortedEvents.filter(evt => eventMatchesSearchQuery(evt, query, profilesByPubkey))
+    return sortedEvents.filter((evt) => eventMatchesSearchQuery(evt, query, profilesByPubkey))
   }, [sortedEvents, debouncedSearchQuery, profilesByPubkey])
 
   return {

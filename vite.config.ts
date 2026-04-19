@@ -13,6 +13,9 @@ const base = normalizeBasePath(process.env.BASE_PATH)
 
 export default defineConfig({
   base,
+  build: {
+    chunkSizeWarningLimit: 1024,
+  },
   plugins: [
     react(),
     VitePWA({
@@ -20,7 +23,12 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: null,
       manifestFilename: 'manifest.json',
-      includeAssets: ['icons/brezn.svg', 'icons/brezn-192.png', 'icons/brezn-512.png', 'offline.html'],
+      includeAssets: [
+        'icons/brezn.svg',
+        'icons/brezn-192.png',
+        'icons/brezn-512.png',
+        'offline.html',
+      ],
       manifest: {
         name: 'Brezn',
         short_name: 'Brezn',
@@ -105,5 +113,6 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
 })

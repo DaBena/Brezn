@@ -5,8 +5,13 @@ describe('extractUrls', () => {
   test('extracts http/https urls and trims trailing punctuation', () => {
     const text =
       "See https://example.com/a.png, then (https://foo.bar/x.jpg). End: https://x.y/z?q=1. And don't take https://a/b.png)."
-    const urls = extractUrls(text).map(x => x.url)
-    expect(urls).toEqual(['https://example.com/a.png', 'https://foo.bar/x.jpg', 'https://x.y/z?q=1', 'https://a/b.png'])
+    const urls = extractUrls(text).map((x) => x.url)
+    expect(urls).toEqual([
+      'https://example.com/a.png',
+      'https://foo.bar/x.jpg',
+      'https://x.y/z?q=1',
+      'https://a/b.png',
+    ])
   })
 
   test('returns empty for no urls', () => {
@@ -23,12 +28,13 @@ describe('uniqueUrls', () => {
 describe('extractLinks', () => {
   test('extracts http/https urls', () => {
     const links = extractLinks('go to https://example.com/x?q=1 now')
-    expect(links.map(l => l.href)).toEqual(['https://example.com/x?q=1'])
-    expect(links.map(l => l.display)).toEqual(['https://example.com/x?q=1'])
+    expect(links.map((l) => l.href)).toEqual(['https://example.com/x?q=1'])
+    expect(links.map((l) => l.display)).toEqual(['https://example.com/x?q=1'])
   })
 
   test('extracts nostr:nprofile and maps to njump.me', () => {
-    const text = 'Profile: nostr:nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq. done'
+    const text =
+      'Profile: nostr:nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq. done'
     const links = extractLinks(text)
     expect(links).toHaveLength(1)
     expect(links[0]!.display).toBe(
@@ -43,7 +49,9 @@ describe('extractLinks', () => {
     const text = 'nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq!'
     const links = extractLinks(text)
     expect(links).toHaveLength(1)
-    expect(links[0]!.display).toBe('nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq')
+    expect(links[0]!.display).toBe(
+      'nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+    )
     expect(links[0]!.href).toBe(
       'https://njump.me/nprofile1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
     )
@@ -77,4 +85,3 @@ describe('isLikelyVideoUrl', () => {
     expect(isLikelyVideoUrl('not-a-url')).toBe(false)
   })
 })
-
