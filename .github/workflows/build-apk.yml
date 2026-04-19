@@ -71,7 +71,7 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release and upload APK/AAB
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: build-${{ github.run_number }}
           name: Brezn build ${{ github.run_number }}
