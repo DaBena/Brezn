@@ -150,8 +150,7 @@ describe('nostrClient relays', () => {
         try {
           const u = new URL(r)
           return (
-            u.hostname === 'relay.example.com' &&
-            (u.protocol === 'wss:' || u.protocol === 'ws:')
+            u.hostname === 'relay.example.com' && (u.protocol === 'wss:' || u.protocol === 'ws:')
           )
         } catch {
           return false
