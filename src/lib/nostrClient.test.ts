@@ -146,9 +146,17 @@ describe('nostrClient relays', () => {
     expect(relays).not.toContain('wss://relay.example.com/') // trailing slash removed
     // ws:// is actually accepted (for local testing), so we check it's normalized
     expect(
-      relays.some(
-        (r) => r.startsWith('wss://relay.example.com') || r.startsWith('ws://relay.example.com'),
-      ),
+      relays.some((r) => {
+        try {
+          const u = new URL(r)
+          return (
+            u.hostname === 'relay.example.com' &&
+            (u.protocol === 'wss:' || u.protocol === 'ws:')
+          )
+        } catch {
+          return false
+        }
+      }),
     ).toBe(true)
     expect(relays).not.toContain('invalid-url')
     expect(relays).not.toContain('https://not-ws.com')
