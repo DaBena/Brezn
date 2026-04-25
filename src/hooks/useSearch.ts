@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Event } from 'nostr-tools'
 import * as nip19 from 'nostr-tools/nip19'
 import { SEARCH_FEED_PREFETCH_MAX_ROUNDS } from '../lib/constants'
+import { isNip52CalendarKind, nip52SearchBlob } from '../lib/nip52'
 import type { LoadMorePageResult } from './useLocalFeed'
 
 function eventMatchesSearchQuery(
@@ -20,6 +21,7 @@ function eventMatchesSearchQuery(
   }
   const profile = profilesByPubkey.get(evt.pubkey)
   if (profile?.name && profile.name.toLowerCase().includes(queryLower)) return true
+  if (isNip52CalendarKind(evt.kind) && nip52SearchBlob(evt).includes(queryLower)) return true
   return false
 }
 

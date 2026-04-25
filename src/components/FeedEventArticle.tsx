@@ -50,6 +50,13 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
   const ts = formatEventCardTimestamp(evt.created_at)
   const dist = distanceSuffix(distanceLabel)
 
+  const openKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onOpenThread(evt)
+    }
+  }
+
   if (isDeleted) {
     return (
       <article className={feedListPostDeletedClass} aria-label={t('feedArticle.deletedAria')}>
@@ -87,13 +94,6 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
         </div>
       </article>
     )
-  }
-
-  const openKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onOpenThread(evt)
-    }
   }
 
   if (props.variant === 'feed') {

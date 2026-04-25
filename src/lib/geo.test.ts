@@ -4,7 +4,7 @@ import { encodeGeohash, generateGeohashTags, getBrowserLocation } from './geo'
 
 describe('geo', () => {
   it('encodeGeohash returns ngeohash.encode with correct length', () => {
-    const p = { lat: 48.137154, lon: 11.576124 } // Munich
+    const p = { lat: 10.0, lon: 20.0 }
     expect(encodeGeohash(p, 4)).toBe(geohash.encode(p.lat, p.lon, 4))
     expect(encodeGeohash(p, 6)).toHaveLength(6)
   })
@@ -32,7 +32,7 @@ describe('geo', () => {
     const getCurrentPosition = vi.fn(
       (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
         success({
-          coords: { latitude: 48.1, longitude: 11.5 } as GeolocationCoordinates,
+          coords: { latitude: 5.5, longitude: -3.3 } as GeolocationCoordinates,
         } as GeolocationPosition)
       },
     )
@@ -41,7 +41,7 @@ describe('geo', () => {
     })
 
     const pos = await getBrowserLocation()
-    expect(pos).toEqual({ lat: 48.1, lon: 11.5 })
+    expect(pos).toEqual({ lat: 5.5, lon: -3.3 })
     expect(getCurrentPosition).toHaveBeenCalledOnce()
     expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
       enableHighAccuracy: false,
@@ -54,7 +54,7 @@ describe('geo', () => {
     const getCurrentPosition = vi.fn(
       (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
         success({
-          coords: { latitude: 47.9, longitude: 12.2 } as GeolocationCoordinates,
+          coords: { latitude: 1.0, longitude: 2.0 } as GeolocationCoordinates,
         } as GeolocationPosition)
       },
     )

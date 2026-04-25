@@ -874,7 +874,9 @@ export function createNostrClient(): BreznNostrClient {
       }
       return nip04.decrypt(hexToBytes(skHex), senderPubkey.toLowerCase(), event.content)
     } catch (e) {
-      throw new Error(`Failed to decrypt DM: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      throw new Error(`Failed to decrypt DM: ${e instanceof Error ? e.message : 'Unknown error'}`, {
+        cause: e,
+      })
     }
   }
 
@@ -1194,9 +1196,9 @@ export function createNostrClient(): BreznNostrClient {
       resubscribeAll('identity-changed')
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to import nsec: ${error.message}`)
+        throw new Error(`Failed to import nsec: ${error.message}`, { cause: error })
       }
-      throw new Error('Failed to import nsec: Invalid format')
+      throw new Error('Failed to import nsec: Invalid format', { cause: error })
     }
   }
 

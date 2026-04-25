@@ -1,6 +1,13 @@
+import type { Event } from 'nostr-tools'
 import { FEED_PREVIEW_MAX_FLOWTEXT } from './constants'
+import { isNip52CalendarKind, nip52FeedCardPostContent } from './nip52'
 import type { ExtractedLink } from './urls'
 import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from './urls'
+
+/** Plain text for feed/profile list cards — kind 1 uses `content`, NIP-52 uses tags (same `PostContent` path). */
+export function feedEventCardPlainText(evt: Event): string {
+  return isNip52CalendarKind(evt.kind) ? nip52FeedCardPostContent(evt) : (evt.content ?? '')
+}
 
 function isPostReferenceLink(link: ExtractedLink): boolean {
   const display = link.display.trim().toLowerCase()

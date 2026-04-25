@@ -4,14 +4,31 @@ import type { BreznNostrClient } from '../lib/nostrClient'
 import { FEED_QUERY_LIMIT } from '../lib/constants'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'
 import { contentMatchesMutedTerms } from '../lib/moderation'
+import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from '../lib/breznNostr'
+import {
+  isNip52CalendarKind,
+  isValidNip52CalendarEvent,
+  nip52ReplaceableMergeKey,
+  nip52SearchBlob,
+} from '../lib/nip52'
 
 const HISTORY_SECONDS = 60 * 60 * 24 * 365
 
-function mergeAndSort(prev: Event[], incoming: Event[]): Event[] {
-  const byId = new Map<string, Event>()
-  for (const e of prev) byId.set(e.id, e)
-  for (const e of incoming) byId.set(e.id, e)
-  return [...byId.values()].sort((a, b) => b.created_at - a.created_at)
+function authorFeedStableKey(e: Event): string {
+  return nip52ReplaceableMergeKey(e) ?? `id:${e.id}`
+}
+
+/** Merge by event id for notes; NIP-52 calendar events dedupe by replaceable `d` (newest wins). */
+function mergeAuthorFeedEvents(prev: Event[], incoming: Event[]): Event[] {
+  const map = new Map<string, Event>()
+  for (const e of prev) map.set(authorFeedStableKey(e), e)
+  for (const e of incoming) {
+    const k = authorFeedStableKey(e)
+    const ex = map.get(k)
+    if (ex && nip52ReplaceableMergeKey(e) && e.created_at < ex.created_at) continue
+    map.set(k, e)
+  }
+  return [...map.values()].sort((a, b) => b.created_at - a.created_at)
 }
 
 export function useAuthorNotes(params: {
@@ -66,17 +83,25 @@ export function useAuthorNotes(params: {
 
     const since = Math.floor(Date.now() / 1000) - HISTORY_SECONDS
     const filter: Filter = {
-      kinds: [1],
+      kinds: [...ROOT_FEED_EVENT_KINDS],
       authors: [authorPubkey],
       limit: FEED_QUERY_LIMIT,
       since,
     }
 
     const accept = (evt: Event): boolean => {
-      if (evt.kind !== 1 || evt.pubkey !== authorPubkey) return false
+      if (evt.pubkey !== authorPubkey) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
-      if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-      return true
+      if (evt.kind === NOSTR_KINDS.note) {
+        if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
+        return true
+      }
+      if (isNip52CalendarKind(evt.kind)) {
+        if (!isValidNip52CalendarEvent(evt)) return false
+        if (contentMatchesMutedTerms(nip52SearchBlob(evt), mutedRef.current)) return false
+        return true
+      }
+      return false
     }
 
     const unsub = client.subscribe(filter, {
@@ -84,7 +109,7 @@ export function useAuthorNotes(params: {
         if (!accept(evt)) return
         if (seenIdsRef.current.has(evt.id)) return
         seenIdsRef.current.add(evt.id)
-        setEvents((prev) => mergeAndSort(prev, [evt]))
+        setEvents((prev) => mergeAuthorFeedEvents(prev, [evt]))
       },
     })
 
@@ -111,17 +136,25 @@ export function useAuthorNotes(params: {
 
     setLoadingMore(true)
     const filter: Filter = {
-      kinds: [1],
+      kinds: [...ROOT_FEED_EVENT_KINDS],
       authors: [authorPubkey],
       limit: FEED_QUERY_LIMIT,
       until,
     }
 
     const accept = (evt: Event): boolean => {
-      if (evt.kind !== 1 || evt.pubkey !== authorPubkey) return false
+      if (evt.pubkey !== authorPubkey) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
-      if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-      return true
+      if (evt.kind === NOSTR_KINDS.note) {
+        if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
+        return true
+      }
+      if (isNip52CalendarKind(evt.kind)) {
+        if (!isValidNip52CalendarEvent(evt)) return false
+        if (contentMatchesMutedTerms(nip52SearchBlob(evt), mutedRef.current)) return false
+        return true
+      }
+      return false
     }
 
     const batchById = new Map<string, Event>()
@@ -138,7 +171,7 @@ export function useAuthorNotes(params: {
       setLoadingMore(false)
       const merged = batchById.size
       for (const evt of batchById.values()) seenIdsRef.current.add(evt.id)
-      if (merged) setEvents((prev) => mergeAndSort(prev, [...batchById.values()]))
+      if (merged) setEvents((prev) => mergeAuthorFeedEvents(prev, [...batchById.values()]))
 
       const listAfter = eventsRef.current
       const feedLo = listAfter.length ? Math.min(...listAfter.map((e) => e.created_at)) : oldest
@@ -165,7 +198,11 @@ export function useAuthorNotes(params: {
         batchMinCreated =
           batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
         if (seenIdsRef.current.has(evt.id)) return
-        batchById.set(evt.id, evt)
+        const k = authorFeedStableKey(evt)
+        const existing = batchById.get(k)
+        if (existing && nip52ReplaceableMergeKey(evt) && evt.created_at < existing.created_at)
+          return
+        batchById.set(k, evt)
       },
       oneose: finish,
       immediate: true,

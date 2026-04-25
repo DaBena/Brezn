@@ -6,10 +6,11 @@ import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
+import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
 import { FEED_RENDER_CHUNK, REPO_URL } from '../lib/constants'
-import { truncateFeedCardContent } from '../lib/feedContentPreview'
+import { feedEventCardPlainText, truncateFeedCardContent } from '../lib/feedContentPreview'
 
 export function Feed(props: {
   client: BreznNostrClient
@@ -68,7 +69,9 @@ export function Feed(props: {
     if (!viewerPoint) return {} as Record<string, string>
     const out: Record<string, string> = {}
     for (const evt of displayedEvents) {
-      const label = calculateApproxDistance(evt, viewerPoint)
+      const label = isNip52CalendarKind(evt.kind)
+        ? nip52DistanceLabel(evt, viewerPoint)
+        : calculateApproxDistance(evt, viewerPoint)
       if (label) out[evt.id] = label
     }
     return out
@@ -171,7 +174,7 @@ export function Feed(props: {
                     variant="feed"
                     evt={evt}
                     isDeleted={false}
-                    contentPreview={truncateFeedCardContent(evt.content)}
+                    contentPreview={truncateFeedCardContent(feedEventCardPlainText(evt))}
                     profilesByPubkey={profilesByPubkey}
                     distanceLabel={approxDistanceById[evt.id]}
                     client={client}

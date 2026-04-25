@@ -5,11 +5,12 @@ import * as nip19 from 'nostr-tools/nip19'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
+import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { useAuthorNotes } from '../hooks/useAuthorNotes'
 import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
-import { truncateProfileCardContent } from '../lib/feedContentPreview'
+import { feedEventCardPlainText, truncateProfileCardContent } from '../lib/feedContentPreview'
 import { Sheet } from './Sheet'
 import { FEED_RENDER_CHUNK } from '../lib/constants'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
@@ -99,7 +100,9 @@ export function ProfileSheet(props: {
   const approxDistanceById = useMemo(() => {
     const map: Record<string, string | null> = {}
     for (const evt of displayedEvents) {
-      map[evt.id] = calculateApproxDistance(evt, viewerPoint)
+      map[evt.id] = isNip52CalendarKind(evt.kind)
+        ? nip52DistanceLabel(evt, viewerPoint)
+        : calculateApproxDistance(evt, viewerPoint)
     }
     return map
   }, [displayedEvents, viewerPoint])
@@ -207,7 +210,7 @@ export function ProfileSheet(props: {
               variant="profile"
               evt={evt}
               isDeleted={false}
-              contentPreview={truncateProfileCardContent(evt.content)}
+              contentPreview={truncateProfileCardContent(feedEventCardPlainText(evt))}
               distanceLabel={approxDistanceById[evt.id]}
               client={client}
               reactionsByNoteId={reactionsByNoteId}

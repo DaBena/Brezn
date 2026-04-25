@@ -19,6 +19,14 @@ import {
   FEED_QUERY_LIMIT,
 } from '../lib/constants'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'
+import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from '../lib/breznNostr'
+import {
+  isNip52CalendarKind,
+  isValidNip52CalendarEvent,
+  nip52CalendarMatchesQueryCells,
+  nip52SearchBlob,
+  upsertFeedEvents,
+} from '../lib/nip52'
 
 export type LoadMorePageResult = {
   added: number
@@ -107,8 +115,11 @@ export function useLocalFeed(params: {
   const sortedEvents = useMemo(() => {
     const filtered = events.filter((e) => {
       if (blockedSet.has(e.pubkey)) return false
-      if (mutedTerms.length && contentMatchesMutedTerms(e.content ?? '', mutedTerms)) return false
-      return true
+      if (!mutedTerms.length) return true
+      if (isNip52CalendarKind(e.kind)) {
+        return !contentMatchesMutedTerms(nip52SearchBlob(e), mutedTerms)
+      }
+      return !contentMatchesMutedTerms(e.content ?? '', mutedTerms)
     })
     return filtered.sort((a, b) => b.created_at - a.created_at)
   }, [events, mutedTerms, blockedSet])
@@ -249,32 +260,47 @@ export function useLocalFeed(params: {
     let cancelled = false
     const timerIds: number[] = []
 
+    const queryCellsForCalendar =
+      geohashLength === 0 && queryGeohash.length === 5
+        ? gCellsCoarsePlusFine(queryGeohash)
+        : [queryGeohash]
+
+    const feedKinds = [...ROOT_FEED_EVENT_KINDS]
+
     const onEvent = (evt: Event) => {
       if (cancelled) return
-      if (evt.kind !== 1) return
-      if (isReplyNote(evt)) return
 
-      eventCount++
-      if (eventCount === 1) setFeedState({ kind: 'live' })
-      // No startTransition here: would flash empty feed before events land.
-      setEvents((prev) => {
-        if (prev.some((e) => e.id === evt.id)) return prev
-        return [evt, ...prev]
-      })
+      if (evt.kind === NOSTR_KINDS.note) {
+        if (isReplyNote(evt)) return
 
-      // Our delete still visible: re-broadcast NIP-09 (rate limited).
-      if (
-        evt.kind === 1 &&
-        identityPubkeyRef.current &&
-        evt.pubkey === identityPubkeyRef.current &&
-        deletedNoteIdsRef.current.has(evt.id)
-      ) {
-        const now = Date.now()
-        const last = lastResendTimeByNoteIdRef.current[evt.id] ?? 0
-        if (now - last >= RESEND_DELETION_COOLDOWN_MS) {
-          lastResendTimeByNoteIdRef.current[evt.id] = now
-          void deletePost(client, evt, identityPubkeyRef.current).catch(() => {})
+        eventCount++
+        if (eventCount === 1) setFeedState({ kind: 'live' })
+        setEvents((prev) => {
+          if (prev.some((e) => e.id === evt.id)) return prev
+          return [evt, ...prev]
+        })
+
+        if (
+          identityPubkeyRef.current &&
+          evt.pubkey === identityPubkeyRef.current &&
+          deletedNoteIdsRef.current.has(evt.id)
+        ) {
+          const now = Date.now()
+          const last = lastResendTimeByNoteIdRef.current[evt.id] ?? 0
+          if (now - last >= RESEND_DELETION_COOLDOWN_MS) {
+            lastResendTimeByNoteIdRef.current[evt.id] = now
+            void deletePost(client, evt, identityPubkeyRef.current).catch(() => {})
+          }
         }
+        return
+      }
+
+      if (isNip52CalendarKind(evt.kind)) {
+        if (!isValidNip52CalendarEvent(evt)) return
+        if (!nip52CalendarMatchesQueryCells(evt, queryCellsForCalendar)) return
+        eventCount++
+        if (eventCount === 1) setFeedState({ kind: 'live' })
+        setEvents((prev) => upsertFeedEvents(prev, evt))
       }
     }
     const onEose = () => {
@@ -312,7 +338,11 @@ export function useLocalFeed(params: {
         const cell = cellsToQuery[currentIndex]
         currentIndex++
         const unsub = client.subscribe(
-          { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT },
+          {
+            kinds: feedKinds,
+            '#g': [cell],
+            limit: FEED_QUERY_LIMIT,
+          },
           {
             onevent: onEvent,
             oneose: () => {
@@ -335,7 +365,11 @@ export function useLocalFeed(params: {
       runNextQuery()
     } else {
       const unsub = client.subscribe(
-        { kinds: [1], '#g': [queryGeohash], limit: FEED_QUERY_LIMIT },
+        {
+          kinds: feedKinds,
+          '#g': [queryGeohash],
+          limit: FEED_QUERY_LIMIT,
+        },
         { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
       )
       unsubRef.current = unsub
@@ -376,6 +410,9 @@ export function useLocalFeed(params: {
       geohashLength === 0 && queryGeohash.length === 5
         ? gCellsCoarsePlusFine(queryGeohash)
         : [queryGeohash]
+
+    const queryCellsCalendar = cellsForLoadMore
+    const kindsLoadMore = [...ROOT_FEED_EVENT_KINDS]
 
     return new Promise<LoadMorePageResult>((resolve) => {
       let settled = false
@@ -423,18 +460,29 @@ export function useLocalFeed(params: {
       const timeoutMs = 15_000
 
       const onEventLoadMore = (evt: Event) => {
-        if (evt.kind !== 1) return
-        if (isReplyNote(evt)) return
+        if (evt.kind === NOSTR_KINDS.note) {
+          if (isReplyNote(evt)) return
+          if (relayRootIdsThisBatch.has(evt.id)) return
+          if (eventsRef.current.some((e) => e.id === evt.id)) return
+          relayRootIdsThisBatch.add(evt.id)
+        } else if (isNip52CalendarKind(evt.kind)) {
+          if (!isValidNip52CalendarEvent(evt)) return
+          if (!nip52CalendarMatchesQueryCells(evt, queryCellsCalendar)) return
+        } else {
+          return
+        }
+
         batchRelayCount++
         batchMinCreated =
           batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)
-        if (relayRootIdsThisBatch.has(evt.id)) return
-        if (eventsRef.current.some((e) => e.id === evt.id)) return
-        relayRootIdsThisBatch.add(evt.id)
+
         newEventCount++
         setEvents((prev) => {
-          if (prev.some((e) => e.id === evt.id)) return prev
-          return [evt, ...prev]
+          if (evt.kind === NOSTR_KINDS.note) {
+            if (prev.some((e) => e.id === evt.id)) return prev
+            return [evt, ...prev]
+          }
+          return upsertFeedEvents(prev, evt)
         })
       }
 
@@ -456,7 +504,12 @@ export function useLocalFeed(params: {
           onOneSubClosed()
         }
         const unsub = client.subscribe(
-          { kinds: [1], '#g': [cell], limit: FEED_QUERY_LIMIT, until },
+          {
+            kinds: kindsLoadMore,
+            '#g': [cell],
+            limit: FEED_QUERY_LIMIT,
+            until,
+          },
           {
             onevent: onEventLoadMore,
             oneose: markClosed,

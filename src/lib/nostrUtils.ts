@@ -41,6 +41,16 @@ export function getTagValue(evt: Event, key: string): string | undefined {
   return found?.[1]
 }
 
+/** First tag with this key whose value is non-empty after trim (handles duplicate/empty tags). */
+export function firstNonEmptyTagValue(evt: Event, key: string): string | undefined {
+  for (const t of evt.tags) {
+    if (t[0] !== key || typeof t[1] !== 'string') continue
+    const v = t[1].trim()
+    if (v) return v
+  }
+  return undefined
+}
+
 /**
  * Gets the longest (most precise) geohash tag from an event.
  * This is important because posts contain multiple geohash tags (1-5 characters),

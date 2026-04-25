@@ -245,7 +245,6 @@ export default function App() {
         onReact={(evt) => void handleReactToPost(evt)}
         onOpenProfile={handleOpenProfile}
         onOpenThread={(evt) => {
-          // Don't open thread if user is blocked
           if (!moderation.blockedPubkeys.includes(evt.pubkey)) {
             appState.openSheet('thread', { threadRoot: evt })
           }

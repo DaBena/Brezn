@@ -12,6 +12,7 @@ import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
+import { feedEventCardPlainText } from '../lib/feedContentPreview'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { sheetPostCardClass } from '../lib/uiClasses'
 import * as nip19 from 'nostr-tools/nip19'
@@ -46,7 +47,7 @@ function PostCard(props: {
       </div>
       <div className="mt-2">
         <PostContent
-          content={evt.content}
+          content={feedEventCardPlainText(evt)}
           tags={evt.tags}
           linkMedia
           mediaStacked
@@ -103,7 +104,13 @@ export function ThreadSheet(props: {
   const { t } = useTranslation()
   const { showToast } = useToast()
 
-  const { replies } = useReplies({ client, rootId: root.id, mutedTerms, blockedPubkeys, isOffline })
+  const { replies } = useReplies({
+    client,
+    rootId: root.id,
+    mutedTerms,
+    blockedPubkeys,
+    isOffline,
+  })
 
   useEffect(() => {
     onThreadRepliesChange?.(replies.map((r) => r.id))
