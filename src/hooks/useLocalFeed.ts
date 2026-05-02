@@ -295,11 +295,7 @@ export function useLocalFeed(params: {
       if (prevCount === 0 && counted > 0) setFeedState({ kind: 'live' })
 
       setEvents((prev) =>
-        filterFeedEventsByQuery(
-          mergeFeedIncoming(prev, batch),
-          queryGeohash,
-          geohashLength,
-        ),
+        filterFeedEventsByQuery(mergeFeedIncoming(prev, batch), queryGeohash, geohashLength),
       )
     }
 

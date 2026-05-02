@@ -43,7 +43,9 @@ function geohashTagsMatchQueryCells(geohashValues: string[], cells: string[]): b
 export function feedRootEventMatchesQueryCells(evt: Event, cells: string[]): boolean {
   if (evt.kind === NOSTR_KINDS.note) {
     if (isReplyNote(evt)) return false
-    const hashes = evt.tags.filter((t) => t[0] === 'g' && typeof t[1] === 'string').map((t) => t[1]!)
+    const hashes = evt.tags
+      .filter((t) => t[0] === 'g' && typeof t[1] === 'string')
+      .map((t) => t[1]!)
     return geohashTagsMatchQueryCells(hashes, cells)
   }
   if (isNip52CalendarKind(evt.kind)) {

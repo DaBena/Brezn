@@ -249,9 +249,7 @@ export function ComposerSheet(props: {
               geohash={viewerGeo5}
               className="h-full w-full"
               onCellSelect={onSelectCell}
-              onRequestLocation={
-                onRequestLocation ? wrappedRequestLocationForMap : undefined
-              }
+              onRequestLocation={onRequestLocation ? wrappedRequestLocationForMap : undefined}
               gpsAriaLabel={t('geohashMap.gpsAria')}
               gpsTitle={t('geohashMap.gpsTitle')}
               feedEvents={feedEvents}
