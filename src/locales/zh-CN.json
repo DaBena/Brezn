@@ -168,7 +168,8 @@
     "imageTooLarge": "图片过大（最大 12 MB）。",
     "compressFailed": "压缩图片失败。",
     "uploadFailed": "上传失败。",
-    "publishFailed": "发布失败。"
+    "publishFailed": "发布失败。",
+    "feedMapLegend": "红点：此信息流中的帖子和日历活动（点按打开）。地图上已高亮显示您的网格。"
   },
   "feedArticle": {
     "deleted": "已删除 — 同步到中继",
@@ -236,9 +237,11 @@
   "profileSheet": {
     "openPictureAria": "打开头像",
     "dmAria": "打开私信",
+    "message": "私信",
     "offlineHint": "离线 — 个人帖子可能不完整。",
     "loadingPosts": "加载帖子…",
     "noPosts": "暂无帖子",
+    "noPostsFromRelays": "尚未从中继收到帖子。",
     "loadError": "无法加载帖子。"
   },
   "geohashMap": {

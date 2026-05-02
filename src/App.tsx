@@ -263,6 +263,13 @@ export default function App() {
         onSelectCell={setLocationFromGeohash}
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
+        feedEvents={search.filteredEvents}
+        feedMapLegend={t('composer.feedMapLegend')}
+        onOpenFeedEvent={(evt) => {
+          if (moderation.blockedPubkeys.includes(evt.pubkey)) return
+          appState.closeSheet('composer')
+          appState.openSheet('thread', { threadRoot: evt })
+        }}
       />
 
       {appState.sheets.profile.pubkey ? (

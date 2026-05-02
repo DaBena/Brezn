@@ -168,7 +168,8 @@
     "imageTooLarge": "Obraz jest za duży (maks. 12 MB).",
     "compressFailed": "Nie udało się skompresować obrazu.",
     "uploadFailed": "Przesyłanie nie powiodło się.",
-    "publishFailed": "Publikacja nie powiodła się."
+    "publishFailed": "Publikacja nie powiodła się.",
+    "feedMapLegend": "Czerwone kropki: wpisy i wydarzenia z tego kanału (dotknij, aby otworzyć). Twoja komórka jest podświetlona na mapie."
   },
   "feedArticle": {
     "deleted": "Usunięto — propagacja do relay’ów",

@@ -168,7 +168,8 @@
     "imageTooLarge": "Image trop volumineuse (max. 12 Mo).",
     "compressFailed": "Échec de compression de l’image.",
     "uploadFailed": "Échec de l’envoi.",
-    "publishFailed": "Échec de la publication."
+    "publishFailed": "Échec de la publication.",
+    "feedMapLegend": "Points rouges : publications et événements du calendrier de ce fil (appuyer pour ouvrir). Votre cellule est mise en évidence sur la carte."
   },
   "feedArticle": {
     "deleted": "Supprimé — propagation aux relays",
@@ -236,9 +237,11 @@
   "profileSheet": {
     "openPictureAria": "Ouvrir la photo de profil",
     "dmAria": "Ouvrir le message direct",
+    "message": "Message",
     "offlineHint": "Hors ligne — publications du profil peut-être incomplètes.",
     "loadingPosts": "Chargement des publications…",
     "noPosts": "Aucune publication",
+    "noPostsFromRelays": "Aucune publication trouvée depuis les relays pour le moment.",
     "loadError": "Impossible de charger les publications."
   },
   "geohashMap": {

@@ -168,7 +168,8 @@
     "imageTooLarge": "Immagine troppo grande (max 12 MB).",
     "compressFailed": "Compressione immagine fallita.",
     "uploadFailed": "Upload fallito.",
-    "publishFailed": "Pubblicazione fallita."
+    "publishFailed": "Pubblicazione fallita.",
+    "feedMapLegend": "Punti rossi: post ed eventi di calendario di questo feed (tocca per aprire). La tua cella è evidenziata sulla mappa."
   },
   "feedArticle": {
     "deleted": "Eliminato — propagazione ai relay",
@@ -236,9 +237,11 @@
   "profileSheet": {
     "openPictureAria": "Apri foto profilo",
     "dmAria": "Apri messaggio diretto",
+    "message": "Messaggio",
     "offlineHint": "Offline — i post del profilo potrebbero essere incompleti.",
     "loadingPosts": "Caricamento post…",
     "noPosts": "Nessun post",
+    "noPostsFromRelays": "Nessun post dai relay ancora.",
     "loadError": "Impossibile caricare i post."
   },
   "geohashMap": {

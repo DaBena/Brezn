@@ -6,7 +6,6 @@ import {
   encodeGeohash,
   GEOHASH_LEN_MAX_UI,
   getBrowserLocation,
-  getEastWestNeighbors,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { getSavedGeo5, setSavedGeo5 } from '../lib/lastLocation'
@@ -17,7 +16,10 @@ import {
   FEED_INITIAL_MIN_POSTS,
   FEED_AUTO_BACKFILL_MAX_ATTEMPTS,
   FEED_QUERY_LIMIT,
+  FEED_SUBSCRIPTION_BATCH_MAX_MS,
 } from '../lib/constants'
+import { mergeFeedIncoming } from '../lib/feedBatchMerge'
+import { filterFeedEventsByQuery, getQueryCellsForFeed } from '../lib/feedGeoMatch'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'
 import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from '../lib/breznNostr'
 import {
@@ -27,6 +29,7 @@ import {
   nip52SearchBlob,
   upsertFeedEvents,
 } from '../lib/nip52'
+import { isReplyNote } from '../lib/nostrUtils'
 
 export type LoadMorePageResult = {
   added: number
@@ -39,22 +42,6 @@ export type FeedState =
   | { kind: 'loading' }
   | { kind: 'live' }
   | { kind: 'error'; message: string }
-
-function isReplyNote(evt: Event): boolean {
-  // NIP-10 reply: kind 1 + `e` tag; feed stays roots-only.
-  return evt.kind === 1 && evt.tags.some((t) => t[0] === 'e')
-}
-
-/**
- * Mode 0 (precision "cell"): coarse 1-char + east/west plus the saved 5-char `#g`.
- * Many relays match `#g` literally; notes tagged only with the full cell never match `['u']` alone.
- */
-function gCellsCoarsePlusFine(queryGeohash: string): string[] {
-  const oneCharHash = queryGeohash.slice(0, 1)
-  const neighbors = getEastWestNeighbors(oneCharHash)
-  const coarse = neighbors ? [oneCharHash, neighbors.east, neighbors.west] : [oneCharHash]
-  return coarse.includes(queryGeohash) ? coarse : [...coarse, queryGeohash]
-}
 
 export function useLocalFeed(params: {
   client: BreznNostrClient
@@ -260,26 +247,35 @@ export function useLocalFeed(params: {
     let cancelled = false
     const timerIds: number[] = []
 
-    const queryCellsForCalendar =
-      geohashLength === 0 && queryGeohash.length === 5
-        ? gCellsCoarsePlusFine(queryGeohash)
-        : [queryGeohash]
+    const queryCellsForCalendar = getQueryCellsForFeed(queryGeohash, geohashLength)
 
     const feedKinds = [...ROOT_FEED_EVENT_KINDS]
 
-    const onEvent = (evt: Event) => {
-      if (cancelled) return
+    const pendingBatch: Event[] = []
+    let rafFlushId: number | null = null
+    let maxWaitFlushId: number | null = null
 
-      if (evt.kind === NOSTR_KINDS.note) {
-        if (isReplyNote(evt)) return
+    const flushPending = () => {
+      if (rafFlushId != null) {
+        cancelAnimationFrame(rafFlushId)
+        rafFlushId = null
+      }
+      if (maxWaitFlushId != null) {
+        window.clearTimeout(maxWaitFlushId)
+        maxWaitFlushId = null
+      }
+      if (cancelled || pendingBatch.length === 0) return
 
-        eventCount++
-        if (eventCount === 1) setFeedState({ kind: 'live' })
-        setEvents((prev) => {
-          if (prev.some((e) => e.id === evt.id)) return prev
-          return [evt, ...prev]
-        })
+      const batch = pendingBatch.splice(0, pendingBatch.length)
 
+      let counted = 0
+      for (const evt of batch) {
+        if (evt.kind === NOSTR_KINDS.note && !isReplyNote(evt)) counted++
+        else if (isNip52CalendarKind(evt.kind)) counted++
+      }
+
+      for (const evt of batch) {
+        if (evt.kind !== NOSTR_KINDS.note || isReplyNote(evt)) continue
         if (
           identityPubkeyRef.current &&
           evt.pubkey === identityPubkeyRef.current &&
@@ -292,15 +288,56 @@ export function useLocalFeed(params: {
             void deletePost(client, evt, identityPubkeyRef.current).catch(() => {})
           }
         }
+      }
+
+      const prevCount = eventCount
+      eventCount += counted
+      if (prevCount === 0 && counted > 0) setFeedState({ kind: 'live' })
+
+      setEvents((prev) =>
+        filterFeedEventsByQuery(
+          mergeFeedIncoming(prev, batch),
+          queryGeohash,
+          geohashLength,
+        ),
+      )
+    }
+
+    const scheduleFlush = () => {
+      if (cancelled) return
+      if (rafFlushId == null) {
+        rafFlushId = requestAnimationFrame(() => {
+          rafFlushId = null
+          flushPending()
+        })
+      }
+      if (maxWaitFlushId == null) {
+        maxWaitFlushId = window.setTimeout(() => {
+          maxWaitFlushId = null
+          if (rafFlushId != null) {
+            cancelAnimationFrame(rafFlushId)
+            rafFlushId = null
+          }
+          flushPending()
+        }, FEED_SUBSCRIPTION_BATCH_MAX_MS)
+      }
+    }
+
+    const onEvent = (evt: Event) => {
+      if (cancelled) return
+
+      if (evt.kind === NOSTR_KINDS.note) {
+        if (isReplyNote(evt)) return
+        pendingBatch.push(evt)
+        scheduleFlush()
         return
       }
 
       if (isNip52CalendarKind(evt.kind)) {
         if (!isValidNip52CalendarEvent(evt)) return
         if (!nip52CalendarMatchesQueryCells(evt, queryCellsForCalendar)) return
-        eventCount++
-        if (eventCount === 1) setFeedState({ kind: 'live' })
-        setEvents((prev) => upsertFeedEvents(prev, evt))
+        pendingBatch.push(evt)
+        scheduleFlush()
       }
     }
     const onEose = () => {
@@ -316,7 +353,7 @@ export function useLocalFeed(params: {
 
     // Mode 0: band + exact 5-char; else single `#g`. No `since` (sparse feeds).
     if (geohashLength === 0 && queryGeohash.length === 5) {
-      const cellsToQuery = gCellsCoarsePlusFine(queryGeohash)
+      const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
       const totalQueries = cellsToQuery.length
       let currentIndex = 0
       let eoseCount = 0
@@ -376,6 +413,9 @@ export function useLocalFeed(params: {
     }
     return () => {
       cancelled = true
+      if (rafFlushId != null) cancelAnimationFrame(rafFlushId)
+      if (maxWaitFlushId != null) window.clearTimeout(maxWaitFlushId)
+      pendingBatch.length = 0
       for (const id of timerIds) window.clearTimeout(id)
       unsubRef.current?.()
     }
@@ -406,10 +446,7 @@ export function useLocalFeed(params: {
     const defaultUntil = oldest - 1
     const until = loadMoreCursorRef.current ?? defaultUntil
 
-    const cellsForLoadMore =
-      geohashLength === 0 && queryGeohash.length === 5
-        ? gCellsCoarsePlusFine(queryGeohash)
-        : [queryGeohash]
+    const cellsForLoadMore = getQueryCellsForFeed(queryGeohash, geohashLength)
 
     const queryCellsCalendar = cellsForLoadMore
     const kindsLoadMore = [...ROOT_FEED_EVENT_KINDS]
@@ -478,11 +515,13 @@ export function useLocalFeed(params: {
 
         newEventCount++
         setEvents((prev) => {
-          if (evt.kind === NOSTR_KINDS.note) {
-            if (prev.some((e) => e.id === evt.id)) return prev
-            return [evt, ...prev]
-          }
-          return upsertFeedEvents(prev, evt)
+          const merged =
+            evt.kind === NOSTR_KINDS.note
+              ? prev.some((e) => e.id === evt.id)
+                ? prev
+                : [evt, ...prev]
+              : upsertFeedEvents(prev, evt)
+          return filterFeedEventsByQuery(merged, queryGeohash, geohashLength)
         })
       }
 

@@ -168,7 +168,8 @@
     "imageTooLarge": "Bild zu groß (max. 12 MB).",
     "compressFailed": "Bild konnte nicht komprimiert werden.",
     "uploadFailed": "Upload fehlgeschlagen.",
-    "publishFailed": "Veröffentlichung fehlgeschlagen."
+    "publishFailed": "Veröffentlichung fehlgeschlagen.",
+    "feedMapLegend": "Rote Punkte: Beiträge und Kalendereinträge im Feed (Tippen zum Öffnen). Deine Zelle ist auf der Karte hervorgehoben."
   },
   "feedArticle": {
     "deleted": "Gelöscht – wird an Relays verteilt",

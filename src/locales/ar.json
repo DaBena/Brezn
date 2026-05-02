@@ -168,7 +168,8 @@
     "imageTooLarge": "الصورة كبيرة جدًا (حد أقصى 12 ميجابايت).",
     "compressFailed": "فشل ضغط الصورة.",
     "uploadFailed": "فشل الرفع.",
-    "publishFailed": "فشل النشر."
+    "publishFailed": "فشل النشر.",
+    "feedMapLegend": "النقاط الحمراء: منشورات وأحداث تقويم هذا الخيط (اضغط للفتح). تُبرَز خليتك على الخريطة."
   },
   "feedArticle": {
     "deleted": "محذوف — جارٍ المزامنة",
@@ -236,9 +237,11 @@
   "profileSheet": {
     "openPictureAria": "فتح صورة الملف",
     "dmAria": "فتح رسالة مباشرة",
+    "message": "رسالة",
     "offlineHint": "دون اتصال — قد تكون منشورات الملف ناقصة.",
     "loadingPosts": "جارٍ تحميل المنشورات…",
     "noPosts": "لا منشورات بعد",
+    "noPostsFromRelays": "لا توجد منشورات من المرحّلات بعد.",
     "loadError": "تعذر تحميل المنشورات."
   },
   "geohashMap": {

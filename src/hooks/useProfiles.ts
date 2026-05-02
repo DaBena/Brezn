@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Filter } from 'nostr-tools'
 import type { BreznNostrClient } from '../lib/nostrClient'
+import {
+  profileMetadataCacheReadMany,
+  profileMetadataCacheUpsertFromKind0,
+} from '../lib/profileMetadataCache'
 
 export type Profile = {
   pubkey: string
@@ -47,7 +51,6 @@ export function useProfiles(params: {
   const scopeKeyRef = useRef<string>('')
 
   useEffect(() => {
-    if (isOffline) return
     if (!pubkeyKey) return
 
     const pubkeySet = new Set(limitedPubkeys)
@@ -56,6 +59,44 @@ export function useProfiles(params: {
       scopeKeyRef.current = activeKey
       seenMetadataIdsRef.current = new Set()
       latestKind0TimeRef.current = new Map()
+    }
+
+    let cancelled = false
+
+    void profileMetadataCacheReadMany(limitedPubkeys).then((rows) => {
+      if (cancelled) return
+      const toMerge: Profile[] = []
+      for (const pk of limitedPubkeys) {
+        const row = rows.get(pk)
+        if (!row) continue
+        const prevBest = latestKind0TimeRef.current.get(pk) ?? 0
+        if (row.createdAt < prevBest) continue
+        latestKind0TimeRef.current.set(pk, Math.max(prevBest, row.createdAt))
+        const parsed = parseMetadata(row.content)
+        const merged: Profile = {
+          pubkey: pk,
+          name: parsed.name,
+          picture: parsed.picture,
+          about: parsed.about,
+        }
+        if (!merged.name && !merged.picture && !merged.about) continue
+        toMerge.push(merged)
+      }
+      if (toMerge.length === 0) return
+      setState((prevState) => {
+        const base = prevState.key === activeKey ? prevState.map : new Map()
+        const next = new Map(base)
+        for (const p of toMerge) {
+          next.set(p.pubkey, p)
+        }
+        return { key: activeKey, map: next }
+      })
+    })
+
+    if (isOffline) {
+      return () => {
+        cancelled = true
+      }
     }
 
     const filter: Filter = { kinds: [0], authors: limitedPubkeys, limit: 500 }
@@ -71,6 +112,8 @@ export function useProfiles(params: {
 
         seenMetadataIdsRef.current.add(evt.id)
         latestKind0TimeRef.current.set(evt.pubkey, Math.max(prevBest, evt.created_at))
+
+        void profileMetadataCacheUpsertFromKind0(evt).catch(() => {})
 
         const parsed = parseMetadata(evt.content ?? '')
         setState((prevState) => {
@@ -90,7 +133,10 @@ export function useProfiles(params: {
       },
     })
 
-    return () => unsub()
+    return () => {
+      cancelled = true
+      unsub()
+    }
   }, [client, isOffline, activeKey, limitedPubkeys, pubkeyKey])
 
   const profilesByPubkey = useMemo(() => {

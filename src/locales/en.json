@@ -168,7 +168,8 @@
     "imageTooLarge": "Image is too large (max. 12 MB).",
     "compressFailed": "Failed to compress image.",
     "uploadFailed": "Upload failed.",
-    "publishFailed": "Publish failed."
+    "publishFailed": "Publish failed.",
+    "feedMapLegend": "Red dots: posts and calendar events in this feed (tap to open). Your cell is highlighted on the map."
   },
   "feedArticle": {
     "deleted": "Deleted – propagating to relays",

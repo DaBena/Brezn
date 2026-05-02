@@ -168,7 +168,8 @@
     "imageTooLarge": "Ảnh quá lớn (tối đa 12 MB).",
     "compressFailed": "Nén ảnh thất bại.",
     "uploadFailed": "Tải lên thất bại.",
-    "publishFailed": "Đăng thất bại."
+    "publishFailed": "Đăng thất bại.",
+    "feedMapLegend": "Chấm đỏ: bài viết và sự kiện lịch trong luồng này (chạm để mở). Ô của bạn được làm nổi bật trên bản đồ."
   },
   "feedArticle": {
     "deleted": "Đã xóa — đang lan tới relay",

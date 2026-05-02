@@ -1,4 +1,5 @@
 import type { Event } from 'nostr-tools'
+import { NOSTR_KINDS } from './breznNostr'
 
 const EVENT_CARD_DATE_OPTS: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -42,6 +43,11 @@ export function getTagValue(evt: Event, key: string): string | undefined {
 }
 
 /** First tag with this key whose value is non-empty after trim (handles duplicate/empty tags). */
+/** NIP-10 reply: kind 1 + `e` tag (not a thread root). */
+export function isReplyNote(evt: Event): boolean {
+  return evt.kind === NOSTR_KINDS.note && evt.tags.some((t) => t[0] === 'e')
+}
+
 export function firstNonEmptyTagValue(evt: Event, key: string): string | undefined {
   for (const t of evt.tags) {
     if (t[0] !== key || typeof t[1] !== 'string') continue

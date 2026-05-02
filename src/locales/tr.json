@@ -168,7 +168,8 @@
     "imageTooLarge": "Görsel çok büyük (en fazla 12 MB).",
     "compressFailed": "Görsel sıkıştırılamadı.",
     "uploadFailed": "Yükleme başarısız.",
-    "publishFailed": "Yayınlama başarısız."
+    "publishFailed": "Yayınlama başarısız.",
+    "feedMapLegend": "Kırmızı noktalar: bu akıştaki gönderiler ve takvim etkinlikleri (açmak için dokunun). Haritada hücreniz vurgulanır."
   },
   "feedArticle": {
     "deleted": "Silindi — relay’lere yayılıyor",

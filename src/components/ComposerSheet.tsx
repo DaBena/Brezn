@@ -1,5 +1,6 @@
-import { type ChangeEvent, useId, useRef, useState } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { Event } from 'nostr-tools'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
@@ -15,6 +16,11 @@ export function ComposerSheet(props: {
   onSelectCell?: (geohash5: string) => void
   onPublish: (content: string) => Promise<void>
   mediaUploadEndpoint?: string
+  /** Same events as the main feed list (e.g. filtered search); shown on the geo map. */
+  feedEvents?: Event[]
+  onOpenFeedEvent?: (evt: Event) => void
+  /** Short legend under the geo map (i18n string). */
+  feedMapLegend?: string
 }) {
   const { t } = useTranslation()
   const {
@@ -25,11 +31,15 @@ export function ComposerSheet(props: {
     onSelectCell,
     onPublish,
     mediaUploadEndpoint,
+    feedEvents,
+    onOpenFeedEvent,
+    feedMapLegend,
   } = props
 
   const [composerText, setComposerText] = useState('')
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
   const [showGeoMap, setShowGeoMap] = useState(false)
+  const [mapRelayoutTick, setMapRelayoutTick] = useState(0)
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'error'>('idle')
   const [publishError, setPublishError] = useState<string | null>(null)
 
@@ -38,6 +48,23 @@ export function ComposerSheet(props: {
 
   const fileInputId = useId()
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    if (!showGeoMap) return
+    const t = window.setTimeout(() => setMapRelayoutTick((n) => n + 1), 0)
+    return () => window.clearTimeout(t)
+  }, [showGeoMap])
+
+  const wrappedRequestLocationForMap = useCallback(
+    (done?: () => void) => {
+      if (!onRequestLocation) return
+      onRequestLocation(() => {
+        setMapRelayoutTick((n) => n + 1)
+        done?.()
+      })
+    },
+    [onRequestLocation],
+  )
 
   const maxImageBytes = 12 * 1024 * 1024
   const maxVideoBytes = 25 * 1024 * 1024
@@ -216,16 +243,26 @@ export function ComposerSheet(props: {
       <div className="mt-1">{cellLine}</div>
 
       {viewerGeo5 && showGeoMap ? (
-        <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
-          <GeohashMap
-            geohash={viewerGeo5}
-            className="h-full w-full"
-            onCellSelect={onSelectCell}
-            onRequestLocation={onRequestLocation}
-            gpsAriaLabel={t('geohashMap.gpsAria')}
-            gpsTitle={t('geohashMap.gpsTitle')}
-          />
-        </div>
+        <>
+          <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
+            <GeohashMap
+              geohash={viewerGeo5}
+              className="h-full w-full"
+              onCellSelect={onSelectCell}
+              onRequestLocation={
+                onRequestLocation ? wrappedRequestLocationForMap : undefined
+              }
+              gpsAriaLabel={t('geohashMap.gpsAria')}
+              gpsTitle={t('geohashMap.gpsTitle')}
+              feedEvents={feedEvents}
+              onFeedMarkerClick={onOpenFeedEvent}
+              mapRelayoutTick={mapRelayoutTick}
+            />
+          </div>
+          {feedMapLegend ? (
+            <p className="mt-1 px-1 text-xs text-brezn-muted">{feedMapLegend}</p>
+          ) : null}
+        </>
       ) : null}
       {mediaUrls.length > 0 ? (
         <div className="mt-3 grid grid-cols-4 gap-2">

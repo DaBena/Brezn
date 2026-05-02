@@ -168,7 +168,8 @@
     "imageTooLarge": "이미지가 너무 큽니다(최대 12MB).",
     "compressFailed": "이미지 압축 실패.",
     "uploadFailed": "업로드 실패.",
-    "publishFailed": "게시 실패."
+    "publishFailed": "게시 실패.",
+    "feedMapLegend": "빨간 점: 이 피드의 게시물과 캘린더 일정(탭하여 열기). 지도에서 내 셀이 강조되어 있습니다."
   },
   "feedArticle": {
     "deleted": "삭제됨 — 릴레이에 전파 중",

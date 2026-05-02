@@ -12,6 +12,9 @@ export const FEED_AUTO_BACKFILL_MAX_ATTEMPTS = 3
 /** Relay page size (kind 1). */
 export const FEED_QUERY_LIMIT = 200
 
+/** Main feed subscription: max delay before flushing batched relay events (ms). */
+export const FEED_SUBSCRIPTION_BATCH_MAX_MS = 80
+
 /** Rows revealed per tap (client windowing); relay batching is FEED_QUERY_LIMIT. */
 export const FEED_RENDER_CHUNK = 7
 
