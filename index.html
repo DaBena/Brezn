@@ -2,12 +2,11 @@
 <html lang="en">
   <head>
     <!-- Brezn likes you <3 -->
-    <!-- script-src hash matches vite-plugin-legacy `systemJSInlineCode` (see package `cspHashes`). -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self' 'sha256-tQjf8gvb2ROOMapIxFvFAYBeUJ0v1HCbOcSmDNXGtDo=';
+        script-src 'self';
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https: http:;
         media-src 'self' https: http:;
@@ -60,20 +59,11 @@
     />
     <meta name="twitter:image" content="https://dabena.github.io/Brezn/icons/brezn-512.png" />
 
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Brezn",
-        "description": "Nostr PWA: posts by location. Geohash reduces your position to a ~5 km cell. Connect locally.",
-        "url": "https://dabena.github.io/Brezn/",
-        "applicationCategory": "SocialNetworkingApplication",
-        "operatingSystem": "Web, Android, iOS (PWA)"
-      }
-    </script>
+    <script type="application/ld+json" src="%BASE_URL%schema.jsonld"></script>
   </head>
   <body>
     <div id="root"></div>
+    <script src="%BASE_URL%fatal-handler.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

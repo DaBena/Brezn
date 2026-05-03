@@ -1,4 +1,3 @@
-import legacy from '@vitejs/plugin-legacy'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -16,26 +15,10 @@ export default defineConfig({
   base,
   build: {
     chunkSizeWarningLimit: 1024,
-    /**
-     * Baseline for the modern bundle; `@vitejs/plugin-legacy` may override via `modernTargets`.
-     * `@nostr-dev-kit/ndk` pulls a heavier tree than `nostr-tools` alone — old WebKit needs downlevel output.
-     */
-    target: ['es2020', 'safari14', 'ios14'],
+    /** iOS 15 / Safari 15 — native ESM; avoid plugin-legacy (SystemJS + sniff) for fewer moving parts. */
+    target: ['es2020', 'safari15', 'ios15'],
   },
   plugins: [
-    /**
-     * Large deps (esp. NDK) ship modern JS; plugin-legacy defaults `modernTargets` to Safari/iOS ≥ 16.4,
-     * which overrides `build.target` and can leave iOS 15 parsing a too-new modern chunk (blank screen).
-     *
-     * iOS 15 Safari lacks `import.meta.resolve` (Safari ≥ ~16.4). The modern bundle starts with a guard that
-     * throws there; the legacy fallback is unreliable. Ship only the SystemJS legacy bundle so iOS 15–16.3
-     * load the same heavily transpiled path as older devices (larger JS for everyone).
-     */
-    legacy({
-      modernTargets: ['iOS >= 14', 'Safari >= 14'],
-      targets: ['defaults', 'iOS >= 12'],
-      renderModernChunks: false,
-    }),
     react(),
     VitePWA({
       // We register manually in-app to show an update toast.
@@ -47,6 +30,8 @@ export default defineConfig({
         'icons/brezn-192.png',
         'icons/brezn-512.png',
         'offline.html',
+        'fatal-handler.js',
+        'schema.jsonld',
       ],
       manifest: {
         name: 'Brezn',

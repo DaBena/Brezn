@@ -1,0 +1,9 @@
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Brezn",
+  "description": "Nostr PWA: posts by location. Geohash reduces your position to a ~5 km cell. Connect locally.",
+  "url": "https://dabena.github.io/Brezn/",
+  "applicationCategory": "SocialNetworkingApplication",
+  "operatingSystem": "Web, Android, iOS (PWA)"
+}
