@@ -300,9 +300,7 @@ export const PostContent = memo(function PostContent(props: {
               </span>
             )
           }
-          // Trim edge newlines (media stripped from flow).
-          const text = p.value.replace(/^\n+|\n+$/g, '')
-          return <span key={idx}>{text}</span>
+          return <span key={idx}>{p.value}</span>
         }
 
         if (!isSafeUrl(p.href)) {
