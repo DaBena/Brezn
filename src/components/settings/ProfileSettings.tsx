@@ -47,6 +47,21 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   // Track last notified values to avoid duplicate notifications
   const lastNotifiedRef = useRef<{ name: string; picture: string; about: string } | null>(null)
 
+  // Keep SettingsSheet in sync while editing (persist uses parent's snapshot).
+  useEffect(() => {
+    if (profileLoading) return
+    const current = { name: profileName, picture: profilePicture, about: profileAbout }
+    if (
+      !lastNotifiedRef.current ||
+      lastNotifiedRef.current.name !== current.name ||
+      lastNotifiedRef.current.picture !== current.picture ||
+      lastNotifiedRef.current.about !== current.about
+    ) {
+      lastNotifiedRef.current = current
+      onProfileChange?.(current)
+    }
+  }, [profileName, profilePicture, profileAbout, profileLoading, onProfileChange])
+
   // Load profile on mount
   useEffect(() => {
     setProfileLoading(true)
@@ -61,17 +76,6 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
         setProfilePicture(picture)
         setProfileAbout(about)
         setProfileLoading(false)
-        // Only notify if values changed
-        const current = { name, picture, about }
-        if (
-          !lastNotifiedRef.current ||
-          lastNotifiedRef.current.name !== current.name ||
-          lastNotifiedRef.current.picture !== current.picture ||
-          lastNotifiedRef.current.about !== current.about
-        ) {
-          lastNotifiedRef.current = current
-          onProfileChange?.(current)
-        }
       })
       .catch(() => {
         initialProfileRef.current = { name: '', picture: '', about: '' }
@@ -82,13 +86,9 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
         // Don't notify parent on error - let it keep its current state
         // The parent will see empty values when user explicitly saves
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client]) // onProfileChange is stable (memoized), no need to include it
+  }, [client])
 
-  // Note: We don't notify on every field change to avoid infinite loops.
-  // The parent is only notified when:
-  // 1. Profile is loaded initially (in the useEffect above)
-  // 2. User explicitly saves the profile (in SettingsSheet.persistAndClose)
+  // Parent sync while editing is handled by the effect above (profileName / picture / about).
 
   return (
     <div className="p-3">

@@ -68,6 +68,7 @@ export function SettingsSheet(props: {
     }
     schedule(() => {
       setClosing(false)
+      initialProfileRef.current = null
       {
         const ep = client.getMediaUploadEndpoint() ?? ''
         initialMediaEndpointRef.current = ep

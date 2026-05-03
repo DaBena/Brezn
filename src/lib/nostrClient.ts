@@ -1091,54 +1091,69 @@ export function createNostrClient(): BreznNostrClient {
   } | null> {
     const { pubkey } = ensureIdentity()
 
+    type Parsed = {
+      name?: string
+      picture?: string
+      about?: string
+    } | null
+
     return new Promise((resolve, reject) => {
-      let resolved = false
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true
-          resolve(null)
+      let settled = false
+      let best: Event | null = null
+      let unsubOnce: (() => void) | null = null
+
+      const parseBest = (): Parsed => {
+        if (!best) return null
+        try {
+          const data = JSON.parse(best.content ?? '{}')
+          return {
+            name: typeof data.name === 'string' ? data.name.trim() : undefined,
+            picture: typeof data.picture === 'string' ? data.picture.trim() : undefined,
+            about: typeof data.about === 'string' ? data.about.trim() : undefined,
+          }
+        } catch {
+          return null
         }
+      }
+
+      const cleanup = () => {
+        clearTimeout(timeoutTimer)
+        unsubOnce?.()
+        unsubOnce = null
+      }
+
+      const finishOk = (value: Parsed) => {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve(value)
+      }
+
+      const finishErr = (err: Error) => {
+        if (settled) return
+        settled = true
+        cleanup()
+        reject(err)
+      }
+
+      const timeoutTimer = setTimeout(() => {
+        finishOk(parseBest())
       }, GET_MY_PROFILE_FETCH_TIMEOUT_MS)
 
-      const unsub = subscribe(
-        { kinds: [0], authors: [pubkey], limit: 1 },
+      unsubOnce = subscribe(
+        { kinds: [0], authors: [pubkey], limit: 50 },
         {
           onevent: (evt) => {
             if (evt.kind !== 0 || evt.pubkey !== pubkey) return
-            try {
-              const data = JSON.parse(evt.content ?? '{}')
-              clearTimeout(timeout)
-              if (!resolved) {
-                resolved = true
-                resolve({
-                  name: typeof data.name === 'string' ? data.name.trim() : undefined,
-                  picture: typeof data.picture === 'string' ? data.picture.trim() : undefined,
-                  about: typeof data.about === 'string' ? data.about.trim() : undefined,
-                })
-                unsub()
-              }
-            } catch {
-              // Invalid JSON, ignore
-            }
+            if (!best || evt.created_at > best.created_at) best = evt
           },
           oneose: () => {
-            clearTimeout(timeout)
-            if (!resolved) {
-              resolved = true
-              resolve(null)
-              unsub()
-            }
+            finishOk(parseBest())
           },
           onclose: (reasons) => {
-            clearTimeout(timeout)
-            if (!resolved) {
-              resolved = true
-              if (reasons.length > 0) {
-                reject(new Error(`Subscription closed: ${reasons.join(', ')}`))
-              } else {
-                resolve(null)
-              }
-            }
+            if (reasons.length > 0)
+              finishErr(new Error(`Subscription closed: ${reasons.join(', ')}`))
+            else finishOk(parseBest())
           },
         },
       )
@@ -1150,18 +1165,32 @@ export function createNostrClient(): BreznNostrClient {
     picture?: string
     about?: string
   }): Promise<string> {
-    // Nostr events are append-only, so we can just publish the new metadata
-    // Clients will use the latest event
+    let prev: {
+      name?: string
+      picture?: string
+      about?: string
+    } | null = null
+    try {
+      prev = await getMyProfile()
+    } catch {
+      prev = null
+    }
+
     const next: Record<string, unknown> = {}
-    if (metadata.name !== undefined && metadata.name.trim()) {
-      next.name = metadata.name.trim()
+    const mergeField = (field: 'name' | 'picture' | 'about') => {
+      const incoming = metadata[field]
+      if (incoming !== undefined) {
+        const t = incoming.trim()
+        if (t) next[field] = t
+        return
+      }
+      const keep = prev?.[field]?.trim()
+      if (keep) next[field] = keep
     }
-    if (metadata.picture !== undefined && metadata.picture.trim()) {
-      next.picture = metadata.picture.trim()
-    }
-    if (metadata.about !== undefined && metadata.about.trim()) {
-      next.about = metadata.about.trim()
-    }
+
+    mergeField('name')
+    mergeField('picture')
+    mergeField('about')
 
     return await publish({
       kind: 0,

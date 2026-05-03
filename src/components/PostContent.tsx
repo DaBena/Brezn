@@ -284,7 +284,7 @@ export const PostContent = memo(function PostContent(props: {
   const mediaUrlSet = useMemo(() => new Set([...imageUrls, ...videoUrls]), [imageUrls, videoUrls])
 
   return (
-    <div className="break-words">
+    <div className="break-words whitespace-pre-wrap">
       {parts.map((p, idx) => {
         if (p.kind === 'text') {
           const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
