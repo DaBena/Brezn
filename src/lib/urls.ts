@@ -276,3 +276,27 @@ export function isSafeUrl(url: string): boolean {
     return false
   }
 }
+
+/** NIP-92 `imeta`: extensionless media URLs with mime type (e.g. Blossom). */
+export function collectImetaMediaUrls(tags: string[][] | undefined): {
+  imageUrls: string[]
+  videoUrls: string[]
+} {
+  const images = new Set<string>()
+  const videos = new Set<string>()
+  for (const tag of tags ?? []) {
+    if (tag[0] !== 'imeta') continue
+    let taggedUrl: string | null = null
+    let mimeType: string | null = null
+    for (const entry of tag.slice(1)) {
+      if (typeof entry !== 'string') continue
+      if (entry.startsWith('url ')) taggedUrl = entry.slice(4).trim()
+      if (entry.startsWith('m ')) mimeType = entry.slice(2).trim().toLowerCase()
+    }
+    if (!taggedUrl) continue
+    if (!isSafeUrl(taggedUrl)) continue
+    if (mimeType?.startsWith('image/')) images.add(taggedUrl)
+    if (mimeType?.startsWith('video/')) videos.add(taggedUrl)
+  }
+  return { imageUrls: [...images], videoUrls: [...videos] }
+}

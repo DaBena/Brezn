@@ -2,7 +2,13 @@ import type { Event } from './nostrPrimitives'
 import { FEED_PREVIEW_MAX_FLOWTEXT } from './constants'
 import { isNip52CalendarKind, nip52FeedCardPostContent } from './nip52'
 import type { ExtractedLink } from './urls'
-import { extractLinks, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from './urls'
+import {
+  collectImetaMediaUrls,
+  extractLinks,
+  isLikelyImageUrl,
+  isLikelyVideoUrl,
+  uniqueUrls,
+} from './urls'
 
 /** Plain text for feed/profile list cards — kind 1 uses `content`, NIP-52 uses tags (same `PostContent` path). */
 export function feedEventCardPlainText(evt: Event): string {
@@ -29,7 +35,7 @@ function isPostReferenceLink(link: ExtractedLink): boolean {
 }
 
 /** Feed list: truncate “flow” text, list image/video URLs after a marker (matches in-feed cards). */
-export function truncateFeedCardContent(content: string): string {
+export function truncateFeedCardContent(content: string, tags?: string[][]): string {
   const links = extractLinks(content)
   let flowText = ''
   let cursor = 0
@@ -40,13 +46,18 @@ export function truncateFeedCardContent(content: string): string {
   }
   flowText += content.slice(cursor)
 
+  flowText = flowText.replace(/^\n+/, '')
+
   const max = FEED_PREVIEW_MAX_FLOWTEXT
   const needsTruncation = flowText.length > max
   const truncatedText = needsTruncation ? `${flowText.slice(0, max).trimEnd()}\n...` : flowText
 
-  const mediaUrls = uniqueUrls(links.map((l) => l.href)).filter(
-    (url) => isLikelyImageUrl(url) || isLikelyVideoUrl(url),
-  )
+  const imeta = collectImetaMediaUrls(tags)
+  const mediaUrls = uniqueUrls([
+    ...links.map((l) => l.href).filter((url) => isLikelyImageUrl(url) || isLikelyVideoUrl(url)),
+    ...imeta.imageUrls,
+    ...imeta.videoUrls,
+  ])
   if (!mediaUrls.length) return truncatedText
 
   return `${truncatedText}\n\n${mediaUrls.join('\n')}`

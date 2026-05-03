@@ -1,13 +1,11 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from '../lib/nostrPrimitives'
 import { cn } from '../lib/cn'
+import { preparePostContentSource } from '../lib/postContentProse'
 import {
   extractLinks,
   extractPostReferences,
   extractProfileReferences,
-  isLikelyImageUrl,
-  isLikelyVideoUrl,
-  uniqueUrls,
   isSafeUrl,
 } from '../lib/urls'
 import type { BreznNostrClient } from '../lib/nostrClient'
@@ -206,35 +204,14 @@ export const PostContent = memo(function PostContent(props: {
     referencedEventIdsByPartKey,
     referencedProfilePubkeysByPartKey,
   } = useMemo(() => {
-    const links = extractLinks(content)
-    const refs = extractPostReferences(content)
-    const profileRefs = extractProfileReferences(content)
+    const { imageUrls, videoUrls, proseContent } = preparePostContentSource(content, tags)
+    const links = extractLinks(proseContent)
+    const refs = extractPostReferences(proseContent)
+    const profileRefs = extractProfileReferences(proseContent)
     const refByRange = new Map<string, string>()
     const profileRefByRange = new Map<string, string>()
     for (const r of refs) refByRange.set(`${r.link.start}:${r.link.end}`, r.eventId)
     for (const r of profileRefs) profileRefByRange.set(`${r.link.start}:${r.link.end}`, r.pubkey)
-    const urlStrings = uniqueUrls(links.map((u) => u.href))
-    const imageUrlSet = new Set(urlStrings.filter(isLikelyImageUrl))
-    const videoUrlSet = new Set(urlStrings.filter(isLikelyVideoUrl))
-
-    // NIP-92 imeta: mime for extensionless URLs.
-    for (const tag of tags ?? []) {
-      if (tag[0] !== 'imeta') continue
-      let taggedUrl: string | null = null
-      let mimeType: string | null = null
-      for (const entry of tag.slice(1)) {
-        if (typeof entry !== 'string') continue
-        if (entry.startsWith('url ')) taggedUrl = entry.slice(4).trim()
-        if (entry.startsWith('m ')) mimeType = entry.slice(2).trim().toLowerCase()
-      }
-      if (!taggedUrl) continue
-      if (!isSafeUrl(taggedUrl)) continue
-      if (mimeType?.startsWith('image/')) imageUrlSet.add(taggedUrl)
-      if (mimeType?.startsWith('video/')) videoUrlSet.add(taggedUrl)
-    }
-
-    const imageUrls = [...imageUrlSet]
-    const videoUrls = [...videoUrlSet]
 
     const parts: Array<
       | { kind: 'text'; value: string }
@@ -246,7 +223,10 @@ export const PostContent = memo(function PostContent(props: {
     for (let i = 0; i < links.length; i += 1) {
       const u = links[i]!
       const partKey = `${u.start}:${u.end}:${i}`
-      if (u.start > cursor) parts.push({ kind: 'text', value: content.slice(cursor, u.start) })
+      if (u.start > cursor) {
+        const slice = proseContent.slice(cursor, u.start)
+        if (slice.length > 0) parts.push({ kind: 'text', value: slice })
+      }
       parts.push({ kind: 'link', display: u.display, href: u.href, partKey })
       const refId = refByRange.get(`${u.start}:${u.end}`)
       if (refId) referencedEventIdsByPartKey[partKey] = refId
@@ -254,7 +234,10 @@ export const PostContent = memo(function PostContent(props: {
       if (profilePubkey) referencedProfilePubkeysByPartKey[partKey] = profilePubkey
       cursor = u.end
     }
-    if (cursor < content.length) parts.push({ kind: 'text', value: content.slice(cursor) })
+    if (cursor < proseContent.length) {
+      const tail = proseContent.slice(cursor)
+      if (tail.length > 0) parts.push({ kind: 'text', value: tail })
+    }
 
     return {
       parts,
@@ -292,19 +275,20 @@ export const PostContent = memo(function PostContent(props: {
             const body = (ellipsisMatch[1] ?? '').replace(/^\n+|\n+$/g, '')
             const trailingWs = ellipsisMatch[2] ?? ''
             return (
-              <span key={idx}>
+              <Fragment key={idx}>
                 {body}
                 {'\n'}
                 <span className="block text-center font-semibold text-brezn-muted">...</span>
                 {trailingWs}
-              </span>
+              </Fragment>
             )
           }
-          return <span key={idx}>{p.value}</span>
+          if (!/\S/u.test(p.value)) return null
+          return <Fragment key={idx}>{p.value}</Fragment>
         }
 
         if (!isSafeUrl(p.href)) {
-          return <span key={idx}>{p.display}</span>
+          return <Fragment key={idx}>{p.display}</Fragment>
         }
 
         const isMediaUrl = mediaUrlSet.has(p.href)

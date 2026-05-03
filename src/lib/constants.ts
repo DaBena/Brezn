@@ -19,7 +19,7 @@ export const FEED_SUBSCRIPTION_BATCH_MAX_MS = 80
 export const FEED_RENDER_CHUNK = 7
 
 /** Max flow-text length before “…” in feed/profile card previews. */
-export const FEED_PREVIEW_MAX_FLOWTEXT = 280
+export const FEED_PREVIEW_MAX_FLOWTEXT = 500
 
 /** While search is debounced: max `loadMorePage` rounds (each ≤ FEED_QUERY_LIMIT); empty pages advance `until` by span. */
 export const SEARCH_FEED_PREFETCH_MAX_ROUNDS = 10

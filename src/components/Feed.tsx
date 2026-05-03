@@ -174,7 +174,7 @@ export function Feed(props: {
                     variant="feed"
                     evt={evt}
                     isDeleted={false}
-                    contentPreview={truncateFeedCardContent(feedEventCardPlainText(evt))}
+                    contentPreview={truncateFeedCardContent(feedEventCardPlainText(evt), evt.tags)}
                     profilesByPubkey={profilesByPubkey}
                     distanceLabel={approxDistanceById[evt.id]}
                     client={client}

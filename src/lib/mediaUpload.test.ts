@@ -34,11 +34,11 @@ describe('extractUrlFromUploadResponse', () => {
 
 describe('toNip96WellKnownUrl', () => {
   test('builds well-known URL from origin', () => {
-    expect(toNip96WellKnownUrl('https://nostr.build')).toBe(
-      'https://nostr.build/.well-known/nostr/nip96.json',
+    expect(toNip96WellKnownUrl('https://example.org')).toBe(
+      'https://example.org/.well-known/nostr/nip96.json',
     )
-    expect(toNip96WellKnownUrl('https://nostr.build/anything/here')).toBe(
-      'https://nostr.build/.well-known/nostr/nip96.json',
+    expect(toNip96WellKnownUrl('https://example.org/anything/here')).toBe(
+      'https://example.org/.well-known/nostr/nip96.json',
     )
   })
 })
