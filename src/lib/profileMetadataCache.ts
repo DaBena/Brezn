@@ -1,6 +1,85 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Event } from './nostrPrimitives'
 
+/** iOS Safari often kills IDB mid-flight; never surface these as fatal UI errors. */
+function isRecoverableIndexedDbError(e: unknown): boolean {
+  const name =
+    e != null && typeof e === 'object' && 'name' in e && typeof (e as Error).name === 'string'
+      ? (e as Error).name
+      : ''
+  const msg =
+    e != null && typeof e === 'object' && 'message' in e && typeof (e as Error).message === 'string'
+      ? String((e as Error).message)
+      : String(e ?? '')
+  if (
+    name === 'TransactionInactiveError' ||
+    name === 'InvalidStateError' ||
+    name === 'AbortError'
+  ) {
+    return true
+  }
+  if (name === 'UnknownError') {
+    return (
+      msg.includes('Connection to Indexed Database server lost') ||
+      msg.includes('internal error opening backing store')
+    )
+  }
+  return (
+    msg.includes('Connection to Indexed Database server lost') ||
+    msg.includes('internal error opening backing store')
+  )
+}
+
+async function resetProfileDb(): Promise<void> {
+  const prev = dbSingleton
+  dbSingleton = null
+  if (!prev) return
+  try {
+    prev.close()
+  } catch {
+    /* ignore */
+  }
+  await new Promise<void>((r) => queueMicrotask(() => r()))
+}
+
+async function withIndexedDbRetry<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (e) {
+    if (!isRecoverableIndexedDbError(e)) throw e
+    await resetProfileDb()
+    return await run()
+  }
+}
+
+/** Serialize writes: concurrent kind-0 upserts + prune caused TransactionInactiveError on iOS. */
+let writeChain: Promise<void> = Promise.resolve()
+
+function enqueueProfileWrite(task: () => Promise<void>): Promise<void> {
+  const done = writeChain.then(task, task)
+  writeChain = done.then(
+    () => undefined,
+    () => undefined,
+  )
+  return done
+}
+
+let pruneAfterWritesTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleDebouncedPrune(): void {
+  if (pruneAfterWritesTimer !== null) clearTimeout(pruneAfterWritesTimer)
+  pruneAfterWritesTimer = setTimeout(() => {
+    pruneAfterWritesTimer = null
+    void enqueueProfileWrite(async () => {
+      try {
+        await withIndexedDbRetry(() => pruneOldestIfNeeded())
+      } catch {
+        /* optional cache trim failure */
+      }
+    })
+  }, 500)
+}
+
 export type ProfileMetadataRow = {
   pubkey: string
   content: string
@@ -53,10 +132,16 @@ export async function profileMetadataCacheReadMany(
 ): Promise<Map<string, ProfileMetadataRow>> {
   const out = new Map<string, ProfileMetadataRow>()
   if (!pubkeys.length) return out
-  const db = getDb()
-  const rows = await db.profiles.where('pubkey').anyOf(pubkeys).toArray()
-  for (const r of rows) {
-    out.set(r.pubkey, r)
+  try {
+    const rows = await withIndexedDbRetry(async () => {
+      const db = getDb()
+      return db.profiles.where('pubkey').anyOf(pubkeys).toArray()
+    })
+    for (const r of rows) {
+      out.set(r.pubkey, r)
+    }
+  } catch {
+    /* offline cache is optional */
   }
   return out
 }
@@ -72,11 +157,19 @@ async function pruneOldestIfNeeded(): Promise<void> {
 
 export async function profileMetadataCacheUpsertFromKind0(evt: Event): Promise<void> {
   if (evt.kind !== 0) return
-  const db = getDb()
-  const nowMs = Date.now()
-  const existing = await db.profiles.get(evt.pubkey)
-  const next = mergeKind0IntoCacheRow(existing, evt, nowMs)
-  if (!next) return
-  await db.profiles.put(next)
-  await pruneOldestIfNeeded()
+  try {
+    await enqueueProfileWrite(async () => {
+      await withIndexedDbRetry(async () => {
+        const db = getDb()
+        const nowMs = Date.now()
+        const existing = await db.profiles.get(evt.pubkey)
+        const next = mergeKind0IntoCacheRow(existing, evt, nowMs)
+        if (!next) return
+        await db.profiles.put(next)
+        scheduleDebouncedPrune()
+      })
+    })
+  } catch {
+    /* ignore cache write failures */
+  }
 }

@@ -63,35 +63,37 @@ export function useProfiles(params: {
 
     let cancelled = false
 
-    void profileMetadataCacheReadMany(limitedPubkeys).then((rows) => {
-      if (cancelled) return
-      const toMerge: Profile[] = []
-      for (const pk of limitedPubkeys) {
-        const row = rows.get(pk)
-        if (!row) continue
-        const prevBest = latestKind0TimeRef.current.get(pk) ?? 0
-        if (row.createdAt < prevBest) continue
-        latestKind0TimeRef.current.set(pk, Math.max(prevBest, row.createdAt))
-        const parsed = parseMetadata(row.content)
-        const merged: Profile = {
-          pubkey: pk,
-          name: parsed.name,
-          picture: parsed.picture,
-          about: parsed.about,
+    void profileMetadataCacheReadMany(limitedPubkeys)
+      .then((rows) => {
+        if (cancelled) return
+        const toMerge: Profile[] = []
+        for (const pk of limitedPubkeys) {
+          const row = rows.get(pk)
+          if (!row) continue
+          const prevBest = latestKind0TimeRef.current.get(pk) ?? 0
+          if (row.createdAt < prevBest) continue
+          latestKind0TimeRef.current.set(pk, Math.max(prevBest, row.createdAt))
+          const parsed = parseMetadata(row.content)
+          const merged: Profile = {
+            pubkey: pk,
+            name: parsed.name,
+            picture: parsed.picture,
+            about: parsed.about,
+          }
+          if (!merged.name && !merged.picture && !merged.about) continue
+          toMerge.push(merged)
         }
-        if (!merged.name && !merged.picture && !merged.about) continue
-        toMerge.push(merged)
-      }
-      if (toMerge.length === 0) return
-      setState((prevState) => {
-        const base = prevState.key === activeKey ? prevState.map : new Map()
-        const next = new Map(base)
-        for (const p of toMerge) {
-          next.set(p.pubkey, p)
-        }
-        return { key: activeKey, map: next }
+        if (toMerge.length === 0) return
+        setState((prevState) => {
+          const base = prevState.key === activeKey ? prevState.map : new Map()
+          const next = new Map(base)
+          for (const p of toMerge) {
+            next.set(p.pubkey, p)
+          }
+          return { key: activeKey, map: next }
+        })
       })
-    })
+      .catch(() => {})
 
     if (isOffline) {
       return () => {

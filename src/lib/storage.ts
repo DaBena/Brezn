@@ -1,6 +1,8 @@
-// IndexedDB setup for robust persistent storage
+import Dexie, { type Table } from 'dexie'
+
 const DB_NAME = 'brezn-storage'
 const DB_VERSION = 1
+/** Matches legacy `createObjectStore(name)` — primary key is out-of-line (explicit key per put/get). */
 const STORE_NAME = 'keyValueStore'
 
 // Encryption key storage key (separate from data)
@@ -8,56 +10,46 @@ const ENCRYPTION_KEY_STORAGE_KEY = 'brezn:encryption-key'
 
 /** IndexedDB gate; set true when the app may use device storage (browser: on client init). */
 let storageConsentGiven = false
-let dbPromise: Promise<IDBDatabase> | null = null
+
+class BreznStorageDexie extends Dexie {
+  /** Values keyed by string (out-of-line keys); stores arbitrary structured-clone payloads. */
+  keyValueStore!: Table<unknown, string>
+
+  constructor() {
+    super(DB_NAME)
+    this.version(DB_VERSION).stores({
+      [STORE_NAME]: '',
+    })
+  }
+}
+
+let storageDbSingleton: BreznStorageDexie | null = null
 
 /** Enable brezn-storage (IndexedDB). Nostr client sets this when localStorage is available. */
 export function setStorageConsentGiven(value: boolean): void {
   storageConsentGiven = value
-  if (value) dbPromise = null
+  if (value) {
+    storageDbSingleton?.close()
+    storageDbSingleton = null
+  }
 }
 
-function getDB(): Promise<IDBDatabase> {
+function getStorageDb(): BreznStorageDexie {
   if (!storageConsentGiven) {
-    return Promise.reject(new Error('Storage consent not yet given'))
+    throw new Error('Storage consent not yet given')
   }
-  if (dbPromise) return dbPromise
-
-  dbPromise = new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB not supported'))
-      return
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME)
-      }
-    }
-  })
-
-  return dbPromise
+  if (typeof indexedDB === 'undefined') {
+    throw new Error('IndexedDB not supported')
+  }
+  if (!storageDbSingleton) storageDbSingleton = new BreznStorageDexie()
+  return storageDbSingleton
 }
 
 async function loadFromIndexedDB<T>(key: string): Promise<T | null> {
   try {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readonly')
-      const store = transaction.objectStore(STORE_NAME)
-      const request = store.get(key)
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        const result = request.result
-        resolve(result !== undefined ? (result as T) : null)
-      }
-    })
+    const db = getStorageDb()
+    const result = await db.keyValueStore.get(key)
+    return result !== undefined ? (result as T) : null
   } catch {
     return null
   }
@@ -65,15 +57,8 @@ async function loadFromIndexedDB<T>(key: string): Promise<T | null> {
 
 async function saveToIndexedDB(key: string, value: unknown): Promise<void> {
   try {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite')
-      const store = transaction.objectStore(STORE_NAME)
-      const request = store.put(value, key)
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve()
-    })
+    const db = getStorageDb()
+    await db.keyValueStore.put(value, key)
   } catch {
     // ignore IndexedDB errors, fallback to localStorage
   }
