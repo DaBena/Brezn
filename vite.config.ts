@@ -26,10 +26,15 @@ export default defineConfig({
     /**
      * Large deps (esp. NDK) ship modern JS; plugin-legacy defaults `modernTargets` to Safari/iOS ≥ 16.4,
      * which overrides `build.target` and can leave iOS 15 parsing a too-new modern chunk (blank screen).
+     *
+     * iOS 15 Safari lacks `import.meta.resolve` (Safari ≥ ~16.4). The modern bundle starts with a guard that
+     * throws there; the legacy fallback is unreliable. Ship only the SystemJS legacy bundle so iOS 15–16.3
+     * load the same heavily transpiled path as older devices (larger JS for everyone).
      */
     legacy({
       modernTargets: ['iOS >= 14', 'Safari >= 14'],
       targets: ['defaults', 'iOS >= 12'],
+      renderModernChunks: false,
     }),
     react(),
     VitePWA({
