@@ -8,8 +8,8 @@ test.describe('smoke', () => {
 
   test('leaves bootstrap loading and shows main shell', async ({ page }) => {
     await page.goto('./')
-    await expect(page.getByText('Loading…')).toBeHidden({ timeout: 60_000 })
-    await expect(page.locator('#root')).toBeVisible()
-    await expect(page.getByRole('main')).toBeVisible()
+    // Locale follows navigator (e.g. de → "Laden…"); avoid coupling to English copy.
+    await expect(page.getByTestId('bootstrap-loading')).toBeHidden({ timeout: 60_000 })
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 30_000 })
   })
 })

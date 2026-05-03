@@ -15,7 +15,10 @@ function RootInner() {
   }, [])
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brezn-bg text-brezn-muted">
+      <div
+        data-testid="bootstrap-loading"
+        className="flex min-h-screen items-center justify-center bg-brezn-bg text-brezn-muted"
+      >
         <span className="text-sm">{t('root.loading')}</span>
       </div>
     )
