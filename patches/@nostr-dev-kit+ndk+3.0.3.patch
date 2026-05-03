@@ -1,0 +1,32 @@
+diff --git a/node_modules/@nostr-dev-kit/ndk/dist/index.js b/node_modules/@nostr-dev-kit/ndk/dist/index.js
+index c827f17..35b549c 100644
+--- a/node_modules/@nostr-dev-kit/ndk/dist/index.js
++++ b/node_modules/@nostr-dev-kit/ndk/dist/index.js
+@@ -2982,9 +2982,9 @@ function uniqueTag(a, b) {
+   }
+   return [a, b];
+ }
+-var hashtagRegex = /(?<=\s|^)(#[^\s!@#$%^&*()=+./,[{\]};:'"?><]+)/g;
++var hashtagRegex = /(?:^|\s)(#[^\s!@#$%^&*()=+./,[{\]};:'"?><]+)/g;
+ function generateHashtags(content) {
+-  const hashtags = content.match(hashtagRegex);
++  const hashtags = content.match(hashtagRegex)?.map((m) => m.trimStart()) ?? null;
+   const tagIds = /* @__PURE__ */ new Set();
+   const tag = /* @__PURE__ */ new Set();
+   if (hashtags) {
+diff --git a/node_modules/@nostr-dev-kit/ndk/dist/index.mjs b/node_modules/@nostr-dev-kit/ndk/dist/index.mjs
+index 9ca50ce..b1adbfd 100644
+--- a/node_modules/@nostr-dev-kit/ndk/dist/index.mjs
++++ b/node_modules/@nostr-dev-kit/ndk/dist/index.mjs
+@@ -2804,9 +2804,9 @@ function uniqueTag(a, b) {
+   }
+   return [a, b];
+ }
+-var hashtagRegex = /(?<=\s|^)(#[^\s!@#$%^&*()=+./,[{\]};:'"?><]+)/g;
++var hashtagRegex = /(?:^|\s)(#[^\s!@#$%^&*()=+./,[{\]};:'"?><]+)/g;
+ function generateHashtags(content) {
+-  const hashtags = content.match(hashtagRegex);
++  const hashtags = content.match(hashtagRegex)?.map((m) => m.trimStart()) ?? null;
+   const tagIds = /* @__PURE__ */ new Set();
+   const tag = /* @__PURE__ */ new Set();
+   if (hashtags) {
