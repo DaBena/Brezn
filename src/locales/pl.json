@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Lista blokowanych",
     "oneLineOneTerm": "1 linia = 1 wyraz ({{count}}/200)",
-    "placeholder": "np.\nspam\nkup teraz\nzly.przyklad",
+    "placeholder": "np.\nkup\nsats\nevil.example",
     "saved": "Lista zapisana.",
     "blockedUsers": "Zablokowani użytkownicy",
     "blockedCount": "{{count}} zablokowanych",
@@ -86,7 +86,7 @@
     "hint": "Relay’e używane do kanału, DM i publikacji.",
     "empty": "Brak skonfigurowanych relay’ów. Bez co najmniej jednego relay’a nie można wczytać ani opublikować postów. Dodaj poniżej lub użyj «Domyślne», by przywrócić domyślne relay’e.",
     "removeAria": "Usuń relay",
-    "placeholder": "wss://relay.przyklad",
+    "placeholder": "wss://relay.example",
     "add": "Dodaj",
     "default": "Domyślne",
     "test": "Test",
@@ -144,7 +144,8 @@
     "placeholder": "Napisz wiadomość…",
     "sendAria": "Wyślij wiadomość",
     "sendingContent": "[wysyłanie...]",
-    "sendError": "Błąd wysyłania wiadomości"
+    "sendError": "Błąd wysyłania wiadomości",
+    "hiddenByBlocklist": "Wiadomość ukryta (pasuje do listy zablokowanych słów)."
   },
   "composer": {
     "srTitle": "Nowy post",

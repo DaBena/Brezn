@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Blocklist",
     "oneLineOneTerm": "1 line = 1 term ({{count}}/200)",
-    "placeholder": "e.g.\nspam\nbuy now\nevil.example",
+    "placeholder": "e.g.\nbuy\nsats\nevil.example",
     "saved": "Blocklist saved.",
     "blockedUsers": "Blocked users",
     "blockedCount": "{{count}} blocked",
@@ -144,7 +144,8 @@
     "placeholder": "Write message…",
     "sendAria": "Send message",
     "sendingContent": "[sending...]",
-    "sendError": "Error sending message"
+    "sendError": "Error sending message",
+    "hiddenByBlocklist": "Message hidden (matches your keyword blocklist)."
   },
   "composer": {
     "srTitle": "New post",

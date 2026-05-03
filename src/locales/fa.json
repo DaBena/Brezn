@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "فهرست مسدود",
     "oneLineOneTerm": "۱ خط = ۱ عبارت ({{count}}/۲۰۰)",
-    "placeholder": "مثال\nهرزنامه\nهمین حالا بخر\nbad.example",
+    "placeholder": "مثال\nخرید\nsats\nevil.example",
     "saved": "فهرست مسدود ذخیره شد.",
     "blockedUsers": "کاربران مسدود",
     "blockedCount": "{{count}} مسدود",
@@ -144,7 +144,8 @@
     "placeholder": "پیام بنویسید…",
     "sendAria": "ارسال پیام",
     "sendingContent": "[در حال ارسال...]",
-    "sendError": "ارسال پیام ناموفق بود"
+    "sendError": "ارسال پیام ناموفق بود",
+    "hiddenByBlocklist": "پیام پنهان شد (با فهرست مسدودسازی کلمات کلیدی شما مطابقت دارد)."
   },
   "composer": {
     "srTitle": "پست جدید",

@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "ब्लॉक सूची",
     "oneLineOneTerm": "1 पंक्ति = 1 शब्द ({{count}}/200)",
-    "placeholder": "उदा.\nस्पैम\nअभी खरीदें\nबुरा.उदाहरण",
+    "placeholder": "उदा.\nखरीदें\nsats\nevil.example",
     "saved": "ब्लॉक सूची सहेजी गई।",
     "blockedUsers": "अवरुद्ध उपयोगकर्ता",
     "blockedCount": "{{count}} अवरुद्ध",
@@ -144,7 +144,8 @@
     "placeholder": "संदेश लिखें…",
     "sendAria": "संदेश भेजें",
     "sendingContent": "[भेजा जा रहा है...]",
-    "sendError": "संदेश भेजना विफल"
+    "sendError": "संदेश भेजना विफल",
+    "hiddenByBlocklist": "संदेश छिपाया गया (आपकी कीवर्ड ब्लॉकलिस्ट से मेल खाता है)।"
   },
   "composer": {
     "srTitle": "नई पोस्ट",

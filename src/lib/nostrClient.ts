@@ -21,6 +21,7 @@ import {
 } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
+  DM_PEER_MODERATION_TEXT_MAX,
   GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
   GET_DM_HISTORY_TIMEOUT_MS,
   GET_MY_PROFILE_FETCH_TIMEOUT_MS,
@@ -69,10 +70,18 @@ type StoredStateV1 = {
 export type Conversation = {
   /** Other user's public key (64 hex chars) */
   pubkey: string
-  /** Unix timestamp of last message */
+  /** Unix timestamp of last message (either direction) */
   lastMessageAt: number
   /** Preview of last message (first 50 chars, or '[encrypted]' if decryption failed) */
   lastMessagePreview: string
+  /** Preview of the peer's most recent DM (same slice rules); empty if none decrypted inbound yet */
+  lastPeerPreview: string
+  /** Longer slice of that peer DM for keyword matching (see `DM_PEER_MODERATION_TEXT_MAX`) */
+  lastPeerTextForModeration: string
+  /** Unix timestamp of peer's most recent DM used for `lastPeerPreview` */
+  lastPeerMessageAt: number
+  /** Unix timestamp of viewer's most recent outbound DM to this peer */
+  lastViewerMessageAt: number
 }
 
 /** Options for `getConversations`. */
@@ -943,30 +952,57 @@ export function createNostrClient(): BreznNostrClient {
       return Promise.reject(new Error('No relays configured'))
     }
 
-    const conversations = new Map<
-      string,
-      { pubkey: string; lastMessageAt: number; lastMessagePreview: string }
-    >()
+    const conversations = new Map<string, Conversation>()
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
     const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
     const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
 
     function mergeConversation(otherPubkey: string, evt: Event) {
       let preview = '[encrypted]'
+      let decryptedForModeration = ''
       try {
         const decrypted = decryptDM(evt)
+        decryptedForModeration = decrypted
         preview = decrypted.slice(0, 50)
       } catch {
         // keep default preview
       }
+      const fromPeer = evt.pubkey.toLowerCase() !== me
       const existing = conversations.get(otherPubkey)
-      if (!existing || evt.created_at > existing.lastMessageAt) {
-        conversations.set(otherPubkey, {
-          pubkey: otherPubkey,
-          lastMessageAt: evt.created_at,
-          lastMessagePreview: preview,
-        })
+
+      let lastMessageAt = existing?.lastMessageAt ?? 0
+      let lastMessagePreview = existing?.lastMessagePreview ?? ''
+      let lastPeerPreview = existing?.lastPeerPreview ?? ''
+      let lastPeerTextForModeration = existing?.lastPeerTextForModeration ?? ''
+      let lastPeerMessageAt = existing?.lastPeerMessageAt ?? 0
+      let lastViewerMessageAt = existing?.lastViewerMessageAt ?? 0
+
+      if (evt.created_at >= lastMessageAt) {
+        lastMessageAt = evt.created_at
+        lastMessagePreview = preview
       }
+
+      if (fromPeer) {
+        if (evt.created_at >= lastPeerMessageAt) {
+          lastPeerMessageAt = evt.created_at
+          lastPeerPreview = preview
+          lastPeerTextForModeration = decryptedForModeration
+            ? decryptedForModeration.slice(0, DM_PEER_MODERATION_TEXT_MAX)
+            : ''
+        }
+      } else if (evt.created_at >= lastViewerMessageAt) {
+        lastViewerMessageAt = evt.created_at
+      }
+
+      conversations.set(otherPubkey, {
+        pubkey: otherPubkey,
+        lastMessageAt,
+        lastMessagePreview,
+        lastPeerPreview,
+        lastPeerTextForModeration,
+        lastPeerMessageAt,
+        lastViewerMessageAt,
+      })
     }
 
     const snapshot = (): Conversation[] =>

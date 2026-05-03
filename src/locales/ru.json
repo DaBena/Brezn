@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Чёрный список",
     "oneLineOneTerm": "1 строка = 1 термин ({{count}}/200)",
-    "placeholder": "напр.\nспам\nкупи сейчас\nevile.example",
+    "placeholder": "напр.\nкупить\nsats\nevil.example",
     "saved": "Список сохранён.",
     "blockedUsers": "Заблокированные",
     "blockedCount": "{{count}} заблокировано",
@@ -144,7 +144,8 @@
     "placeholder": "Написать сообщение…",
     "sendAria": "Отправить",
     "sendingContent": "[отправка...]",
-    "sendError": "Ошибка отправки"
+    "sendError": "Ошибка отправки",
+    "hiddenByBlocklist": "Сообщение скрыто (совпадение со списком ключевых слов)."
   },
   "composer": {
     "srTitle": "Новый пост",

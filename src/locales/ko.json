@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "차단 목록",
     "oneLineOneTerm": "1줄 = 1어구 ({{count}}/200)",
-    "placeholder": "예:\n스팸\n지금 구매\nevil.example",
+    "placeholder": "예:\n구매\nsats\nevil.example",
     "saved": "차단 목록이 저장되었습니다.",
     "blockedUsers": "차단한 사용자",
     "blockedCount": "{{count}}명 차단",
@@ -144,7 +144,8 @@
     "placeholder": "메시지 작성…",
     "sendAria": "메시지 보내기",
     "sendingContent": "[보내는 중...]",
-    "sendError": "메시지 전송 실패"
+    "sendError": "메시지 전송 실패",
+    "hiddenByBlocklist": "메시지가 숨겨졌습니다(키워드 차단 목록과 일치)."
   },
   "composer": {
     "srTitle": "새 게시물",

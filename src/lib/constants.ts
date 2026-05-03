@@ -42,6 +42,12 @@ export const GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS = 4_500
 /** DM list / chat sheet: safety net if the fetch promise never settles (should exceed per-relay timeout). */
 export const GET_CONVERSATIONS_UI_TIMEOUT_MS = 9_000
 
+/**
+ * Peer DM plaintext slice used only for keyword blocklist matching in `getConversations`
+ * (UI preview stays short; spam keywords often appear later in the body).
+ */
+export const DM_PEER_MODERATION_TEXT_MAX = 8192
+
 /** Legacy: grouped-sub max-wait; NDK handles EOSE timing per subscription. */
 export const SUBSCRIBE_DEFAULT_MAX_WAIT_MS = 12_000
 

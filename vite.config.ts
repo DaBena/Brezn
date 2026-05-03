@@ -15,6 +15,12 @@ export default defineConfig({
   base,
   build: {
     chunkSizeWarningLimit: 1024,
+    /**
+     * Default Vite/esbuild baselines target fairly new Safari; `@nostr-dev-kit/ndk` ships modern JS.
+     * Older iPhones then choke on parse (blank screen). Pull output + dependency prebundle down explicitly.
+     * For iOS 12–13 try adding `'ios13'` / `'safari13'` or `@vitejs/plugin-legacy`.
+     */
+    target: ['es2020', 'safari14', 'ios14'],
   },
   plugins: [
     react(),

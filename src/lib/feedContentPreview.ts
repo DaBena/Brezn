@@ -41,7 +41,11 @@ export function truncateFeedCardContent(content: string, tags?: string[][]): str
   let cursor = 0
   for (const link of links) {
     flowText += content.slice(cursor, link.start)
-    if (isPostReferenceLink(link)) flowText += content.slice(link.start, link.end)
+    const inlineMedia = isLikelyImageUrl(link.href) || isLikelyVideoUrl(link.href)
+    // Keep post refs + ordinary URLs in the preview; only strip inline media (listed below).
+    if (isPostReferenceLink(link) || !inlineMedia) {
+      flowText += content.slice(link.start, link.end)
+    }
     cursor = link.end
   }
   flowText += content.slice(cursor)

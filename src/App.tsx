@@ -357,12 +357,28 @@ export default function App() {
           onClose={() => appState.closeSheet('dm')}
           client={client}
           otherPubkey={appState.sheets.dm.targetPubkey}
+          mutedTerms={moderation.mutedTerms}
+          blockedPubkeys={moderation.blockedPubkeys}
+          isOffline={isOffline}
+          onBlockUser={async (pubkey) => {
+            const next = [...moderation.blockedPubkeys, pubkey]
+            await client.setBlockedPubkeys(next)
+            moderation.refreshFromClient()
+          }}
         />
       ) : appState.sheets.dm.open ? (
         <ConversationsSheet
           open={appState.sheets.dm.open}
           onClose={() => appState.closeSheet('dm')}
           client={client}
+          mutedTerms={moderation.mutedTerms}
+          blockedPubkeys={moderation.blockedPubkeys}
+          isOffline={isOffline}
+          onBlockUser={async (pubkey) => {
+            const next = [...moderation.blockedPubkeys, pubkey]
+            await client.setBlockedPubkeys(next)
+            moderation.refreshFromClient()
+          }}
         />
       ) : null}
     </div>

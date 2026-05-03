@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Lista blocchi",
     "oneLineOneTerm": "1 riga = 1 termine ({{count}}/200)",
-    "placeholder": "es.\nspam\ncompra ora\nevile.example",
+    "placeholder": "es.\ncompra\nsats\nevil.example",
     "saved": "Lista salvata.",
     "blockedUsers": "Utenti bloccati",
     "blockedCount": "{{count}} bloccati",
@@ -144,7 +144,8 @@
     "placeholder": "Scrivi un messaggio…",
     "sendAria": "Invia messaggio",
     "sendingContent": "[invio…]",
-    "sendError": "Errore invio"
+    "sendError": "Errore invio",
+    "hiddenByBlocklist": "Messaggio nascosto (coincide con la tua lista di parole bloccate)."
   },
   "composer": {
     "srTitle": "Nuovo post",

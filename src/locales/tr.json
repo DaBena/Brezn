@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Engel listesi",
     "oneLineOneTerm": "1 satır = 1 terim ({{count}}/200)",
-    "placeholder": "ör.\nspam\nhemen satın al\nekötü.ornek",
+    "placeholder": "ör.\nsatın al\nsats\nevil.example",
     "saved": "Engel listesi kaydedildi.",
     "blockedUsers": "Engellenen kullanıcılar",
     "blockedCount": "{{count}} engellendi",
@@ -86,7 +86,7 @@
     "hint": "Akış, DM ve yayın için kullanılan relay’ler.",
     "empty": "Relay yapılandırılmamış. En az bir relay olmadan gönderi yüklenemez veya yayınlanamaz. Aşağıya ekleyin veya «Varsayılan» ile geri yükleyin.",
     "removeAria": "Relay’i kaldır",
-    "placeholder": "wss://relay.ornek",
+    "placeholder": "wss://relay.example",
     "add": "Ekle",
     "default": "Varsayılan",
     "test": "Test",
@@ -144,7 +144,8 @@
     "placeholder": "Mesaj yazın…",
     "sendAria": "Mesaj gönder",
     "sendingContent": "[gönderiliyor...]",
-    "sendError": "Mesaj gönderilemedi"
+    "sendError": "Mesaj gönderilemedi",
+    "hiddenByBlocklist": "Mesaj gizlendi (anahtar kelime engel listenizle eşleşiyor)."
   },
   "composer": {
     "srTitle": "Yeni gönderi",

@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "ブロックリスト",
     "oneLineOneTerm": "1 行 = 1 語（{{count}}/200）",
-    "placeholder": "例\nspam\n今すぐ\nevil.example",
+    "placeholder": "例\n購入\nsats\nevil.example",
     "saved": "保存しました。",
     "blockedUsers": "ブロックしたユーザー",
     "blockedCount": "{{count}} 人をブロック",
@@ -144,7 +144,8 @@
     "placeholder": "メッセージを入力…",
     "sendAria": "送信",
     "sendingContent": "[送信中...]",
-    "sendError": "送信に失敗しました"
+    "sendError": "送信に失敗しました",
+    "hiddenByBlocklist": "メッセージを非表示にしました（キーワードブロックリストに一致）。"
   },
   "composer": {
     "srTitle": "新規投稿",

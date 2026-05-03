@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Danh sách chặn",
     "oneLineOneTerm": "1 dòng = 1 từ ({{count}}/200)",
-    "placeholder": "vd.\nspam\nmua ngay\nxấu.vd",
+    "placeholder": "vd.\nmua\nsats\nevil.example",
     "saved": "Đã lưu danh sách chặn.",
     "blockedUsers": "Người dùng bị chặn",
     "blockedCount": "{{count}} đã chặn",
@@ -144,7 +144,8 @@
     "placeholder": "Viết tin nhắn…",
     "sendAria": "Gửi tin nhắn",
     "sendingContent": "[đang gửi...]",
-    "sendError": "Gửi tin nhắn thất bại"
+    "sendError": "Gửi tin nhắn thất bại",
+    "hiddenByBlocklist": "Tin nhắn đã ẩn (khớp với danh sách chặn từ khóa của bạn)."
   },
   "composer": {
     "srTitle": "Bài đăng mới",

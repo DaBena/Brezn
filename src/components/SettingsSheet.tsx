@@ -10,6 +10,7 @@ import { MediaUploadSettings } from './settings/MediaUploadSettings'
 import { ProfileSettings } from './settings/ProfileSettings'
 import { ThemeSettings } from './settings/ThemeSettings'
 import { useTheme } from '../hooks/useTheme'
+import { useToast } from './ToastContext'
 
 export function SettingsSheet(props: {
   open: boolean
@@ -33,6 +34,7 @@ export function SettingsSheet(props: {
   } = props
 
   const { t } = useTranslation()
+  const { showToast } = useToast()
   const { theme, setTheme } = useTheme(client)
   const [mediaEndpoint, setMediaEndpoint] = useState<string>(
     () => client.getMediaUploadEndpoint() ?? '',
@@ -46,8 +48,6 @@ export function SettingsSheet(props: {
   const initialMediaEndpointRef = useRef<string>('')
   const initialRelaysRef = useRef<string[]>([])
 
-  const [closing, setClosing] = useState(false)
-  const [profileSaving, setProfileSaving] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
   const handleProfileChange = useCallback(
@@ -67,7 +67,6 @@ export function SettingsSheet(props: {
       else window.setTimeout(fn, 0)
     }
     schedule(() => {
-      setClosing(false)
       initialProfileRef.current = null
       {
         const ep = client.getMediaUploadEndpoint() ?? ''
@@ -80,12 +79,7 @@ export function SettingsSheet(props: {
     })
   }, [client, open])
 
-  async function persistAndClose() {
-    if (closing) return
-    if (profileSaving) return
-
-    setClosing(true)
-
+  function persistAndClose() {
     try {
       const trimmed = mediaEndpoint.trim()
       const normalized = trimmed ? trimmed : null // empty => disable
@@ -96,35 +90,31 @@ export function SettingsSheet(props: {
         initialMediaEndpointRef.current = client.getMediaUploadEndpoint() ?? ''
       }
     } catch {
-      setClosing(false)
       return
     }
 
     if (currentProfile) {
-      try {
-        const initial = initialProfileRef.current ?? { name: '', picture: '', about: '' }
-        const nextName = currentProfile.name.trim()
-        const nextPicture = currentProfile.picture.trim()
-        const nextAbout = currentProfile.about.trim()
-        const changed =
-          initial.name.trim() !== nextName ||
-          initial.picture.trim() !== nextPicture ||
-          (initial.about ?? '').trim() !== nextAbout
-        if (changed) {
-          setProfileSaving(true)
-          await client.updateProfile({
+      const initial = initialProfileRef.current ?? { name: '', picture: '', about: '' }
+      const nextName = currentProfile.name.trim()
+      const nextPicture = currentProfile.picture.trim()
+      const nextAbout = currentProfile.about.trim()
+      const changed =
+        initial.name.trim() !== nextName ||
+        initial.picture.trim() !== nextPicture ||
+        (initial.about ?? '').trim() !== nextAbout
+      if (changed) {
+        void client
+          .updateProfile({
             name: currentProfile.name,
             picture: currentProfile.picture,
             about: currentProfile.about,
           })
-          initialProfileRef.current = { name: nextName, picture: nextPicture, about: nextAbout }
-        }
-      } catch {
-        setClosing(false)
-        setProfileSaving(false)
-        return
-      } finally {
-        setProfileSaving(false)
+          .then(() => {
+            initialProfileRef.current = { name: nextName, picture: nextPicture, about: nextAbout }
+          })
+          .catch((e) => {
+            showToast(e instanceof Error ? e.message : t('app.publishFailed'), 'error')
+          })
       }
     }
 
@@ -136,17 +126,11 @@ export function SettingsSheet(props: {
       onRelaysChanged()
     }
 
-    setClosing(false)
     onClose()
   }
 
   return (
-    <Sheet
-      open={open}
-      title={t('settings.title')}
-      onClose={() => void persistAndClose()}
-      dismissible={!closing && !profileSaving}
-    >
+    <Sheet open={open} title={t('settings.title')} onClose={persistAndClose}>
       <div className="mt-4 space-y-3">
         <ThemeSettings theme={theme} onThemeChange={setTheme} />
 

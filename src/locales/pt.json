@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Lista de bloqueio",
     "oneLineOneTerm": "1 linha = 1 termo ({{count}}/200)",
-    "placeholder": "ex.\nspam\ncompre já\nevil.example",
+    "placeholder": "ex.\ncomprar\nsats\nevil.example",
     "saved": "Lista guardada.",
     "blockedUsers": "Utilizadores bloqueados",
     "blockedCount": "{{count}} bloqueados",
@@ -144,7 +144,8 @@
     "placeholder": "Escreva uma mensagem…",
     "sendAria": "Enviar mensagem",
     "sendingContent": "[a enviar...]",
-    "sendError": "Erro ao enviar"
+    "sendError": "Erro ao enviar",
+    "hiddenByBlocklist": "Mensagem oculta (corresponde à sua lista de palavras bloqueadas)."
   },
   "composer": {
     "srTitle": "Nova publicação",

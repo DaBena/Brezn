@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "قائمة الحظر",
     "oneLineOneTerm": "سطر واحد = مصطلح واحد ({{count}}/200)",
-    "placeholder": "مثال\nspam\nاشتر الآن\nevile.example",
+    "placeholder": "مثال\nاشترِ\nsats\nevil.example",
     "saved": "تم حفظ القائمة.",
     "blockedUsers": "المستخدمون المحظورون",
     "blockedCount": "{{count}} محظور",
@@ -144,7 +144,8 @@
     "placeholder": "اكتب رسالة…",
     "sendAria": "إرسال",
     "sendingContent": "[جارٍ الإرسال...]",
-    "sendError": "فشل الإرسال"
+    "sendError": "فشل الإرسال",
+    "hiddenByBlocklist": "تم إخفاء الرسالة (تطابق قائمة الكلمات المحظورة)."
   },
   "composer": {
     "srTitle": "منشور جديد",

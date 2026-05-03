@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "屏蔽词",
     "oneLineOneTerm": "一行一词（{{count}}/200）",
-    "placeholder": "例如\nspam\n立即购买\nevile.example",
+    "placeholder": "例如\n购买\nsats\nevil.example",
     "saved": "已保存。",
     "blockedUsers": "已屏蔽用户",
     "blockedCount": "已屏蔽 {{count}} 人",
@@ -144,7 +144,8 @@
     "placeholder": "输入消息…",
     "sendAria": "发送",
     "sendingContent": "[发送中...]",
-    "sendError": "发送失败"
+    "sendError": "发送失败",
+    "hiddenByBlocklist": "消息已隐藏（与关键词屏蔽列表匹配）。"
   },
   "composer": {
     "srTitle": "新帖",

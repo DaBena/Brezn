@@ -51,7 +51,7 @@
   "moderation": {
     "blocklist": "Blockliste",
     "oneLineOneTerm": "1 Zeile = 1 Begriff ({{count}}/200)",
-    "placeholder": "z. B.\nspam\njetzt kaufen\neböse.example",
+    "placeholder": "z. B.\nkaufen\nsats\nevil.example",
     "saved": "Blockliste gespeichert.",
     "blockedUsers": "Blockierte Nutzer",
     "blockedCount": "{{count}} blockiert",
@@ -144,7 +144,8 @@
     "placeholder": "Nachricht schreiben…",
     "sendAria": "Nachricht senden",
     "sendingContent": "[wird gesendet...]",
-    "sendError": "Fehler beim Senden"
+    "sendError": "Fehler beim Senden",
+    "hiddenByBlocklist": "Nachricht ausgeblendet (Keyword-Blockliste)."
   },
   "composer": {
     "srTitle": "Neuer Beitrag",

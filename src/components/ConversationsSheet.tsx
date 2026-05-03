@@ -1,20 +1,40 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { nip19 } from '../lib/nostrPrimitives'
 import { formatRelativeChatTime } from '../lib/formatRelativeTime'
 import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
 import type { BreznNostrClient, Conversation } from '../lib/nostrClient'
+import { contentMatchesMutedTerms } from '../lib/moderation'
 import { shortNpub } from '../lib/nostrUtils'
 import { Sheet } from './Sheet'
 import { DMSheet } from './DMSheet'
+
+/** Hide conversations from blocked pubkeys and inbound-only threads whose latest peer preview hits the keyword list. */
+function conversationVisible(
+  conv: Conversation,
+  mutedTerms: string[],
+  blockedSet: Set<string>,
+): boolean {
+  if (blockedSet.has(conv.pubkey.toLowerCase())) return false
+  if (!mutedTerms.length) return true
+  const peerBlob = conv.lastPeerTextForModeration ?? conv.lastPeerPreview ?? ''
+  if (!contentMatchesMutedTerms(peerBlob, mutedTerms)) return true
+  const peerAt = conv.lastPeerMessageAt ?? 0
+  const viewerAt = conv.lastViewerMessageAt ?? 0
+  return viewerAt > peerAt
+}
 
 export function ConversationsSheet(props: {
   open: boolean
   onClose: () => void
   client: BreznNostrClient
+  mutedTerms: string[]
+  blockedPubkeys: string[]
+  isOffline: boolean
+  onBlockUser: (pubkey: string) => Promise<void>
 }) {
   const { t } = useTranslation()
-  const { open, onClose, client } = props
+  const { open, onClose, client, mutedTerms, blockedPubkeys, isOffline, onBlockUser } = props
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +94,16 @@ export function ConversationsSheet(props: {
     return () => clearUiTimeout()
   }, [open, client, t])
 
+  const blockedSet = useMemo(
+    () => new Set(blockedPubkeys.map((p) => p.toLowerCase())),
+    [blockedPubkeys],
+  )
+
+  const visibleConversations = useMemo(
+    () => conversations.filter((c) => conversationVisible(c, mutedTerms, blockedSet)),
+    [conversations, mutedTerms, blockedSet],
+  )
+
   return (
     <>
       <Sheet open={open && !selectedPubkey} title={t('chat.title')} onClose={onClose}>
@@ -82,10 +112,10 @@ export function ConversationsSheet(props: {
             <div className="text-center text-sm text-brezn-muted py-8">{t('chat.loading')}</div>
           ) : error ? (
             <div className="py-8 text-center text-sm text-brezn-error">{error}</div>
-          ) : conversations.length === 0 ? (
+          ) : visibleConversations.length === 0 ? (
             <div className="text-center text-sm text-brezn-muted py-8">{t('chat.empty')}</div>
           ) : (
-            conversations.map((conv) => (
+            visibleConversations.map((conv) => (
               <button
                 key={conv.pubkey}
                 onClick={() => setSelectedPubkey(conv.pubkey)}
@@ -110,17 +140,18 @@ export function ConversationsSheet(props: {
         </div>
       </Sheet>
 
-      {selectedPubkey && (
+      {selectedPubkey ? (
         <DMSheet
-          open={!!selectedPubkey}
-          onClose={() => {
-            setSelectedPubkey(null)
-            onClose()
-          }}
+          open
+          onClose={() => setSelectedPubkey(null)}
           client={client}
           otherPubkey={selectedPubkey}
+          mutedTerms={mutedTerms}
+          blockedPubkeys={blockedPubkeys}
+          isOffline={isOffline}
+          onBlockUser={onBlockUser}
         />
-      )}
+      ) : null}
     </>
   )
 }
