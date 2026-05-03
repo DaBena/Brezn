@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 
 export type SheetType = 'composer' | 'thread' | 'settings' | 'dm' | 'profile'
 

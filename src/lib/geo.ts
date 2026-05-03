@@ -1,5 +1,5 @@
 import geohash from 'ngeohash'
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { getLongestGeohashTag } from './nostrUtils'
 
 export const GEOHASH_LEN_MIN_UI = 1

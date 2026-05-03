@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import type { FeedState } from '../hooks/useLocalFeed'
 import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
@@ -130,7 +130,7 @@ export function Feed(props: {
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">{t('feed.errorTitle')}</div>
           <div className="mt-1 text-sm text-brezn-muted">{feedState.message}</div>
-          {!feedState.message.includes('No relays configured') ? (
+          {feedState.code !== 'no-relays' ? (
             <div className="mt-2 flex gap-2">
               <button
                 onClick={onRequestLocation}

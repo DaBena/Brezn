@@ -1,6 +1,6 @@
 import { extractUrls } from './urls'
-import { hexToBytes } from '@noble/hashes/utils'
-import { finalizeEvent, generateSecretKey } from 'nostr-tools/pure'
+import NDK from '@nostr-dev-kit/ndk'
+import { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 
 export type UploadResult = { url: string }
 
@@ -120,29 +120,27 @@ export async function discoverNip96(
   return { apiUrl, requiresNip98, raw: data }
 }
 
-export function createNip98AuthHeader(opts: {
+export async function createNip98AuthHeader(opts: {
   url: string
   method: string
   skHex?: string
-}): string {
+}): Promise<string> {
   // NIP-98: Authorization: Nostr <base64(JSON(event))>
   // We intentionally omit the optional "payload" tag because for multipart bodies
   // browsers generate the boundary internally, making stable hashing impractical here.
-  const skHex = opts.skHex?.trim()
-  const skBytes = skHex ? hexToBytes(skHex) : generateSecretKey()
-  const evt = finalizeEvent(
-    {
-      kind: 27235,
-      created_at: nowSec(),
-      tags: [
-        ['u', opts.url],
-        ['method', opts.method.toUpperCase()],
-      ],
-      content: '',
-    },
-    skBytes,
-  )
-  return `Nostr ${toBase64(JSON.stringify(evt))}`
+  const ndk = new NDK({ filterValidationMode: 'fix', aiGuardrails: false })
+  const trimmed = opts.skHex?.trim()
+  ndk.signer = trimmed ? new NDKPrivateKeySigner(trimmed, ndk) : NDKPrivateKeySigner.generate()
+  const ev = new NDKEvent(ndk)
+  ev.kind = 27235
+  ev.created_at = nowSec()
+  ev.content = ''
+  ev.tags = [
+    ['u', opts.url],
+    ['method', opts.method.toUpperCase()],
+  ]
+  await ev.sign(ndk.signer, { skipContentTagging: true })
+  return `Nostr ${toBase64(JSON.stringify(ev.rawEvent()))}`
 }
 
 async function resolveUploadEndpoint(
@@ -276,14 +274,14 @@ export async function uploadMediaFile(opts: {
   }
 
   const initialAuth = resolved.requiresNip98
-    ? createNip98AuthHeader({ url: resolved.url, method: 'POST', skHex: opts.nip98?.skHex })
+    ? await createNip98AuthHeader({ url: resolved.url, method: 'POST', skHex: opts.nip98?.skHex })
     : undefined
 
   let { res, payload } = await postUpload(initialAuth)
 
   // If the user pasted a direct upload URL (no discovery), some servers require NIP-98 and return 401/403.
   if (!res.ok && !initialAuth && (res.status === 401 || res.status === 403)) {
-    const retryAuth = createNip98AuthHeader({
+    const retryAuth = await createNip98AuthHeader({
       url: resolved.url,
       method: 'POST',
       skHex: opts.nip98?.skHex,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import type { Event } from './lib/nostrPrimitives'
 import { ComposerSheet } from './components/ComposerSheet'
 import { ConversationsSheet } from './components/ConversationsSheet'
 import { DMSheet } from './components/DMSheet'
@@ -344,7 +344,6 @@ export default function App() {
           geoCell={geoCell}
           onGeohashLengthChange={applyGeohashLength}
           onRelaysChanged={() => {
-            // Reset feed when relays change
             if (geoCell) {
               requestLocationAndLoad()
             }

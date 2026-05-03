@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import {
   decodeGeohashCenter,
@@ -30,6 +30,7 @@ import {
   upsertFeedEvents,
 } from '../lib/nip52'
 import { isReplyNote } from '../lib/nostrUtils'
+import { i18n } from '../i18n/i18n'
 
 export type LoadMorePageResult = {
   added: number
@@ -41,7 +42,7 @@ export type FeedState =
   | { kind: 'need-location'; locationError?: string }
   | { kind: 'loading' }
   | { kind: 'live' }
-  | { kind: 'error'; message: string }
+  | { kind: 'error'; message: string; code?: 'no-relays' }
 
 export function useLocalFeed(params: {
   client: BreznNostrClient
@@ -230,7 +231,8 @@ export function useLocalFeed(params: {
     if (currentRelays.length === 0) {
       setFeedState({
         kind: 'error',
-        message: 'No relays configured. Please add at least one relay in Settings.',
+        code: 'no-relays',
+        message: i18n.t('feed.noRelays'),
       })
       return
     }
@@ -347,55 +349,19 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // Mode 0: band + exact 5-char; else single `#g`. No `since` (sparse feeds).
+    // Mode 0: band + exact 5-char — one NDK grouped REQ for all cells (parallel), not staggered subs.
     if (geohashLength === 0 && queryGeohash.length === 5) {
       const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
-      const totalQueries = cellsToQuery.length
-      let currentIndex = 0
-      let eoseCount = 0
-      const unsubs: (() => void)[] = []
-
-      const checkAllComplete = () => {
-        if (eoseCount >= totalQueries) {
-          didEose = true
-          setFeedState({ kind: 'live' })
-        }
-      }
-
-      const runNextQuery = () => {
-        if (currentIndex >= cellsToQuery.length) {
-          checkAllComplete()
-          return
-        }
-
-        const cell = cellsToQuery[currentIndex]
-        currentIndex++
-        const unsub = client.subscribe(
-          {
-            kinds: feedKinds,
-            '#g': [cell],
-            limit: FEED_QUERY_LIMIT,
-          },
-          {
-            onevent: onEvent,
-            oneose: () => {
-              if (cancelled) return
-              eoseCount++
-              checkAllComplete()
-              if (currentIndex < cellsToQuery.length) {
-                const id = window.setTimeout(runNextQuery, 100)
-                timerIds.push(id)
-              }
-            },
-            onclose: onClose,
-            immediate: true,
-          },
-        )
-        unsubs.push(unsub)
-        unsubRef.current = () => unsubs.forEach((u) => u())
-      }
-
-      runNextQuery()
+      const filters = cellsToQuery.map((cell) => ({
+        kinds: feedKinds,
+        '#g': [cell],
+        limit: FEED_QUERY_LIMIT,
+      }))
+      unsubRef.current = client.subscribeGrouped(
+        filters,
+        { onevent: onEvent, oneose: onEose, onclose: onClose },
+        'feed-cells',
+      )
     } else {
       const unsub = client.subscribe(
         {
@@ -428,7 +394,8 @@ export function useLocalFeed(params: {
     if (relays.length === 0) {
       setFeedState({
         kind: 'error',
-        message: 'No relays configured. Please add at least one relay in Settings.',
+        code: 'no-relays',
+        message: i18n.t('feed.noRelays'),
       })
       return Promise.resolve({ added: 0, canLoadOlder: false })
     }
@@ -521,39 +488,27 @@ export function useLocalFeed(params: {
         })
       }
 
-      let subsRemaining = cellsForLoadMore.length
-
-      const onOneSubClosed = () => {
-        subsRemaining--
-        if (subsRemaining <= 0) {
-          window.clearTimeout(timeoutId)
-          finish(newEventCount)
-        }
+      const markDone = () => {
+        window.clearTimeout(timeoutId)
+        finish(newEventCount)
       }
 
-      for (const cell of cellsForLoadMore) {
-        let closed = false
-        const markClosed = () => {
-          if (closed) return
-          closed = true
-          onOneSubClosed()
-        }
-        const unsub = client.subscribe(
-          {
-            kinds: kindsLoadMore,
-            '#g': [cell],
-            limit: FEED_QUERY_LIMIT,
-            until,
-          },
-          {
-            onevent: onEventLoadMore,
-            oneose: markClosed,
-            onclose: markClosed,
-            immediate: true,
-          },
-        )
-        unsubs.push(unsub)
-      }
+      const filters = cellsForLoadMore.map((cell) => ({
+        kinds: kindsLoadMore,
+        '#g': [cell],
+        limit: FEED_QUERY_LIMIT,
+        until,
+      }))
+      const unsub = client.subscribeGrouped(
+        filters,
+        {
+          onevent: onEventLoadMore,
+          oneose: markDone,
+          onclose: markDone,
+        },
+        'feed-loadmore',
+      )
+      unsubs.push(unsub)
 
       timeoutId = window.setTimeout(() => {
         for (const u of unsubs) u()

@@ -27,7 +27,7 @@ export const SEARCH_FEED_PREFETCH_MAX_ROUNDS = 10
 /** localStorage: last geo cell; key exists ⇒ user saw consent and allowed location once. */
 export const LAST_LOCATION_KEY = 'brezn:last-location:v1'
 
-/** DM fetch per relay: nostr-tools `maxWait` for EOSE on that connection. */
+/** DM fetch per relay: max wait for EOSE on that connection (NDK subscription). */
 export const GET_DM_HISTORY_MAX_WAIT_MS = 5_000
 
 /** Per-relay DM fetch: close and continue if `oneose` never fires (parallel across relays). */
@@ -42,7 +42,7 @@ export const GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS = 4_500
 /** DM list / chat sheet: safety net if the fetch promise never settles (should exceed per-relay timeout). */
 export const GET_CONVERSATIONS_UI_TIMEOUT_MS = 9_000
 
-/** Default `maxWait` for `pool.subscribeMany` / grouped subs (nostr-tools EOSE per relay). */
+/** Legacy: grouped-sub max-wait; NDK handles EOSE timing per subscription. */
 export const SUBSCRIBE_DEFAULT_MAX_WAIT_MS = 12_000
 
 /** `getMyProfile`: give up if kind 0 never arrives. */

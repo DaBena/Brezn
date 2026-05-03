@@ -44,8 +44,8 @@ describe('toNip96WellKnownUrl', () => {
 })
 
 describe('createNip98AuthHeader', () => {
-  test('creates a Nostr authorization header with kind 27235', () => {
-    const h = createNip98AuthHeader({ url: 'https://example.com/upload', method: 'POST' })
+  test('creates a Nostr authorization header with kind 27235', async () => {
+    const h = await createNip98AuthHeader({ url: 'https://example.com/upload', method: 'POST' })
     expect(h.startsWith('Nostr ')).toBe(true)
     const b64 = h.slice('Nostr '.length)
     const json = Buffer.from(b64, 'base64').toString('utf8')

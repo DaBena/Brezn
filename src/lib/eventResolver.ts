@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import type { BreznNostrClient } from './nostrClient'
 
 const CACHE_TTL_MS = 10 * 60 * 1000

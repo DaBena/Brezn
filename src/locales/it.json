@@ -21,7 +21,8 @@
     "relayFailPrefix": "Connessione al relay fallita. ",
     "noRelayResponse": "Nessuna risposta dai relay. Controlla l’elenco o riprova più tardi.",
     "waitingEose": "Nessun evento ancora (in attesa di EOSE)…",
-    "noPostsYet": "Nessun post ancora. Riprova più tardi o cambia relay."
+    "noPostsYet": "Nessun post ancora. Riprova più tardi o cambia relay.",
+    "noRelays": "Ancora nessun relay nel pool di connessione. Attendi un attimo o controlla la rete; NDK aggiunge relay da bootstrap, profilo e rete."
   },
   "settings": {
     "title": "Impostazioni",
@@ -90,9 +91,6 @@
     "default": "Predefiniti",
     "test": "Test",
     "testing": "Test…",
-    "removed": "Relay rimosso.",
-    "added": "Relay aggiunto.",
-    "resetDefault": "Ripristina relay predefiniti.",
     "unknown": "sconosciuto",
     "reachable": "raggiungibile",
     "unreachable": "non raggiungibile",

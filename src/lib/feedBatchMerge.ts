@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { NOSTR_KINDS } from './breznNostr'
 import { isNip52CalendarKind, upsertFeedEvents } from './nip52'
 import { isReplyNote } from './nostrUtils'

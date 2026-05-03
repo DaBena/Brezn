@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Event } from 'nostr-tools'
-import * as nip19 from 'nostr-tools/nip19'
+import { nip19, type Event } from '../lib/nostrPrimitives'
 import { SEARCH_FEED_PREFETCH_MAX_ROUNDS } from '../lib/constants'
 import { isNip52CalendarKind, nip52SearchBlob } from '../lib/nip52'
 import type { LoadMorePageResult } from './useLocalFeed'

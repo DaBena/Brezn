@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { FEED_PREVIEW_MAX_FLOWTEXT } from './constants'
 import { isNip52CalendarKind, nip52FeedCardPostContent } from './nip52'
 import type { ExtractedLink } from './urls'

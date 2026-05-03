@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { Event, Filter } from 'nostr-tools'
+import type { Event, Filter } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { FEED_QUERY_LIMIT } from '../lib/constants'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'

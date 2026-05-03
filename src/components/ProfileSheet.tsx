@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
-import * as nip19 from 'nostr-tools/nip19'
+import { nip19, type Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'

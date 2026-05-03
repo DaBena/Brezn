@@ -1,4 +1,38 @@
-import { finalizeEvent, generateSecretKey } from 'nostr-tools/pure'
+import { schnorr } from '@noble/curves/secp256k1'
+import { sha256 } from '@noble/hashes/sha256'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
+
+const utf8 = new TextEncoder()
+
+function generateSecretKey() {
+  return schnorr.utils.randomPrivateKey()
+}
+
+function getPublicKey(secretKey) {
+  return bytesToHex(schnorr.getPublicKey(secretKey))
+}
+
+function serializeEvent(evt) {
+  return JSON.stringify([0, evt.pubkey, evt.created_at, evt.kind, evt.tags, evt.content])
+}
+
+function getEventHash(evt) {
+  return bytesToHex(sha256(utf8.encode(serializeEvent(evt))))
+}
+
+function finalizeEvent(t, secretKey) {
+  const pubkey = getPublicKey(secretKey)
+  const unsigned = {
+    pubkey,
+    created_at: t.created_at,
+    kind: t.kind,
+    tags: t.tags,
+    content: t.content,
+  }
+  const id = getEventHash(unsigned)
+  const sig = bytesToHex(schnorr.sign(hexToBytes(id), secretKey))
+  return { ...unsigned, id, sig }
+}
 
 const DEFAULT_SERVER = process.env.MEDIA_SERVER?.trim() || 'https://nostrcheck.me'
 const FIXTURE = process.env.MEDIA_FILE?.trim() || null

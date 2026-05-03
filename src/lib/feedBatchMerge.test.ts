@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { mergeFeedIncoming } from './feedBatchMerge'
 import { NIP52_KIND_DATE_EVENT } from './nip52'
 

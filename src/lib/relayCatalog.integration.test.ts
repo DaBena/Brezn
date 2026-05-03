@@ -5,8 +5,7 @@
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { Relay } from 'nostr-tools/relay'
-import type { Filter } from 'nostr-tools'
+import type { Filter } from './nostrWireTypes'
 import { DEFAULT_RELAYS } from './nostrClient'
 
 const GEOHASH_U_FILTER: Filter[] = [{ kinds: [1], '#g': ['u'], limit: 5 }]
@@ -142,34 +141,88 @@ async function fetchRelayCatalog(
 type ProbeRow = { url: string; ok: boolean; gotEvent: boolean; error?: string }
 
 async function probeGeohashU(url: string, eoseTimeoutMs: number): Promise<ProbeRow> {
-  let relay: Relay | undefined
-  try {
-    relay = await Relay.connect(url, { enablePing: true, enableReconnect: false })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return { url, ok: false, gotEvent: false, error: `connect: ${msg}` }
-  }
-
   return await new Promise((resolve) => {
     let settled = false
-    const finish = (partial: Omit<ProbeRow, 'url'>) => {
+    let ws: WebSocket | undefined
+    const subId = `brezn-probe-${Math.random().toString(36).slice(2, 10)}`
+
+    function finish(partial: Omit<ProbeRow, 'url'>): void {
       if (settled) return
       settled = true
+      clearTimeout(hardDeadline)
+      clearTimeout(eoseTimer)
       try {
-        relay?.close()
+        ws?.close()
       } catch {
         /* ignore */
       }
       resolve({ url, ...partial })
     }
 
-    relay!.subscribe(GEOHASH_U_FILTER, {
-      eoseTimeout: eoseTimeoutMs,
-      oneose: () => finish({ ok: true, gotEvent: false }),
-      onevent: () => finish({ ok: true, gotEvent: true }),
-      onclose: (reason) =>
-        finish({ ok: false, gotEvent: false, error: `subscription closed: ${reason}` }),
-    })
+    const hardDeadline = setTimeout(
+      () => finish({ ok: false, gotEvent: false, error: 'hard deadline' }),
+      eoseTimeoutMs + 8000,
+    )
+
+    const eoseTimer = setTimeout(() => finish({ ok: true, gotEvent: false }), eoseTimeoutMs)
+
+    try {
+      ws = new WebSocket(url)
+    } catch (e) {
+      clearTimeout(hardDeadline)
+      clearTimeout(eoseTimer)
+      const msg = e instanceof Error ? e.message : String(e)
+      resolve({ url, ok: false, gotEvent: false, error: `connect: ${msg}` })
+      return
+    }
+
+    ws.onopen = () => {
+      try {
+        ws!.send(JSON.stringify(['REQ', subId, ...GEOHASH_U_FILTER]))
+      } catch (e) {
+        clearTimeout(hardDeadline)
+        clearTimeout(eoseTimer)
+        const msg = e instanceof Error ? e.message : String(e)
+        finish({ ok: false, gotEvent: false, error: `send: ${msg}` })
+      }
+    }
+
+    ws.onmessage = (ev) => {
+      let msg: unknown
+      try {
+        msg = JSON.parse(String(ev.data))
+      } catch {
+        return
+      }
+      if (!Array.isArray(msg) || typeof msg[0] !== 'string') return
+      const typ = msg[0]
+      if (typ === 'EVENT' && msg[1] === subId && msg[2] && typeof msg[2] === 'object') {
+        clearTimeout(eoseTimer)
+        finish({ ok: true, gotEvent: true })
+        return
+      }
+      if (typ === 'EOSE' && msg[1] === subId) {
+        clearTimeout(eoseTimer)
+        finish({ ok: true, gotEvent: false })
+        return
+      }
+      if (typ === 'CLOSED' && msg[1] === subId) {
+        const reason = typeof msg[2] === 'string' ? msg[2] : 'closed'
+        clearTimeout(eoseTimer)
+        finish({ ok: false, gotEvent: false, error: `subscription closed: ${reason}` })
+      }
+    }
+
+    ws.onerror = () => {
+      clearTimeout(eoseTimer)
+      finish({ ok: false, gotEvent: false, error: 'WebSocket error' })
+    }
+
+    ws.onclose = () => {
+      clearTimeout(hardDeadline)
+      clearTimeout(eoseTimer)
+      if (!settled) finish({ ok: false, gotEvent: false, error: 'socket closed' })
+    }
   })
 }
 

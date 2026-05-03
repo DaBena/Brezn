@@ -21,7 +21,8 @@
     "relayFailPrefix": "中继连接失败。",
     "noRelayResponse": "中继无响应，请检查列表或稍后再试。",
     "waitingEose": "尚无事件（等待 EOSE）…",
-    "noPostsYet": "暂无帖子，请稍后再试或更换中继。"
+    "noPostsYet": "暂无帖子，请稍后再试或更换中继。",
+    "noRelays": "连接池中还没有中继。请稍候或检查网络；NDK 会从引导、个人资料和网络添加中继。"
   },
   "settings": {
     "title": "设置",
@@ -90,9 +91,6 @@
     "default": "默认",
     "test": "测试",
     "testing": "测试中…",
-    "removed": "已移除。",
-    "added": "已添加。",
-    "resetDefault": "恢复默认中继",
     "unknown": "未知",
     "reachable": "可达",
     "unreachable": "不可达",

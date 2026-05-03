@@ -7,18 +7,25 @@
     "node": ">=24"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "check:locales": "node scripts/check-locale-keys.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@noble/ciphers": "^0.5.3",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "@nostr-dev-kit/ndk": "^3.0.3",
+    "@scure/base": "^1.2.6",
     "@types/leaflet": "^1.9.21",
     "dexie": "^4.4.2",
     "i18next": "^26.0.8",
@@ -44,6 +51,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "jsdom": "^29.0.2",
+    "patch-package": "^8.0.1",
     "postcss": "^8.5.6",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",

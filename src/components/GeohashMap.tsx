@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import { encodeGeohash, getGeohashMapParams } from '../lib/geo'
 import { feedEventMapPoint } from '../lib/feedEventMapPoint'
 import { readCssVar } from '../lib/readCssVar'

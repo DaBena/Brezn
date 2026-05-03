@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 
 export type ProfileMetadataRow = {
   pubkey: string

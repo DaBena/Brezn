@@ -1,9 +1,16 @@
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
-import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools/pure'
-import type { Event, Filter } from 'nostr-tools'
-import { SimplePool } from 'nostr-tools/pool'
-import * as nip19 from 'nostr-tools/nip19'
-import { nip04 } from 'nostr-tools'
+import NDK from '@nostr-dev-kit/ndk'
+import { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import type { NDKSubscription } from '@nostr-dev-kit/ndk'
+import {
+  generateSecretKey,
+  getPublicKey,
+  nip04,
+  nip19,
+  type Event,
+  type Filter,
+} from './nostrPrimitives'
+import { ndkEventToBreznEvent } from './ndkEventUtils'
 import { normalizeMutedTerms } from './moderation'
 import {
   loadJsonSync,
@@ -15,14 +22,22 @@ import {
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
   GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
-  GET_DM_HISTORY_MAX_WAIT_MS,
   GET_DM_HISTORY_TIMEOUT_MS,
   GET_MY_PROFILE_FETCH_TIMEOUT_MS,
   IDENTITY_INIT_TIMEOUT_MS,
-  SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
 } from './constants'
 
-// Bootstrap relays: keep this list small-ish (each subscription connects to all of them)
+const shouldConnectNdkRelays = typeof process === 'undefined' || process.env.VITEST !== 'true'
+
+function connectNdkRelays(ndk: NDK): void {
+  if (!shouldConnectNdkRelays) return
+  void ndk.connect(5000)
+}
+
+/**
+ * Bootstrap relay URLs passed into `new NDK({ explicitRelayUrls })` and restored when clearing manual overrides.
+ * NDK itself does not ship a public default list; this is the app’s NDK bootstrap set.
+ */
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
@@ -42,8 +57,9 @@ type StoredStateV1 = {
   settings?: {
     geohashLength?: number // 1-5, default: 1
     mediaUploadEndpoint?: string
-    relays?: string[]
     theme?: 'light' | 'dark' // 'light' or 'dark', default: 'dark'
+    /** If set (including `[]`), Brezn pins this list on NDK. If omitted, NDK manages relays (pool + outbox). */
+    relays?: string[]
   }
 }
 
@@ -148,8 +164,8 @@ export type BreznNostrClient = {
 
   /**
    * Subscribe with multiple filters merged into one REQ per relay (NIP-01 filter array).
-   * Prefer this over multiple `subscribe` calls for the same logical fetch (e.g. DMs) to avoid
-   * relay limits like "too many concurrent REQs".
+   * Prefer this over multiple `subscribe` calls for the same logical fetch (feed multi-cell,
+   * DMs, etc.) to avoid relay limits like "too many concurrent REQs" and reduce latency.
    */
   subscribeGrouped(
     filters: Filter[],
@@ -162,17 +178,17 @@ export type BreznNostrClient = {
   ): () => void
 
   /**
-   * Get list of configured relay URLs.
-   * Returns default relays if none configured.
-   * @returns Array of WebSocket URLs (wss://...)
+   * Relay URLs used for subscriptions and publish.
+   * With no manual override: NDK pool (bootstrap + outbox / profile relays).
+   * With override: the persisted list only (fixed relay set, like `subscribeMany` on chosen URLs).
    */
   getRelays(): string[]
 
-  /**
-   * Set relay URLs. Invalid URLs are filtered out.
-   * @param relays - Array of relay URLs (wss://...)
-   */
+  /** Pin a manual relay list (normalized, max 30, persisted). */
   setRelays(relays: string[]): void
+
+  /** Clear manual list: NDK uses bootstrap again and may add relays from the network (outbox). */
+  clearRelayOverrides(): void
 
   /**
    * Get muted keyword terms (blocklist).
@@ -414,7 +430,6 @@ function normalizeRelayUrl(input: string): string | null {
   try {
     const u = new URL(trimmed)
     if (u.protocol !== 'wss:' && u.protocol !== 'ws:') return null
-    // keep path if user provides it (some relays may use it), but normalize trivial "/"
     u.hash = ''
     u.search = ''
     const s = u.toString()
@@ -442,7 +457,7 @@ function normalizeRelays(relays: string[]): string[] {
  * Creates a new Nostr client instance.
  *
  * The client is a singleton-like instance that manages:
- * - WebSocket connections to relays (via SimplePool)
+ * - WebSocket connections to relays (via NDK)
  * - Active subscriptions with automatic cleanup
  * - Persistent state (identity, settings) in localStorage/IndexedDB
  *
@@ -452,9 +467,12 @@ function normalizeRelays(relays: string[]): string[] {
  */
 export function createNostrClient(): BreznNostrClient {
   setStorageConsentGiven(canPersistState())
-  const pool = new SimplePool({ enablePing: true, enableReconnect: true })
+  const ndk = new NDK({
+    explicitRelayUrls: [...DEFAULT_RELAYS],
+    filterValidationMode: 'fix',
+    aiGuardrails: false,
+  })
 
-  type SubCloser = { close: (reason?: string) => void | Promise<void> }
   type ActiveSub = {
     id: string
     filter: Filter
@@ -464,18 +482,15 @@ export function createNostrClient(): BreznNostrClient {
       onclose?: (reasons: string[]) => void
       immediate?: boolean
     }
-    closer: SubCloser | null
+    closer: NDKSubscription | null
   }
 
-  /** Close a subscription and swallow any sync throw or promise rejection (e.g. SendingOnClosedConnection). */
-  function closeSubSafely(closer: SubCloser, reason: string): void {
+  function closeSubSafely(sub: NDKSubscription | null, _reason: string): void {
+    if (!sub) return
     try {
-      const result = closer.close(reason)
-      if (result != null && typeof (result as Promise<unknown>).catch === 'function') {
-        ;(result as Promise<void>).catch(() => {})
-      }
+      sub.stop()
     } catch {
-      // Ignore sync errors (e.g. WebSocket already CLOSING/CLOSED)
+      // Ignore (e.g. subscription already stopped)
     }
   }
 
@@ -514,20 +529,18 @@ export function createNostrClient(): BreznNostrClient {
   function getRelays(): string[] {
     const s = loadState()
     const stored = s.settings?.relays
-    // If relays have never been set (undefined), use defaults
-    if (stored === undefined) {
-      return [...DEFAULT_RELAYS]
-    }
-    // If relays is an array (even if empty), use it
     if (Array.isArray(stored)) {
-      if (stored.length > 0) {
-        const norm = normalizeRelays(stored)
-        return norm
-      }
-      // User explicitly removed all relays, return empty array
-      return []
+      if (stored.length === 0) return []
+      return normalizeRelays(stored)
     }
-    // Fallback (shouldn't happen, but just in case)
+    try {
+      const poolUrls = ndk.pool.urls()
+      if (poolUrls.length > 0) return [...poolUrls]
+    } catch {
+      /* ignore */
+    }
+    const ex = ndk.explicitRelayUrls
+    if (Array.isArray(ex) && ex.length > 0) return [...ex]
     return [...DEFAULT_RELAYS]
   }
 
@@ -535,7 +548,19 @@ export function createNostrClient(): BreznNostrClient {
     const norm = normalizeRelays(relays)
     const s = loadState()
     saveState({ settings: { ...s.settings, relays: norm } })
+    ndk.explicitRelayUrls = [...norm]
+    connectNdkRelays(ndk)
     resubscribeAll('relays-changed')
+  }
+
+  function clearRelayOverrides() {
+    const s = loadState()
+    const settings = { ...s.settings }
+    delete settings.relays
+    saveState({ settings })
+    ndk.explicitRelayUrls = [...DEFAULT_RELAYS]
+    connectNdkRelays(ndk)
+    resubscribeAll('relays-auto')
   }
 
   function startOrRestartSub(s: ActiveSub, reason: string) {
@@ -548,27 +573,26 @@ export function createNostrClient(): BreznNostrClient {
     // Create new subscription
     const relays = getRelays()
     if (relays.length === 0) {
-      // No relays configured - close subscription immediately
       s.closer = null
       s.opts.onclose?.(['No relays configured'])
       return
     }
-    s.closer = pool.subscribeMany(relays, s.filter, {
-      onevent: s.opts.onevent,
-      oneose: () => {
+    const sub = ndk.subscribe(s.filter, {
+      groupable: false,
+      subId: s.id,
+      onEvent: (e) => s.opts.onevent(ndkEventToBreznEvent(e)),
+      onEose: () => {
         try {
           s.opts.oneose?.()
         } catch (err) {
-          // Ignore errors in oneose callback - might happen if subscription is closed during EOSE
           console.warn('Error in oneose callback:', err)
         }
       },
-      onclose: (reasons) => {
-        s.opts.onclose?.(reasons)
+      onClose: () => {
+        s.opts.onclose?.([])
       },
-      maxWait: SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
-      label: 'brezn',
-    }) as unknown as SubCloser
+    })
+    s.closer = sub
   }
 
   function resubscribeAll(reason = 'manual') {
@@ -577,7 +601,7 @@ export function createNostrClient(): BreznNostrClient {
 
   // best-effort: when network comes back, restart subs
   // Note: We DON'T resubscribe on visibilitychange because:
-  // 1. SimplePool handles reconnection automatically
+  // 1. NDK pool handles reconnection automatically
   // 2. Resubscribing all subscriptions at once causes "too many concurrent REQs"
   // 3. The subscriptions are still active, just paused
   if (typeof window !== 'undefined') {
@@ -672,23 +696,18 @@ export function createNostrClient(): BreznNostrClient {
 
   async function publish(input: Pick<Event, 'kind' | 'content' | 'tags'>): Promise<string> {
     const { skHex } = ensureIdentity()
-    const evt = finalizeEvent(
-      {
-        kind: input.kind,
-        created_at: nowSec(),
-        tags: input.tags,
-        content: input.content,
-      },
-      hexToBytes(skHex),
-    )
-
     const relays = getRelays()
     if (relays.length === 0) {
       throw new Error('No relays configured')
     }
-    const pubs = pool.publish(relays, evt)
-    await Promise.any(pubs)
-    return evt.id
+    ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
+    const ev = new NDKEvent(ndk)
+    ev.kind = input.kind
+    ev.content = input.content
+    ev.tags = input.tags
+    ev.created_at = nowSec()
+    await ev.publish(undefined, 60_000, 1)
+    return ev.id
   }
 
   function subscribe(
@@ -725,7 +744,7 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   /**
-   * One REQ per relay with multiple filters (nostr-tools merges same-relay filters into one subscription).
+   * One subscription with multiple filters across the configured relay set (NDK sends a filter array per REQ).
    */
   function subscribeGrouped(
     filters: Filter[],
@@ -741,19 +760,15 @@ export function createNostrClient(): BreznNostrClient {
       opts.onclose?.(['No relays configured'])
       return () => {}
     }
-    const requests: { url: string; filter: Filter }[] = []
-    for (const url of relays) {
-      for (const f of filters) {
-        requests.push({ url, filter: f })
-      }
-    }
-    const closer = pool.subscribeMap(requests, {
-      ...opts,
-      maxWait: SUBSCRIBE_DEFAULT_MAX_WAIT_MS,
-      label: `brezn-${traceLabel}`,
-    }) as SubCloser
+    const sub = ndk.subscribe(filters, {
+      groupable: false,
+      subId: `brezn-${traceLabel}`,
+      onEvent: (e) => opts.onevent(ndkEventToBreznEvent(e)),
+      onEose: () => opts.oneose?.(),
+      onClose: () => opts.onclose?.([]),
+    })
     return () => {
-      closeSubSafely(closer, 'ui-unsubscribe')
+      closeSubSafely(sub, 'ui-unsubscribe')
     }
   }
 
@@ -881,8 +896,7 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   /**
-   * One `subscribeMap` per relay (two filters on that relay only). Nostr-tools waits for every URL in a single map;
-   * splitting by relay avoids one dead relay blocking EOSE on the others.
+   * Per-relay DM history: two filters on one relay only so a slow relay does not block the others.
    */
   function subscribeDmOnSingleRelay(
     relayUrl: string,
@@ -894,31 +908,28 @@ export function createNostrClient(): BreznNostrClient {
   ): Promise<void> {
     return new Promise((resolve) => {
       let resolved = false
-      let closer: SubCloser | null = null
+      let sub: NDKSubscription | null = null
 
       const finishRelay = () => {
         if (resolved) return
         resolved = true
         clearTimeout(tid)
-        if (closer) closeSubSafely(closer, 'ui-unsubscribe')
+        if (sub) closeSubSafely(sub, 'ui-unsubscribe')
         resolve()
       }
 
       const tid = setTimeout(finishRelay, timeoutMs)
 
-      closer = pool.subscribeMap(
-        [
-          { url: relayUrl, filter: filterA },
-          { url: relayUrl, filter: filterB },
-        ],
-        {
-          onevent,
-          oneose: finishRelay,
-          onclose: finishRelay,
-          maxWait: GET_DM_HISTORY_MAX_WAIT_MS,
-          label,
-        },
-      ) as SubCloser
+      sub = ndk.subscribe([filterA, filterB], {
+        groupable: false,
+        closeOnEose: true,
+        relayUrls: [relayUrl],
+        exclusiveRelay: true,
+        subId: label,
+        onEvent: (e) => onevent(ndkEventToBreznEvent(e)),
+        onEose: finishRelay,
+        onClose: finishRelay,
+      })
     })
   }
 
@@ -1192,6 +1203,7 @@ export function createNostrClient(): BreznNostrClient {
       // Save new identity (this will encrypt it automatically)
       saveState({ skHex, pubkey, npub })
 
+      ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
       // Resubscribe all active subscriptions with new identity
       resubscribeAll('identity-changed')
     } catch (error) {
@@ -1203,7 +1215,9 @@ export function createNostrClient(): BreznNostrClient {
   }
 
   // Ensure identity exists immediately (no "accounts"/login flow).
-  ensureIdentity()
+  const initialIdentity = ensureIdentity()
+  ndk.signer = new NDKPrivateKeySigner(initialIdentity.skHex, ndk)
+  connectNdkRelays(ndk)
 
   return {
     getPublicIdentity,
@@ -1213,6 +1227,7 @@ export function createNostrClient(): BreznNostrClient {
     subscribeGrouped,
     getRelays,
     setRelays,
+    clearRelayOverrides,
     getMutedTerms,
     setMutedTerms,
     getBlockedPubkeys,

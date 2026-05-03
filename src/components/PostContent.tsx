@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import { cn } from '../lib/cn'
 import {
   extractLinks,

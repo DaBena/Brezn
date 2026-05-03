@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { resolveEventsById } from '../lib/eventResolver'
 

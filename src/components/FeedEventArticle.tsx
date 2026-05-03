@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { buttonBase, reactionButtonClasses } from '../lib/buttonStyles'

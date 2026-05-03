@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Event, Filter } from 'nostr-tools'
+import type { Event, Filter } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { getTagValue } from '../lib/nostrUtils'
 

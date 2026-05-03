@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import type { BreznNostrClient } from './nostrClient'
 import { resolveEventById } from './eventResolver'
 

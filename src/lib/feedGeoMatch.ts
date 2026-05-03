@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { getEastWestNeighbors } from './geo'
 import { NOSTR_KINDS } from './breznNostr'
 import {

@@ -1,6 +1,6 @@
 import { type ChangeEvent, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'

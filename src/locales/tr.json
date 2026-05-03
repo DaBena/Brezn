@@ -21,7 +21,8 @@
     "relayFailPrefix": "Relay bağlantısı başarısız. ",
     "noRelayResponse": "Relay’lerden yanıt yok. Relay listesini kontrol edin veya sonra tekrar deneyin.",
     "waitingEose": "Henüz olay yok (EOSE bekleniyor)…",
-    "noPostsYet": "Henüz gönderi yok. Sonra tekrar deneyin veya farklı relay’ler kullanın."
+    "noPostsYet": "Henüz gönderi yok. Sonra tekrar deneyin veya farklı relay’ler kullanın.",
+    "noRelays": "Bağlantı havuzunda henüz relay yok. Biraz bekleyin veya ağı kontrol edin; NDK önyükleme, profil ve ağdan relay ekler."
   },
   "settings": {
     "title": "Ayarlar",
@@ -90,9 +91,6 @@
     "default": "Varsayılan",
     "test": "Test",
     "testing": "Test ediliyor…",
-    "removed": "Relay kaldırıldı.",
-    "added": "Relay eklendi.",
-    "resetDefault": "Varsayılan relay’lere sıfırla.",
     "unknown": "bilinmiyor",
     "reachable": "erişilebilir",
     "unreachable": "erişilemez",

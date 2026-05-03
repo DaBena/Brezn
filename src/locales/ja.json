@@ -21,7 +21,8 @@
     "relayFailPrefix": "リレー接続に失敗しました。",
     "noRelayResponse": "リレーから応答がありません。リストを確認するか後で試してください。",
     "waitingEose": "まだイベントがありません（EOSE 待ち）…",
-    "noPostsYet": "まだ投稿がありません。後で試すか別のリレーを。"
+    "noPostsYet": "まだ投稿がありません。後で試すか別のリレーを。",
+    "noRelays": "まだ接続プールにリレーがありません。少し待つかネットワークを確認してください。NDK がブートストラップ・プロフィール・ネットワークからリレーを追加します。"
   },
   "settings": {
     "title": "設定",
@@ -90,9 +91,6 @@
     "default": "デフォルト",
     "test": "テスト",
     "testing": "テスト中…",
-    "removed": "削除しました。",
-    "added": "追加しました。",
-    "resetDefault": "デフォルトのリレーに戻す",
     "unknown": "不明",
     "reachable": "接続可",
     "unreachable": "接続不可",

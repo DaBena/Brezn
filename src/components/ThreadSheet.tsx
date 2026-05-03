@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import { nip19, type Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
@@ -15,7 +15,6 @@ import { PostIdentity } from './PostIdentity'
 import { feedEventCardPlainText } from '../lib/feedContentPreview'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { sheetPostCardClass } from '../lib/uiClasses'
-import * as nip19 from 'nostr-tools/nip19'
 import { HeartIcon } from './HeartIcon'
 
 function PostCard(props: {

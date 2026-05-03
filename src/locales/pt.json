@@ -21,7 +21,8 @@
     "relayFailPrefix": "Falha de ligação ao relay. ",
     "noRelayResponse": "Sem resposta dos relays. Verifique a lista ou tente mais tarde.",
     "waitingEose": "Ainda sem eventos (à espera de EOSE)…",
-    "noPostsYet": "Ainda sem publicações. Tente mais tarde ou outros relays."
+    "noPostsYet": "Ainda sem publicações. Tente mais tarde ou outros relays.",
+    "noRelays": "Ainda não há relays no conjunto de ligações. Espere um instante ou verifique a rede; o NDK adiciona relays a partir do arranque, do perfil e da rede."
   },
   "settings": {
     "title": "Definições",
@@ -90,9 +91,6 @@
     "default": "Predefinição",
     "test": "Testar",
     "testing": "A testar…",
-    "removed": "Relay removido.",
-    "added": "Relay adicionado.",
-    "resetDefault": "Repor relays predefinidos.",
     "unknown": "desconhecido",
     "reachable": "acessível",
     "unreachable": "inacessível",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import * as nip19 from 'nostr-tools/nip19'
+import { nip19 } from '../lib/nostrPrimitives'
 import { formatRelativeChatTime } from '../lib/formatRelativeTime'
 import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
 import type { BreznNostrClient, Conversation } from '../lib/nostrClient'

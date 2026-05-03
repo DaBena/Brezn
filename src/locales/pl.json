@@ -21,7 +21,8 @@
     "relayFailPrefix": "Połączenie z relay’em nie powiodło się. ",
     "noRelayResponse": "Brak odpowiedzi z relay’ów. Sprawdź listę relay’ów lub spróbuj później.",
     "waitingEose": "Brak zdarzeń (oczekiwanie na EOSE)…",
-    "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów."
+    "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów.",
+    "noRelays": "Jeszcze żadnych relay’ów w puli połączenia. Poczekaj chwilę lub sprawdź sieć; NDK uzupełnia relay’e z bootstrapu, profilu i sieci."
   },
   "settings": {
     "title": "Ustawienia",
@@ -90,9 +91,6 @@
     "default": "Domyślne",
     "test": "Test",
     "testing": "Testowanie…",
-    "removed": "Relay usunięty.",
-    "added": "Relay dodany.",
-    "resetDefault": "Przywróć domyślne relay’e.",
     "unknown": "nieznany",
     "reachable": "osiągalny",
     "unreachable": "nieosiągalny",

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
-import { RELAY_WEBSOCKET_TEST_TIMEOUT_MS } from '../../lib/constants'
 import { DEFAULT_RELAYS } from '../../lib/nostrClient'
+import { RELAY_WEBSOCKET_TEST_TIMEOUT_MS } from '../../lib/constants'
 import { CloseIcon } from '../CloseIcon'
 
 type RelayStatusLite = {
@@ -79,7 +79,6 @@ function testRelay(
     }
 
     ws.onclose = (ev) => {
-      // If it closed before open and without a prior onerror, treat as failure.
       if (done) return
       if (opened) return
       const err = ev.reason || `Closed (${ev.code})`
@@ -96,47 +95,38 @@ function asErrorMessage(e: unknown): string {
 
 export function RelaySettings({ client }: RelaySettingsProps) {
   const { t } = useTranslation()
-  const [relays, setRelays] = useState<string[]>(() => client.getRelays())
+  const [relaysUi, setRelaysUi] = useState<string[]>(() => client.getRelays())
   const [newRelay, setNewRelay] = useState('')
-  const [relayMsg, setRelayMsg] = useState<string | null>(null)
-  const [relayStatusesByUrl, setRelayStatusesByUrl] = useState<Record<string, RelayStatusLite>>({})
+  const [relayTestResults, setRelayTestResults] = useState<Record<string, RelayStatusLite>>({})
   const [relayTestState, setRelayTestState] = useState<RelayTestState>('idle')
   const [relayTestError, setRelayTestError] = useState<string | null>(null)
   const [relayTestTriggered, setRelayTestTriggered] = useState(false)
 
-  // Keep relay status list in sync with current enabled relays.
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- merge new relay URLs into status map */
-    setRelayStatusesByUrl((prev) => {
-      const next: Record<string, RelayStatusLite> = {}
-      for (const url of relays) {
-        next[url] = prev[url] ?? { url, reachable: 'unknown' }
-      }
-      return next
-    })
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [relays])
+    setRelaysUi(client.getRelays())
+  }, [client])
+
+  const relayStatusesByUrl = useMemo(() => {
+    const next: Record<string, RelayStatusLite> = {}
+    for (const url of relaysUi) {
+      next[url] = relayTestResults[url] ?? { url, reachable: 'unknown' }
+    }
+    return next
+  }, [relaysUi, relayTestResults])
 
   async function runRelayTests() {
     setRelayTestTriggered(true)
     setRelayTestState('running')
     setRelayTestError(null)
 
-    const urls = relays
+    const urls = relaysUi
     const timeoutMs = RELAY_WEBSOCKET_TEST_TIMEOUT_MS
-
-    // Pre-fill unknown for all current relays.
-    setRelayStatusesByUrl((prev) => {
-      const next = { ...prev }
-      for (const url of urls) next[url] = next[url] ?? { url, reachable: 'unknown' }
-      return next
-    })
 
     try {
       await Promise.all(
         urls.map(async (url) => {
           const r = await testRelay(url, timeoutMs)
-          setRelayStatusesByUrl((prev) => ({
+          setRelayTestResults((prev) => ({
             ...prev,
             [url]: r.ok
               ? { url, reachable: true, rttMs: r.rttMs, lastError: undefined }
@@ -156,14 +146,12 @@ export function RelaySettings({ client }: RelaySettingsProps) {
       <div className="text-xs font-semibold text-brezn-muted">{t('relay.title')}</div>
       <div className="mt-1 text-xs text-brezn-muted">{t('relay.hint')}</div>
 
-      {relays.length === 0 ? (
-        <div className="mt-3 rounded-xl border border-brezn-border bg-brezn-panel p-3 text-xs text-brezn-muted">
-          {t('relay.empty')}
-        </div>
+      {relaysUi.length === 0 ? (
+        <div className="mt-3 text-xs text-brezn-muted">{t('relay.empty')}</div>
       ) : null}
 
       <div className="mt-3 space-y-2">
-        {relays.map((r) => {
+        {relaysUi.map((r) => {
           return (
             <div
               key={r}
@@ -174,10 +162,9 @@ export function RelaySettings({ client }: RelaySettingsProps) {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault()
-                  const next = relays.filter((x) => x !== r)
+                  const next = relaysUi.filter((x) => x !== r)
                   client.setRelays(next)
-                  setRelays(next)
-                  setRelayMsg(t('relay.removed'))
+                  setRelaysUi(client.getRelays())
                 }}
                 className="shrink-0 hover:opacity-80 focus:outline-none"
                 aria-label={t('relay.removeAria')}
@@ -195,11 +182,10 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           e.preventDefault()
           const trimmed = newRelay.trim()
           if (!trimmed) return
-          const next = [...relays, trimmed]
+          const next = [...relaysUi, trimmed]
           client.setRelays(next)
-          setRelays(client.getRelays())
+          setRelaysUi(client.getRelays())
           setNewRelay('')
-          setRelayMsg(t('relay.added'))
           setRelayTestTriggered(false)
         }}
       >
@@ -223,8 +209,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
             type="button"
             onClick={() => {
               client.setRelays([...DEFAULT_RELAYS])
-              setRelays(client.getRelays())
-              setRelayMsg(t('relay.resetDefault'))
+              setRelaysUi(client.getRelays())
               setRelayTestTriggered(false)
             }}
             className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
@@ -234,7 +219,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           <button
             type="button"
             onClick={() => void runRelayTests()}
-            disabled={relayTestState === 'running' || relays.length === 0}
+            disabled={relayTestState === 'running' || relaysUi.length === 0}
             className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
           >
             {relayTestState === 'running' ? t('relay.testing') : t('relay.test')}
@@ -242,19 +227,17 @@ export function RelaySettings({ client }: RelaySettingsProps) {
         </div>
       </form>
 
-      {relayMsg ? <div className="mt-2 text-xs text-brezn-muted">{relayMsg}</div> : null}
-
       {relayTestState === 'error' && relayTestError ? (
         <div className="mt-2 text-xs text-brezn-error">{relayTestError}</div>
       ) : null}
 
       {relayTestTriggered ? (
         <div className="mt-3 space-y-2">
-          {relays.map((url) => {
+          {relaysUi.map((url) => {
             const s = relayStatusesByUrl[url] ?? { url, reachable: 'unknown' as const }
             return (
               <div
-                key={url}
+                key={`${url}-status`}
                 className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2"
               >
                 <div className="min-w-0">

@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { NOSTR_KINDS } from './breznNostr'
 
 const EVENT_CARD_DATE_OPTS: Intl.DateTimeFormatOptions = {

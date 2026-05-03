@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
+import type { Event } from '../lib/nostrPrimitives'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { extractLinks } from '../lib/urls'
 

@@ -21,7 +21,8 @@
     "relayFailPrefix": "Kết nối relay thất bại. ",
     "noRelayResponse": "Không có phản hồi từ relay. Kiểm tra danh sách relay hoặc thử sau.",
     "waitingEose": "Chưa có sự kiện (đang chờ EOSE)…",
-    "noPostsYet": "Chưa có bài đăng. Thử sau hoặc dùng relay khác."
+    "noPostsYet": "Chưa có bài đăng. Thử sau hoặc dùng relay khác.",
+    "noRelays": "Chưa có relay trong nhóm kết nối. Đợi một lúc hoặc kiểm tra mạng; NDK bổ sung relay từ khởi động, hồ sơ và mạng."
   },
   "settings": {
     "title": "Cài đặt",
@@ -90,9 +91,6 @@
     "default": "Mặc định",
     "test": "Kiểm tra",
     "testing": "Đang kiểm tra…",
-    "removed": "Đã xóa relay.",
-    "added": "Đã thêm relay.",
-    "resetDefault": "Khôi phục relay mặc định.",
     "unknown": "không rõ",
     "reachable": "kết nối được",
     "unreachable": "không kết nối được",

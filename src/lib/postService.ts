@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import type { BreznNostrClient } from './nostrClient'
 import { NOSTR_KINDS } from './breznNostr'
 import { generateGeohashTags } from './geo'

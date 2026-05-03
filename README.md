@@ -40,7 +40,7 @@ With the same keys and relays you can see the same content on other Nostr client
 
 - `React` + `Vite`
 - `Tailwind CSS`
-- `nostr-tools`
+- `nostr-dev-kit`
 - `vite-plugin-pwa`
 
 ## Development

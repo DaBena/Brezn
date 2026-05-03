@@ -1,6 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NDKEvent } from '@nostr-dev-kit/ndk'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setSavedGeo5 } from './lastLocation'
 import { createNostrClient } from './nostrClient'
+
+describe('nostrClient NDK / Vitest', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setSavedGeo5('u0m0m')
+  })
+
+  it('skips live ndk.connect when VITEST is set (avoids undici WebSocket vs jsdom EventTarget)', () => {
+    expect(process.env.VITEST).toBe('true')
+    const client = createNostrClient()
+    expect(client.getRelays().length).toBeGreaterThan(0)
+  })
+})
 
 describe('nostrClient identity (no accounts)', () => {
   beforeEach(() => {
@@ -124,27 +138,36 @@ describe('nostrClient relays', () => {
     setSavedGeo5('u0m0m')
   })
 
-  it('returns default relays when none configured', () => {
+  it('returns NDK pool or bootstrap when no manual override', () => {
     const client = createNostrClient()
     const relays = client.getRelays()
     expect(relays.length).toBeGreaterThan(0)
-    expect(relays.every((r) => r.startsWith('wss://'))).toBe(true)
+    expect(relays.every((r) => r.startsWith('wss://') || r.startsWith('ws://'))).toBe(true)
+    expect(
+      relays.some((r) => {
+        try {
+          const u = new URL(r)
+          return u.hostname === 'relay.damus.io'
+        } catch {
+          return false
+        }
+      }),
+    ).toBe(true)
   })
 
-  it('normalizes relay URLs', () => {
+  it('normalizes relay URLs when pinned', () => {
     const client = createNostrClient()
     client.setRelays([
       'wss://relay.example.com',
-      'wss://relay.example.com/', // trailing slash
-      'ws://relay.example.com', // ws is also accepted (for local testing)
+      'wss://relay.example.com/',
+      'ws://relay.example.com',
       'invalid-url',
       'https://not-ws.com',
     ])
 
     const relays = client.getRelays()
     expect(relays).toContain('wss://relay.example.com')
-    expect(relays).not.toContain('wss://relay.example.com/') // trailing slash removed
-    // ws:// is actually accepted (for local testing), so we check it's normalized
+    expect(relays).not.toContain('wss://relay.example.com/')
     expect(
       relays.some((r) => {
         try {
@@ -161,11 +184,11 @@ describe('nostrClient relays', () => {
     expect(relays).not.toContain('https://not-ws.com')
   })
 
-  it('removes duplicate relays', () => {
+  it('removes duplicate relays when pinned', () => {
     const client = createNostrClient()
     client.setRelays([
       'wss://relay.example.com',
-      'wss://RELAY.EXAMPLE.COM', // case-insensitive duplicate
+      'wss://RELAY.EXAMPLE.COM',
       'wss://relay.example.com',
     ])
 
@@ -173,20 +196,31 @@ describe('nostrClient relays', () => {
     expect(relays.filter((r) => r.toLowerCase() === 'wss://relay.example.com').length).toBe(1)
   })
 
-  it('limits relays to 30', () => {
+  it('limits pinned relays to 30', () => {
     const client = createNostrClient()
     const manyRelays = Array.from({ length: 50 }, (_, i) => `wss://relay${i}.example.com`)
     client.setRelays(manyRelays)
     expect(client.getRelays().length).toBe(30)
   })
 
-  it('persists relay configuration', () => {
+  it('persists pinned relay configuration', () => {
     const client = createNostrClient()
     client.setRelays(['wss://custom.relay.com'])
 
     const client2 = createNostrClient()
     const relays = client2.getRelays()
     expect(relays).toContain('wss://custom.relay.com')
+  })
+
+  it('clearRelayOverrides removes pin across instances', () => {
+    const client = createNostrClient()
+    client.setRelays(['wss://only-pinned.example.com'])
+    expect(client.getRelays()).toEqual(['wss://only-pinned.example.com'])
+
+    client.clearRelayOverrides()
+    const client2 = createNostrClient()
+    expect(client2.getRelays()).not.toEqual(['wss://only-pinned.example.com'])
+    expect(client2.getRelays().length).toBeGreaterThan(0)
   })
 })
 
@@ -225,10 +259,22 @@ describe('nostrClient media upload endpoint', () => {
 })
 
 describe('nostrClient NIP-56 report events', () => {
+  let publishSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
     vi.clearAllMocks()
+    publishSpy = vi.spyOn(NDKEvent.prototype, 'publish').mockImplementation(async function (
+      this: NDKEvent,
+    ) {
+      if (!this.id) this.id = 'c'.repeat(64)
+      return new Set() as Awaited<ReturnType<NDKEvent['publish']>>
+    })
+  })
+
+  afterEach(() => {
+    publishSpy.mockRestore()
   })
 
   it('publishes NIP-56 report event with reason in content field', async () => {
@@ -237,33 +283,16 @@ describe('nostrClient NIP-56 report events', () => {
     const targetEventId = 'b'.repeat(64)
     const reportReason = 'Spam content'
 
-    // Test that publish accepts NIP-56 format (content field, not report tag)
-    // We can't easily mock the pool, so we test that the function accepts the correct format
-    // and doesn't throw. The actual relay publishing will fail in tests, but that's okay.
-    try {
-      await client.publish({
-        kind: 1984, // NIP-56 report
-        content: reportReason, // Report reason in content field (correct NIP-56 format)
+    await expect(
+      client.publish({
+        kind: 1984,
+        content: reportReason,
         tags: [
           ['p', targetPubkey],
           ['e', targetEventId],
-          // Note: NO ['report', ...] tag - that would be incorrect
         ],
-      })
-      // If we get here without error, the format is accepted
-      // (publish will fail at relay level in tests, but that's expected)
-    } catch (error) {
-      // Only fail if it's a format error, not a network error
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      if (
-        errorMessage.includes('content') ||
-        errorMessage.includes('tag') ||
-        errorMessage.includes('format')
-      ) {
-        throw error
-      }
-      // Network/relay errors are expected in tests and can be ignored
-    }
+      }),
+    ).resolves.toMatch(/^[a-f0-9]{64}$/i)
   })
 
   it('validates NIP-56 report event structure', () => {

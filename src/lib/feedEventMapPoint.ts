@@ -1,4 +1,4 @@
-import type { Event } from 'nostr-tools'
+import type { Event } from './nostrPrimitives'
 import { decodeGeohashCenter } from './geo'
 import type { GeoPoint } from './geo'
 import { getLongestGeohashTag } from './nostrUtils'

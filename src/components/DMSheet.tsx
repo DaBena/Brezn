@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from 'nostr-tools'
-import * as nip19 from 'nostr-tools/nip19'
+import { nip19, type Event } from '../lib/nostrPrimitives'
 import { buttonBase } from '../lib/buttonStyles'
 import { formatRelativeChatTime } from '../lib/formatRelativeTime'
 import { GET_CONVERSATIONS_UI_TIMEOUT_MS } from '../lib/constants'
