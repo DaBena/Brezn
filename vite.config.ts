@@ -1,3 +1,4 @@
+import legacy from '@vitejs/plugin-legacy'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -16,13 +17,20 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1024,
     /**
-     * Default Vite/esbuild baselines target fairly new Safari; `@nostr-dev-kit/ndk` ships modern JS.
-     * Older iPhones then choke on parse (blank screen). Pull output + dependency prebundle down explicitly.
-     * For iOS 12–13 try adding `'ios13'` / `'safari13'` or `@vitejs/plugin-legacy`.
+     * Baseline for the modern bundle; `@vitejs/plugin-legacy` may override via `modernTargets`.
+     * `@nostr-dev-kit/ndk` pulls a heavier tree than `nostr-tools` alone — old WebKit needs downlevel output.
      */
     target: ['es2020', 'safari14', 'ios14'],
   },
   plugins: [
+    /**
+     * Large deps (esp. NDK) ship modern JS; plugin-legacy defaults `modernTargets` to Safari/iOS ≥ 16.4,
+     * which overrides `build.target` and can leave iOS 15 parsing a too-new modern chunk (blank screen).
+     */
+    legacy({
+      modernTargets: ['iOS >= 14', 'Safari >= 14'],
+      targets: ['defaults', 'iOS >= 12'],
+    }),
     react(),
     VitePWA({
       // We register manually in-app to show an update toast.

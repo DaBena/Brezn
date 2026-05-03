@@ -11,7 +11,7 @@ function RootInner() {
   useBreznDocumentLang()
   const [ready, setReady] = useState(false)
   useEffect(() => {
-    whenIdentityReady.then(() => setReady(true))
+    void whenIdentityReady.finally(() => setReady(true))
   }, [])
   if (!ready) {
     return (
