@@ -41,15 +41,67 @@
     return String(r)
   }
 
+  /** Same-origin gives message; cross-origin scripts often clear message+filename; iOS Safari sometimes omits message only. */
+  function formatErrorEvent(e) {
+    var msg = e.message != null && String(e.message).length ? String(e.message) : ''
+    if (
+      !msg &&
+      e.error &&
+      e.error instanceof Error &&
+      e.error.message != null &&
+      String(e.error.message).length
+    ) {
+      msg = String(e.error.message)
+    }
+    if (!msg && e.filename) {
+      msg =
+        'Script/runtime error (no message text). Source: ' +
+        e.filename +
+        ':' +
+        (e.lineno != null ? e.lineno : '?') +
+        ':' +
+        (e.colno != null ? e.colno : '?')
+    }
+    if (!msg) {
+      msg =
+        '(error event without message — typical for cross-origin scripts or stripped errors; open Safari Web Inspector → Console.)'
+    }
+    var parts = [msg]
+    if (
+      e.filename &&
+      msg.indexOf(e.filename) === -1 &&
+      !(e.error && e.error.stack && String(e.error.stack).indexOf(e.filename) !== -1)
+    ) {
+      parts.push(
+        'Location: ' +
+          e.filename +
+          ':' +
+          (e.lineno != null ? e.lineno : '?') +
+          ':' +
+          (e.colno != null ? e.colno : '?'),
+      )
+    }
+    if (e.error && e.error.stack) {
+      parts.push(String(e.error.stack))
+    } else if (e.error && !(e.error instanceof Error)) {
+      try {
+        parts.push(String(e.error))
+      } catch (err) {
+        /* ignore */
+      }
+    }
+    return parts.join('\n')
+  }
+
   window.addEventListener(
     'error',
     function (e) {
-      var head =
-        e.message != null && String(e.message).length
-          ? String(e.message)
-          : '(error event without message)'
-      var tail = e.error && e.error.stack ? '\n' + e.error.stack : ''
-      show(head + tail)
+      try {
+        console.error('Brezn fatal-handler: error event', e.message, e.filename, e.lineno, e.error)
+      } catch (err) {
+        /* ignore */
+      }
+      show(formatErrorEvent(e))
     },
     true,
   )
