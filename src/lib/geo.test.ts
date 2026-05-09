@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import geohash from 'ngeohash'
-import { encodeGeohash, generateGeohashTags, getBrowserLocation } from './geo'
+import {
+  encodeGeohash,
+  generateGeohashTags,
+  GeolocationRequestFailedError,
+  getBrowserLocation,
+} from './geo'
 
 describe('geo', () => {
   it('encodeGeohash returns ngeohash.encode with correct length', () => {
@@ -79,12 +84,33 @@ describe('geo', () => {
         geolocation: { getCurrentPosition },
       })
 
-      await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
-      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
-        enableHighAccuracy: true,
-        timeout: 2000,
-        maximumAge: 5000,
+    await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
+    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+      enableHighAccuracy: true,
+      timeout: 2000,
+      maximumAge: 5000,
+    })
+    })
+
+    it('rejects with GeolocationRequestFailedError when permission denied', async () => {
+      const getCurrentPosition = vi.fn(
+        (_success: PositionCallback, errCb?: PositionErrorCallback | null) => {
+          errCb?.({
+            code: 1,
+            message: 'User denied Geolocation',
+            PERMISSION_DENIED: 1,
+            POSITION_UNAVAILABLE: 2,
+            TIMEOUT: 3,
+          } as GeolocationPositionError)
+        },
+      )
+      vi.stubGlobal('navigator', {
+        geolocation: { getCurrentPosition },
       })
+
+      const rejection = await getBrowserLocation().catch((err: unknown) => err)
+      expect(rejection).toBeInstanceOf(GeolocationRequestFailedError)
+      expect((rejection as GeolocationRequestFailedError).geoCode).toBe(1)
     })
   })
 })

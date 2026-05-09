@@ -175,6 +175,16 @@ export function getEastWestNeighbors(hash: string): { east: string; west: string
   }
 }
 
+/** Mirrors `GeolocationPositionError` codes (1=denied, 2=unavailable, 3=timeout). */
+export class GeolocationRequestFailedError extends Error {
+  readonly geoCode: number
+  constructor(geoCode: number, message: string) {
+    super(message)
+    this.name = 'GeolocationRequestFailedError'
+    this.geoCode = geoCode
+  }
+}
+
 /** Geolocation is restricted to secure contexts (HTTPS + http://localhost). Plain http:// LAN URLs cannot prompt. */
 export function isSecureGeolocationContext(): boolean {
   if (typeof window === 'undefined') return false
@@ -216,8 +226,13 @@ export async function getBrowserLocation(opts?: {
       (pos) => {
         resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude })
       },
-      (err) => {
-        reject(new Error(err.message || 'Failed to get location.'))
+      (err: GeolocationPositionError) => {
+        reject(
+          new GeolocationRequestFailedError(
+            err.code,
+            err.message || 'Failed to get location.',
+          ),
+        )
       },
       { enableHighAccuracy, timeout, maximumAge },
     )

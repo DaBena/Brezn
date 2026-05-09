@@ -5,6 +5,7 @@ import {
   decodeGeohashCenter,
   encodeGeohash,
   GEOHASH_LEN_MAX_UI,
+  GeolocationRequestFailedError,
   getBrowserLocation,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
@@ -201,7 +202,20 @@ export function useLocalFeed(params: {
         applyGeo5AsLocation(savedGeo5)
         return
       }
-      const msg = e instanceof Error ? e.message : 'Location error'
+      let msg: string
+      if (e instanceof GeolocationRequestFailedError) {
+        if (e.geoCode === 1) {
+          msg = i18n.t('feed.locationPermissionDenied')
+        } else if (e.geoCode === 3) {
+          msg = i18n.t('feed.locationTimeout')
+        } else if (e.geoCode === 2) {
+          msg = i18n.t('feed.locationUnavailable')
+        } else {
+          msg = e.message
+        }
+      } else {
+        msg = e instanceof Error ? e.message : i18n.t('feed.locationUnknownError')
+      }
       setFeedState({ kind: 'need-location', locationError: msg })
     } finally {
       opts?.onFinished?.()

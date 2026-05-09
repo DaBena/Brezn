@@ -129,7 +129,9 @@ export function Feed(props: {
             </button>
           </div>
           {'locationError' in feedState && feedState.locationError ? (
-            <p className="mt-2 text-sm text-red-700 dark:text-red-400">{feedState.locationError}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-red-700 dark:text-red-400">
+              {feedState.locationError}
+            </p>
           ) : null}
         </div>
       )}

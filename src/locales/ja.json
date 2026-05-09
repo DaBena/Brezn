@@ -23,7 +23,11 @@
     "waitingEose": "まだイベントがありません（EOSE 待ち）…",
     "noPostsYet": "まだ投稿がありません。後で試すか別のリレーを。",
     "noRelays": "リレーがありません — 設定を確認してください。",
-    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site.",
+    "locationPermissionDenied": "Location was blocked for this site (or you tapped Don't Allow). Safari often won't show the prompt again until you change site settings: tap \"aA\" on the left side of the address bar, open Website Settings, set Location to Allow. Or use Settings → Safari → Location to manage access. Reload this page, then tap Allow location.",
+    "locationTimeout": "Getting your location timed out. Turn on Location Services under Settings → Privacy & Security → Location, then try again.",
+    "locationUnavailable": "Your device could not determine location right now. Try again when you have a clearer GPS or Wi‑Fi signal.",
+    "locationUnknownError": "Could not get location. Try again."
   },
   "settings": {
     "title": "設定",
