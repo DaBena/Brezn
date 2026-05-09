@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@noble/ciphers": "^0.5.3",
-    "@noble/curves": "^1.9.7",
+    "@noble/curves": "^2.2.0",
     "@noble/hashes": "^1.8.0",
     "@nostr-dev-kit/ndk": "^3.0.3",
     "@scure/base": "^1.2.6",
