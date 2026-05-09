@@ -22,12 +22,7 @@
     "noRelayResponse": "Aucune réponse des relays. Vérifiez la liste ou réessayez plus tard.",
     "waitingEose": "Aucun événement pour l’instant (en attente d’EOSE)…",
     "noPostsYet": "Aucune publication pour l’instant. Réessayez plus tard ou changez de relays.",
-    "noRelays": "Aucun relay — vérifiez les réglages.",
-    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site.",
-    "locationPermissionDenied": "Location was blocked for this site (or you tapped Don't Allow). Safari often won't show the prompt again until you change site settings: tap \"aA\" on the left side of the address bar, open Website Settings, set Location to Allow. Or use Settings → Safari → Location to manage access. Reload this page, then tap Allow location.",
-    "locationTimeout": "Getting your location timed out. Turn on Location Services under Settings → Privacy & Security → Location, then try again.",
-    "locationUnavailable": "Your device could not determine location right now. Try again when you have a clearer GPS or Wi‑Fi signal.",
-    "locationUnknownError": "Could not get location. Try again."
+    "noRelays": "Aucun relay — vérifiez les réglages."
   },
   "settings": {
     "title": "Réglages",

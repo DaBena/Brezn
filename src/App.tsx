@@ -240,7 +240,10 @@ export default function App() {
         initialTimedOut={initialTimedOut}
         lastCloseReasons={lastCloseReasons}
         isLoadingMore={isLoadingMore}
-        onRequestLocation={() => void requestLocationAndLoad({ forceBrowser: true })}
+        onRequestLocation={(onFinished) =>
+          void requestLocationAndLoad({ forceBrowser: true, onFinished })
+        }
+        onManualCellSelect={(geo5) => setLocationFromGeohash(geo5, { grantStorageConsent: true })}
         onLoadMore={loadMore}
         onReact={(evt) => void handleReactToPost(evt)}
         onOpenProfile={handleOpenProfile}
@@ -343,11 +346,6 @@ export default function App() {
           geohashLength={geohashLength}
           geoCell={geoCell}
           onGeohashLengthChange={applyGeohashLength}
-          onRelaysChanged={() => {
-            if (geoCell) {
-              requestLocationAndLoad()
-            }
-          }}
         />
       ) : null}
 

@@ -12,6 +12,9 @@ export type GeohashLength = 1 | 2 | 3 | 4 | 5
  */
 export type GeoPoint = { lat: number; lon: number }
 
+export const WORLD_MANUAL_PICK_MAP_CENTER: GeoPoint = { lat: 15, lon: 10 }
+export const WORLD_MANUAL_PICK_MAP_ZOOM = 2
+
 /**
  * Decodes a geohash string to its center point.
  * @param hash - Geohash string (1-12 characters)
@@ -185,18 +188,12 @@ export class GeolocationRequestFailedError extends Error {
   }
 }
 
-/** Geolocation is restricted to secure contexts (HTTPS + http://localhost). Plain http:// LAN URLs cannot prompt. */
-export function isSecureGeolocationContext(): boolean {
-  if (typeof window === 'undefined') return false
-  return window.isSecureContext
-}
-
 /**
  * Gets the current browser location using the Geolocation API.
  * @param opts - Options for geolocation
- * @param opts.timeoutMs - Maximum time to wait (default: 8000ms)
- * @param opts.maximumAgeMs - Maximum age of cached location (default: 60000ms)
- * @param opts.enableHighAccuracy - Request high accuracy (default: false)
+ * @param opts.timeoutMs - Optional cap for how long the browser may wait (permission + acquiring a fix). If omitted, engine default applies — typically no tight artificial limit for slow Allow taps.
+ * @param opts.maximumAgeMs - Optional; forwarded only when set (browser default if omitted).
+ * @param opts.enableHighAccuracy - Optional high accuracy; forwarded only when true (browser default otherwise).
  * @returns Promise resolving to current location
  * @throws If geolocation is not available or user denies permission
  */
@@ -205,21 +202,20 @@ export async function getBrowserLocation(opts?: {
   maximumAgeMs?: number
   enableHighAccuracy?: boolean
 }): Promise<GeoPoint> {
-  const timeout = opts?.timeoutMs ?? 8000
-  const maximumAge = opts?.maximumAgeMs ?? 60_000
-  const enableHighAccuracy = opts?.enableHighAccuracy ?? false
+  const positionOptions: PositionOptions = {}
+  if (opts?.enableHighAccuracy === true) {
+    positionOptions.enableHighAccuracy = true
+  }
+  if (opts?.timeoutMs != null) {
+    positionOptions.timeout = opts.timeoutMs
+  }
+  if (opts?.maximumAgeMs != null) {
+    positionOptions.maximumAge = opts.maximumAgeMs
+  }
 
   return await new Promise<GeoPoint>((resolve, reject) => {
-    if (typeof window !== 'undefined' && !window.isSecureContext) {
-      reject(
-        new Error(
-          'Geolocation needs HTTPS or http://localhost (not http://LAN IP). Safari blocks the prompt otherwise.',
-        ),
-      )
-      return
-    }
     if (!('geolocation' in navigator)) {
-      reject(new Error('Geolocation not available in this browser.'))
+      reject(new Error('Geolocation not available.'))
       return
     }
     navigator.geolocation.getCurrentPosition(
@@ -231,7 +227,7 @@ export async function getBrowserLocation(opts?: {
           new GeolocationRequestFailedError(err.code, err.message || 'Failed to get location.'),
         )
       },
-      { enableHighAccuracy, timeout, maximumAge },
+      positionOptions,
     )
   })
 }

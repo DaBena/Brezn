@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import geohash from 'ngeohash'
 import {
   encodeGeohash,
@@ -34,15 +34,7 @@ describe('geo', () => {
   })
 
   describe('getBrowserLocation', () => {
-    beforeEach(() => {
-      Object.defineProperty(window, 'isSecureContext', {
-        configurable: true,
-        writable: true,
-        value: true,
-      })
-    })
-
-    it('uses fast defaults (no high accuracy)', async () => {
+    it('passes empty PositionOptions when no overrides (browser defaults)', async () => {
       const getCurrentPosition = vi.fn(
         (
           success: PositionCallback,
@@ -61,11 +53,7 @@ describe('geo', () => {
       const pos = await getBrowserLocation()
       expect(pos).toEqual({ lat: 5.5, lon: -3.3 })
       expect(getCurrentPosition).toHaveBeenCalledOnce()
-      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 60_000,
-      })
+      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({})
     })
 
     it('forwards custom geolocation options', async () => {

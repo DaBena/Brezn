@@ -5,7 +5,6 @@ import {
   decodeGeohashCenter,
   encodeGeohash,
   GEOHASH_LEN_MAX_UI,
-  GeolocationRequestFailedError,
   getBrowserLocation,
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
@@ -202,31 +201,30 @@ export function useLocalFeed(params: {
         applyGeo5AsLocation(savedGeo5)
         return
       }
-      let msg: string
-      if (e instanceof GeolocationRequestFailedError) {
-        if (e.geoCode === 1) {
-          msg = i18n.t('feed.locationPermissionDenied')
-        } else if (e.geoCode === 3) {
-          msg = i18n.t('feed.locationTimeout')
-        } else if (e.geoCode === 2) {
-          msg = i18n.t('feed.locationUnavailable')
-        } else {
-          msg = e.message
-        }
-      } else {
-        msg = e instanceof Error ? e.message : i18n.t('feed.locationUnknownError')
-      }
+      const msg = e instanceof Error ? e.message : 'Location error'
       setFeedState({ kind: 'need-location', locationError: msg })
     } finally {
       opts?.onFinished?.()
     }
   }
 
-  function setLocationFromGeohash(geo5: string): void {
+  function setLocationFromGeohash(geo5: string, opts?: { grantStorageConsent?: boolean }): void {
     applyGeo5AsLocation(geo5)
+    if (opts?.grantStorageConsent) {
+      setStorageConsentGiven(true)
+      client.persistStateNow()
+    }
   }
 
-  // Do not call geolocation from an effect: iOS Safari requires a user gesture (tap) or it may never show the prompt.
+  const autoPromptedRef = useRef(false)
+  useEffect(() => {
+    if (autoPromptedRef.current) return
+    if (isOffline) return
+    if (feedState.kind !== 'need-location') return
+    autoPromptedRef.current = true
+    void requestLocationAndLoad({ forceBrowser: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once when entering need-location
+  }, [feedState.kind, isOffline])
 
   // New notes use hierarchical `#g` tags; legacy posts may need exact `queryGeohash` match.
   const currentRelays = client.getRelays()

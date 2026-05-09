@@ -22,12 +22,7 @@
     "noRelayResponse": "रिले से कोई प्रतिक्रिया नहीं। रिले सूची जाँचें या बाद में कोशिश करें।",
     "waitingEose": "अभी तक कोई इवेंट नहीं (EOSE की प्रतीक्षा)…",
     "noPostsYet": "अभी कोई पोस्ट नहीं। बाद में कोशिश करें या अन्य रिले आज़माएँ।",
-    "noRelays": "कोई रिले नहीं — सेटिंग्स देखें।",
-    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site.",
-    "locationPermissionDenied": "Location was blocked for this site (or you tapped Don't Allow). Safari often won't show the prompt again until you change site settings: tap \"aA\" on the left side of the address bar, open Website Settings, set Location to Allow. Or use Settings → Safari → Location to manage access. Reload this page, then tap Allow location.",
-    "locationTimeout": "Getting your location timed out. Turn on Location Services under Settings → Privacy & Security → Location, then try again.",
-    "locationUnavailable": "Your device could not determine location right now. Try again when you have a clearer GPS or Wi‑Fi signal.",
-    "locationUnknownError": "Could not get location. Try again."
+    "noRelays": "कोई रिले नहीं — सेटिंग्स देखें।"
   },
   "settings": {
     "title": "सेटिंग्स",

@@ -1,13 +1,22 @@
 import { useEffect, useRef } from 'react'
 import type { Event } from '../lib/nostrPrimitives'
-import { encodeGeohash, getGeohashMapParams } from '../lib/geo'
+import {
+  encodeGeohash,
+  getGeohashMapParams,
+  WORLD_MANUAL_PICK_MAP_CENTER,
+  WORLD_MANUAL_PICK_MAP_ZOOM,
+  type GeoPoint,
+} from '../lib/geo'
 import { feedEventMapPoint } from '../lib/feedEventMapPoint'
 import { readCssVar } from '../lib/readCssVar'
 import type L from 'leaflet'
 
 type LeafletModule = typeof import('leaflet')
 
-/** Feed posts overlay — unobtrusive dots so OSM stays readable. */
+type LatLonBounds = { minLat: number; maxLat: number; minLon: number; maxLon: number }
+
+type MapLayout = { center: GeoPoint; zoom: number; bounds: LatLonBounds | null }
+
 const FEED_MAP_MARKER_STYLE = {
   radius: 6,
   stroke: false as const,
@@ -16,24 +25,36 @@ const FEED_MAP_MARKER_STYLE = {
   fillOpacity: 0.5,
 }
 
-/** Leaflet often keeps wrong dimensions inside sheets; defer fit until layout settled. */
+function resolveLayout(worldPick: boolean, gh: string): MapLayout | null {
+  if (worldPick) {
+    return {
+      center: WORLD_MANUAL_PICK_MAP_CENTER,
+      zoom: WORLD_MANUAL_PICK_MAP_ZOOM,
+      bounds: null,
+    }
+  }
+  const p = getGeohashMapParams(gh.trim())
+  if (!p) return null
+  return { center: p.center, zoom: p.zoom, bounds: p.bounds }
+}
+
 function scheduleInvalidateAndFit(
   map: L.Map,
   rectangle: L.Rectangle | null,
-  params: NonNullable<ReturnType<typeof getGeohashMapParams>>,
+  layout: MapLayout,
   afterFit: () => void,
 ) {
-  const { center, bounds, zoom } = params
   const run = () => {
     map.invalidateSize({ animate: false })
-    if (rectangle) {
+    const b = layout.bounds
+    if (rectangle && b) {
       rectangle.setBounds([
-        [bounds.minLat, bounds.minLon],
-        [bounds.maxLat, bounds.maxLon],
+        [b.minLat, b.minLon],
+        [b.maxLat, b.maxLon],
       ] as L.LatLngBoundsLiteral)
       map.fitBounds(rectangle.getBounds(), { padding: [20, 20], animate: false })
     } else {
-      map.setView([center.lat, center.lon], zoom, { animate: false })
+      map.setView([layout.center.lat, layout.center.lon], layout.zoom, { animate: false })
     }
     afterFit()
   }
@@ -111,21 +132,20 @@ function addGpsControl(
 }
 
 export function GeohashMap(props: {
-  geohash: string
+  geohash?: string
+  worldPick?: boolean
   className?: string
   onCellSelect?: (geohash5: string) => void
   onRequestLocation?: (onFinished?: () => void) => void
-  /** Localized GPS control (defaults for rare non-composer use). */
   gpsAriaLabel?: string
   gpsTitle?: string
-  /** Same source as the feed list (e.g. search-filtered); drawn on top of the cell map. */
   feedEvents?: Event[]
   onFeedMarkerClick?: (evt: Event) => void
-  /** Bump after GPS / sheet layout so the map matches the current geohash while mounted. */
   mapRelayoutTick?: number
 }) {
   const {
-    geohash,
+    geohash = '',
+    worldPick = false,
     className,
     onCellSelect,
     onRequestLocation,
@@ -168,7 +188,6 @@ export function GeohashMap(props: {
     btn.title = gpsLabels.title
   }, [gpsLabels.ariaLabel, gpsLabels.title])
 
-  // Unmount only: remove map so no Leaflet callbacks run after DOM is gone
   useEffect(() => {
     return () => {
       const control = gpsControlRef.current
@@ -191,24 +210,25 @@ export function GeohashMap(props: {
   useEffect(() => {
     if (!mapContainerRef.current) return
 
-    const params = getGeohashMapParams(geohash)
-    if (!params) return
+    const worldPickMode = worldPick === true
+    const layout = resolveLayout(worldPickMode, geohash)
+    if (!layout) return
+
+    const bumpMarkers = () => {
+      const Lm = leafletLibRef.current
+      const layer = feedMarkersLayerRef.current
+      if (Lm && layer) {
+        syncFeedEventMarkers(Lm, layer, feedEventsRef.current, onFeedMarkerClickRef.current)
+      }
+    }
 
     const map = mapRef.current
-
     if (map) {
-      const rect = rectangleRef.current
-      const layer = feedMarkersLayerRef.current
-      const Lm = leafletLibRef.current
-      scheduleInvalidateAndFit(map, rect, params, () => {
-        if (Lm && layer) {
-          syncFeedEventMarkers(Lm, layer, feedEventsRef.current, onFeedMarkerClickRef.current)
-        }
-      })
+      const rect = layout.bounds ? rectangleRef.current : null
+      scheduleInvalidateAndFit(map, rect, layout, bumpMarkers)
       return attachCellSelectClick(map, onCellSelectRef.current ?? undefined)
     }
 
-    const { center, bounds, zoom } = params
     const runId = ++effectRunIdRef.current
     let cleanup: (() => void) | null = null
 
@@ -221,11 +241,11 @@ export function GeohashMap(props: {
         if (runId !== effectRunIdRef.current) return
 
         const newMap = L.map(mapContainerRef.current!, {
-          center: [center.lat, center.lon],
-          zoom,
+          center: [layout.center.lat, layout.center.lon],
+          zoom: layout.zoom,
           zoomControl: true,
           attributionControl: true,
-          zoomAnimation: false, // Safari/WebKit: zoom transition can outlive map.remove() in overlay UIs
+          zoomAnimation: false,
         })
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -234,19 +254,22 @@ export function GeohashMap(props: {
           maxZoom: 19,
         }).addTo(newMap)
 
-        const hilite = readCssVar('--brezn-link', '#3c83f7')
-        const rectangle = L.rectangle(
-          [
-            [bounds.minLat, bounds.minLon],
-            [bounds.maxLat, bounds.maxLon],
-          ],
-          {
-            color: hilite,
-            fillColor: hilite,
-            fillOpacity: 0.3,
-            weight: 2,
-          },
-        ).addTo(newMap)
+        let rectangle: L.Rectangle | null = null
+        if (layout.bounds) {
+          const hilite = readCssVar('--brezn-link', '#3c83f7')
+          rectangle = L.rectangle(
+            [
+              [layout.bounds.minLat, layout.bounds.minLon],
+              [layout.bounds.maxLat, layout.bounds.maxLon],
+            ],
+            {
+              color: hilite,
+              fillColor: hilite,
+              fillOpacity: 0.3,
+              weight: 2,
+            },
+          ).addTo(newMap)
+        }
 
         const feedLayer = L.layerGroup().addTo(newMap)
         feedMarkersLayerRef.current = feedLayer
@@ -256,19 +279,19 @@ export function GeohashMap(props: {
 
         newMap.whenReady(() => {
           if (runId !== effectRunIdRef.current) return
-          const hp = getGeohashMapParams(geohashRef.current)
-          if (!hp) return
-          scheduleInvalidateAndFit(newMap, rectangle, hp, () => {
+          const fresh = resolveLayout(worldPickMode, geohashRef.current)
+          if (!fresh) return
+          const rectNow = fresh.bounds ? rectangleRef.current : null
+          if (fresh.bounds && !rectNow) return
+          scheduleInvalidateAndFit(newMap, rectNow, fresh, () => {
             syncFeedEventMarkers(L, feedLayer, feedEventsRef.current, onFeedMarkerClickRef.current)
           })
         })
 
         try {
-          const container = mapContainerRef.current
-          const flagEl = container?.querySelector<SVGElement>('.leaflet-attribution-flag')
-          flagEl?.remove()
+          mapContainerRef.current?.querySelector<SVGElement>('.leaflet-attribution-flag')?.remove()
         } catch {
-          // ignore
+          void 0
         }
 
         if (onRequestLocationRef.current) {
@@ -288,7 +311,6 @@ export function GeohashMap(props: {
         }
         mapRef.current = newMap
         rectangleRef.current = rectangle
-        // cleanup already set above (attachCellSelectClick); unmount effect removes map
       } catch (error) {
         console.error('Failed to load map:', error)
       }
@@ -299,7 +321,7 @@ export function GeohashMap(props: {
     return () => {
       if (cleanup) cleanup()
     }
-  }, [geohash, mapRelayoutTick])
+  }, [geohash, mapRelayoutTick, worldPick])
 
   useEffect(() => {
     const Lm = leafletLibRef.current

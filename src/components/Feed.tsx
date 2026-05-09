@@ -11,6 +11,7 @@ import { buttonBase } from '../lib/buttonStyles'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
 import { FEED_RENDER_CHUNK, REPO_URL } from '../lib/constants'
 import { feedEventCardPlainText, truncateFeedCardContent } from '../lib/feedContentPreview'
+import { GeohashMap } from './GeohashMap'
 
 export function Feed(props: {
   client: BreznNostrClient
@@ -28,7 +29,9 @@ export function Feed(props: {
   initialTimedOut: boolean
   lastCloseReasons: string[] | null
   isLoadingMore: boolean
-  onRequestLocation: () => void
+  onRequestLocation: (onFinished?: () => void) => void
+  /** Pick ~5 km geohash cell from OSM map when GPS is unavailable (e.g. Safari). */
+  onManualCellSelect: (geohash5: string) => void
   onLoadMore: () => void
   onReact: (evt: Event) => void
   onOpenThread: (evt: Event) => void
@@ -48,6 +51,7 @@ export function Feed(props: {
     lastCloseReasons,
     isLoadingMore,
     onRequestLocation,
+    onManualCellSelect,
     onLoadMore,
     onOpenThread,
     onOpenProfile,
@@ -97,11 +101,6 @@ export function Feed(props: {
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">{t('feed.locationTitle')}</div>
           <div className="mt-1 text-sm text-brezn-muted">{t('feed.locationBody')}</div>
-          {typeof window !== 'undefined' && window.isSecureContext === false ? (
-            <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-              {t('feed.locationInsecureHint')}
-            </div>
-          ) : null}
           {showCookieNotice ? (
             <div className="mt-2 text-sm text-brezn-muted space-y-1">
               <p>
@@ -129,10 +128,18 @@ export function Feed(props: {
             </button>
           </div>
           {'locationError' in feedState && feedState.locationError ? (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-red-700 dark:text-red-400">
-              {feedState.locationError}
-            </p>
+            <p className="mt-2 text-sm text-red-700 dark:text-red-400">{feedState.locationError}</p>
           ) : null}
+          <div className="mt-3 h-[min(55vh,320px)] min-h-[240px] w-full overflow-hidden rounded-lg border border-brezn-border">
+            <GeohashMap
+              worldPick
+              className="h-full w-full"
+              onCellSelect={onManualCellSelect}
+              onRequestLocation={onRequestLocation}
+              gpsAriaLabel={t('composer.gpsAria')}
+              gpsTitle={t('composer.gpsTitle')}
+            />
+          </div>
         </div>
       )}
 
@@ -143,7 +150,7 @@ export function Feed(props: {
           {feedState.code !== 'no-relays' ? (
             <div className="mt-2 flex gap-2">
               <button
-                onClick={onRequestLocation}
+                onClick={() => onRequestLocation()}
                 className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${buttonBase}`}
               >
                 {t('feed.tryAgain')}
