@@ -128,7 +128,12 @@ export async function createNip98AuthHeader(opts: {
   // NIP-98: Authorization: Nostr <base64(JSON(event))>
   // We intentionally omit the optional "payload" tag because for multipart bodies
   // browsers generate the boundary internally, making stable hashing impractical here.
-  const ndk = new NDK({ filterValidationMode: 'fix', aiGuardrails: false })
+  const ndk = new NDK({
+    filterValidationMode: 'fix',
+    aiGuardrails: false,
+    enableOutboxModel: false,
+    autoConnectUserRelays: false,
+  }) // Sign-only instance; no relay discovery/outbox.
   const trimmed = opts.skHex?.trim()
   ndk.signer = trimmed ? new NDKPrivateKeySigner(trimmed, ndk) : NDKPrivateKeySigner.generate()
   const ev = new NDKEvent(ndk)

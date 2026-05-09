@@ -22,7 +22,7 @@
     "noRelayResponse": "Không có phản hồi từ relay. Kiểm tra danh sách relay hoặc thử sau.",
     "waitingEose": "Chưa có sự kiện (đang chờ EOSE)…",
     "noPostsYet": "Chưa có bài đăng. Thử sau hoặc dùng relay khác.",
-    "noRelays": "Chưa có relay trong nhóm kết nối. Đợi một lúc hoặc kiểm tra mạng; NDK bổ sung relay từ khởi động, hồ sơ và mạng."
+    "noRelays": "Chưa có relay — kiểm tra Cài đặt."
   },
   "settings": {
     "title": "Cài đặt",

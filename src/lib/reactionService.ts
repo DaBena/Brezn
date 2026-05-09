@@ -21,7 +21,10 @@ export async function reactToPost(
     onSuccess?.()
   } catch (error) {
     const err = error instanceof Error ? error : new Error('Reaction failed.')
-    onError?.(err)
+    if (onError) {
+      onError(err)
+      return
+    }
     throw err
   }
 }

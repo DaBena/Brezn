@@ -22,7 +22,7 @@
     "noRelayResponse": "Keine Antwort von den Relays. Relay-Liste prüfen oder später erneut versuchen.",
     "waitingEose": "Noch keine Events (warte auf EOSE)…",
     "noPostsYet": "Noch keine Beiträge. Später erneut versuchen oder andere Relays.",
-    "noRelays": "Noch keine Relays im Verbindungspool. Kurz warten oder Netz prüfen; NDK ergänzt Relays aus Bootstrap, Profil und Netzwerk."
+    "noRelays": "Noch keine Relays — Einstellungen prüfen."
   },
   "settings": {
     "title": "Einstellungen",
@@ -83,7 +83,7 @@
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays für Feed, DMs und Veröffentlichung.",
+    "hint": "Relays für Feed, DMs und Veröffentlichung. Es werden nur die hier eingetragenen URLs bzw. die wenigen Standard-Relays genutzt—keine automatische Outbox- oder Hintergrund-Relay-Auswahl.",
     "empty": "Keine Relays konfiguriert. Ohne Relay können keine Beiträge geladen oder veröffentlicht werden. Unten ein Relay hinzufügen oder „Standard“.",
     "removeAria": "Relay entfernen",
     "placeholder": "wss://relay.example",

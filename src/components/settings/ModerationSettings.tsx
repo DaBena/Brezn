@@ -10,6 +10,8 @@ type ModerationSettingsProps = {
 
 export function ModerationSettings({ client, onModerationChanged }: ModerationSettingsProps) {
   const { t } = useTranslation()
+  const moderationPlaceholder = t('moderation.placeholder')
+  const iosFriendlyModerationPlaceholder = moderationPlaceholder.replace(/\n/g, '\r\n')
   const [mutedTerms, setMutedTerms] = useState<string[]>(() => client.getMutedTerms())
   const [mutedTermsText, setMutedTermsText] = useState(() => client.getMutedTerms().join('\n'))
   const [mutedTermsMsg, setMutedTermsMsg] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
               t('moderation.saved'),
             )
           }
-          placeholder={t('moderation.placeholder')}
+          placeholder={iosFriendlyModerationPlaceholder}
           className="mt-2 h-28 w-full resize-none border border-brezn-text p-2 font-mono text-base outline-none"
         />
         {mutedTermsMsg ? (

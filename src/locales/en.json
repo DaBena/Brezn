@@ -22,7 +22,7 @@
     "noRelayResponse": "No response from relays. Check the relay list or try again later.",
     "waitingEose": "No events received yet (waiting for EOSE)…",
     "noPostsYet": "No posts found yet. Try again later or try different relays.",
-    "noRelays": "No relays in the connection pool yet. Wait a moment or check your network; NDK adds relays from bootstrap, your profile, and the network."
+    "noRelays": "No relays yet — check Settings."
   },
   "settings": {
     "title": "Settings",
@@ -83,7 +83,7 @@
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays used for the feed, DMs, and publishing.",
+    "hint": "Relays used for the feed, DMs, and publishing. Only URLs you list here (or the few built-in defaults) are used—no automatic “outbox” relay discovery.",
     "empty": "No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the \"Default\" button to restore default relays.",
     "removeAria": "Remove relay",
     "placeholder": "wss://relay.example",

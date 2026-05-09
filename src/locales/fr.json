@@ -22,7 +22,7 @@
     "noRelayResponse": "Aucune réponse des relays. Vérifiez la liste ou réessayez plus tard.",
     "waitingEose": "Aucun événement pour l’instant (en attente d’EOSE)…",
     "noPostsYet": "Aucune publication pour l’instant. Réessayez plus tard ou changez de relays.",
-    "noRelays": "Pas encore de relays dans le pool. Patientez ou vérifiez le réseau ; NDK ajoute des relays (bootstrap, profil, réseau)."
+    "noRelays": "Aucun relay — vérifiez les réglages."
   },
   "settings": {
     "title": "Réglages",

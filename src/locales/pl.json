@@ -22,7 +22,7 @@
     "noRelayResponse": "Brak odpowiedzi z relay’ów. Sprawdź listę relay’ów lub spróbuj później.",
     "waitingEose": "Brak zdarzeń (oczekiwanie na EOSE)…",
     "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów.",
-    "noRelays": "Jeszcze żadnych relay’ów w puli połączenia. Poczekaj chwilę lub sprawdź sieć; NDK uzupełnia relay’e z bootstrapu, profilu i sieci."
+    "noRelays": "Brak relay’ów — sprawdź Ustawienia."
   },
   "settings": {
     "title": "Ustawienia",

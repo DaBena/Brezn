@@ -22,7 +22,7 @@
     "noRelayResponse": "Nessuna risposta dai relay. Controlla l’elenco o riprova più tardi.",
     "waitingEose": "Nessun evento ancora (in attesa di EOSE)…",
     "noPostsYet": "Nessun post ancora. Riprova più tardi o cambia relay.",
-    "noRelays": "Ancora nessun relay nel pool di connessione. Attendi un attimo o controlla la rete; NDK aggiunge relay da bootstrap, profilo e rete."
+    "noRelays": "Nessun relay — controlla Impostazioni."
   },
   "settings": {
     "title": "Impostazioni",

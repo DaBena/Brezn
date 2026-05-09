@@ -1,6 +1,6 @@
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
 import NDK from '@nostr-dev-kit/ndk'
-import { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import { NDKEvent, NDKPrivateKeySigner, NDKRelaySet } from '@nostr-dev-kit/ndk'
 import type { NDKSubscription } from '@nostr-dev-kit/ndk'
 import {
   generateSecretKey,
@@ -36,8 +36,8 @@ function connectNdkRelays(ndk: NDK): void {
 }
 
 /**
- * Bootstrap relay URLs passed into `new NDK({ explicitRelayUrls })` and restored when clearing manual overrides.
- * NDK itself does not ship a public default list; this is the app’s NDK bootstrap set.
+ * Bootstrap relay URLs passed into `new NDK({ explicitRelayUrls })` when the user clears a manual relay list.
+ * Brezn never enables NDK outbox mode and never auto-connects profile (NIP-65) relays—traffic stays on relays the user chose or these defaults until they override them.
  */
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
@@ -59,7 +59,7 @@ type StoredStateV1 = {
     geohashLength?: number // 1-5, default: 1
     mediaUploadEndpoint?: string
     theme?: 'light' | 'dark' // 'light' or 'dark', default: 'dark'
-    /** If set (including `[]`), Brezn pins this list on NDK. If omitted, NDK manages relays (pool + outbox). */
+    /** If set (including `[]`), Brezn pins this list on NDK. If omitted, the bootstrap relay list above applies—still user-visible defaults only, no outbox / auto relay discovery. */
     relays?: string[]
   }
 }
@@ -188,15 +188,14 @@ export type BreznNostrClient = {
 
   /**
    * Relay URLs used for subscriptions and publish.
-   * With no manual override: NDK pool (bootstrap + outbox / profile relays).
-   * With override: the persisted list only (fixed relay set, like `subscribeMany` on chosen URLs).
+   * Exactly this list (or bootstrap defaults when the user cleared overrides)—never silent additions via outbox or NIP-65 auto-connect.
    */
   getRelays(): string[]
 
   /** Pin a manual relay list (normalized, max 30, persisted). */
   setRelays(relays: string[]): void
 
-  /** Clear manual list: NDK uses bootstrap again and may add relays from the network (outbox). */
+  /** Clear manual list; restores bootstrap relays above—still fixed URLs only. */
   clearRelayOverrides(): void
 
   /**
@@ -342,6 +341,14 @@ function dmRecipientPubkeyLower(evt: Event): string | null {
   return p && /^[0-9a-fA-F]{64}$/.test(p) ? p.toLowerCase() : null
 }
 
+function invokeSubscriptionOnevent(handler: (evt: Event) => void, raw: NDKEvent): void {
+  try {
+    handler(ndkEventToBreznEvent(raw))
+  } catch (err) {
+    console.warn('Brezn: error in subscription onevent handler:', err)
+  }
+}
+
 // State cache for fast synchronous access
 let stateCache: StoredStateV1 | null = null
 let stateCacheInitialized = false
@@ -385,7 +392,11 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
 export const whenIdentityReady: Promise<void> =
   typeof window !== 'undefined'
     ? Promise.race([
-        initializeStateCache().then(() => {}),
+        initializeStateCache()
+          .catch(() => {
+            /* IndexedDB / decrypt race: fallback applied in initializeStateCache try/catch; swallow stray rejects */
+          })
+          .then(() => {}),
         new Promise<void>((resolve) => {
           setTimeout(() => {
             // On GitHub Pages / strict environments IndexedDB can hang; ensure app still loads
@@ -480,6 +491,10 @@ export function createNostrClient(): BreznNostrClient {
     explicitRelayUrls: [...DEFAULT_RELAYS],
     filterValidationMode: 'fix',
     aiGuardrails: false,
+    /** Legal / UX: never second relay pool or outbox trackers—users choose relays explicitly (defaults above only until overridden). */
+    enableOutboxModel: false,
+    /** Same rationale: do not pull writers’ relay lists from the signer/NIP-65 automatically. */
+    autoConnectUserRelays: false,
   })
 
   type ActiveSub = {
@@ -589,7 +604,8 @@ export function createNostrClient(): BreznNostrClient {
     const sub = ndk.subscribe(s.filter, {
       groupable: false,
       subId: s.id,
-      onEvent: (e) => s.opts.onevent(ndkEventToBreznEvent(e)),
+      relayUrls: relays,
+      onEvent: (e) => invokeSubscriptionOnevent(s.opts.onevent, e),
       onEose: () => {
         try {
           s.opts.oneose?.()
@@ -715,7 +731,15 @@ export function createNostrClient(): BreznNostrClient {
     ev.content = input.content
     ev.tags = input.tags
     ev.created_at = nowSec()
-    await ev.publish(undefined, 60_000, 1)
+    const relaySet = NDKRelaySet.fromRelayUrls(relays, ndk, true, ndk.pool)
+    try {
+      await ev.publish(relaySet, 60_000, 1)
+    } catch (e) {
+      if (e == null) {
+        throw new Error('Publish failed (no error detail from relay stack).', { cause: e })
+      }
+      throw e
+    }
     return ev.id
   }
 
@@ -772,7 +796,8 @@ export function createNostrClient(): BreznNostrClient {
     const sub = ndk.subscribe(filters, {
       groupable: false,
       subId: `brezn-${traceLabel}`,
-      onEvent: (e) => opts.onevent(ndkEventToBreznEvent(e)),
+      relayUrls: relays,
+      onEvent: (e) => invokeSubscriptionOnevent(opts.onevent, e),
       onEose: () => opts.oneose?.(),
       onClose: () => opts.onclose?.([]),
     })
@@ -935,7 +960,7 @@ export function createNostrClient(): BreznNostrClient {
         relayUrls: [relayUrl],
         exclusiveRelay: true,
         subId: label,
-        onEvent: (e) => onevent(ndkEventToBreznEvent(e)),
+        onEvent: (e) => invokeSubscriptionOnevent(onevent, e),
         onEose: finishRelay,
         onClose: finishRelay,
       })

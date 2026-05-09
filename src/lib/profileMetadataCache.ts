@@ -77,7 +77,7 @@ function scheduleDebouncedPrune(): void {
         /* optional cache trim failure */
       }
     })
-  }, 500)
+  }, PRUNE_DEBOUNCE_MS)
 }
 
 export type ProfileMetadataRow = {
@@ -87,7 +87,13 @@ export type ProfileMetadataRow = {
   storedAt: number
 }
 
-export const PROFILE_METADATA_CACHE_MAX_ROWS = 2500
+/** Hard cap for Dexie profile rows (kind-0 JSON); lower = less IndexedDB churn on weak devices. */
+export const PROFILE_METADATA_CACHE_MAX_ROWS = 1200
+
+/** Skip IndexedDB put when the same kind-0 payload was written recently (relay duplicates). */
+const PROFILE_METADATA_PUT_THROTTLE_MS = 4 * 60 * 60 * 1000
+
+const PRUNE_DEBOUNCE_MS = 2000
 
 export function mergeKind0IntoCacheRow(
   existing: ProfileMetadataRow | undefined,
@@ -165,6 +171,14 @@ export async function profileMetadataCacheUpsertFromKind0(evt: Event): Promise<v
         const existing = await db.profiles.get(evt.pubkey)
         const next = mergeKind0IntoCacheRow(existing, evt, nowMs)
         if (!next) return
+        if (
+          existing &&
+          existing.createdAt === next.createdAt &&
+          existing.content === next.content &&
+          nowMs - existing.storedAt < PROFILE_METADATA_PUT_THROTTLE_MS
+        ) {
+          return
+        }
         await db.profiles.put(next)
         scheduleDebouncedPrune()
       })
