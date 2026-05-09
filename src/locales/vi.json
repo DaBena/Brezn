@@ -22,7 +22,8 @@
     "noRelayResponse": "Không có phản hồi từ relay. Kiểm tra danh sách relay hoặc thử sau.",
     "waitingEose": "Chưa có sự kiện (đang chờ EOSE)…",
     "noPostsYet": "Chưa có bài đăng. Thử sau hoặc dùng relay khác.",
-    "noRelays": "Chưa có relay — kiểm tra Cài đặt."
+    "noRelays": "Chưa có relay — kiểm tra Cài đặt.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "Cài đặt",
@@ -145,7 +146,8 @@
     "sendAria": "Gửi tin nhắn",
     "sendingContent": "[đang gửi...]",
     "sendError": "Gửi tin nhắn thất bại",
-    "hiddenByBlocklist": "Tin nhắn đã ẩn (khớp với danh sách chặn từ khóa của bạn)."
+    "hiddenByBlocklist": "Tin nhắn đã ẩn (khớp với danh sách chặn từ khóa của bạn).",
+    "openPeerProfileAria": "Mở hồ sơ"
   },
   "composer": {
     "srTitle": "Bài đăng mới",

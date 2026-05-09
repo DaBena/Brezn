@@ -203,7 +203,7 @@ export function ProfileSheet(props: {
             </div>
           ) : null}
 
-          {events.map((evt) => (
+          {displayedEvents.map((evt) => (
             <FeedEventArticle
               key={evt.id}
               variant="profile"

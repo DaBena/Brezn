@@ -22,7 +22,8 @@
     "noRelayResponse": "Relay’lerden yanıt yok. Relay listesini kontrol edin veya sonra tekrar deneyin.",
     "waitingEose": "Henüz olay yok (EOSE bekleniyor)…",
     "noPostsYet": "Henüz gönderi yok. Sonra tekrar deneyin veya farklı relay’ler kullanın.",
-    "noRelays": "Relay yok — Ayarları kontrol edin."
+    "noRelays": "Relay yok — Ayarları kontrol edin.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "Ayarlar",
@@ -145,7 +146,8 @@
     "sendAria": "Mesaj gönder",
     "sendingContent": "[gönderiliyor...]",
     "sendError": "Mesaj gönderilemedi",
-    "hiddenByBlocklist": "Mesaj gizlendi (anahtar kelime engel listenizle eşleşiyor)."
+    "hiddenByBlocklist": "Mesaj gizlendi (anahtar kelime engel listenizle eşleşiyor).",
+    "openPeerProfileAria": "Profili aç"
   },
   "composer": {
     "srTitle": "Yeni gönderi",

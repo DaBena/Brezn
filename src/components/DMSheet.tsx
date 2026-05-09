@@ -8,6 +8,7 @@ import { contentMatchesMutedTerms } from '../lib/moderation'
 import type { BreznNostrClient, DecryptedDM } from '../lib/nostrClient'
 import { NOSTR_KINDS } from '../lib/breznNostr'
 import { shortNpub } from '../lib/nostrUtils'
+import { PostContent } from './PostContent'
 import { Sheet } from './Sheet'
 import { useToast } from './ToastContext'
 
@@ -40,11 +41,21 @@ export function DMSheet(props: {
   blockedPubkeys: string[]
   isOffline: boolean
   onBlockUser: (pubkey: string) => Promise<void>
+  onOpenProfile?: (pubkey: string) => void
 }) {
   const { t } = useTranslation()
   const { showToast } = useToast()
-  const { open, onClose, client, otherPubkey, mutedTerms, blockedPubkeys, isOffline, onBlockUser } =
-    props
+  const {
+    open,
+    onClose,
+    client,
+    otherPubkey,
+    mutedTerms,
+    blockedPubkeys,
+    isOffline,
+    onBlockUser,
+    onOpenProfile,
+  } = props
   const [messages, setMessages] = useState<DecryptedDM[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -252,14 +263,29 @@ export function DMSheet(props: {
     }
   }
 
-  const dmTitle = `${t('dm.titlePrefix')} ${shortNpub(nip19.npubEncode(otherPubkey), 8, 4)}`
+  const peerNpubShort = shortNpub(nip19.npubEncode(otherPubkey), 8, 4)
 
   return (
     <Sheet
       open={open}
       titleElement={
         <div className="flex min-w-0 flex-1 items-center justify-between gap-2 pr-2">
-          <div className="min-w-0 truncate text-sm font-semibold">{dmTitle}</div>
+          <div className="flex min-w-0 flex-1 items-baseline gap-1 truncate text-sm font-semibold">
+            <span className="shrink-0">{t('dm.titlePrefix')}</span>
+            {onOpenProfile ? (
+              <button
+                type="button"
+                onClick={() => onOpenProfile(peer)}
+                className="min-w-0 truncate text-left font-mono font-semibold text-brezn-link underline underline-offset-2 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brezn-border rounded-sm"
+                aria-label={t('dm.openPeerProfileAria')}
+                title={t('dm.openPeerProfileAria')}
+              >
+                {peerNpubShort}
+              </button>
+            ) : (
+              <span className="min-w-0 truncate font-mono">{peerNpubShort}</span>
+            )}
+          </div>
           {!isBlocked && !showReportField ? (
             <button
               type="button"
@@ -357,11 +383,22 @@ export function DMSheet(props: {
                       }`}
                     >
                       <div
-                        className={`text-sm whitespace-pre-wrap break-words ${
+                        className={`text-sm whitespace-pre-wrap break-words text-left ${
                           peerHidden ? 'italic text-brezn-muted' : ''
                         }`}
                       >
-                        {peerHidden ? t('dm.hiddenByBlocklist') : msg.decryptedContent}
+                        {peerHidden ? (
+                          t('dm.hiddenByBlocklist')
+                        ) : (
+                          <PostContent
+                            content={msg.decryptedContent}
+                            tags={msg.event.tags}
+                            compact
+                            interactive
+                            client={client}
+                            onOpenProfile={onOpenProfile}
+                          />
+                        )}
                       </div>
                       <div className="mt-1 text-[10px] text-brezn-text">
                         {formatRelativeChatTime(t, msg.event.created_at)}

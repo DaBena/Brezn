@@ -22,7 +22,8 @@
     "noRelayResponse": "لا استجابة من المرحّلات. تحقق من القائمة أو حاول لاحقًا.",
     "waitingEose": "لا أحداث بعد (في انتظار EOSE)…",
     "noPostsYet": "لا منشورات بعد. حاول لاحقًا أو مرحّلات أخرى.",
-    "noRelays": "لا توجد مرحّلات — راجع الإعدادات."
+    "noRelays": "لا توجد مرحّلات — راجع الإعدادات.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "الإعدادات",
@@ -145,7 +146,8 @@
     "sendAria": "إرسال",
     "sendingContent": "[جارٍ الإرسال...]",
     "sendError": "فشل الإرسال",
-    "hiddenByBlocklist": "تم إخفاء الرسالة (تطابق قائمة الكلمات المحظورة)."
+    "hiddenByBlocklist": "تم إخفاء الرسالة (تطابق قائمة الكلمات المحظورة).",
+    "openPeerProfileAria": "فتح الملف الشخصي"
   },
   "composer": {
     "srTitle": "منشور جديد",

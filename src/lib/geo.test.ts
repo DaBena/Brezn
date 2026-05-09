@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import geohash from 'ngeohash'
 import { encodeGeohash, generateGeohashTags, getBrowserLocation } from './geo'
 
@@ -28,45 +28,63 @@ describe('geo', () => {
     expect(generateGeohashTags('')).toEqual([])
   })
 
-  it('getBrowserLocation uses fast defaults (no high accuracy)', async () => {
-    const getCurrentPosition = vi.fn(
-      (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
-        success({
-          coords: { latitude: 5.5, longitude: -3.3 } as GeolocationCoordinates,
-        } as GeolocationPosition)
-      },
-    )
-    vi.stubGlobal('navigator', {
-      geolocation: { getCurrentPosition },
+  describe('getBrowserLocation', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'isSecureContext', {
+        configurable: true,
+        writable: true,
+        value: true,
+      })
     })
 
-    const pos = await getBrowserLocation()
-    expect(pos).toEqual({ lat: 5.5, lon: -3.3 })
-    expect(getCurrentPosition).toHaveBeenCalledOnce()
-    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
-      enableHighAccuracy: false,
-      timeout: 8000,
-      maximumAge: 60_000,
-    })
-  })
+    it('uses fast defaults (no high accuracy)', async () => {
+      const getCurrentPosition = vi.fn(
+        (
+          success: PositionCallback,
+          _err?: PositionErrorCallback | null,
+          _opts?: PositionOptions,
+        ) => {
+          success({
+            coords: { latitude: 5.5, longitude: -3.3 } as GeolocationCoordinates,
+          } as GeolocationPosition)
+        },
+      )
+      vi.stubGlobal('navigator', {
+        geolocation: { getCurrentPosition },
+      })
 
-  it('getBrowserLocation forwards custom geolocation options', async () => {
-    const getCurrentPosition = vi.fn(
-      (success: PositionCallback, _err?: PositionErrorCallback | null, _opts?: PositionOptions) => {
-        success({
-          coords: { latitude: 1.0, longitude: 2.0 } as GeolocationCoordinates,
-        } as GeolocationPosition)
-      },
-    )
-    vi.stubGlobal('navigator', {
-      geolocation: { getCurrentPosition },
+      const pos = await getBrowserLocation()
+      expect(pos).toEqual({ lat: 5.5, lon: -3.3 })
+      expect(getCurrentPosition).toHaveBeenCalledOnce()
+      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 60_000,
+      })
     })
 
-    await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
-    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
-      enableHighAccuracy: true,
-      timeout: 2000,
-      maximumAge: 5000,
+    it('forwards custom geolocation options', async () => {
+      const getCurrentPosition = vi.fn(
+        (
+          success: PositionCallback,
+          _err?: PositionErrorCallback | null,
+          _opts?: PositionOptions,
+        ) => {
+          success({
+            coords: { latitude: 1.0, longitude: 2.0 } as GeolocationCoordinates,
+          } as GeolocationPosition)
+        },
+      )
+      vi.stubGlobal('navigator', {
+        geolocation: { getCurrentPosition },
+      })
+
+      await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
+      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+        enableHighAccuracy: true,
+        timeout: 2000,
+        maximumAge: 5000,
+      })
     })
   })
 })

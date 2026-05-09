@@ -212,15 +212,7 @@ export function useLocalFeed(params: {
     applyGeo5AsLocation(geo5)
   }
 
-  const autoPromptedRef = useRef(false)
-  useEffect(() => {
-    if (autoPromptedRef.current) return
-    if (isOffline) return
-    if (feedState.kind !== 'need-location') return
-    autoPromptedRef.current = true
-    void requestLocationAndLoad({ forceBrowser: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per need-location
-  }, [feedState.kind, isOffline])
+  // Do not call geolocation from an effect: iOS Safari requires a user gesture (tap) or it may never show the prompt.
 
   // New notes use hierarchical `#g` tags; legacy posts may need exact `queryGeohash` match.
   const currentRelays = client.getRelays()

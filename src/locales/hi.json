@@ -22,7 +22,8 @@
     "noRelayResponse": "रिले से कोई प्रतिक्रिया नहीं। रिले सूची जाँचें या बाद में कोशिश करें।",
     "waitingEose": "अभी तक कोई इवेंट नहीं (EOSE की प्रतीक्षा)…",
     "noPostsYet": "अभी कोई पोस्ट नहीं। बाद में कोशिश करें या अन्य रिले आज़माएँ।",
-    "noRelays": "कोई रिले नहीं — सेटिंग्स देखें।"
+    "noRelays": "कोई रिले नहीं — सेटिंग्स देखें।",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -145,7 +146,8 @@
     "sendAria": "संदेश भेजें",
     "sendingContent": "[भेजा जा रहा है...]",
     "sendError": "संदेश भेजना विफल",
-    "hiddenByBlocklist": "संदेश छिपाया गया (आपकी कीवर्ड ब्लॉकलिस्ट से मेल खाता है)।"
+    "hiddenByBlocklist": "संदेश छिपाया गया (आपकी कीवर्ड ब्लॉकलिस्ट से मेल खाता है)।",
+    "openPeerProfileAria": "प्रोफ़ाइल खोलें"
   },
   "composer": {
     "srTitle": "नई पोस्ट",

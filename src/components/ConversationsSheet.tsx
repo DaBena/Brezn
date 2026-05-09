@@ -32,9 +32,19 @@ export function ConversationsSheet(props: {
   blockedPubkeys: string[]
   isOffline: boolean
   onBlockUser: (pubkey: string) => Promise<void>
+  onOpenProfile?: (pubkey: string) => void
 }) {
   const { t } = useTranslation()
-  const { open, onClose, client, mutedTerms, blockedPubkeys, isOffline, onBlockUser } = props
+  const {
+    open,
+    onClose,
+    client,
+    mutedTerms,
+    blockedPubkeys,
+    isOffline,
+    onBlockUser,
+    onOpenProfile,
+  } = props
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -149,6 +159,7 @@ export function ConversationsSheet(props: {
           mutedTerms={mutedTerms}
           blockedPubkeys={blockedPubkeys}
           isOffline={isOffline}
+          onOpenProfile={onOpenProfile}
           onBlockUser={onBlockUser}
         />
       ) : null}

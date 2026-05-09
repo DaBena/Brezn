@@ -3,7 +3,7 @@
  * separation is via border only.
  */
 export const feedListPostCardClass =
-  'rounded-lg border border-brezn-border bg-brezn-bg px-3 py-2 cursor-pointer focus:outline-none'
+  'min-w-0 rounded-lg border border-brezn-border bg-brezn-bg px-3 py-2 cursor-pointer focus:outline-none'
 
 export const feedListPostDeletedClass =
   'rounded-lg border border-brezn-border bg-brezn-muted/20 px-3 py-2 opacity-80'

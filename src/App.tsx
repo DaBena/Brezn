@@ -360,6 +360,7 @@ export default function App() {
           mutedTerms={moderation.mutedTerms}
           blockedPubkeys={moderation.blockedPubkeys}
           isOffline={isOffline}
+          onOpenProfile={handleOpenProfile}
           onBlockUser={async (pubkey) => {
             const next = [...moderation.blockedPubkeys, pubkey]
             await client.setBlockedPubkeys(next)
@@ -374,6 +375,7 @@ export default function App() {
           mutedTerms={moderation.mutedTerms}
           blockedPubkeys={moderation.blockedPubkeys}
           isOffline={isOffline}
+          onOpenProfile={handleOpenProfile}
           onBlockUser={async (pubkey) => {
             const next = [...moderation.blockedPubkeys, pubkey]
             await client.setBlockedPubkeys(next)

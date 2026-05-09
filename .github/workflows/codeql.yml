@@ -1,3 +1,6 @@
+# Advanced CodeQL via this workflow only works if repo Settings → Code security → Code scanning
+# has "Default setup" disabled (GitHub rejects SARIF otherwise).
+
 name: CodeQL
 
 on:
@@ -17,6 +20,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Until Node 24 is default on runners (matches github/codeql-action Node runtime).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -30,10 +37,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - javascript-typescript
-          - java-kotlin
-          - actions
+        include:
+          - language: javascript-typescript
+            build-mode: autobuild
+          - language: java-kotlin
+            build-mode: manual
+          - language: actions
+            build-mode: none
 
     steps:
       - name: Checkout repository
@@ -54,9 +64,10 @@ jobs:
           java-version: '17'
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
 
       # Actions: extractor needs no build. JS/TS: CodeQL autobuild. Java: debug APK only (release signing needs secrets/keystore).
       - name: Build Java (assembleDebug)
@@ -66,9 +77,9 @@ jobs:
 
       - name: Autobuild (JavaScript / TypeScript)
         if: matrix.language == 'javascript-typescript'
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}

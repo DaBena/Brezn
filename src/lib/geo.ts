@@ -175,6 +175,12 @@ export function getEastWestNeighbors(hash: string): { east: string; west: string
   }
 }
 
+/** Geolocation is restricted to secure contexts (HTTPS + http://localhost). Plain http:// LAN URLs cannot prompt. */
+export function isSecureGeolocationContext(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.isSecureContext
+}
+
 /**
  * Gets the current browser location using the Geolocation API.
  * @param opts - Options for geolocation
@@ -194,6 +200,14 @@ export async function getBrowserLocation(opts?: {
   const enableHighAccuracy = opts?.enableHighAccuracy ?? false
 
   return await new Promise<GeoPoint>((resolve, reject) => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      reject(
+        new Error(
+          'Geolocation needs HTTPS or http://localhost (not http://LAN IP). Safari blocks the prompt otherwise.',
+        ),
+      )
+      return
+    }
     if (!('geolocation' in navigator)) {
       reject(new Error('Geolocation not available in this browser.'))
       return

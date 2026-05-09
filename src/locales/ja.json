@@ -22,7 +22,8 @@
     "noRelayResponse": "リレーから応答がありません。リストを確認するか後で試してください。",
     "waitingEose": "まだイベントがありません（EOSE 待ち）…",
     "noPostsYet": "まだ投稿がありません。後で試すか別のリレーを。",
-    "noRelays": "リレーがありません — 設定を確認してください。"
+    "noRelays": "リレーがありません — 設定を確認してください。",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "設定",
@@ -145,7 +146,8 @@
     "sendAria": "送信",
     "sendingContent": "[送信中...]",
     "sendError": "送信に失敗しました",
-    "hiddenByBlocklist": "メッセージを非表示にしました（キーワードブロックリストに一致）。"
+    "hiddenByBlocklist": "メッセージを非表示にしました（キーワードブロックリストに一致）。",
+    "openPeerProfileAria": "プロフィールを開く"
   },
   "composer": {
     "srTitle": "新規投稿",

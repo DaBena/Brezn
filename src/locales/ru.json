@@ -22,7 +22,8 @@
     "noRelayResponse": "Нет ответа от реле. Проверьте список или попробуйте позже.",
     "waitingEose": "Событий пока нет (ожидание EOSE)…",
     "noPostsYet": "Постов пока нет. Попробуйте позже или другие реле.",
-    "noRelays": "Нет реле — проверьте настройки."
+    "noRelays": "Нет реле — проверьте настройки.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "Настройки",
@@ -145,7 +146,8 @@
     "sendAria": "Отправить",
     "sendingContent": "[отправка...]",
     "sendError": "Ошибка отправки",
-    "hiddenByBlocklist": "Сообщение скрыто (совпадение со списком ключевых слов)."
+    "hiddenByBlocklist": "Сообщение скрыто (совпадение со списком ключевых слов).",
+    "openPeerProfileAria": "Открыть профиль"
   },
   "composer": {
     "srTitle": "Новый пост",

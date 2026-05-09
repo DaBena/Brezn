@@ -81,7 +81,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
             {dist}
           </div>
         )}
-        <div className="mt-2">
+        <div className="mt-2 min-w-0 max-w-full">
           <PostContent
             content={contentPreview}
             tags={evt.tags}
@@ -119,7 +119,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
             {dist}
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-2 min-w-0 max-w-full">
           <PostContent
             content={contentPreview}
             tags={evt.tags}
@@ -170,7 +170,7 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
           <span className="font-mono">{reactionsByNoteId[evt.id]?.total ?? 0}</span>
         </button>
       </div>
-      <div className="mt-2">
+      <div className="mt-2 min-w-0 max-w-full">
         <PostContent
           content={contentPreview}
           tags={evt.tags}

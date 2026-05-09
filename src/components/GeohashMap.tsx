@@ -31,9 +31,9 @@ function scheduleInvalidateAndFit(
         [bounds.minLat, bounds.minLon],
         [bounds.maxLat, bounds.maxLon],
       ] as L.LatLngBoundsLiteral)
-      map.fitBounds(rectangle.getBounds(), { padding: [20, 20] })
+      map.fitBounds(rectangle.getBounds(), { padding: [20, 20], animate: false })
     } else {
-      map.setView([center.lat, center.lon], zoom)
+      map.setView([center.lat, center.lon], zoom, { animate: false })
     }
     afterFit()
   }
@@ -225,6 +225,7 @@ export function GeohashMap(props: {
           zoom,
           zoomControl: true,
           attributionControl: true,
+          zoomAnimation: false, // Safari/WebKit: zoom transition can outlive map.remove() in overlay UIs
         })
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

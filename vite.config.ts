@@ -11,12 +11,45 @@ function normalizeBasePath(input?: string) {
 
 const base = normalizeBasePath(process.env.BASE_PATH)
 
+/** Last package segment under node_modules (handles nested .pnpm paths). */
+function npmPackageFromModuleId(id: string): string | null {
+  const n = id.replace(/\\/g, '/')
+  const idx = n.lastIndexOf('/node_modules/')
+  if (idx === -1) return null
+  const rest = n.slice(idx + '/node_modules/'.length)
+  if (rest.startsWith('@')) {
+    const parts = rest.split('/')
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : null
+  }
+  const top = rest.split('/')[0]
+  return top || null
+}
+
 export default defineConfig({
   base,
   build: {
     chunkSizeWarningLimit: 1024,
     /** iOS 15 / Safari 15 — native ESM; avoid plugin-legacy (SystemJS + sniff) for fewer moving parts. */
     target: ['es2020', 'safari15', 'ios15'],
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const pkg = npmPackageFromModuleId(id)
+          if (!pkg) return undefined
+          if (pkg === 'react' || pkg === 'react-dom' || pkg === 'scheduler') {
+            return 'vendor-react'
+          }
+          if (pkg === 'use-sync-external-store') return 'vendor-react'
+          if (pkg === 'i18next' || pkg === 'react-i18next') return 'vendor-i18n'
+          if (pkg === '@nostr-dev-kit/ndk') return 'vendor-ndk'
+          if (pkg === 'nostr-tools') return 'vendor-nostr-tools'
+          if (pkg.startsWith('@noble/') || pkg.startsWith('@scure/')) return 'vendor-noble'
+          if (pkg === 'dexie') return 'vendor-dexie'
+          if (pkg === 'leaflet') return 'vendor-leaflet'
+          return undefined
+        },
+      },
+    },
   },
   plugins: [
     react(),

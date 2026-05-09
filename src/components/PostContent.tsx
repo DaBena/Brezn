@@ -267,7 +267,7 @@ export const PostContent = memo(function PostContent(props: {
   const mediaUrlSet = useMemo(() => new Set([...imageUrls, ...videoUrls]), [imageUrls, videoUrls])
 
   return (
-    <div className="break-words whitespace-pre-wrap">
+    <div className="min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
       {parts.map((p, idx) => {
         if (p.kind === 'text') {
           const ellipsisMatch = p.value.match(/^(.*)\n\.\.\.(\s*)$/s)
@@ -320,7 +320,7 @@ export const PostContent = memo(function PostContent(props: {
                 if (interactive) stop(e)
                 onOpenProfile(referencedProfilePubkey)
               }}
-              className="focus:outline-none rounded break-words font-medium text-brezn-link underline underline-offset-2 hover:opacity-90"
+              className="inline-block max-w-full rounded break-words [overflow-wrap:anywhere] font-medium text-brezn-link underline underline-offset-2 hover:opacity-90 focus:outline-none"
             >
               {p.display}
             </button>
@@ -333,7 +333,7 @@ export const PostContent = memo(function PostContent(props: {
             target="_blank"
             rel="noreferrer"
             onClick={interactive ? stop : undefined}
-            className="focus:outline-none rounded break-words font-medium text-brezn-link underline underline-offset-2 hover:opacity-90"
+            className="inline-block max-w-full rounded break-words [overflow-wrap:anywhere] font-medium text-brezn-link underline underline-offset-2 hover:opacity-90 focus:outline-none"
           >
             {p.display}
           </a>

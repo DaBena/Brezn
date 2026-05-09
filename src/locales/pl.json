@@ -22,7 +22,8 @@
     "noRelayResponse": "Brak odpowiedzi z relay’ów. Sprawdź listę relay’ów lub spróbuj później.",
     "waitingEose": "Brak zdarzeń (oczekiwanie na EOSE)…",
     "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów.",
-    "noRelays": "Brak relay’ów — sprawdź Ustawienia."
+    "noRelays": "Brak relay’ów — sprawdź Ustawienia.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "Ustawienia",
@@ -145,7 +146,8 @@
     "sendAria": "Wyślij wiadomość",
     "sendingContent": "[wysyłanie...]",
     "sendError": "Błąd wysyłania wiadomości",
-    "hiddenByBlocklist": "Wiadomość ukryta (pasuje do listy zablokowanych słów)."
+    "hiddenByBlocklist": "Wiadomość ukryta (pasuje do listy zablokowanych słów).",
+    "openPeerProfileAria": "Otwórz profil"
   },
   "composer": {
     "srTitle": "Nowy post",

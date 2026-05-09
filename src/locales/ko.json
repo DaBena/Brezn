@@ -22,7 +22,8 @@
     "noRelayResponse": "릴레이에서 응답이 없습니다. 릴레이 목록을 확인하거나 나중에 다시 시도하세요.",
     "waitingEose": "아직 이벤트 없음(EOSE 대기 중)…",
     "noPostsYet": "아직 게시물이 없습니다. 나중에 다시 시도하거나 다른 릴레이를 사용하세요.",
-    "noRelays": "릴레이 없음 — 설정을 확인하세요."
+    "noRelays": "릴레이 없음 — 설정을 확인하세요.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "설정",
@@ -145,7 +146,8 @@
     "sendAria": "메시지 보내기",
     "sendingContent": "[보내는 중...]",
     "sendError": "메시지 전송 실패",
-    "hiddenByBlocklist": "메시지가 숨겨졌습니다(키워드 차단 목록과 일치)."
+    "hiddenByBlocklist": "메시지가 숨겨졌습니다(키워드 차단 목록과 일치).",
+    "openPeerProfileAria": "프로필 열기"
   },
   "composer": {
     "srTitle": "새 게시물",

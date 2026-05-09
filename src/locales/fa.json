@@ -22,7 +22,8 @@
     "noRelayResponse": "پاسخی از رله‌ها نیست. فهرست رله را بررسی کنید یا بعداً دوباره تلاش کنید.",
     "waitingEose": "هنوز رویدادی نیست (در انتظار EOSE)…",
     "noPostsYet": "هنوز پستی نیست. بعداً دوباره تلاش کنید یا رله‌های دیگر را امتحان کنید.",
-    "noRelays": "رله‌ای نیست — تنظیمات را بررسی کنید."
+    "noRelays": "رله‌ای نیست — تنظیمات را بررسی کنید.",
+    "locationInsecureHint": "This page is not a secure connection (no HTTPS). Browsers only allow location on HTTPS or http://localhost. Using http://192.168… on your home network usually blocks the permission prompt — use HTTPS for LAN testing or open the deployed HTTPS site."
   },
   "settings": {
     "title": "تنظیمات",
@@ -145,7 +146,8 @@
     "sendAria": "ارسال پیام",
     "sendingContent": "[در حال ارسال...]",
     "sendError": "ارسال پیام ناموفق بود",
-    "hiddenByBlocklist": "پیام پنهان شد (با فهرست مسدودسازی کلمات کلیدی شما مطابقت دارد)."
+    "hiddenByBlocklist": "پیام پنهان شد (با فهرست مسدودسازی کلمات کلیدی شما مطابقت دارد).",
+    "openPeerProfileAria": "باز کردن نمایه"
   },
   "composer": {
     "srTitle": "پست جدید",

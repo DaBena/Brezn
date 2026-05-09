@@ -97,6 +97,11 @@ export function Feed(props: {
         <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3">
           <div className="text-sm font-semibold">{t('feed.locationTitle')}</div>
           <div className="mt-1 text-sm text-brezn-muted">{t('feed.locationBody')}</div>
+          {typeof window !== 'undefined' && window.isSecureContext === false ? (
+            <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+              {t('feed.locationInsecureHint')}
+            </div>
+          ) : null}
           {showCookieNotice ? (
             <div className="mt-2 text-sm text-brezn-muted space-y-1">
               <p>
@@ -123,6 +128,9 @@ export function Feed(props: {
               {t('feed.allowLocation')}
             </button>
           </div>
+          {'locationError' in feedState && feedState.locationError ? (
+            <p className="mt-2 text-sm text-red-700 dark:text-red-400">{feedState.locationError}</p>
+          ) : null}
         </div>
       )}
 
