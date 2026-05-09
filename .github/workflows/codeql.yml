@@ -39,7 +39,7 @@ jobs:
       matrix:
         include:
           - language: javascript-typescript
-            build-mode: autobuild
+            build-mode: none
           - language: java-kotlin
             build-mode: manual
           - language: actions
@@ -48,13 +48,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Setup Node
-        if: matrix.language == 'javascript-typescript'
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
 
       - name: Setup Java (Gradle / Android)
         if: matrix.language == 'java-kotlin'
@@ -69,15 +62,11 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      # Actions: extractor needs no build. JS/TS: CodeQL autobuild. Java: debug APK only (release signing needs secrets/keystore).
+      # Actions + JS/TS: build-mode none (JS/TS does not support autobuild). Java: debug APK only.
       - name: Build Java (assembleDebug)
         if: matrix.language == 'java-kotlin'
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-
-      - name: Autobuild (JavaScript / TypeScript)
-        if: matrix.language == 'javascript-typescript'
-        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

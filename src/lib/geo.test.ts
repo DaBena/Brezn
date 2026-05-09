@@ -84,12 +84,12 @@ describe('geo', () => {
         geolocation: { getCurrentPosition },
       })
 
-    await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
-    expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
-      enableHighAccuracy: true,
-      timeout: 2000,
-      maximumAge: 5000,
-    })
+      await getBrowserLocation({ enableHighAccuracy: true, timeoutMs: 2000, maximumAgeMs: 5000 })
+      expect(getCurrentPosition.mock.calls[0]?.[2]).toEqual({
+        enableHighAccuracy: true,
+        timeout: 2000,
+        maximumAge: 5000,
+      })
     })
 
     it('rejects with GeolocationRequestFailedError when permission denied', async () => {

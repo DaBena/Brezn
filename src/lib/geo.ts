@@ -228,10 +228,7 @@ export async function getBrowserLocation(opts?: {
       },
       (err: GeolocationPositionError) => {
         reject(
-          new GeolocationRequestFailedError(
-            err.code,
-            err.message || 'Failed to get location.',
-          ),
+          new GeolocationRequestFailedError(err.code, err.message || 'Failed to get location.'),
         )
       },
       { enableHighAccuracy, timeout, maximumAge },
