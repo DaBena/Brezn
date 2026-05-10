@@ -1,21 +1,29 @@
 name: Build Android APK
 
 on:
-  push:
+  workflow_run:
+    workflows: ['Deploy to GitHub Pages']
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write # read + write for creating releases and uploading assets
+  contents: write
 
 jobs:
   build-apk:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        if: github.event_name == 'workflow_run'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/checkout@v6
+        if: github.event_name == 'workflow_dispatch'
 
       - name: Setup Node
         uses: actions/setup-node@v6
