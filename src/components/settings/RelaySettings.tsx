@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
-import type { BreznNostrClient } from '../../lib/nostrClient'
-import { DEFAULT_RELAYS } from '../../lib/nostrClient'
+import { DEFAULT_RELAYS, parseRelayUrlOrThrow, type BreznNostrClient } from '../../lib/nostrClient'
 import { RELAY_WEBSOCKET_TEST_TIMEOUT_MS } from '../../lib/constants'
 import { CloseIcon } from '../CloseIcon'
+import { useToast } from '../ToastContext'
 
 type RelayStatusLite = {
   url: string
@@ -95,6 +95,7 @@ function asErrorMessage(e: unknown): string {
 
 export function RelaySettings({ client }: RelaySettingsProps) {
   const { t } = useTranslation()
+  const { showToast } = useToast()
   const [relaysUi, setRelaysUi] = useState<string[]>(() => client.getRelays())
   const [newRelay, setNewRelay] = useState('')
   const [relayTestResults, setRelayTestResults] = useState<Record<string, RelayStatusLite>>({})
@@ -182,11 +183,19 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           e.preventDefault()
           const trimmed = newRelay.trim()
           if (!trimmed) return
-          const next = [...relaysUi, trimmed]
-          client.setRelays(next)
-          setRelaysUi(client.getRelays())
-          setNewRelay('')
-          setRelayTestTriggered(false)
+          try {
+            const url = parseRelayUrlOrThrow(trimmed)
+            if (relaysUi.some((r) => r.toLowerCase() === url.toLowerCase())) {
+              showToast(t('relay.duplicate'), 'error')
+              return
+            }
+            client.setRelays([...relaysUi, url])
+            setRelaysUi(client.getRelays())
+            setNewRelay('')
+            setRelayTestTriggered(false)
+          } catch (err) {
+            showToast(asErrorMessage(err), 'error')
+          }
         }}
       >
         <div className="flex min-w-0 gap-2">

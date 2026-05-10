@@ -96,7 +96,8 @@
     "unreachable": "不可达",
     "reachableWithRtt": "可达 • {{rtt}}ms",
     "unreachableWithErr": "不可达 • {{error}}",
-    "statusAria": "中继状态：{{state}}"
+    "statusAria": "中继状态：{{state}}",
+    "duplicate": "该中继已在列表中。"
   },
   "mediaUpload": {
     "title": "媒体上传",
@@ -168,8 +169,7 @@
     "imageTooLarge": "图片过大（最大 12 MB）。",
     "compressFailed": "压缩图片失败。",
     "uploadFailed": "上传失败。",
-    "publishFailed": "发布失败。",
-    "feedMapLegend": "红点：此信息流中的帖子和日历活动（点按打开）。地图上已高亮显示您的网格。"
+    "publishFailed": "发布失败。"
   },
   "feedArticle": {
     "deleted": "已删除 — 同步到中继",

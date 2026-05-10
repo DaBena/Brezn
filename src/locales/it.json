@@ -96,7 +96,8 @@
     "unreachable": "non raggiungibile",
     "reachableWithRtt": "raggiungibile • {{rtt}}ms",
     "unreachableWithErr": "non raggiungibile • {{error}}",
-    "statusAria": "Stato relay: {{state}}"
+    "statusAria": "Stato relay: {{state}}",
+    "duplicate": "Questo relay è già nell’elenco."
   },
   "mediaUpload": {
     "title": "Caricamento media",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Immagine troppo grande (max 12 MB).",
     "compressFailed": "Compressione immagine fallita.",
     "uploadFailed": "Upload fallito.",
-    "publishFailed": "Pubblicazione fallita.",
-    "feedMapLegend": "Punti rossi: post ed eventi di calendario di questo feed (tocca per aprire). La tua cella è evidenziata sulla mappa."
+    "publishFailed": "Pubblicazione fallita."
   },
   "feedArticle": {
     "deleted": "Eliminato — propagazione ai relay",

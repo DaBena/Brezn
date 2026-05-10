@@ -1,12 +1,14 @@
 import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setSavedGeo5 } from './lastLocation'
-import { createNostrClient } from './nostrClient'
+import { grantBreznIndexedDbWrites } from './storage'
+import { createNostrClient, parseRelayUrlOrThrow } from './nostrClient'
 
 describe('nostrClient NDK / Vitest', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('skips live ndk.connect when VITEST is set (avoids undici WebSocket vs jsdom EventTarget)', () => {
@@ -20,6 +22,7 @@ describe('nostrClient identity (no accounts)', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('auto-creates a persistent identity on first run', () => {
@@ -63,6 +66,7 @@ describe('nostrClient blocked pubkeys', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('normalizes blocked pubkeys', async () => {
@@ -110,6 +114,7 @@ describe('nostrClient geohash length', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('defaults to 2', () => {
@@ -132,10 +137,30 @@ describe('nostrClient geohash length', () => {
   })
 })
 
+describe('parseRelayUrlOrThrow', () => {
+  it('normalizes wss URL and strips trailing slash on origin', () => {
+    expect(parseRelayUrlOrThrow('wss://relay.example.com/')).toBe('wss://relay.example.com')
+    expect(parseRelayUrlOrThrow('  wss://x.example/ws ')).toBe('wss://x.example/ws')
+  })
+
+  it('throws with Failed to add relay prefix on invalid URL', () => {
+    expect(() => parseRelayUrlOrThrow('rtzrtz')).toThrow(/Failed to add relay:/)
+  })
+
+  it('throws when scheme is not ws(s)', () => {
+    expect(() => parseRelayUrlOrThrow('https://relay.damus.io')).toThrow(/wss:\/\/ or ws:\/\//)
+  })
+
+  it('throws on empty input', () => {
+    expect(() => parseRelayUrlOrThrow('   ')).toThrow(/Failed to add relay:/)
+  })
+})
+
 describe('nostrClient relays', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('returns NDK pool or bootstrap when no manual override', () => {
@@ -228,6 +253,7 @@ describe('nostrClient media upload endpoint', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
   })
 
   it('returns default endpoint when not configured', () => {
@@ -264,6 +290,7 @@ describe('nostrClient NIP-56 report events', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
     vi.clearAllMocks()
     publishSpy = vi.spyOn(NDKEvent.prototype, 'publish').mockImplementation(async function (
       this: NDKEvent,

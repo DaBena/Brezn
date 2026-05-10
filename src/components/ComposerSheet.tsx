@@ -19,8 +19,6 @@ export function ComposerSheet(props: {
   /** Same events as the main feed list (e.g. filtered search); shown on the geo map. */
   feedEvents?: Event[]
   onOpenFeedEvent?: (evt: Event) => void
-  /** Short legend under the geo map (i18n string). */
-  feedMapLegend?: string
 }) {
   const { t } = useTranslation()
   const {
@@ -33,7 +31,6 @@ export function ComposerSheet(props: {
     mediaUploadEndpoint,
     feedEvents,
     onOpenFeedEvent,
-    feedMapLegend,
   } = props
 
   const [composerText, setComposerText] = useState('')
@@ -243,24 +240,19 @@ export function ComposerSheet(props: {
       <div className="mt-1">{cellLine}</div>
 
       {viewerGeo5 && showGeoMap ? (
-        <>
-          <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
-            <GeohashMap
-              geohash={viewerGeo5}
-              className="h-full w-full"
-              onCellSelect={onSelectCell}
-              onRequestLocation={onRequestLocation ? wrappedRequestLocationForMap : undefined}
-              gpsAriaLabel={t('geohashMap.gpsAria')}
-              gpsTitle={t('geohashMap.gpsTitle')}
-              feedEvents={feedEvents}
-              onFeedMarkerClick={onOpenFeedEvent}
-              mapRelayoutTick={mapRelayoutTick}
-            />
-          </div>
-          {feedMapLegend ? (
-            <p className="mt-1 px-1 text-xs text-brezn-muted">{feedMapLegend}</p>
-          ) : null}
-        </>
+        <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
+          <GeohashMap
+            geohash={viewerGeo5}
+            className="h-full w-full"
+            onCellSelect={onSelectCell}
+            onRequestLocation={onRequestLocation ? wrappedRequestLocationForMap : undefined}
+            gpsAriaLabel={t('geohashMap.gpsAria')}
+            gpsTitle={t('geohashMap.gpsTitle')}
+            feedEvents={feedEvents}
+            onFeedMarkerClick={onOpenFeedEvent}
+            mapRelayoutTick={mapRelayoutTick}
+          />
+        </div>
       ) : null}
       {mediaUrls.length > 0 ? (
         <div className="mt-3 grid grid-cols-4 gap-2">

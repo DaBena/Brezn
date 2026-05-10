@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Event } from './nostrPrimitives'
+import { isBreznStorageConsentGranted } from './storage'
 
 /** iOS Safari often kills IDB mid-flight; never surface these as fatal UI errors. */
 function isRecoverableIndexedDbError(e: unknown): boolean {
@@ -138,6 +139,7 @@ export async function profileMetadataCacheReadMany(
 ): Promise<Map<string, ProfileMetadataRow>> {
   const out = new Map<string, ProfileMetadataRow>()
   if (!pubkeys.length) return out
+  if (!isBreznStorageConsentGranted()) return out
   try {
     const rows = await withIndexedDbRetry(async () => {
       const db = getDb()
@@ -153,6 +155,7 @@ export async function profileMetadataCacheReadMany(
 }
 
 async function pruneOldestIfNeeded(): Promise<void> {
+  if (!isBreznStorageConsentGranted()) return
   const db = getDb()
   const n = await db.profiles.count()
   if (n <= PROFILE_METADATA_CACHE_MAX_ROWS) return
@@ -163,6 +166,7 @@ async function pruneOldestIfNeeded(): Promise<void> {
 
 export async function profileMetadataCacheUpsertFromKind0(evt: Event): Promise<void> {
   if (evt.kind !== 0) return
+  if (!isBreznStorageConsentGranted()) return
   try {
     await enqueueProfileWrite(async () => {
       await withIndexedDbRetry(async () => {

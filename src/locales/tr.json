@@ -96,7 +96,8 @@
     "unreachable": "erişilemez",
     "reachableWithRtt": "erişilebilir • {{rtt}} ms",
     "unreachableWithErr": "erişilemez • {{error}}",
-    "statusAria": "Relay durumu: {{state}}"
+    "statusAria": "Relay durumu: {{state}}",
+    "duplicate": "Bu relay zaten listede."
   },
   "mediaUpload": {
     "title": "Medya yükleme",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Görsel çok büyük (en fazla 12 MB).",
     "compressFailed": "Görsel sıkıştırılamadı.",
     "uploadFailed": "Yükleme başarısız.",
-    "publishFailed": "Yayınlama başarısız.",
-    "feedMapLegend": "Kırmızı noktalar: bu akıştaki gönderiler ve takvim etkinlikleri (açmak için dokunun). Haritada hücreniz vurgulanır."
+    "publishFailed": "Yayınlama başarısız."
   },
   "feedArticle": {
     "deleted": "Silindi — relay’lere yayılıyor",

@@ -96,7 +96,8 @@
     "unreachable": "không kết nối được",
     "reachableWithRtt": "kết nối được • {{rtt}} ms",
     "unreachableWithErr": "không kết nối được • {{error}}",
-    "statusAria": "Trạng thái relay: {{state}}"
+    "statusAria": "Trạng thái relay: {{state}}",
+    "duplicate": "Relay này đã có trong danh sách."
   },
   "mediaUpload": {
     "title": "Tải media lên",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Ảnh quá lớn (tối đa 12 MB).",
     "compressFailed": "Nén ảnh thất bại.",
     "uploadFailed": "Tải lên thất bại.",
-    "publishFailed": "Đăng thất bại.",
-    "feedMapLegend": "Chấm đỏ: bài viết và sự kiện lịch trong luồng này (chạm để mở). Ô của bạn được làm nổi bật trên bản đồ."
+    "publishFailed": "Đăng thất bại."
   },
   "feedArticle": {
     "deleted": "Đã xóa — đang lan tới relay",

@@ -1,5 +1,5 @@
 import { LAST_LOCATION_KEY } from './constants'
-import { GEOHASH_LEN_MIN_UI } from './geo'
+import { GEOHASH_LEN_MAX_UI } from './geo'
 import { loadJsonSync, saveJsonSync } from './storage'
 
 /**
@@ -9,7 +9,7 @@ export function getSavedGeo5(): string | null {
   const v = loadJsonSync<string | null>(LAST_LOCATION_KEY, null)
   if (typeof v !== 'string') return null
   const s = v.trim()
-  return s.length >= GEOHASH_LEN_MIN_UI ? s : null
+  return s.length >= GEOHASH_LEN_MAX_UI ? s : null
 }
 
 /**

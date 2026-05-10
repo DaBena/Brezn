@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import { STORAGE_WRITE_CONSENT_KEY } from './constants'
 
 const DB_NAME = 'brezn-storage'
 const DB_VERSION = 1
@@ -8,7 +9,6 @@ const STORE_NAME = 'keyValueStore'
 // Encryption key storage key (separate from data)
 const ENCRYPTION_KEY_STORAGE_KEY = 'brezn:encryption-key'
 
-/** IndexedDB gate; set true when the app may use device storage (browser: on client init). */
 let storageConsentGiven = false
 
 class BreznStorageDexie extends Dexie {
@@ -25,10 +25,36 @@ class BreznStorageDexie extends Dexie {
 
 let storageDbSingleton: BreznStorageDexie | null = null
 
-/** Enable brezn-storage (IndexedDB). Nostr client sets this when localStorage is available. */
+export function syncBreznIndexedDbWriteConsentFromStorage(): void {
+  try {
+    storageConsentGiven = localStorage.getItem(STORAGE_WRITE_CONSENT_KEY) === 'true'
+  } catch {
+    storageConsentGiven = false
+  }
+  if (!storageConsentGiven) {
+    encryptionKeyCache = null
+    storageDbSingleton?.close()
+    storageDbSingleton = null
+  }
+}
+
+export function isBreznStorageConsentGranted(): boolean {
+  return storageConsentGiven
+}
+
+export function grantBreznIndexedDbWrites(): void {
+  try {
+    localStorage.setItem(STORAGE_WRITE_CONSENT_KEY, 'true')
+  } catch {
+    /* ignore quota / private mode */
+  }
+  storageConsentGiven = true
+}
+
 export function setStorageConsentGiven(value: boolean): void {
   storageConsentGiven = value
-  if (value) {
+  encryptionKeyCache = null
+  if (!value) {
     storageDbSingleton?.close()
     storageDbSingleton = null
   }
@@ -79,7 +105,7 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
       return indexed
     }
   } catch {
-    // IndexedDB failed, try localStorage
+    // IndexedDB failed or consent off, try localStorage
   }
 
   // Fallback to localStorage
@@ -87,11 +113,12 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
     const raw = localStorage.getItem(key)
     if (!raw) return fallback
     const parsed = JSON.parse(raw) as T
-    // Sync to IndexedDB if localStorage had data
-    try {
-      await saveToIndexedDB(key, parsed)
-    } catch {
-      // ignore IndexedDB sync errors
+    if (storageConsentGiven) {
+      try {
+        await saveToIndexedDB(key, parsed)
+      } catch {
+        // ignore IndexedDB sync errors
+      }
     }
     return parsed
   } catch {
@@ -100,14 +127,14 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function saveJson(key: string, value: unknown): Promise<void> {
-  // Save to both IndexedDB and localStorage for redundancy
   const serialized = JSON.stringify(value)
 
-  // Save to IndexedDB (primary)
-  try {
-    await saveToIndexedDB(key, value)
-  } catch {
-    // IndexedDB failed, continue with localStorage
+  if (storageConsentGiven) {
+    try {
+      await saveToIndexedDB(key, value)
+    } catch {
+      // IndexedDB failed, continue with localStorage
+    }
   }
 
   // Save to localStorage (fallback)

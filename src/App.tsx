@@ -27,6 +27,8 @@ import { useNavigation } from './hooks/useNavigation'
 import { publishPost, publishReply, deletePost, deletePosts } from './lib/postService'
 import { reactToPost } from './lib/reactionService'
 import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
+import { getSavedGeo5 } from './lib/lastLocation'
+import { isBreznStorageConsentGranted } from './lib/storage'
 
 export default function App() {
   const { t } = useTranslation()
@@ -214,8 +216,12 @@ export default function App() {
 
   return (
     <div className="min-h-dvh bg-brezn-bg text-brezn-text">
-      <PwaUpdateToast />
-      <AdblockerWarning />
+      <PwaUpdateToast
+        serviceWorkerAllowed={Boolean(viewerGeo5 && isBreznStorageConsentGranted())}
+      />
+      <AdblockerWarning
+        serviceWorkerExpected={Boolean(viewerGeo5 && isBreznStorageConsentGranted())}
+      />
       <NavigationBar
         showNav={navigation.showNav}
         searchQuery={search.searchQuery}
@@ -263,11 +269,15 @@ export default function App() {
         onRequestLocation={(onFinished) =>
           void requestLocationAndLoad({ forceBrowser: true, onFinished })
         }
-        onSelectCell={setLocationFromGeohash}
+        onSelectCell={(geo5) =>
+          setLocationFromGeohash(geo5, {
+            persistGeo: Boolean(getSavedGeo5()),
+            grantStorageConsent: true,
+          })
+        }
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
         feedEvents={search.filteredEvents}
-        feedMapLegend={t('composer.feedMapLegend')}
         onOpenFeedEvent={(evt) => {
           if (moderation.blockedPubkeys.includes(evt.pubkey)) return
           appState.closeSheet('composer')

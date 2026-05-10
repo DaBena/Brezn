@@ -96,7 +96,8 @@
     "unreachable": "अपहुँच",
     "reachableWithRtt": "पहुँच योग्य • {{rtt}} ms",
     "unreachableWithErr": "अपहुँच • {{error}}",
-    "statusAria": "रिले स्थिति: {{state}}"
+    "statusAria": "रिले स्थिति: {{state}}",
+    "duplicate": "यह relay पहले से सूची में है।"
   },
   "mediaUpload": {
     "title": "मीडिया अपलोड",
@@ -168,8 +169,7 @@
     "imageTooLarge": "छवि बहुत बड़ी है (अधिकतम 12 MB)।",
     "compressFailed": "छवि संपीड़न विफल।",
     "uploadFailed": "अपलोड विफल।",
-    "publishFailed": "प्रकाशन विफल।",
-    "feedMapLegend": "लाल बिंदु: इस फ़ीड की पोस्ट और कैलेंडर इवेंट (खोलने के लिए टैप करें)। आपका सेल मानचित्र पर हाइलाइट है।"
+    "publishFailed": "प्रकाशन विफल।"
   },
   "feedArticle": {
     "deleted": "हटाया गया — रिले पर प्रसारित हो रहा है",

@@ -96,7 +96,8 @@
     "unreachable": "injoignable",
     "reachableWithRtt": "joignable • {{rtt}}ms",
     "unreachableWithErr": "injoignable • {{error}}",
-    "statusAria": "État du relay : {{state}}"
+    "statusAria": "État du relay : {{state}}",
+    "duplicate": "Ce relay est déjà dans la liste."
   },
   "mediaUpload": {
     "title": "Envoi de médias",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Image trop volumineuse (max. 12 Mo).",
     "compressFailed": "Échec de compression de l’image.",
     "uploadFailed": "Échec de l’envoi.",
-    "publishFailed": "Échec de la publication.",
-    "feedMapLegend": "Points rouges : publications et événements du calendrier de ce fil (appuyer pour ouvrir). Votre cellule est mise en évidence sur la carte."
+    "publishFailed": "Échec de la publication."
   },
   "feedArticle": {
     "deleted": "Supprimé — propagation aux relays",

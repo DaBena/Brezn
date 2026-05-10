@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from '../lib/nostrPrimitives'
-import type { BreznNostrClient } from '../lib/nostrClient'
+import { grantDiskPersistenceAndFlushState, type BreznNostrClient } from '../lib/nostrClient'
 import {
   decodeGeohashCenter,
   encodeGeohash,
@@ -9,7 +9,6 @@ import {
 } from '../lib/geo'
 import { contentMatchesMutedTerms } from '../lib/moderation'
 import { getSavedGeo5, setSavedGeo5 } from '../lib/lastLocation'
-import { setStorageConsentGiven } from '../lib/storage'
 import { deletePost } from '../lib/postService'
 import {
   RESEND_DELETION_COOLDOWN_MS,
@@ -63,7 +62,7 @@ export function useLocalFeed(params: {
 
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
-  // Precision 0 → query full 5-char cell (wide REQ); else prefix length matches UI selector.
+  // geohashLength 0 → REQ uses full 5-char cell; else prefix matches the precision selector.
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
       ? initialSavedGeo5.slice(0, initialGeohashLength)
@@ -90,7 +89,7 @@ export function useLocalFeed(params: {
   const unsubRef = useRef<null | (() => void)>(null)
   const eventsRef = useRef(events)
   eventsRef.current = events
-  /** Next `until` after duplicate/empty relay page. */
+  /** Next `until` when the relay returns only duplicates / empty page. */
   const loadMoreCursorRef = useRef<number | null>(null)
   const loadMoreQueueRef = useRef<Promise<unknown>>(Promise.resolve())
   const autoBackfillRef = useRef<{ key: string; attempts: number }>({ key: '', attempts: 0 })
@@ -124,7 +123,7 @@ export function useLocalFeed(params: {
     }
   }, [])
 
-  // Fix flaky navigator.onLine on first paint (e.g. after geo reload).
+  // navigator.onLine can be wrong on first paint; brief delay avoids a false-offline shell.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const t = window.setTimeout(() => {
@@ -161,8 +160,10 @@ export function useLocalFeed(params: {
     setFeedState({ kind: 'loading' })
   }
 
-  function applyGeo5AsLocation(geo5: string): void {
-    setSavedGeo5(geo5)
+  function applyGeo5AsLocation(geo5: string, opts?: { persistGeo?: boolean }): void {
+    if (opts?.persistGeo !== false) {
+      setSavedGeo5(geo5)
+    }
     setViewerGeo5(geo5)
     if (geo5 === viewerGeo5Ref.current) return
     setFeedState({ kind: 'loading' })
@@ -187,15 +188,14 @@ export function useLocalFeed(params: {
 
       const savedBeforeRequest = getSavedGeo5()
       if (!savedBeforeRequest) {
-        setFeedState({ kind: 'need-location' }) // clear previous error while retrying
+        setFeedState({ kind: 'need-location' })
       }
       const pos = await getBrowserLocation()
-      const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI) // Always 5 digits
+      const geo5 = encodeGeohash(pos, GEOHASH_LEN_MAX_UI)
       applyGeo5AsLocation(geo5)
-      setStorageConsentGiven(true) // allow IndexedDB (brezn-storage) from now on
-      client.persistStateNow() // persist nsec now that user has consented (Allow location)
+      grantDiskPersistenceAndFlushState(client)
     } catch (e) {
-      // Browser location failed: fall back to last saved cell if any (stay off need-location).
+      // Prefer last saved cell so we do not trap the user on need-location after a GPS failure.
       const savedGeo5 = getSavedGeo5()
       if (savedGeo5) {
         applyGeo5AsLocation(savedGeo5)
@@ -208,25 +208,17 @@ export function useLocalFeed(params: {
     }
   }
 
-  function setLocationFromGeohash(geo5: string, opts?: { grantStorageConsent?: boolean }): void {
-    applyGeo5AsLocation(geo5)
+  function setLocationFromGeohash(
+    geo5: string,
+    opts?: { grantStorageConsent?: boolean; persistGeo?: boolean },
+  ): void {
+    applyGeo5AsLocation(geo5, { persistGeo: opts?.persistGeo })
     if (opts?.grantStorageConsent) {
-      setStorageConsentGiven(true)
-      client.persistStateNow()
+      grantDiskPersistenceAndFlushState(client)
     }
   }
 
-  const autoPromptedRef = useRef(false)
-  useEffect(() => {
-    if (autoPromptedRef.current) return
-    if (isOffline) return
-    if (feedState.kind !== 'need-location') return
-    autoPromptedRef.current = true
-    void requestLocationAndLoad({ forceBrowser: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once when entering need-location
-  }, [feedState.kind, isOffline])
-
-  // New notes use hierarchical `#g` tags; legacy posts may need exact `queryGeohash` match.
+  // New roots use hierarchical `#g`; older notes may match only the exact query prefix.
   const currentRelays = client.getRelays()
   const relaysKey = [...currentRelays].sort().join(',')
   useEffect(() => {
@@ -353,7 +345,7 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // Mode 0: band + exact 5-char — one NDK grouped REQ for all cells (parallel), not staggered subs.
+    // Precision 0 + full cell: one grouped REQ per neighbor band instead of staggered subs.
     if (geohashLength === 0 && queryGeohash.length === 5) {
       const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
       const filters = cellsToQuery.map((cell) => ({
@@ -458,7 +450,7 @@ export function useLocalFeed(params: {
       }
 
       setIsLoadingMore(true)
-      /** Sync count: state updaters can lag EOSE. */
+      // Count here; React state from setEvents can lag behind relay callbacks until flush.
       let newEventCount = 0
       const relayRootIdsThisBatch = new Set<string>()
       const timeoutMs = 15_000
@@ -533,7 +525,6 @@ export function useLocalFeed(params: {
     void loadMorePage()
   }
 
-  // If the feed is very short, pull older pages automatically (bounded attempts).
   useEffect(() => {
     if (isOffline) return
     if (!queryGeohash) return

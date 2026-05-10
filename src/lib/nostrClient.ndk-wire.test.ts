@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NDK from '@nostr-dev-kit/ndk'
 import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { setSavedGeo5 } from './lastLocation'
+import { grantBreznIndexedDbWrites } from './storage'
 import { createNostrClient } from './nostrClient'
 
 describe('nostrClient NDK call shape (spies)', () => {
@@ -11,6 +12,7 @@ describe('nostrClient NDK call shape (spies)', () => {
   beforeEach(() => {
     localStorage.clear()
     setSavedGeo5('u0m0m')
+    grantBreznIndexedDbWrites()
     subscribeSpy = vi.spyOn(NDK.prototype, 'subscribe').mockReturnValue({
       stop: vi.fn(),
     } as ReturnType<NDK['subscribe']>)

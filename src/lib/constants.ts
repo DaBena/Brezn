@@ -24,8 +24,17 @@ export const FEED_PREVIEW_MAX_FLOWTEXT = 500
 /** While search is debounced: max `loadMorePage` rounds (each ≤ FEED_QUERY_LIMIT); empty pages advance `until` by span. */
 export const SEARCH_FEED_PREFETCH_MAX_ROUNDS = 10
 
-/** localStorage: last geo cell; key exists ⇒ user saw consent and allowed location once. */
+/** localStorage: last geo cell (expect `GEOHASH_LEN_MAX_UI` chars); feed/composer UX only — not IndexedDB consent. */
 export const LAST_LOCATION_KEY = 'brezn:last-location:v1'
+
+/** User opted into Brezn IndexedDB writes (GPS success or manual cell grant). Never inferred from geo alone. */
+export const STORAGE_WRITE_CONSENT_KEY = 'brezn:storage-write-consent:v1'
+
+/** One-shot migration for profiles that had geo-based unlock before explicit consent existed. */
+export const STORAGE_WRITE_CONSENT_MIGRATION_KEY = 'brezn:migrated-storage-write-consent-v3'
+
+/** Must match `nostrClient` LS_KEY — used for legacy migration checks only. */
+export const BREZN_APP_STATE_LS_KEY = 'brezn:v1'
 
 /** DM fetch per relay: max wait for EOSE on that connection (NDK subscription). */
 export const GET_DM_HISTORY_MAX_WAIT_MS = 5_000

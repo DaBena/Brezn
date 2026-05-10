@@ -96,7 +96,8 @@
     "unreachable": "غير متاح",
     "reachableWithRtt": "متاح • {{rtt}}ms",
     "unreachableWithErr": "غير متاح • {{error}}",
-    "statusAria": "حالة المرحّل: {{state}}"
+    "statusAria": "حالة المرحّل: {{state}}",
+    "duplicate": "هذا التتابع موجود بالفعل في القائمة."
   },
   "mediaUpload": {
     "title": "رفع الوسائط",
@@ -168,8 +169,7 @@
     "imageTooLarge": "الصورة كبيرة جدًا (حد أقصى 12 ميجابايت).",
     "compressFailed": "فشل ضغط الصورة.",
     "uploadFailed": "فشل الرفع.",
-    "publishFailed": "فشل النشر.",
-    "feedMapLegend": "النقاط الحمراء: منشورات وأحداث تقويم هذا الخيط (اضغط للفتح). تُبرَز خليتك على الخريطة."
+    "publishFailed": "فشل النشر."
   },
   "feedArticle": {
     "deleted": "محذوف — جارٍ المزامنة",

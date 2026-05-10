@@ -17,7 +17,9 @@ import {
   saveJsonSync,
   loadEncryptedJson,
   saveEncryptedJson,
-  setStorageConsentGiven,
+  syncBreznIndexedDbWriteConsentFromStorage,
+  isBreznStorageConsentGranted,
+  grantBreznIndexedDbWrites,
 } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
@@ -331,6 +333,14 @@ export type BreznNostrClient = {
   persistStateNow(): void
 }
 
+/** Opt-in to Brezn disk persistence (consent flag + LS / encrypted IDB) and flush current in-memory state. */
+export function grantDiskPersistenceAndFlushState(
+  client: Pick<BreznNostrClient, 'persistStateNow'>,
+): void {
+  grantBreznIndexedDbWrites()
+  client.persistStateNow()
+}
+
 function nowSec(): number {
   return Math.floor(Date.now() / 1000)
 }
@@ -383,9 +393,8 @@ function fallbackStateFromLocalStorage(): void {
   stateCache = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
 }
 
-// `whenIdentityReady` runs at import time; IndexedDB must be open before that load (createNostrClient() runs later).
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-  setStorageConsentGiven(true)
+  syncBreznIndexedDbWriteConsentFromStorage()
 }
 
 /** Resolves when identity/storage is ready (IndexedDB decrypted or fallback applied). Await before using client identity. */
@@ -423,7 +432,6 @@ function loadState(): StoredStateV1 {
   return loaded
 }
 
-/** Persist settings and encrypted skHex whenever localStorage exists (browser). Geolocation is unrelated. */
 function canPersistState(): boolean {
   return typeof localStorage !== 'undefined'
 }
@@ -433,30 +441,47 @@ function saveState(patch: Partial<StoredStateV1>) {
   stateCache = next
 
   if (!canPersistState()) return
+  if (!isBreznStorageConsentGranted()) return
 
-  // Save to localStorage without skHex (secret key only in IndexedDB, encrypted)
+  // LS holds pubkey/settings only; skHex is persisted encrypted via IndexedDB below.
   const forLocal: Partial<StoredStateV1> = { ...next }
   delete forLocal.skHex
   saveJsonSync(LS_KEY, forLocal as StoredStateV1)
 
-  saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {
-    // Ignore errors, non-sensitive state is already in localStorage
-  })
+  saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {})
+}
+
+function normalizeRelayUrlStrict(input: string): string {
+  const trimmed = input.trim()
+  if (!trimmed) throw new Error('Failed to add relay: URL cannot be empty')
+  let u: URL
+  try {
+    u = new URL(trimmed)
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e)
+    throw new Error(`Failed to add relay: ${detail}`, { cause: e })
+  }
+  if (u.protocol !== 'wss:' && u.protocol !== 'ws:') {
+    const proto = u.protocol ? u.protocol.slice(0, -1) : 'missing'
+    throw new Error(`Failed to add relay: use WebSocket URL (wss:// or ws://), not ${proto}`)
+  }
+  u.hash = ''
+  u.search = ''
+  const s = u.toString()
+  return s.endsWith('/') ? s.slice(0, -1) : s
 }
 
 function normalizeRelayUrl(input: string): string | null {
-  const trimmed = input.trim()
-  if (!trimmed) return null
   try {
-    const u = new URL(trimmed)
-    if (u.protocol !== 'wss:' && u.protocol !== 'ws:') return null
-    u.hash = ''
-    u.search = ''
-    const s = u.toString()
-    return s.endsWith('/') ? s.slice(0, -1) : s
+    return normalizeRelayUrlStrict(input)
   } catch {
     return null
   }
+}
+
+/** Validates and normalizes a relay URL for settings UI; throws like `setIdentity` with a clear message. */
+export function parseRelayUrlOrThrow(input: string): string {
+  return normalizeRelayUrlStrict(input)
 }
 
 function normalizeRelays(relays: string[]): string[] {
@@ -486,7 +511,6 @@ function normalizeRelays(relays: string[]): string[] {
  * @returns BreznNostrClient instance
  */
 export function createNostrClient(): BreznNostrClient {
-  setStorageConsentGiven(canPersistState())
   const ndk = new NDK({
     explicitRelayUrls: [...DEFAULT_RELAYS],
     filterValidationMode: 'fix',

@@ -270,15 +270,6 @@ describe.skipIf(!runProbe)('relay catalog + #g=u (RELAY_PROBE=1)', () => {
       Boolean,
     ) as ProbeRow[]
 
-    console.info(
-      `[relay-probe] catalog=${catalog.source} sampled=${head.length}/${pool.length} ok=${ok.length} EVENT=${ok.filter((r) => r.gotEvent).length}`,
-    )
-    for (const r of rows) {
-      console.info(
-        `[relay-probe] ${!r.ok ? 'FAIL' : r.gotEvent ? 'OK+EVENT' : 'OK+EOSE'} ${r.url}${r.error ? ` — ${r.error}` : ''}`,
-      )
-    }
-
     const outRel =
       process.env.RELAY_PROBE_OUT?.trim() || join(process.cwd(), 'relays-geohash-u.txt')
     const withUEvent = rows.filter((r) => r.ok && r.gotEvent)
@@ -294,8 +285,6 @@ describe.skipIf(!runProbe)('relay catalog + #g=u (RELAY_PROBE=1)', () => {
       ].join('\n'),
       'utf8',
     )
-    console.info(`[relay-probe] wrote ${withUEvent.length} → ${outRel}`)
-
     expect(ok.length).toBeGreaterThan(0)
     const defaultOk = defaults.filter((r) => r.ok).length
     expect(

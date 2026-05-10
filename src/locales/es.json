@@ -96,7 +96,8 @@
     "unreachable": "inaccesible",
     "reachableWithRtt": "accesible • {{rtt}}ms",
     "unreachableWithErr": "inaccesible • {{error}}",
-    "statusAria": "Estado del relay: {{state}}"
+    "statusAria": "Estado del relay: {{state}}",
+    "duplicate": "Este relay ya está en la lista."
   },
   "mediaUpload": {
     "title": "Subida de medios",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Imagen demasiado grande (máx. 12 MB).",
     "compressFailed": "Error al comprimir la imagen.",
     "uploadFailed": "Error en la subida.",
-    "publishFailed": "Error al publicar.",
-    "feedMapLegend": "Puntos rojos: publicaciones y eventos de calendario de este feed (toca para abrir). Tu celda está resaltada en el mapa."
+    "publishFailed": "Error al publicar."
   },
   "feedArticle": {
     "deleted": "Eliminado – propagando a relays",

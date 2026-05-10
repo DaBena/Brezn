@@ -4,7 +4,12 @@ import { registerSW } from 'virtual:pwa-register'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 
-export function PwaUpdateToast() {
+/**
+ * Workbox (service worker) touches IndexedDB for precache/expiry. Defer registration until the same
+ * milestone as Brezn storage consent: user chose a geo cell (saved `viewerGeo5`).
+ */
+export function PwaUpdateToast(props: { serviceWorkerAllowed: boolean }) {
+  const { serviceWorkerAllowed } = props
   const { t } = useTranslation()
   const [needRefresh, setNeedRefresh] = useState(false)
   const updateServiceWorkerRef = useRef<null | ((reloadPage?: boolean) => Promise<void>)>(null)
@@ -19,6 +24,8 @@ export function PwaUpdateToast() {
       }
       return
     }
+    if (!serviceWorkerAllowed) return
+
     const update = registerSW({
       onNeedRefresh() {
         setNeedRefresh(true)
@@ -28,7 +35,7 @@ export function PwaUpdateToast() {
       },
     })
     updateServiceWorkerRef.current = update
-  }, [])
+  }, [serviceWorkerAllowed])
 
   if (!needRefresh) return null
 

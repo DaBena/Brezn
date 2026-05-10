@@ -18,7 +18,8 @@
     "check:locales": "node scripts/check-locale-keys.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:preview": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {

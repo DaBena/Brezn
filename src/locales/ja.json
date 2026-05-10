@@ -96,7 +96,8 @@
     "unreachable": "接続不可",
     "reachableWithRtt": "接続可 • {{rtt}}ms",
     "unreachableWithErr": "接続不可 • {{error}}",
-    "statusAria": "リレー状態: {{state}}"
+    "statusAria": "リレー状態: {{state}}",
+    "duplicate": "この relay はすでにリストにあります。"
   },
   "mediaUpload": {
     "title": "メディアアップロード",
@@ -168,8 +169,7 @@
     "imageTooLarge": "画像が大きすぎます（最大 12 MB）。",
     "compressFailed": "画像の圧縮に失敗しました。",
     "uploadFailed": "アップロードに失敗しました。",
-    "publishFailed": "投稿に失敗しました。",
-    "feedMapLegend": "赤い点: このフィードの投稿とカレンダー予定（タップで開く）。マップ上で自分のセルが強調表示されます。"
+    "publishFailed": "投稿に失敗しました。"
   },
   "feedArticle": {
     "deleted": "削除済み — リレーに反映中",

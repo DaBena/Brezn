@@ -281,7 +281,8 @@ export function GeohashMap(props: {
           if (runId !== effectRunIdRef.current) return
           const fresh = resolveLayout(worldPickMode, geohashRef.current)
           if (!fresh) return
-          const rectNow = fresh.bounds ? rectangleRef.current : null
+          // Use local `rectangle` — whenReady often runs before rectangleRef/mapRef are assigned.
+          const rectNow = fresh.bounds ? rectangle : null
           if (fresh.bounds && !rectNow) return
           scheduleInvalidateAndFit(newMap, rectNow, fresh, () => {
             syncFeedEventMarkers(L, feedLayer, feedEventsRef.current, onFeedMarkerClickRef.current)

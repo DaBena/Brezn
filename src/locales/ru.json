@@ -96,7 +96,8 @@
     "unreachable": "недоступно",
     "reachableWithRtt": "доступно • {{rtt}}ms",
     "unreachableWithErr": "недоступно • {{error}}",
-    "statusAria": "Статус реле: {{state}}"
+    "statusAria": "Статус реле: {{state}}",
+    "duplicate": "Этот relay уже в списке."
   },
   "mediaUpload": {
     "title": "Загрузка медиа",
@@ -168,8 +169,7 @@
     "imageTooLarge": "Изображение слишком большое (макс. 12 МБ).",
     "compressFailed": "Не удалось сжать изображение.",
     "uploadFailed": "Ошибка загрузки.",
-    "publishFailed": "Ошибка публикации.",
-    "feedMapLegend": "Красные точки: посты и события календаря в этой ленте (нажмите, чтобы открыть). Ваша ячейка выделена на карте."
+    "publishFailed": "Ошибка публикации."
   },
   "feedArticle": {
     "deleted": "Удалено — синхронизация с реле",

@@ -6,13 +6,16 @@ import {
   saveJsonSync,
   loadEncryptedJson,
   saveEncryptedJson,
-  setStorageConsentGiven,
+  grantBreznIndexedDbWrites,
+  syncBreznIndexedDbWriteConsentFromStorage,
+  isBreznStorageConsentGranted,
 } from './storage'
 
 describe('storage', () => {
   beforeEach(async () => {
-    setStorageConsentGiven(true)
     localStorage.clear()
+    syncBreznIndexedDbWriteConsentFromStorage()
+    grantBreznIndexedDbWrites()
     // Clear IndexedDB and wait for it to complete
     if (typeof indexedDB !== 'undefined') {
       await new Promise<void>((resolve) => {
@@ -24,6 +27,14 @@ describe('storage', () => {
       // Wait a bit for IndexedDB to fully close
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
+  })
+
+  it('IndexedDB consent stays off until explicit grant', () => {
+    localStorage.clear()
+    syncBreznIndexedDbWriteConsentFromStorage()
+    expect(isBreznStorageConsentGranted()).toBe(false)
+    grantBreznIndexedDbWrites()
+    expect(isBreznStorageConsentGranted()).toBe(true)
   })
 
   it('loadJson returns fallback when missing', async () => {
