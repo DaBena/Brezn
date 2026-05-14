@@ -150,6 +150,7 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
+    ...(process.platform === 'win32' ? { fileParallelism: false } : {}),
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
 })
