@@ -28,8 +28,8 @@ Your identity consists of a key pair (npub/nsec) and is not bound to a server or
 ![Network Architectures Compared](diagramm.png)
 
 - **Classic social networks**: Everything runs through one centrally controlled company server.
-- **Federated networks** (e.g. email, Mastodon): Multiple servers that talk to each other. Each server can enforce its own rules and block other servers.
-- **Nostr**: Clients connect to multiple relays simultaneously. Relays do **not** talk to each other; communication runs through clients. If you publish to several relays, a single relay refusing an event does not stop you.
+- **Federated networks** (e.g. mail, mastodon, matrix): Multiple servers that talk to each other. Each server can enforce its own rules and block other servers.
+- **Nostr**: Clients connect to multiple relays simultaneously. Relays do **not** talk to each other. Communication runs through clients. If you publish to several relays, a single relay refusing an event does not stop you.
 
 ## What does Brezn do?
 
