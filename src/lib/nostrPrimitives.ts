@@ -5,7 +5,7 @@
  * dependency only because `@nostr-dev-kit/ndk` resolves it from the app `node_modules`
  * (NDK’s bundle imports that package).
  */
-import { cbc } from '@noble/ciphers/aes'
+import { cbc } from '@noble/ciphers/aes.js'
 import { schnorr, secp256k1 } from '@noble/curves/secp256k1'
 import { bytesToHex, randomBytes } from '@noble/hashes/utils'
 import { base64 } from '@scure/base'
