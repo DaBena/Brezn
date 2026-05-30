@@ -1,6 +1,3 @@
-# Enables GitHub auto-merge for Dependabot PRs once required checks pass.
-# Uses pull_request (not pull_request_target) and never checks out PR code.
-
 name: Dependabot auto-merge
 
 on:
