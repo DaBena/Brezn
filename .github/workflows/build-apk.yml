@@ -17,12 +17,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: github.event_name == 'workflow_run'
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: github.event_name == 'workflow_dispatch'
 
       - name: Setup Node
