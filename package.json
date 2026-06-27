@@ -31,7 +31,7 @@
     "@scure/base": "^1.2.6",
     "@types/leaflet": "^1.9.21",
     "dexie": "^4.4.4",
-    "i18next": "^26.3.1",
+    "i18next": "^26.3.3",
     "leaflet": "^1.9.4",
     "ngeohash": "^0.6.3",
     "nostr-tools": "^2.19.4",
