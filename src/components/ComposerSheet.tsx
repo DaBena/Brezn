@@ -1,6 +1,5 @@
 import { type ChangeEvent, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Event } from '../lib/nostrPrimitives'
 import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
@@ -16,9 +15,7 @@ export function ComposerSheet(props: {
   onSelectCell?: (geohash5: string) => void
   onPublish: (content: string) => Promise<void>
   mediaUploadEndpoint?: string
-  /** Same events as the main feed list (e.g. filtered search); shown on the geo map. */
-  feedEvents?: Event[]
-  onOpenFeedEvent?: (evt: Event) => void
+  postGeo5?: string[]
 }) {
   const { t } = useTranslation()
   const {
@@ -29,8 +26,7 @@ export function ComposerSheet(props: {
     onSelectCell,
     onPublish,
     mediaUploadEndpoint,
-    feedEvents,
-    onOpenFeedEvent,
+    postGeo5,
   } = props
 
   const [composerText, setComposerText] = useState('')
@@ -248,8 +244,7 @@ export function ComposerSheet(props: {
             onRequestLocation={onRequestLocation ? wrappedRequestLocationForMap : undefined}
             gpsAriaLabel={t('geohashMap.gpsAria')}
             gpsTitle={t('geohashMap.gpsTitle')}
-            feedEvents={feedEvents}
-            onFeedMarkerClick={onOpenFeedEvent}
+            postGeo5={postGeo5}
             mapRelayoutTick={mapRelayoutTick}
           />
         </div>

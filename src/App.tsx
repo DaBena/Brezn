@@ -20,6 +20,7 @@ import { useProfiles } from './hooks/useProfiles'
 import { useReactions } from './hooks/useReactions'
 import { useAppState } from './hooks/useAppState'
 import { useSearch } from './hooks/useSearch'
+import { postGeo5FromFeed } from './lib/feedMapGeo5'
 import { useModeration } from './hooks/useModeration'
 import { useOptimisticReactions } from './hooks/useOptimisticReactions'
 import { useTheme } from './hooks/useTheme'
@@ -107,6 +108,10 @@ export default function App() {
   )
 
   const search = useSearch(sortedEvents, profilesByPubkey, searchFeedPrefetch)
+  const postGeo5 = useMemo(
+    () => postGeo5FromFeed(search.filteredEvents, viewerGeo5 ?? ''),
+    [search.filteredEvents, viewerGeo5],
+  )
 
   // Thread/profile ids first (reaction slice cap).
   const noteIdsForReactions = useMemo(() => {
@@ -277,12 +282,7 @@ export default function App() {
         }
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
-        feedEvents={search.filteredEvents}
-        onOpenFeedEvent={(evt) => {
-          if (moderation.blockedPubkeys.includes(evt.pubkey)) return
-          appState.closeSheet('composer')
-          appState.openSheet('thread', { threadRoot: evt })
-        }}
+        postGeo5={postGeo5}
       />
 
       {appState.sheets.profile.pubkey ? (

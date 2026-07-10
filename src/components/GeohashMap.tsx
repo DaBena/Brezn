@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import type { Event } from '../lib/nostrPrimitives'
 import {
   encodeGeohash,
   getGeohashMapParams,
@@ -7,7 +6,7 @@ import {
   WORLD_MANUAL_PICK_MAP_ZOOM,
   type GeoPoint,
 } from '../lib/geo'
-import { feedEventMapPoint } from '../lib/feedEventMapPoint'
+import { syncPostGeo5Layer } from '../lib/feedMapGeo5'
 import { readCssVar } from '../lib/readCssVar'
 import type L from 'leaflet'
 
@@ -16,14 +15,6 @@ type LeafletModule = typeof import('leaflet')
 type LatLonBounds = { minLat: number; maxLat: number; minLon: number; maxLon: number }
 
 type MapLayout = { center: GeoPoint; zoom: number; bounds: LatLonBounds | null }
-
-const FEED_MAP_MARKER_STYLE = {
-  radius: 6,
-  stroke: false as const,
-  weight: 0,
-  fillColor: '#dc2626',
-  fillOpacity: 0.5,
-}
 
 function resolveLayout(worldPick: boolean, gh: string): MapLayout | null {
   if (worldPick) {
@@ -59,28 +50,6 @@ function scheduleInvalidateAndFit(
     afterFit()
   }
   requestAnimationFrame(() => requestAnimationFrame(run))
-}
-
-function syncFeedEventMarkers(
-  Lm: LeafletModule,
-  layer: L.LayerGroup,
-  events: Event[],
-  onMarkerClick: ((e: Event) => void) | undefined,
-) {
-  layer.clearLayers()
-  for (const evt of events) {
-    const p = feedEventMapPoint(evt)
-    if (!p) continue
-    const marker = Lm.circleMarker([p.lat, p.lon], FEED_MAP_MARKER_STYLE)
-    if (onMarkerClick) {
-      marker.on('click', (ev: L.LeafletMouseEvent) => {
-        const oe = ev.originalEvent
-        if (oe) Lm.DomEvent.stopPropagation(oe)
-        onMarkerClick(evt)
-      })
-    }
-    marker.addTo(layer)
-  }
 }
 
 function attachCellSelectClick(
@@ -139,8 +108,8 @@ export function GeohashMap(props: {
   onRequestLocation?: (onFinished?: () => void) => void
   gpsAriaLabel?: string
   gpsTitle?: string
-  feedEvents?: Event[]
-  onFeedMarkerClick?: (evt: Event) => void
+  /** geo5 cells with feed posts (viewer cell should already be omitted). */
+  postGeo5?: string[]
   mapRelayoutTick?: number
 }) {
   const {
@@ -151,8 +120,7 @@ export function GeohashMap(props: {
     onRequestLocation,
     gpsAriaLabel,
     gpsTitle,
-    feedEvents = [],
-    onFeedMarkerClick,
+    postGeo5 = [],
     mapRelayoutTick = 0,
   } = props
   const gpsLabels = {
@@ -174,11 +142,17 @@ export function GeohashMap(props: {
   gpsLabelsRef.current = gpsLabels
 
   const leafletLibRef = useRef<LeafletModule | null>(null)
-  const feedMarkersLayerRef = useRef<L.LayerGroup | null>(null)
-  const feedEventsRef = useRef(feedEvents)
-  feedEventsRef.current = feedEvents
-  const onFeedMarkerClickRef = useRef(onFeedMarkerClick)
-  onFeedMarkerClickRef.current = onFeedMarkerClick
+  const postGeo5LayerRef = useRef<L.LayerGroup | null>(null)
+  const postGeo5Ref = useRef(postGeo5)
+  postGeo5Ref.current = postGeo5
+
+  const syncPostGeo5 = () => {
+    const Lm = leafletLibRef.current
+    const layer = postGeo5LayerRef.current
+    if (!Lm || !layer) return
+    syncPostGeo5Layer(Lm, layer, postGeo5Ref.current, onCellSelectRef.current)
+    rectangleRef.current?.bringToFront()
+  }
 
   useEffect(() => {
     const root = mapContainerRef.current
@@ -190,18 +164,15 @@ export function GeohashMap(props: {
 
   useEffect(() => {
     return () => {
-      const control = gpsControlRef.current
-      if (control) {
-        control.remove()
-        gpsControlRef.current = null
-      }
+      gpsControlRef.current?.remove()
+      gpsControlRef.current = null
       const map = mapRef.current
       if (map) {
         map.off('click')
         map.remove()
         mapRef.current = null
         rectangleRef.current = null
-        feedMarkersLayerRef.current = null
+        postGeo5LayerRef.current = null
         leafletLibRef.current = null
       }
     }
@@ -214,18 +185,10 @@ export function GeohashMap(props: {
     const layout = resolveLayout(worldPickMode, geohash)
     if (!layout) return
 
-    const bumpMarkers = () => {
-      const Lm = leafletLibRef.current
-      const layer = feedMarkersLayerRef.current
-      if (Lm && layer) {
-        syncFeedEventMarkers(Lm, layer, feedEventsRef.current, onFeedMarkerClickRef.current)
-      }
-    }
-
     const map = mapRef.current
     if (map) {
       const rect = layout.bounds ? rectangleRef.current : null
-      scheduleInvalidateAndFit(map, rect, layout, bumpMarkers)
+      scheduleInvalidateAndFit(map, rect, layout, syncPostGeo5)
       return attachCellSelectClick(map, onCellSelectRef.current ?? undefined)
     }
 
@@ -254,6 +217,9 @@ export function GeohashMap(props: {
           maxZoom: 19,
         }).addTo(newMap)
 
+        postGeo5LayerRef.current = L.layerGroup().addTo(newMap)
+        leafletLibRef.current = L
+
         let rectangle: L.Rectangle | null = null
         if (layout.bounds) {
           const hilite = readCssVar('--brezn-link', '#3c83f7')
@@ -271,22 +237,15 @@ export function GeohashMap(props: {
           ).addTo(newMap)
         }
 
-        const feedLayer = L.layerGroup().addTo(newMap)
-        feedMarkersLayerRef.current = feedLayer
-        leafletLibRef.current = L
-
         cleanup = attachCellSelectClick(newMap, onCellSelectRef.current ?? undefined)
 
         newMap.whenReady(() => {
           if (runId !== effectRunIdRef.current) return
           const fresh = resolveLayout(worldPickMode, geohashRef.current)
           if (!fresh) return
-          // Use local `rectangle` — whenReady often runs before rectangleRef/mapRef are assigned.
           const rectNow = fresh.bounds ? rectangle : null
           if (fresh.bounds && !rectNow) return
-          scheduleInvalidateAndFit(newMap, rectNow, fresh, () => {
-            syncFeedEventMarkers(L, feedLayer, feedEventsRef.current, onFeedMarkerClickRef.current)
-          })
+          scheduleInvalidateAndFit(newMap, rectNow, fresh, syncPostGeo5)
         })
 
         try {
@@ -305,7 +264,7 @@ export function GeohashMap(props: {
         }
 
         if (runId !== effectRunIdRef.current) {
-          feedMarkersLayerRef.current = null
+          postGeo5LayerRef.current = null
           leafletLibRef.current = null
           newMap.remove()
           return
@@ -325,11 +284,8 @@ export function GeohashMap(props: {
   }, [geohash, mapRelayoutTick, worldPick])
 
   useEffect(() => {
-    const Lm = leafletLibRef.current
-    const layer = feedMarkersLayerRef.current
-    if (!Lm || !layer) return
-    syncFeedEventMarkers(Lm, layer, feedEvents, onFeedMarkerClick)
-  }, [feedEvents, onFeedMarkerClick])
+    syncPostGeo5()
+  }, [postGeo5, onCellSelect])
 
   return (
     <div
