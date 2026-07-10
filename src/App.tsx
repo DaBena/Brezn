@@ -178,7 +178,7 @@ export default function App() {
       return
     }
     try {
-      await publishReply(client, root, content, viewerGeo5)
+      await publishReply(client, root, content)
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('app.publishFailed')
       showToast(msg, 'error')

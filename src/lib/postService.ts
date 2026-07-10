@@ -30,14 +30,9 @@ export async function publishReply(
   client: BreznNostrClient,
   root: Event,
   content: string,
-  viewerGeo5: string | null,
 ): Promise<void> {
   const trimmedContent = content.trim()
   if (!trimmedContent) return
-
-  const rootGeo = root.tags.find((t) => t[0] === 'g' && typeof t[1] === 'string')?.[1] ?? null
-  // Use full 5-digit geohash for replies (not the shortened geoCell)
-  const g = rootGeo ?? viewerGeo5
 
   const tags: string[][] = [
     // NIP-10 threading (reply-to == root in our UI)
@@ -46,12 +41,7 @@ export async function publishReply(
     ['p', root.pubkey],
   ]
 
-  // Generate all geohash tags (prefixes 1-5) for maximum discoverability
-  if (g) {
-    const geoTags = createGeoTags(g)
-    tags.push(...geoTags)
-  }
-
+  // No `g` tags — replies are private to the thread (like DMs), not geo-discoverable.
   await client.publish({ kind: 1, content: trimmedContent, tags })
 }
 
