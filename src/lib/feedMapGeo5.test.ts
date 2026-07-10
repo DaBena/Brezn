@@ -21,11 +21,8 @@ describe('feedMapGeo5', () => {
   })
 
   it('postGeo5FromFeed deduplicates and skips viewer cell', () => {
-    expect(
-      postGeo5FromFeed(
-        [note(['u0m1x']), note(['u0m1x']), note(['u0m1y'])],
-        'u0m1x',
-      ),
-    ).toEqual(['u0m1y'])
+    expect(postGeo5FromFeed([note(['u0m1x']), note(['u0m1x']), note(['u0m1y'])], 'u0m1x')).toEqual([
+      'u0m1y',
+    ])
   })
 })
