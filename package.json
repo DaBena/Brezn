@@ -55,7 +55,7 @@
     "globals": "^17.7.0",
     "jsdom": "^29.0.2",
     "patch-package": "^8.0.1",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.19",
     "prettier": "^3.9.5",
     "tailwindcss": "^4.3.2",
     "typescript": "~5.9.3",
