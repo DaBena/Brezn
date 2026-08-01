@@ -33,7 +33,7 @@
     "dexie": "^4.4.4",
     "i18next": "^26.3.6",
     "leaflet": "^1.9.4",
-    "ngeohash": "^0.6.3",
+    "ngeohash": "^0.6.4",
     "nostr-tools": "^2.24.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
