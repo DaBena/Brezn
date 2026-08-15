@@ -263,6 +263,7 @@ export function ComposerSheet(props: {
                   <img
                     src={url}
                     alt=""
+                    referrerPolicy="no-referrer"
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       // Fallback to text if image fails to load
@@ -283,6 +284,7 @@ export function ComposerSheet(props: {
                     className="h-full w-full object-cover"
                     preload="metadata"
                     muted
+                    referrerPolicy="no-referrer"
                     onError={(e) => {
                       // Fallback to text if video fails to load
                       const target = e.currentTarget

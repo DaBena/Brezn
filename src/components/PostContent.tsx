@@ -94,6 +94,7 @@ function ImagePreview(props: {
       alt=""
       loading="lazy"
       decoding="async"
+      referrerPolicy="no-referrer"
       className={`block w-full object-cover ${compact ? 'max-h-64' : ''}`}
       onError={() => onFail?.(url)}
     />
@@ -146,6 +147,7 @@ function VideoPreview(props: {
       controls
       playsInline
       preload="metadata"
+      referrerPolicy="no-referrer"
       className={`block w-full ${compact ? 'max-h-64' : ''}`}
       onError={() => onFail?.(url)}
     />

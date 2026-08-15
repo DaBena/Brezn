@@ -140,6 +140,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                 <img
                   src={safeProfilePictureSrc}
                   alt={t('profileSettings.pictureAlt')}
+                  referrerPolicy="no-referrer"
                   className="h-16 w-16 shrink-0 rounded-full border border-brezn-border bg-brezn-panel object-cover"
                   onError={(e) => {
                     // Replace image with placeholder icon on error

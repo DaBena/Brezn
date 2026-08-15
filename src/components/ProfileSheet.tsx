@@ -130,7 +130,12 @@ export function ProfileSheet(props: {
                 aria-label={t('profileSheet.openPictureAria')}
                 onClick={(e) => e.stopPropagation()}
               >
-                <img src={picture} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={picture}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-cover"
+                />
               </a>
             ) : (
               <div
@@ -156,8 +161,8 @@ export function ProfileSheet(props: {
                 {displayName ? (
                   <div className="text-lg font-semibold text-brezn-text">{displayName}</div>
                 ) : null}
-                <div className="font-mono text-[11px] text-brezn-text">
-                  {shortNpub(nip19.npubEncode(pubkey), 12, 6)}
+                <div className="break-all font-mono text-[11px] text-brezn-text">
+                  {nip19.npubEncode(pubkey)}
                 </div>
                 {about ? (
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm text-brezn-text">

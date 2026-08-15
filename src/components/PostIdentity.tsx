@@ -37,6 +37,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
     <img
       src={picture}
       alt=""
+      referrerPolicy="no-referrer"
       className={`${sizeClass} w-full object-cover`}
       onError={(e) => {
         const target = e.currentTarget
