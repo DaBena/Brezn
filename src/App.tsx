@@ -163,9 +163,9 @@ export default function App() {
   }
 
   // Handlers using services
-  const handlePublishPost = async (content: string) => {
+  const handlePublishPost = async (content: string, publishGeohash?: string | null) => {
     try {
-      await publishPost(client, content, viewerGeo5)
+      await publishPost(client, content, viewerGeo5, publishGeohash)
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('app.publishFailed')
       showToast(msg, 'error')

@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "กำลังโหลด…"
+  },
+  "nav": {
+    "searchPlaceholder": "ค้นหาโพสต์…",
+    "openChat": "เปิดแชท",
+    "openMenu": "เปิดเมนู"
+  },
+  "feed": {
+    "offlineBanner": "ออฟไลน์ — แสดงโพสต์ล่าสุด (อ่านอย่างเดียว)",
+    "locationTitle": "ตำแหน่งสำหรับฟีดท้องถิ่น",
+    "locationBody": "แอปต้องการพื้นที่โดยประมาณเพื่อแสดงโพสต์ท้องถิ่น เปลี่ยนทีหลังได้ ตำแหน่งถูกย่อเป็น geohash (~5 กม.) เพื่อความเป็นส่วนตัว",
+    "privacyStorage": "แอปใช้ที่เก็บข้อมูลในเครื่อง ไม่มีการติดตาม ไม่ส่งข้อมูลส่วนตัวถึงเรา ดู",
+    "privacyLink": "ซอร์ส, README และใบอนุญาต",
+    "privacyDisclaimer": "แอปโหลดเนื้อหาจากแหล่งภายนอก (nostr relay, เซิร์ฟเวอร์ไฟล์) ไม่รับผิดชอบเนื้อหาภายนอก",
+    "privacyConfirm": "ดำเนินการต่อแสดงว่า: ฉันอ่านและยอมรับแล้ว",
+    "allowLocation": "อนุญาตตำแหน่ง",
+    "errorTitle": "ข้อผิดพลาด",
+    "tryAgain": "ลองอีกครั้ง",
+    "relayFailPrefix": "เชื่อมต่อ relay ล้มเหลว ",
+    "noRelayResponse": "ไม่มีการตอบจาก relay ตรวจรายการหรือลองใหม่ภายหลัง",
+    "waitingEose": "ยังไม่มีเหตุการณ์ (รอ EOSE)…",
+    "noPostsYet": "ยังไม่พบโพสต์ ลองใหม่ภายหลังหรือเปลี่ยน relay",
+    "noRelays": "ยังไม่มี relay — ดูการตั้งค่า"
+  },
+  "settings": {
+    "title": "การตั้งค่า",
+    "source": "ซอร์ส",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "ธีม",
+    "switchToDark": "โหมดมืด",
+    "switchToLight": "โหมดสว่าง"
+  },
+  "geohash": {
+    "searchRadius": "รัศมีค้นหา",
+    "lengthLabel": "ความยาว Geohash:",
+    "length0": "0",
+    "queries3": "g ทั้งหมด",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "ลดรัศมี",
+    "increaseRadius": "เพิ่มรัศมี",
+    "length": "ความยาว {{n}}",
+    "queriesCurrent": "โพสต์ที่มีตำแหน่ง",
+    "precisionFallback": "สูงขึ้น = เล็กลง (แม่นยำ) แต่ผลลัพธ์น้อยลง",
+    "cellSize": "{{w}} × {{h}} ต่อเซลล์"
+  },
+  "moderation": {
+    "blocklist": "รายการบล็อก",
+    "oneLineOneTerm": "1 บรรทัด = 1 คำ ({{count}}/200)",
+    "placeholder": "เช่น\nbuy\nsats\nevil.example",
+    "saved": "บันทึกรายการบล็อกแล้ว",
+    "blockedUsers": "ผู้ใช้ที่บล็อก",
+    "blockedCount": "บล็อก {{count}} คน",
+    "unblock": "ปลดบล็อก",
+    "noBlocked": "ไม่มีผู้ใช้ที่บล็อก",
+    "unblockedMsg": "ปลดบล็อกผู้ใช้แล้ว"
+  },
+  "keyMgmt": {
+    "title": "ตัวตน",
+    "npub": "npub",
+    "copy": "คัดลอก",
+    "nsec": "nsec",
+    "show": "แสดง",
+    "hide": "ซ่อน",
+    "neverShareNsec": "อย่าแชร์ nsec ของคุณ",
+    "npubCopied": "คัดลอก npub แล้ว",
+    "copyNpubHint": "แสดงและคัดลอก npub",
+    "nsecCopied": "คัดลอก nsec แล้ว",
+    "copyNsecHint": "แสดงและคัดลอก nsec",
+    "importTitle": "นำเข้าตัวตน",
+    "importNsec": "นำเข้า nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "กรอก nsec",
+    "importSuccess": "นำเข้าตัวตนสำเร็จ หน้าจะโหลดใหม่…",
+    "importing": "กำลังนำเข้า…",
+    "import": "นำเข้า",
+    "cancel": "ยกเลิก",
+    "importFailed": "นำเข้า nsec ล้มเหลว"
+  },
+  "relay": {
+    "title": "Relay",
+    "hint": "Relay สำหรับฟีด, DM และการเผยแพร่ ใช้เฉพาะ URL ที่ระบุ (หรือค่าเริ่มต้น) — ไม่ค้นหา outbox อัตโนมัติ",
+    "empty": "ยังไม่มี relay ต้องมีอย่างน้อย 1 relay เพื่อโหลดหรือเผยแพร่  เพิ่มด้านล่างหรือกด \"Default\"",
+    "removeAria": "ลบ relay",
+    "placeholder": "wss://relay.example",
+    "add": "เพิ่ม",
+    "default": "Default",
+    "test": "ทดสอบ",
+    "testing": "กำลังทดสอบ…",
+    "unknown": "ไม่ทราบ",
+    "reachable": "เชื่อมต่อได้",
+    "unreachable": "เชื่อมต่อไม่ได้",
+    "reachableWithRtt": "เชื่อมต่อได้ • {{rtt}}ms",
+    "unreachableWithErr": "เชื่อมต่อไม่ได้ • {{error}}",
+    "statusAria": "สถานะ relay: {{state}}",
+    "duplicate": "relay นี้อยู่ในรายการแล้ว"
+  },
+  "mediaUpload": {
+    "title": "อัปโหลดสื่อ",
+    "hint": "URL โดยตรงหรือ NIP-96 ค่าเริ่มต้น: {{default}} ว่าง = ปิด",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "โปรไฟล์",
+    "loading": "กำลังโหลดโปรไฟล์…",
+    "name": "ชื่อ",
+    "namePlaceholder": "ชื่อของคุณ (ไม่บังคับ)",
+    "about": "เกี่ยวกับ",
+    "aboutPlaceholder": "แนะนำตัวสั้นๆ (ไม่บังคับ)",
+    "picture": "รูปโปรไฟล์",
+    "pictureAlt": "รูปโปรไฟล์",
+    "onlyImages": "รองรับเฉพาะรูปภาพ",
+    "imageTooLarge5": "รูปใหญ่เกินไป (สูงสุด 5 MB)",
+    "configureEndpointFirst": "ตั้งค่า endpoint อัปโหลดสื่อก่อน",
+    "uploading": "กำลังอัปโหลด…",
+    "changeImage": "เปลี่ยนรูป",
+    "uploadImage": "อัปโหลดรูป",
+    "resetConfirm": "รีเซ็ตโปรไฟล์? ชื่อ เกี่ยวกับ และรูปจะถูกลบ",
+    "reset": "รีเซ็ต",
+    "removeImage": "ลบรูป",
+    "urlPlaceholder": "หรือใส่ URL โดยตรง",
+    "resetDone": "รีเซ็ตโปรไฟล์แล้ว",
+    "resetError": "รีเซ็ตโปรไฟล์ล้มเหลว"
+  },
+  "chat": {
+    "title": "แชท",
+    "loading": "กำลังโหลดการสนทนา…",
+    "offline": "ออฟไลน์ — ตรวจการเชื่อมต่อ",
+    "timeout": "หมดเวลา — relay ไม่ตอบ ตรวจการตั้งค่า relay",
+    "loadError": "โหลดการสนทนาล้มเหลว",
+    "empty": "ยังไม่มีการสนทนา"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "ออฟไลน์ — ส่งข้อความไม่ได้",
+    "offline": "ออฟไลน์ — ตรวจการเชื่อมต่อ",
+    "timeout": "หมดเวลา — relay ไม่ตอบ ตรวจการตั้งค่า relay",
+    "loadError": "โหลดข้อความล้มเหลว",
+    "loading": "กำลังโหลดข้อความ…",
+    "empty": "ยังไม่มีข้อความ",
+    "placeholder": "เขียนข้อความ…",
+    "sendAria": "ส่งข้อความ",
+    "sendingContent": "[กำลังส่ง...]",
+    "sendError": "ส่งข้อความล้มเหลว",
+    "hiddenByBlocklist": "ซ่อนข้อความ (ตรงรายการบล็อก)",
+    "openPeerProfileAria": "เปิดโปรไฟล์"
+  },
+  "composer": {
+    "srTitle": "โพสต์ใหม่",
+    "publish": "เผยแพร่",
+    "publishing": "กำลังเผยแพร่…",
+    "publishAria": "เผยแพร่โพสต์",
+    "media": "สื่อ",
+    "uploading": "กำลังอัปโหลด…",
+    "mediaAria": "เพิ่มสื่อ",
+    "createInCell": "โพสต์ใหม่ในเซลล์",
+    "createNew": "โพสต์ใหม่",
+    "showMapAria": "แสดงเซลล์ {{cell}} บนแผนที่",
+    "showMapTitle": "แสดงเซลล์บนแผนที่",
+    "placeholder": "เกิดอะไรขึ้นในพื้นที่ของคุณ?",
+    "removeMediaAria": "ลบสื่อ",
+    "noUploadEndpoint": "ไม่มี endpoint อัปโหลด (การตั้งค่า → อัปโหลดสื่อ)",
+    "onlyImagesVideos": "รองรับเฉพาะรูปหรือวิดีโอ",
+    "videoTooLarge": "วิดีโอใหญ่เกินไป (สูงสุด 25 MB)",
+    "imageTooLarge": "รูปใหญ่เกินไป (สูงสุด 12 MB)",
+    "compressFailed": "บีบอัดรูปล้มเหลว",
+    "uploadFailed": "อัปโหลดล้มเหลว",
+    "publishFailed": "เผยแพร่ล้มเหลว",
+    "invalidGeohash": "Geohash ไม่ถูกต้อง",
+    "editGeohashAria": "แก้ไข geohash"
+  },
+  "feedArticle": {
+    "deleted": "ลบแล้ว — กำลังกระจายไป relay",
+    "deletedAria": "โพสต์ที่ลบแล้ว",
+    "openPost": "เปิดโพสต์",
+    "sendReaction": "ส่งรีแอคชัน",
+    "sendReactionCount": "ส่งรีแอคชัน ({{count}})",
+    "loadOlder": "แสดงเพิ่ม",
+    "loading": "กำลังโหลด…"
+  },
+  "pwa": {
+    "title": "มีอัปเดต",
+    "body": "โหลดเวอร์ชันใหม่แล้ว รีโหลดเพื่อเปิดใช้",
+    "reload": "รีโหลด",
+    "close": "ปิด"
+  },
+  "adblock": {
+    "title": "Service Worker ถูกบล็อก",
+    "body": "ตัวบล็อกโฆษณาอาจบล็อก Service Worker ปิดสำหรับไซต์นี้หรือเพิ่มข้อยกเว้น",
+    "close": "ปิด"
+  },
+  "composeBtn": {
+    "aria": "สร้างโพสต์ใหม่"
+  },
+  "errorBoundary": {
+    "title": "เกิดข้อผิดพลาด",
+    "body": "เกิดข้อผิดพลาดที่ไม่คาดคิด ลองรีเฟรชหน้า",
+    "details": "รายละเอียดข้อผิดพลาด",
+    "errorLabel": "ข้อผิดพลาด:",
+    "stack": "Stack trace:",
+    "componentStack": "Component stack:",
+    "tryAgain": "ลองอีกครั้ง",
+    "reload": "รีโหลดหน้า"
+  },
+  "app": {
+    "publishFailed": "เผยแพร่ล้มเหลว",
+    "offlineComments": "ออฟไลน์ — ความคิดเห็นอ่านอย่างเดียว",
+    "offlineDelete": "ออฟไลน์ — ส่งเหตุการณ์ลบไม่ได้"
+  },
+  "thread": {
+    "reportRoot": "รายงานโพสต์หลัก",
+    "reportReply": "รายงานการตอบ",
+    "reportReason": "เหตุผล (ไม่บังคับ)",
+    "submitReport": "ส่งรายงาน",
+    "replies": "การตอบ ({{count}})",
+    "offline": "ออฟไลน์",
+    "replyPlaceholder": "เขียนคำตอบ…",
+    "sendDeletionAria": "ส่งเหตุการณ์ลบ NIP-09",
+    "blockUserAria": "บล็อกผู้ใช้",
+    "blockUserTitle": "บล็อกผู้ใช้",
+    "delete": "ลบ",
+    "deleteSending": "กำลังส่ง…",
+    "block": "บล็อก",
+    "blocking": "กำลังบล็อก…",
+    "blockHeading": "บล็อก {{label}}",
+    "reportHint": "ไม่บังคับ: เหตุผลรายงาน ส่งไป relay ผ่าน NIP-56",
+    "reply": "ตอบ",
+    "replySending": "กำลังส่ง…",
+    "userBlocked": "บล็อกผู้ใช้แล้ว",
+    "blockingFailed": "บล็อกล้มเหลว",
+    "offlineBlock": "ออฟไลน์ — บล็อกไม่ได้",
+    "deleteFailed": "ส่งเหตุการณ์ลบล้มเหลว",
+    "publishFailedFallback": "เผยแพร่ล้มเหลว"
+  },
+  "profileSheet": {
+    "openPictureAria": "เปิดรูปโปรไฟล์",
+    "dmAria": "เปิดข้อความส่วนตัว",
+    "message": "ข้อความ",
+    "offlineHint": "ออฟไลน์ — โพสต์โปรไฟล์อาจไม่ครบ",
+    "loadingPosts": "กำลังโหลดโพสต์…",
+    "noPosts": "ยังไม่มีโพสต์",
+    "noPostsFromRelays": "ยังไม่พบโพสต์จาก relay",
+    "loadError": "โหลดโพสต์ล้มเหลว"
+  },
+  "geohashMap": {
+    "gpsAria": "ตำแหน่ง GPS",
+    "gpsTitle": "ตำแหน่ง GPS"
+  },
+  "postIdentity": {
+    "openProfile": "เปิดโปรไฟล์"
+  },
+  "quotedPost": {
+    "loadingReferenced": "กำลังโหลดโพสต์อ้างอิง…",
+    "noText": "(ไม่มีข้อความ)"
+  },
+  "time": {
+    "justNow": "เมื่อกี้",
+    "minutesAgo": "{{count}} นาทีที่แล้ว",
+    "hoursAgo": "{{count}} ชม.ที่แล้ว",
+    "daysAgo": "{{count}} วันที่แล้ว"
+  },
+  "common": {
+    "loading": "กำลังโหลด…",
+    "close": "ปิด"
+  }
+}

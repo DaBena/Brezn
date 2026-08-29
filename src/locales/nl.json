@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "Laden…"
+  },
+  "nav": {
+    "searchPlaceholder": "Posts zoeken…",
+    "openChat": "Chat openen",
+    "openMenu": "Menu openen"
+  },
+  "feed": {
+    "offlineBanner": "Offline – laatste posts (alleen lezen).",
+    "locationTitle": "Locatie voor lokale feed",
+    "locationBody": "De app heeft je globale omgeving nodig voor lokale posts. Je kunt dit later handmatig wijzigen. Je positie wordt gereduceerd tot een geohash-cel (~5 km) voor privacy.",
+    "privacyStorage": "Deze app gebruikt lokale opslag op je apparaat. Geen tracking en geen persoonlijke gegevens worden naar ons gestuurd. Zie de",
+    "privacyLink": "bron, README & licentie",
+    "privacyDisclaimer": "Deze app laadt gebruikersinhoud van externe bronnen (nostr relays, bestandsservers). Wij aanvaarden geen aansprakelijkheid voor externe inhoud.",
+    "privacyConfirm": "Door verder te gaan bevestig je: ik heb me geïnformeerd en accepteer.",
+    "allowLocation": "Locatie toestaan",
+    "errorTitle": "Fout",
+    "tryAgain": "Opnieuw",
+    "relayFailPrefix": "Relayverbinding mislukt. ",
+    "noRelayResponse": "Geen reactie van relays. Controleer de relaylijst of probeer later opnieuw.",
+    "waitingEose": "Nog geen events (wachten op EOSE)…",
+    "noPostsYet": "Nog geen posts. Probeer later opnieuw of andere relays.",
+    "noRelays": "Nog geen relays — ga naar Instellingen."
+  },
+  "settings": {
+    "title": "Instellingen",
+    "source": "Bron",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Thema",
+    "switchToDark": "Donker thema",
+    "switchToLight": "Licht thema"
+  },
+  "geohash": {
+    "searchRadius": "Zoekradius",
+    "lengthLabel": "Geohash-lengte:",
+    "length0": "0",
+    "queries3": "alle g",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Radius verkleinen",
+    "increaseRadius": "Radius vergroten",
+    "length": "Lengte {{n}}",
+    "queriesCurrent": "alle geo-posts",
+    "precisionFallback": "Hoger = kleiner (preciezer) – maar minder resultaten.",
+    "cellSize": "{{w}} × {{h}} per cel"
+  },
+  "moderation": {
+    "blocklist": "Blokkeerlijst",
+    "oneLineOneTerm": "1 regel = 1 term ({{count}}/200)",
+    "placeholder": "bijv.\nkopen\nsats\nevil.example",
+    "saved": "Blokkeerlijst opgeslagen.",
+    "blockedUsers": "Geblokkeerd",
+    "blockedCount": "{{count}} geblokkeerd",
+    "unblock": "Deblokkeren",
+    "noBlocked": "Niemand geblokkeerd",
+    "unblockedMsg": "Gebruiker gedeblokkeerd."
+  },
+  "keyMgmt": {
+    "title": "Identiteit",
+    "npub": "npub",
+    "copy": "Kopiëren",
+    "nsec": "nsec",
+    "show": "Tonen",
+    "hide": "Verbergen",
+    "neverShareNsec": "Deel je nsec nooit.",
+    "npubCopied": "npub gekopieerd.",
+    "copyNpubHint": "npub tonen & kopiëren.",
+    "nsecCopied": "nsec gekopieerd.",
+    "copyNsecHint": "nsec tonen & kopiëren.",
+    "importTitle": "Identiteit importeren",
+    "importNsec": "nsec importeren",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Voer een nsec in",
+    "importSuccess": "Identiteit geïmporteerd. Pagina wordt herladen…",
+    "importing": "Importeren…",
+    "import": "Importeren",
+    "cancel": "Annuleren",
+    "importFailed": "nsec importeren mislukt"
+  },
+  "relay": {
+    "title": "Relays",
+    "hint": "Relays voor feed, DM's en publiceren. Alleen URL's die je hier opgeeft (of enkele ingebouwde defaults) worden gebruikt — geen automatische outbox-relaydetectie.",
+    "empty": "Geen relays geconfigureerd. Posts kunnen niet geladen of gepubliceerd worden zonder minstens één relay. Voeg een relay toe of gebruik \"Standaard\" voor de defaults.",
+    "removeAria": "Relay verwijderen",
+    "placeholder": "wss://relay.example",
+    "add": "Toevoegen",
+    "default": "Standaard",
+    "test": "Testen",
+    "testing": "Testen…",
+    "unknown": "onbekend",
+    "reachable": "bereikbaar",
+    "unreachable": "onbereikbaar",
+    "reachableWithRtt": "bereikbaar • {{rtt}}ms",
+    "unreachableWithErr": "onbereikbaar • {{error}}",
+    "statusAria": "Relaystatus: {{state}}",
+    "duplicate": "Deze relay staat al in je lijst."
+  },
+  "mediaUpload": {
+    "title": "Media uploaden",
+    "hint": "Directe URL of NIP-96. Standaard: {{default}}. Leeg = uit.",
+    "defaultBtn": "Standaard"
+  },
+  "profileSettings": {
+    "title": "Profiel",
+    "loading": "Profiel laden…",
+    "name": "Naam",
+    "namePlaceholder": "Je naam (optioneel)",
+    "about": "Over",
+    "aboutPlaceholder": "Korte bio (optioneel)",
+    "picture": "Profielfoto",
+    "pictureAlt": "Profielfoto",
+    "onlyImages": "Alleen afbeeldingen worden ondersteund.",
+    "imageTooLarge5": "Afbeelding te groot (max. 5 MB).",
+    "configureEndpointFirst": "Configureer eerst het media-uploadendpoint.",
+    "uploading": "Uploaden…",
+    "changeImage": "Afbeelding wijzigen",
+    "uploadImage": "Afbeelding uploaden",
+    "resetConfirm": "Profiel echt resetten? Naam, over en foto worden verwijderd.",
+    "reset": "Resetten",
+    "removeImage": "Afbeelding weg",
+    "urlPlaceholder": "Of voer URL direct in",
+    "resetDone": "Profiel gereset.",
+    "resetError": "Fout bij resetten profiel"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Gesprekken laden…",
+    "offline": "Offline – controleer je internetverbinding.",
+    "timeout": "Time-out – relays reageren niet. Controleer je relay-instellingen.",
+    "loadError": "Fout bij laden gesprekken",
+    "empty": "Nog geen gesprekken"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Offline – bericht kan niet worden verzonden.",
+    "offline": "Offline – controleer je internetverbinding.",
+    "timeout": "Time-out – relays reageren niet. Controleer je relay-instellingen.",
+    "loadError": "Fout bij laden berichten",
+    "loading": "Berichten laden…",
+    "empty": "Nog geen berichten",
+    "placeholder": "Bericht schrijven…",
+    "sendAria": "Bericht verzenden",
+    "sendingContent": "[verzenden...]",
+    "sendError": "Fout bij verzenden bericht",
+    "hiddenByBlocklist": "Bericht verborgen (komt overeen met je blokkeerlijst).",
+    "openPeerProfileAria": "Profiel openen"
+  },
+  "composer": {
+    "srTitle": "Nieuwe post",
+    "publish": "Publiceren",
+    "publishing": "Publiceren…",
+    "publishAria": "Plaatsen",
+    "media": "Media",
+    "uploading": "Uploaden…",
+    "mediaAria": "Media toevoegen",
+    "createInCell": "Nieuwe post in cel",
+    "createNew": "Nieuwe post",
+    "showMapAria": "Cel {{cell}} op kaart tonen",
+    "showMapTitle": "Cel op kaart tonen",
+    "placeholder": "Wat gebeurt er in je buurt?",
+    "removeMediaAria": "Media verwijderen",
+    "noUploadEndpoint": "Geen uploadendpoint (Instellingen → Media uploaden).",
+    "onlyImagesVideos": "Alleen afbeeldingen of video's worden ondersteund.",
+    "videoTooLarge": "Video te groot (max. 25 MB).",
+    "imageTooLarge": "Afbeelding te groot (max. 12 MB).",
+    "compressFailed": "Afbeelding comprimeren mislukt.",
+    "uploadFailed": "Upload mislukt.",
+    "publishFailed": "Publiceren mislukt.",
+    "invalidGeohash": "Ongeldige geohash.",
+    "editGeohashAria": "Geohash bewerken"
+  },
+  "feedArticle": {
+    "deleted": "Verwijderd – verspreiden naar relays",
+    "deletedAria": "Verwijderde post",
+    "openPost": "Post openen",
+    "sendReaction": "Reactie sturen",
+    "sendReactionCount": "Reactie sturen ({{count}})",
+    "loadOlder": "Meer tonen",
+    "loading": "Laden…"
+  },
+  "pwa": {
+    "title": "Update beschikbaar",
+    "body": "Een nieuwe versie is geladen. Herlaad om te activeren.",
+    "reload": "Herladen",
+    "close": "Sluiten"
+  },
+  "adblock": {
+    "title": "Service Worker geblokkeerd",
+    "body": "Een adblocker blokkeert mogelijk de service worker. Schakel de adblocker uit voor deze site of voeg een uitzondering toe.",
+    "close": "Sluiten"
+  },
+  "composeBtn": {
+    "aria": "Nieuwe post maken"
+  },
+  "errorBoundary": {
+    "title": "Er ging iets mis",
+    "body": "Er is een onverwachte fout opgetreden. Probeer de pagina te vernieuwen.",
+    "details": "Foutdetails",
+    "errorLabel": "Fout:",
+    "stack": "Stacktrace:",
+    "componentStack": "Componentstack:",
+    "tryAgain": "Opnieuw",
+    "reload": "Pagina herladen"
+  },
+  "app": {
+    "publishFailed": "Publiceren mislukt.",
+    "offlineComments": "Offline – reacties zijn alleen-lezen.",
+    "offlineDelete": "Offline – verwijdering kan niet worden verzonden."
+  },
+  "thread": {
+    "reportRoot": "Hoofdpost rapporteren",
+    "reportReply": "Antwoord melden",
+    "reportReason": "Reden voor rapport (optioneel)",
+    "submitReport": "Rapport verzenden",
+    "replies": "Antwoorden ({{count}})",
+    "offline": "Offline",
+    "replyPlaceholder": "Antwoord schrijven…",
+    "sendDeletionAria": "NIP-09 verwijdering verzenden",
+    "blockUserAria": "Blokkeren",
+    "blockUserTitle": "Blokkeren",
+    "delete": "Verwijderen",
+    "deleteSending": "Verzenden…",
+    "block": "Blokkeren",
+    "blocking": "Blokkeren…",
+    "blockHeading": "{{label}} blokkeren",
+    "reportHint": "Optioneel: geef een reden voor het rapporteren. Dit wordt via NIP-56 naar relays gestuurd.",
+    "reply": "Antwoorden",
+    "replySending": "Verzenden…",
+    "userBlocked": "Geblokkeerd.",
+    "blockingFailed": "Blokkeren mislukt.",
+    "offlineBlock": "Offline – blokkeren niet mogelijk.",
+    "deleteFailed": "Verwijdering mislukt.",
+    "publishFailedFallback": "Publiceren mislukt."
+  },
+  "profileSheet": {
+    "openPictureAria": "Profielfoto openen",
+    "dmAria": "Direct bericht openen",
+    "message": "Bericht",
+    "offlineHint": "Offline — profielposts kunnen onvolledig zijn.",
+    "loadingPosts": "Posts laden…",
+    "noPosts": "Nog geen posts",
+    "noPostsFromRelays": "Nog geen posts van relays gevonden.",
+    "loadError": "Posts laden mislukt."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS-locatie",
+    "gpsTitle": "GPS-locatie"
+  },
+  "postIdentity": {
+    "openProfile": "Profiel openen"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Gerefereerde post laden…",
+    "noText": "(geen tekst)"
+  },
+  "time": {
+    "justNow": "zojuist",
+    "minutesAgo": "{{count}}m geleden",
+    "hoursAgo": "{{count}}u geleden",
+    "daysAgo": "{{count}}d geleden"
+  },
+  "common": {
+    "loading": "Laden…",
+    "close": "Sluiten"
+  }
+}

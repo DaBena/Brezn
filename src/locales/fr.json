@@ -3,7 +3,7 @@
     "loading": "Chargement…"
   },
   "nav": {
-    "searchPlaceholder": "Rechercher des publications…",
+    "searchPlaceholder": "Rechercher…",
     "openChat": "Ouvrir le chat",
     "openMenu": "Ouvrir le menu"
   },
@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Rayon de recherche",
     "lengthLabel": "Longueur geohash :",
-    "length0": "0 (actuel + est/ouest)",
-    "queries3": "3 requêtes",
+    "length0": "0",
+    "queries3": "tous les g",
     "geoHashLabel": "GeoHash :",
     "geoHashEmpty": "GeoHash : -",
     "decreaseRadius": "Réduire le rayon",
     "increaseRadius": "Augmenter le rayon",
     "length": "Longueur {{n}}",
-    "queriesCurrent": "3 requêtes (actuel + est/ouest)",
+    "queriesCurrent": "posts géolocalisés",
     "precisionFallback": "Plus élevé = plus petit (plus précis), mais moins de résultats.",
     "cellSize": "{{w}} × {{h}} par cellule"
   },
@@ -120,11 +120,11 @@
     "changeImage": "Changer l’image",
     "uploadImage": "Envoyer une image",
     "resetConfirm": "Réinitialiser le profil ? Nom, bio et photo seront supprimés.",
-    "reset": "Réinitialiser",
+    "reset": "Réinit.",
     "removeImage": "Retirer l’image",
     "urlPlaceholder": "Ou saisir l’URL",
     "resetDone": "Profil réinitialisé.",
-    "resetError": "Erreur lors de la réinitialisation du profil"
+    "resetError": "Échec réinitialisation."
   },
   "chat": {
     "title": "Chat",
@@ -150,17 +150,17 @@
     "openPeerProfileAria": "Ouvrir le profil"
   },
   "composer": {
-    "srTitle": "Nouvelle publication",
+    "srTitle": "Nouveau post",
     "publish": "Publier",
     "publishing": "Publication…",
     "publishAria": "Publier",
     "media": "Médias",
     "uploading": "Envoi…",
-    "mediaAria": "Ajouter des médias",
-    "createInCell": "nouvelle publication dans la cellule",
-    "createNew": "nouvelle publication",
-    "showMapAria": "Afficher la cellule {{cell}} sur la carte",
-    "showMapTitle": "Voir la cellule sur la carte",
+    "mediaAria": "Ajouter média",
+    "createInCell": "Nouveau post (cellule)",
+    "createNew": "Nouveau post",
+    "showMapAria": "Carte {{cell}}",
+    "showMapTitle": "Voir sur la carte",
     "placeholder": "Que se passe-t-il près de chez vous ?",
     "removeMediaAria": "Retirer le média",
     "noUploadEndpoint": "Aucun point d’envoi (Réglages → Envoi médias).",
@@ -169,12 +169,14 @@
     "imageTooLarge": "Image trop volumineuse (max. 12 Mo).",
     "compressFailed": "Échec de compression de l’image.",
     "uploadFailed": "Échec de l’envoi.",
-    "publishFailed": "Échec de la publication."
+    "publishFailed": "Échec publication.",
+    "invalidGeohash": "Geohash invalide.",
+    "editGeohashAria": "Modifier le geohash"
   },
   "feedArticle": {
     "deleted": "Supprimé — propagation aux relays",
-    "deletedAria": "Publication supprimée",
-    "openPost": "Ouvrir la publication",
+    "deletedAria": "Supprimé",
+    "openPost": "Ouvrir",
     "sendReaction": "Envoyer une réaction",
     "sendReactionCount": "Envoyer une réaction ({{count}})",
     "loadOlder": "Voir plus",
@@ -210,16 +212,16 @@
     "offlineDelete": "Hors ligne — impossible d’envoyer l’événement de suppression."
   },
   "thread": {
-    "reportRoot": "Signaler la publication racine",
+    "reportRoot": "Signaler le post",
     "reportReply": "Signaler la réponse",
     "reportReason": "Motif du signalement (facultatif)",
-    "submitReport": "Envoyer le signalement",
+    "submitReport": "Signaler",
     "replies": "Réponses ({{count}})",
     "offline": "Hors ligne",
     "replyPlaceholder": "Écrire une réponse…",
     "sendDeletionAria": "Envoyer l’événement de suppression NIP-09",
-    "blockUserAria": "Bloquer l’utilisateur",
-    "blockUserTitle": "Bloquer l’utilisateur",
+    "blockUserAria": "Bloquer",
+    "blockUserTitle": "Bloquer",
     "delete": "Supprimer",
     "deleteSending": "Envoi…",
     "block": "Bloquer",
@@ -230,8 +232,8 @@
     "replySending": "Envoi…",
     "userBlocked": "Utilisateur bloqué.",
     "blockingFailed": "Échec du blocage.",
-    "offlineBlock": "Hors ligne — impossible de bloquer l’utilisateur.",
-    "deleteFailed": "Échec de l’envoi de l’événement de suppression.",
+    "offlineBlock": "Hors ligne — blocage impossible.",
+    "deleteFailed": "Échec suppression.",
     "publishFailedFallback": "Échec de la publication."
   },
   "profileSheet": {
@@ -239,10 +241,10 @@
     "dmAria": "Ouvrir le message direct",
     "message": "Message",
     "offlineHint": "Hors ligne — publications du profil peut-être incomplètes.",
-    "loadingPosts": "Chargement des publications…",
+    "loadingPosts": "Chargement…",
     "noPosts": "Aucune publication",
-    "noPostsFromRelays": "Aucune publication trouvée depuis les relays pour le moment.",
-    "loadError": "Impossible de charger les publications."
+    "noPostsFromRelays": "Aucune publication des relays.",
+    "loadError": "Publications non chargées."
   },
   "geohashMap": {
     "gpsAria": "Position GPS",

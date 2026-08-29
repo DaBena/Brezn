@@ -4,8 +4,35 @@ import { getLongestGeohashTag } from './nostrUtils'
 
 export const GEOHASH_LEN_MIN_UI = 1
 export const GEOHASH_LEN_MAX_UI = 5
+/** Max length emitted as `g` tags when publishing (ngeohash supports up to ~12). */
+export const GEOHASH_TAG_LEN_MAX = 12
 
 export type GeohashLength = 1 | 2 | 3 | 4 | 5
+
+/** Geohash base32 alphabet (no a, i, l, o). */
+export const GEOHASH_BASE32_CHARS =
+  '0123456789bcdefghjkmnpqrstuvwxyz' as const
+
+const GEOHASH_CHAR_RE = /^[0-9b-hjkmnp-z]+$/
+
+/** All 32 one-character geohash prefixes (global geotagged `#g` query). */
+export const GEOHASH_BASE32_PREFIXES: readonly string[] = GEOHASH_BASE32_CHARS.split('')
+
+/**
+ * Optional per-post geohash for publish tags only (does not change saved viewer location).
+ * Empty → use default geo5; invalid charset/length → invalid.
+ */
+export type PublishGeohashParse =
+  | { kind: 'default' }
+  | { kind: 'override'; geohash: string }
+  | { kind: 'invalid' }
+
+export function parsePublishGeohashInput(raw: string): PublishGeohashParse {
+  const h = (raw ?? '').trim().toLowerCase()
+  if (!h) return { kind: 'default' }
+  if (h.length > GEOHASH_TAG_LEN_MAX || !GEOHASH_CHAR_RE.test(h)) return { kind: 'invalid' }
+  return { kind: 'override', geohash: h }
+}
 
 /**
  * Geographic point with latitude and longitude.
@@ -80,11 +107,11 @@ function getCellSizeKm(len: number, centerLatDeg = 0): { wKm: number; hKm: numbe
 }
 
 /**
- * Formats a distance in kilometers as a human-readable string.
+ * Formats a distance in kilometers as a human-readable string (no leading ~).
  * For very small distances (< 0.1km), shows the geohash cell size instead.
  * @param km - Distance in kilometers
  * @param geohashLength - Optional geohash length for cell size display
- * @returns Formatted string (e.g., "~50 m", "~2.5 km", "~10 km")
+ * @returns Formatted string (e.g., "50 m", "2,5 km", "10 km")
  */
 export function formatApproxDistance(km: number, geohashLength?: number): string {
   if (!Number.isFinite(km) || km < 0) return ''
@@ -93,21 +120,57 @@ export function formatApproxDistance(km: number, geohashLength?: number): string
     const size = getCellSizeKm(geohashLength)
     if (size) {
       const cellKm = Math.max(size.wKm, size.hKm)
-      if (cellKm >= 1) return `~${Math.round(cellKm)} km`
-      return `~${(cellKm * 1000).toFixed(0)} m`
+      if (cellKm >= 1) return `${Math.round(cellKm)} km`
+      return `${(cellKm * 1000).toFixed(0)} m`
     }
   }
 
   if (km < 1) {
     const m = Math.max(0, Math.round((km * 1000) / 50) * 50)
-    return `~${m} m`
+    return `${m} m`
   }
   if (km < 10) {
     const v = Math.round(km * 10) / 10
-    return `~${v.toLocaleString('de-DE', { maximumFractionDigits: 1 })} km`
+    return `${v.toLocaleString('de-DE', { maximumFractionDigits: 1 })} km`
   }
   const v = Math.round(km)
-  return `~${v.toLocaleString('de-DE')} km`
+  return `${v.toLocaleString('de-DE')} km`
+}
+
+/**
+ * Initial bearing from `from` to `to` in degrees (0 = north, clockwise).
+ * Returns null when points coincide (undefined direction).
+ */
+export function bearingDegrees(from: GeoPoint, to: GeoPoint): number | null {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const toDeg = (rad: number) => (rad * 180) / Math.PI
+  const φ1 = toRad(from.lat)
+  const φ2 = toRad(to.lat)
+  const Δλ = toRad(to.lon - from.lon)
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  if (Math.abs(x) < 1e-15 && Math.abs(y) < 1e-15) return null
+  const θ = toDeg(Math.atan2(y, x))
+  return ((θ % 360) + 360) % 360
+}
+
+/**
+ * External map that shows a geohash cell as a bounding rectangle (not a point marker).
+ * Uses esp.info — dedicated geohash viewer with OSM tiles + cell outline.
+ */
+export function geohashCellMapUrl(hash: string): string | null {
+  const h = (hash ?? '').trim().toLowerCase()
+  if (!h || !GEOHASH_CHAR_RE.test(h)) return null
+  return `https://esp.info/geohash/${encodeURIComponent(h)}`
+}
+
+export type ApproxDistanceInfo = {
+  /** Distance text without direction prefix, e.g. "2,3 km". */
+  text: string
+  /** Bearing from viewer to target (0 = north, clockwise), or null if undefined. */
+  bearingDeg: number | null
+  /** Map URL for the geohash cell (rectangle), not an exact point. */
+  mapUrl: string
 }
 
 export function geohashPrecisionHint(len: number): string {
@@ -144,13 +207,12 @@ export function encodeGeohash(p: GeoPoint, len = 4): string {
  * generateGeohashTags('u0m')   // ['u', 'u0', 'u0m']
  */
 export function generateGeohashTags(geohash: string): string[] {
-  const hash = (geohash ?? '').trim()
+  const hash = (geohash ?? '').trim().toLowerCase()
   if (!hash || hash.length < 1) return []
 
-  // Generate all prefixes from length 1 to the actual length
-  // No padding - only use real prefixes
   const tags: string[] = []
-  for (let len = 1; len <= hash.length && len <= 5; len++) {
+  const max = Math.min(hash.length, GEOHASH_TAG_LEN_MAX)
+  for (let len = 1; len <= max; len++) {
     tags.push(hash.slice(0, len))
   }
 
@@ -233,22 +295,27 @@ export async function getBrowserLocation(opts?: {
 }
 
 /**
- * Calculates the approximate distance from a viewer point to an event's geohash location.
- * Uses the longest (most precise) geohash tag from the event for accurate distance calculation.
- * @param evt - Nostr event with geohash tags
- * @param viewerPoint - Viewer's geographic location
- * @returns Formatted distance string (e.g., "~2.3 km") or null if calculation not possible
+ * Approximate distance + bearing from viewer to an event's geohash cell center.
+ * Uses the longest (most precise) geohash tag from the event.
  */
-export function calculateApproxDistance(evt: Event, viewerPoint: GeoPoint | null): string | null {
+export function calculateApproxDistance(
+  evt: Event,
+  viewerPoint: GeoPoint | null,
+): ApproxDistanceInfo | null {
   if (!viewerPoint) return null
-  // Use the longest (most precise) geohash tag for accurate distance calculation
   const g = getLongestGeohashTag(evt)
   if (!g) return null
   const p = decodeGeohashCenter(g)
   if (!p) return null
   const km = haversineDistanceKm(viewerPoint, p)
-  const label = formatApproxDistance(km, g.length)
-  return label || null
+  const text = formatApproxDistance(km, g.length)
+  const mapUrl = geohashCellMapUrl(g)
+  if (!text || !mapUrl) return null
+  return {
+    text,
+    bearingDeg: bearingDegrees(viewerPoint, p),
+    mapUrl,
+  }
 }
 
 /**

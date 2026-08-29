@@ -3,7 +3,7 @@
     "loading": "Cargando…"
   },
   "nav": {
-    "searchPlaceholder": "Buscar publicaciones…",
+    "searchPlaceholder": "Buscar…",
     "openChat": "Abrir chat",
     "openMenu": "Abrir menú"
   },
@@ -37,19 +37,19 @@
   "geohash": {
     "searchRadius": "Radio de búsqueda",
     "lengthLabel": "Longitud geohash:",
-    "length0": "0 (actual + este/oeste)",
-    "queries3": "3 consultas",
+    "length0": "0",
+    "queries3": "todos los g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Reducir radio",
     "increaseRadius": "Aumentar radio",
     "length": "Longitud {{n}}",
-    "queriesCurrent": "3 consultas (actual + este/oeste)",
+    "queriesCurrent": "posts geolocalizados",
     "precisionFallback": "Mayor = más pequeño (más preciso), pero menos resultados.",
     "cellSize": "{{w}} × {{h}} por celda"
   },
   "moderation": {
-    "blocklist": "Lista de bloqueo",
+    "blocklist": "Bloqueos",
     "oneLineOneTerm": "1 línea = 1 término ({{count}}/200)",
     "placeholder": "ej.\ncomprar\nsats\nevil.example",
     "saved": "Lista guardada.",
@@ -150,15 +150,15 @@
     "openPeerProfileAria": "Abrir perfil"
   },
   "composer": {
-    "srTitle": "Nueva publicación",
+    "srTitle": "Nuevo post",
     "publish": "Publicar",
     "publishing": "Publicando…",
     "publishAria": "Publicar",
     "media": "Medios",
     "uploading": "Subiendo…",
     "mediaAria": "Añadir medios",
-    "createInCell": "nueva publicación en celda",
-    "createNew": "nueva publicación",
+    "createInCell": "Nuevo post en celda",
+    "createNew": "Nuevo post",
     "showMapAria": "Mostrar celda {{cell}} en el mapa",
     "showMapTitle": "Ver celda en el mapa",
     "placeholder": "¿Qué pasa en tu zona?",
@@ -169,12 +169,14 @@
     "imageTooLarge": "Imagen demasiado grande (máx. 12 MB).",
     "compressFailed": "Error al comprimir la imagen.",
     "uploadFailed": "Error en la subida.",
-    "publishFailed": "Error al publicar."
+    "publishFailed": "Error al publicar.",
+    "invalidGeohash": "Geohash no válido.",
+    "editGeohashAria": "Editar geohash"
   },
   "feedArticle": {
     "deleted": "Eliminado – propagando a relays",
-    "deletedAria": "Publicación eliminada",
-    "openPost": "Abrir publicación",
+    "deletedAria": "Post eliminado",
+    "openPost": "Abrir post",
     "sendReaction": "Enviar reacción",
     "sendReactionCount": "Enviar reacción ({{count}})",
     "loadOlder": "Ver más",
@@ -210,16 +212,16 @@
     "offlineDelete": "Sin conexión: no se puede enviar el evento de borrado."
   },
   "thread": {
-    "reportRoot": "Denunciar publicación raíz",
+    "reportRoot": "Denunciar post",
     "reportReply": "Denunciar respuesta",
     "reportReason": "Motivo (opcional)",
     "submitReport": "Enviar denuncia",
     "replies": "Respuestas ({{count}})",
     "offline": "Sin conexión",
-    "replyPlaceholder": "Escribe una respuesta…",
+    "replyPlaceholder": "Responder…",
     "sendDeletionAria": "Enviar evento de borrado NIP-09",
-    "blockUserAria": "Bloquear usuario",
-    "blockUserTitle": "Bloquear usuario",
+    "blockUserAria": "Bloquear",
+    "blockUserTitle": "Bloquear",
     "delete": "Eliminar",
     "deleteSending": "Enviando…",
     "block": "Bloquear",
@@ -230,19 +232,19 @@
     "replySending": "Enviando…",
     "userBlocked": "Usuario bloqueado.",
     "blockingFailed": "Error al bloquear.",
-    "offlineBlock": "Sin conexión: no se puede bloquear al usuario.",
-    "deleteFailed": "No se pudo enviar el evento de borrado.",
+    "offlineBlock": "Sin conexión.",
+    "deleteFailed": "Fallo al borrar.",
     "publishFailedFallback": "Error al publicar."
   },
   "profileSheet": {
     "openPictureAria": "Abrir foto de perfil",
     "dmAria": "Abrir mensaje directo",
     "message": "Mensaje",
-    "offlineHint": "Sin conexión: las publicaciones del perfil pueden estar incompletas.",
-    "loadingPosts": "Cargando publicaciones…",
-    "noPosts": "Aún no hay publicaciones",
+    "offlineHint": "Sin conexión: posts del perfil incompletos.",
+    "loadingPosts": "Cargando…",
+    "noPosts": "Sin posts",
     "noPostsFromRelays": "Aún no hay publicaciones desde los relays.",
-    "loadError": "No se pudieron cargar las publicaciones."
+    "loadError": "Posts no cargados."
   },
   "geohashMap": {
     "gpsAria": "Ubicación GPS",

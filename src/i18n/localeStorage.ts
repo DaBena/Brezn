@@ -9,6 +9,7 @@ export const SUPPORTED_LOCALES = [
   'ru',
   'ja',
   'zh-CN',
+  'zh-TW',
   'ar',
   'tr',
   'fa',
@@ -16,6 +17,12 @@ export const SUPPORTED_LOCALES = [
   'ko',
   'vi',
   'pl',
+  'nl',
+  'id',
+  'uk',
+  'bn',
+  'th',
+  'he',
 ] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
@@ -42,8 +49,14 @@ export function resolveNavigatorLocale(): SupportedLocale {
     const norm = raw.trim().toLowerCase().replace(/_/g, '-')
 
     if (norm.startsWith('zh')) {
+      if (norm.includes('tw') || norm.includes('hant') || norm === 'zh-hk' || norm === 'zh-mo') {
+        return 'zh-TW'
+      }
       return 'zh-CN'
     }
+
+    if (norm === 'iw') return 'he'
+    if (norm === 'in') return 'id'
 
     if (isSupportedLocale(norm)) {
       return norm

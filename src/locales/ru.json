@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Радиус поиска",
     "lengthLabel": "Длина geohash:",
-    "length0": "0 (текущая + восток/запад)",
-    "queries3": "3 запроса",
+    "length0": "0",
+    "queries3": "все g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Уменьшить радиус",
     "increaseRadius": "Увеличить радиус",
     "length": "Длина {{n}}",
-    "queriesCurrent": "3 запроса (текущая + восток/запад)",
+    "queriesCurrent": "все геопосты",
     "precisionFallback": "Больше = меньше ячейка (точнее), но меньше результатов.",
     "cellSize": "{{w}} × {{h}} на ячейку"
   },
@@ -57,7 +57,7 @@
     "blockedCount": "{{count}} заблокировано",
     "unblock": "Разблокировать",
     "noBlocked": "Никого не заблокировано",
-    "unblockedMsg": "Пользователь разблокирован."
+    "unblockedMsg": "Разблокирован."
   },
   "keyMgmt": {
     "title": "Личность",
@@ -157,8 +157,8 @@
     "media": "Медиа",
     "uploading": "Загрузка…",
     "mediaAria": "Добавить медиа",
-    "createInCell": "новый пост в ячейке",
-    "createNew": "новый пост",
+    "createInCell": "Новый пост в ячейке",
+    "createNew": "Новый пост",
     "showMapAria": "Показать ячейку {{cell}} на карте",
     "showMapTitle": "Показать ячейку на карте",
     "placeholder": "Что у вас в районе?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Изображение слишком большое (макс. 12 МБ).",
     "compressFailed": "Не удалось сжать изображение.",
     "uploadFailed": "Ошибка загрузки.",
-    "publishFailed": "Ошибка публикации."
+    "publishFailed": "Ошибка публикации.",
+    "invalidGeohash": "Неверный geohash.",
+    "editGeohashAria": "Изменить geohash"
   },
   "feedArticle": {
     "deleted": "Удалено — синхронизация с реле",
@@ -228,10 +230,10 @@
     "reportHint": "Необязательно: причина жалобы. Будет отправлена на реле через NIP-56.",
     "reply": "Ответить",
     "replySending": "Отправка…",
-    "userBlocked": "Пользователь заблокирован.",
+    "userBlocked": "Заблокирован.",
     "blockingFailed": "Не удалось заблокировать.",
     "offlineBlock": "Офлайн — нельзя заблокировать пользователя.",
-    "deleteFailed": "Не удалось отправить событие удаления.",
+    "deleteFailed": "Удаление не удалось.",
     "publishFailedFallback": "Не удалось опубликовать."
   },
   "profileSheet": {

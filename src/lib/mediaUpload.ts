@@ -183,6 +183,83 @@ async function resolveUploadEndpoint(
   return { url: u.toString(), requiresNip98: false }
 }
 
+export type MediaUploadProbeResult = {
+  ok: boolean
+  rttMs?: number
+  error?: string
+  apiUrl?: string
+}
+
+function isReachableProbeStatus(status: number): boolean {
+  if (status >= 200 && status < 400) return true
+  if (status === 401 || status === 403 || status === 405) return true
+  return false
+}
+
+async function probeHttpUrl(url: string, signal?: AbortSignal): Promise<void> {
+  let res: Response
+  try {
+    res = await fetch(url, { method: 'HEAD', signal })
+  } catch {
+    res = await fetch(url, { method: 'GET', signal })
+  }
+  if (isReachableProbeStatus(res.status)) return
+
+  if (res.status === 404 || res.status >= 500) {
+    try {
+      const getRes = await fetch(url, { method: 'GET', signal })
+      if (isReachableProbeStatus(getRes.status)) return
+      throw new Error(`HTTP ${getRes.status}`)
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith('HTTP ')) throw e
+      throw new Error(`HTTP ${res.status}`)
+    }
+  }
+
+  throw new Error(`HTTP ${res.status}`)
+}
+
+/** Settings probe: NIP-96 discovery and/or HTTP reachability (no file upload). */
+export async function probeMediaUploadEndpoint(
+  input: string,
+  opts?: { signal?: AbortSignal },
+): Promise<MediaUploadProbeResult> {
+  const started =
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now()
+  const trimmed = input.trim()
+  if (!trimmed) return { ok: false, error: 'Not configured' }
+
+  try {
+    const resolved = await resolveUploadEndpoint(trimmed, { signal: opts?.signal })
+    const u = normalizeHttpUrl(trimmed)
+    const path = u.pathname.replace(/\/+$/, '')
+    const isWellKnown = path === '/.well-known/nostr/nip96.json'
+    const isBase = path === '' || path === '/'
+    if (!isWellKnown && !isBase) {
+      await probeHttpUrl(resolved.url, opts?.signal)
+    }
+    const ended =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
+    return {
+      ok: true,
+      rttMs: Math.max(0, Math.round(ended - started)),
+      apiUrl: resolved.url,
+    }
+  } catch (e) {
+    const msg =
+      e instanceof Error
+        ? e.name === 'AbortError'
+          ? 'Timeout'
+          : e.message
+        : String(e)
+    return { ok: false, error: msg }
+  }
+}
+
 /**
  * Compresses and resizes an image file to reduce file size.
  * @param file Original image file

@@ -3,7 +3,7 @@
     "loading": "A carregar…"
   },
   "nav": {
-    "searchPlaceholder": "Pesquisar publicações…",
+    "searchPlaceholder": "Pesquisar…",
     "openChat": "Abrir chat",
     "openMenu": "Abrir menu"
   },
@@ -17,7 +17,7 @@
     "privacyConfirm": "Ao continuar confirma: informei-me e aceito.",
     "allowLocation": "Permitir localização",
     "errorTitle": "Erro",
-    "tryAgain": "Tentar novamente",
+    "tryAgain": "Tentar",
     "relayFailPrefix": "Falha de ligação ao relay. ",
     "noRelayResponse": "Sem resposta dos relays. Verifique a lista ou tente mais tarde.",
     "waitingEose": "Ainda sem eventos (à espera de EOSE)…",
@@ -37,26 +37,26 @@
   "geohash": {
     "searchRadius": "Raio de pesquisa",
     "lengthLabel": "Comprimento geohash:",
-    "length0": "0 (atual + leste/oeste)",
-    "queries3": "3 consultas",
+    "length0": "0",
+    "queries3": "todos os g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Diminuir raio",
     "increaseRadius": "Aumentar raio",
     "length": "Comprimento {{n}}",
-    "queriesCurrent": "3 consultas (atual + leste/oeste)",
+    "queriesCurrent": "posts georreferenciados",
     "precisionFallback": "Maior = mais pequeno (mais preciso), mas menos resultados.",
     "cellSize": "{{w}} × {{h}} por célula"
   },
   "moderation": {
-    "blocklist": "Lista de bloqueio",
+    "blocklist": "Bloqueios",
     "oneLineOneTerm": "1 linha = 1 termo ({{count}}/200)",
     "placeholder": "ex.\ncomprar\nsats\nevil.example",
     "saved": "Lista guardada.",
-    "blockedUsers": "Utilizadores bloqueados",
+    "blockedUsers": "Bloqueados",
     "blockedCount": "{{count}} bloqueados",
     "unblock": "Desbloquear",
-    "noBlocked": "Nenhum utilizador bloqueado",
+    "noBlocked": "Ninguém bloqueado",
     "unblockedMsg": "Utilizador desbloqueado."
   },
   "keyMgmt": {
@@ -150,15 +150,15 @@
     "openPeerProfileAria": "Abrir perfil"
   },
   "composer": {
-    "srTitle": "Nova publicação",
+    "srTitle": "Novo post",
     "publish": "Publicar",
     "publishing": "A publicar…",
     "publishAria": "Publicar",
     "media": "Média",
     "uploading": "A enviar…",
     "mediaAria": "Adicionar média",
-    "createInCell": "nova publicação na célula",
-    "createNew": "nova publicação",
+    "createInCell": "Novo post na célula",
+    "createNew": "Novo post",
     "showMapAria": "Mostrar célula {{cell}} no mapa",
     "showMapTitle": "Ver célula no mapa",
     "placeholder": "O que se passa na sua zona?",
@@ -169,11 +169,13 @@
     "imageTooLarge": "Imagem demasiado grande (máx. 12 MB).",
     "compressFailed": "Falha ao comprimir imagem.",
     "uploadFailed": "Falha no envio.",
-    "publishFailed": "Falha na publicação."
+    "publishFailed": "Falha na publicação.",
+    "invalidGeohash": "Geohash inválido.",
+    "editGeohashAria": "Editar geohash"
   },
   "feedArticle": {
     "deleted": "Eliminado — a propagar para relays",
-    "deletedAria": "Publicação eliminada",
+    "deletedAria": "Eliminado",
     "openPost": "Abrir publicação",
     "sendReaction": "Enviar reação",
     "sendReactionCount": "Enviar reação ({{count}})",
@@ -199,9 +201,9 @@
     "body": "Erro inesperado. Tente recarregar a página.",
     "details": "Detalhes do erro",
     "errorLabel": "Erro:",
-    "stack": "Stack trace:",
+    "stack": "Stack:",
     "componentStack": "Stack de componentes:",
-    "tryAgain": "Tentar novamente",
+    "tryAgain": "Tentar",
     "reload": "Recarregar página"
   },
   "app": {
@@ -216,10 +218,10 @@
     "submitReport": "Enviar denúncia",
     "replies": "Respostas ({{count}})",
     "offline": "Offline",
-    "replyPlaceholder": "Escreva uma resposta…",
+    "replyPlaceholder": "Responder…",
     "sendDeletionAria": "Enviar evento de eliminação NIP-09",
-    "blockUserAria": "Bloquear utilizador",
-    "blockUserTitle": "Bloquear utilizador",
+    "blockUserAria": "Bloquear",
+    "blockUserTitle": "Bloquear",
     "delete": "Eliminar",
     "deleteSending": "A enviar…",
     "block": "Bloquear",
@@ -228,10 +230,10 @@
     "reportHint": "Opcional: motivo da denúncia. Será enviado aos relays via NIP-56.",
     "reply": "Responder",
     "replySending": "A enviar…",
-    "userBlocked": "Utilizador bloqueado.",
+    "userBlocked": "Bloqueado.",
     "blockingFailed": "Falha ao bloquear.",
-    "offlineBlock": "Offline — não é possível bloquear o utilizador.",
-    "deleteFailed": "Falha ao enviar o evento de eliminação.",
+    "offlineBlock": "Offline — bloqueio impossível.",
+    "deleteFailed": "Falha ao apagar.",
     "publishFailedFallback": "Falha ao publicar."
   },
   "profileSheet": {
@@ -239,10 +241,10 @@
     "dmAria": "Abrir mensagem direta",
     "message": "Mensagem",
     "offlineHint": "Offline — publicações do perfil podem estar incompletas.",
-    "loadingPosts": "A carregar publicações…",
-    "noPosts": "Ainda sem publicações",
+    "loadingPosts": "A carregar…",
+    "noPosts": "Sem posts",
     "noPostsFromRelays": "Ainda não há publicações dos relays.",
-    "loadError": "Não foi possível carregar as publicações."
+    "loadError": "Posts não carregados."
   },
   "geohashMap": {
     "gpsAria": "Localização GPS",

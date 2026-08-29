@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "نطاق البحث",
     "lengthLabel": "طول geohash:",
-    "length0": "0 (الحالي + شرق/غرب)",
-    "queries3": "3 استعلامات",
+    "length0": "0",
+    "queries3": "كل g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "تصغير النطاق",
     "increaseRadius": "توسيع النطاق",
     "length": "الطول {{n}}",
-    "queriesCurrent": "3 استعلامات (الحالي + شرق/غرب)",
+    "queriesCurrent": "كل المنشورات المموّجة",
     "precisionFallback": "أعلى = أصغر (أدق) لكن نتائج أقل.",
     "cellSize": "{{w}} × {{h}} لكل خلية"
   },
@@ -90,7 +90,7 @@
     "add": "إضافة",
     "default": "افتراضي",
     "test": "اختبار",
-    "testing": "جارٍ الاختبار…",
+    "testing": "اختبار…",
     "unknown": "غير معروف",
     "reachable": "متاح",
     "unreachable": "غير متاح",
@@ -169,7 +169,9 @@
     "imageTooLarge": "الصورة كبيرة جدًا (حد أقصى 12 ميجابايت).",
     "compressFailed": "فشل ضغط الصورة.",
     "uploadFailed": "فشل الرفع.",
-    "publishFailed": "فشل النشر."
+    "publishFailed": "فشل النشر.",
+    "invalidGeohash": "Geohash غير صالح.",
+    "editGeohashAria": "تعديل geohash"
   },
   "feedArticle": {
     "deleted": "محذوف — جارٍ المزامنة",
@@ -202,7 +204,7 @@
     "stack": "المكدس:",
     "componentStack": "مكدس المكوّنات:",
     "tryAgain": "إعادة المحاولة",
-    "reload": "إعادة تحميل الصفحة"
+    "reload": "إعادة تحميل"
   },
   "app": {
     "publishFailed": "فشل النشر.",
@@ -210,7 +212,7 @@
     "offlineDelete": "دون اتصال — لا يمكن إرسال حدث الحذف."
   },
   "thread": {
-    "reportRoot": "الإبلاغ عن المنشور الأصل",
+    "reportRoot": "بلاغ المنشور",
     "reportReply": "الإبلاغ عن الرد",
     "reportReason": "السبب (اختياري)",
     "submitReport": "إرسال البلاغ",

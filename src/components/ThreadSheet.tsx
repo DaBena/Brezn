@@ -12,6 +12,7 @@ import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
+import { DistanceLabel } from './DistanceLabel'
 import { feedEventCardPlainText } from '../lib/feedContentPreview'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { sheetPostCardClass } from '../lib/uiClasses'
@@ -41,7 +42,7 @@ function PostCard(props: {
         </div>
         <div className="shrink-0 text-[11px] text-brezn-text">
           {formatEventCardTimestamp(evt.created_at)}
-          {dist ? <span> / {dist}</span> : null}
+          {dist ? <DistanceLabel info={dist} /> : null}
         </div>
       </div>
       <div className="mt-2">
@@ -525,7 +526,7 @@ export function ThreadSheet(props: {
                                   const dist = viewerPoint
                                     ? calculateApproxDistance(r, viewerPoint)
                                     : null
-                                  return dist ? <span> / {dist}</span> : null
+                                  return dist ? <DistanceLabel info={dist} /> : null
                                 })()}
                               </span>
                             </div>

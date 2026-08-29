@@ -1,5 +1,5 @@
 import type { Event } from './nostrPrimitives'
-import { getEastWestNeighbors } from './geo'
+import { GEOHASH_BASE32_PREFIXES } from './geo'
 import { NOSTR_KINDS } from './breznNostr'
 import {
   isNip52CalendarKind,
@@ -9,19 +9,13 @@ import {
 import { isReplyNote } from './nostrUtils'
 
 /**
- * Mode 0 (precision "cell"): coarse 1-char + east/west plus the saved 5-char `#g`.
- * Mirrors useLocalFeed / relay REQ cells.
+ * `#g` values for the feed REQ.
+ * Mode 0: all 32 base32 1-char prefixes (global geotagged feed, one filter).
+ * Otherwise: the active query prefix only.
  */
-export function gCellsCoarsePlusFine(queryGeohash: string): string[] {
-  const oneCharHash = queryGeohash.slice(0, 1)
-  const neighbors = getEastWestNeighbors(oneCharHash)
-  const coarse = neighbors ? [oneCharHash, neighbors.east, neighbors.west] : [oneCharHash]
-  return coarse.includes(queryGeohash) ? coarse : [...coarse, queryGeohash]
-}
-
 export function getQueryCellsForFeed(queryGeohash: string, geohashLength: number): string[] {
-  if (geohashLength === 0 && queryGeohash.length === 5) {
-    return gCellsCoarsePlusFine(queryGeohash)
+  if (geohashLength === 0) {
+    return [...GEOHASH_BASE32_PREFIXES]
   }
   return [queryGeohash]
 }

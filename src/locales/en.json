@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Search radius",
     "lengthLabel": "Geohash length:",
-    "length0": "0 (current + east/west)",
-    "queries3": "3 queries",
+    "length0": "0",
+    "queries3": "all g tags",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Decrease radius",
     "increaseRadius": "Increase radius",
     "length": "Length {{n}}",
-    "queriesCurrent": "3 queries (current + east/west)",
+    "queriesCurrent": "all geotagged posts",
     "precisionFallback": "Higher = smaller (more precise) - but fewer results.",
     "cellSize": "{{w}} × {{h}} per cell"
   },
@@ -157,8 +157,8 @@
     "media": "Media",
     "uploading": "Uploading…",
     "mediaAria": "Add media",
-    "createInCell": "create new post in cell",
-    "createNew": "create new post",
+    "createInCell": "New post in cell",
+    "createNew": "New post",
     "showMapAria": "Show cell {{cell}} on map",
     "showMapTitle": "Show cell on map",
     "placeholder": "What's happening in your area?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Image is too large (max. 12 MB).",
     "compressFailed": "Failed to compress image.",
     "uploadFailed": "Upload failed.",
-    "publishFailed": "Publish failed."
+    "publishFailed": "Publish failed.",
+    "invalidGeohash": "Invalid geohash.",
+    "editGeohashAria": "Edit geohash"
   },
   "feedArticle": {
     "deleted": "Deleted – propagating to relays",

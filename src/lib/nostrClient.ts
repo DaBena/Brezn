@@ -230,7 +230,7 @@ export type BreznNostrClient = {
 
   /**
    * Get geohash length for feed queries (0-5).
-   * - 0: Query current cell + east/west neighbors (3 queries total)
+   * - 0: Global geotagged feed (`#g` = all 32 base32 1-char prefixes, one query)
    * - 1: ~5000km × ~2500km per cell (largest)
    * - 2: ~1250km × ~625km per cell (default)
    * - 3: ~156km × ~78km per cell
@@ -243,7 +243,7 @@ export type BreznNostrClient = {
 
   /**
    * Set geohash length for feed queries.
-   * @param length - Geohash length (0-5), will be clamped to valid range. 0 = query current + east/west neighbors.
+   * @param length - Geohash length (0-5), will be clamped to valid range. 0 = global geotagged feed.
    */
   setGeohashLength(length: number): void
 

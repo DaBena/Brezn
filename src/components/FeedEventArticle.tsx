@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next'
 import type { Event } from '../lib/nostrPrimitives'
 import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
+import type { ApproxDistanceInfo } from '../lib/geo'
 import { buttonBase, reactionButtonClasses } from '../lib/buttonStyles'
 import { feedListPostCardClass, feedListPostDeletedClass } from '../lib/uiClasses'
 import { formatEventCardTimestamp } from '../lib/nostrUtils'
 import { PostContent } from './PostContent'
 import { PostIdentity } from './PostIdentity'
 import { HeartIcon } from './HeartIcon'
+import { DistanceLabel } from './DistanceLabel'
 
 export type FeedEventArticleProps =
   | {
@@ -17,7 +19,7 @@ export type FeedEventArticleProps =
       isDeleted: boolean
       contentPreview: string
       profilesByPubkey: Map<string, Profile>
-      distanceLabel?: string | null
+      distance?: ApproxDistanceInfo | null
       client: BreznNostrClient
       onOpenThread: (evt: Event) => void
       onOpenProfile?: (pubkey: string) => void
@@ -27,7 +29,7 @@ export type FeedEventArticleProps =
       evt: Event
       isDeleted: boolean
       contentPreview: string
-      distanceLabel?: string | null
+      distance?: ApproxDistanceInfo | null
       client: BreznNostrClient
       reactionsByNoteId: Record<string, { total: number; viewerReacted: boolean }>
       canReact: boolean
@@ -40,15 +42,11 @@ function displayNameFromTags(evt: Event): string | undefined {
   return evt.tags.find((t) => t[0] === 'n')?.[1]
 }
 
-function distanceSuffix(distanceLabel?: string | null) {
-  return distanceLabel ? <span> / {distanceLabel}</span> : null
-}
-
 export function FeedEventArticle(props: FeedEventArticleProps) {
   const { t } = useTranslation()
-  const { evt, isDeleted, contentPreview, distanceLabel, onOpenThread, client } = props
+  const { evt, isDeleted, contentPreview, distance, onOpenThread, client } = props
   const ts = formatEventCardTimestamp(evt.created_at)
-  const dist = distanceSuffix(distanceLabel)
+  const dist = distance ? <DistanceLabel info={distance} /> : null
 
   const openKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {

@@ -1,8 +1,11 @@
 import type { Event } from './nostrPrimitives'
 import {
+  bearingDegrees,
   decodeGeohashCenter,
   formatApproxDistance,
+  geohashCellMapUrl,
   haversineDistanceKm,
+  type ApproxDistanceInfo,
   type GeoPoint,
 } from './geo'
 import { firstNonEmptyTagValue, getLongestGeohashTag } from './nostrUtils'
@@ -45,14 +48,23 @@ export function nip52ApproxPoint(evt: Event): GeoPoint | null {
   return decodeGeohashCenter(longestG)
 }
 
-export function nip52DistanceLabel(evt: Event, viewerPoint: GeoPoint | null): string | null {
+export function nip52DistanceLabel(
+  evt: Event,
+  viewerPoint: GeoPoint | null,
+): ApproxDistanceInfo | null {
   if (!viewerPoint || !isNip52CalendarKind(evt.kind)) return null
   const p = nip52ApproxPoint(evt)
   if (!p) return null
   const km = haversineDistanceKm(viewerPoint, p)
   const g = getLongestGeohashTag(evt)
-  const label = formatApproxDistance(km, g?.length)
-  return label || null
+  const text = formatApproxDistance(km, g?.length)
+  const mapUrl = g ? geohashCellMapUrl(g) : null
+  if (!text || !mapUrl) return null
+  return {
+    text,
+    bearingDeg: bearingDegrees(viewerPoint, p),
+    mapUrl,
+  }
 }
 
 /**

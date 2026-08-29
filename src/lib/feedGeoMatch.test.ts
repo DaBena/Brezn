@@ -4,15 +4,15 @@ import {
   feedRootEventMatchesQueryCells,
   filterFeedEventsByQuery,
   getQueryCellsForFeed,
-  gCellsCoarsePlusFine,
 } from './feedGeoMatch'
+import { GEOHASH_BASE32_PREFIXES } from './geo'
 import { NIP52_KIND_DATE_EVENT } from './nip52'
 
 describe('getQueryCellsForFeed', () => {
-  it('uses coarse band for precision 0 and 5-char hash', () => {
+  it('uses all 32 base32 prefixes for precision 0', () => {
     const cells = getQueryCellsForFeed('u09vw', 0)
-    expect(cells).toEqual(gCellsCoarsePlusFine('u09vw'))
-    expect(cells.length).toBeGreaterThanOrEqual(1)
+    expect(cells).toEqual([...GEOHASH_BASE32_PREFIXES])
+    expect(cells).toHaveLength(32)
   })
 
   it('uses single prefix cell otherwise', () => {
@@ -71,6 +71,23 @@ describe('feedRootEventMatchesQueryCells', () => {
       sig: 's',
     }
     expect(feedRootEventMatchesQueryCells(evt, cells)).toBe(true)
+  })
+
+  it('mode-0 cells match any geotagged root', () => {
+    const global = getQueryCellsForFeed('u09vw', 0)
+    const evt: Event = {
+      id: '1',
+      pubkey: 'p',
+      kind: 1,
+      content: '',
+      created_at: 1,
+      tags: [
+        ['g', 'd'],
+        ['g', 'dr5ru'],
+      ],
+      sig: 's',
+    }
+    expect(feedRootEventMatchesQueryCells(evt, global)).toBe(true)
   })
 })
 

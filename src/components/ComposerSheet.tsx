@@ -4,8 +4,10 @@ import { buttonBase } from '../lib/buttonStyles'
 import { CloseIcon } from './CloseIcon'
 import { Sheet } from './Sheet'
 import { uploadMediaFile, compressImage } from '../lib/mediaUpload'
+import { isMp4OrMovFile, stripMp4ContainerMetadata } from '../lib/stripMp4Metadata'
 import { isLikelyImageUrl, isLikelyVideoUrl } from '../lib/urls'
 import { GeohashMap } from './GeohashMap'
+import { parsePublishGeohashInput } from '../lib/geo'
 
 export function ComposerSheet(props: {
   open: boolean
@@ -13,7 +15,7 @@ export function ComposerSheet(props: {
   viewerGeo5: string | null
   onRequestLocation?: (onFinished?: () => void) => void
   onSelectCell?: (geohash5: string) => void
-  onPublish: (content: string) => Promise<void>
+  onPublish: (content: string, publishGeohash?: string | null) => Promise<void>
   mediaUploadEndpoint?: string
   postGeo5?: string[]
 }) {
@@ -30,6 +32,8 @@ export function ComposerSheet(props: {
   } = props
 
   const [composerText, setComposerText] = useState('')
+  const [manualGeohashMode, setManualGeohashMode] = useState(false)
+  const [publishGeohashDraft, setPublishGeohashDraft] = useState('')
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
   const [showGeoMap, setShowGeoMap] = useState(false)
   const [mapRelayoutTick, setMapRelayoutTick] = useState(0)
@@ -43,10 +47,30 @@ export function ComposerSheet(props: {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
-    if (!showGeoMap) return
+    if (!showGeoMap || manualGeohashMode) return
     const t = window.setTimeout(() => setMapRelayoutTick((n) => n + 1), 0)
     return () => window.clearTimeout(t)
-  }, [showGeoMap])
+  }, [showGeoMap, manualGeohashMode])
+
+  const handleClose = () => {
+    if (manualGeohashMode) {
+      setComposerText('')
+      setMediaUrls([])
+      setManualGeohashMode(false)
+      setShowGeoMap(false)
+    }
+    setPublishGeohashDraft('')
+    setPublishError(null)
+    setPublishState('idle')
+    onClose()
+  }
+
+  const enterManualGeohashMode = () => {
+    if (!viewerGeo5) return
+    setShowGeoMap(false)
+    setManualGeohashMode(true)
+    setPublishGeohashDraft(viewerGeo5)
+  }
 
   const wrappedRequestLocationForMap = useCallback(
     (done?: () => void) => {
@@ -108,6 +132,12 @@ export function ComposerSheet(props: {
         setUploadError(err instanceof Error ? err.message : t('composer.compressFailed'))
         return
       }
+    } else if (isVideo && isMp4OrMovFile(file)) {
+      try {
+        fileToUpload = await stripMp4ContainerMetadata(file)
+      } catch {
+        fileToUpload = file
+      }
     }
 
     const limit = isVideo ? maxVideoBytes : maxImageBytes
@@ -131,7 +161,17 @@ export function ComposerSheet(props: {
     const text = composerText.trim()
     if (!text && mediaUrls.length === 0) return
 
-    // Combine text and media URLs
+    let publishOverride: string | null = null
+    if (manualGeohashMode) {
+      const parsed = parsePublishGeohashInput(publishGeohashDraft)
+      if (parsed.kind !== 'override') {
+        setPublishState('error')
+        setPublishError(t('composer.invalidGeohash'))
+        return
+      }
+      publishOverride = parsed.geohash
+    }
+
     const parts: string[] = []
     if (text) parts.push(text)
     if (mediaUrls.length > 0) {
@@ -143,35 +183,67 @@ export function ComposerSheet(props: {
     setPublishState('publishing')
     setPublishError(null)
     try {
-      await onPublish(content)
+      await onPublish(content, publishOverride)
       setComposerText('')
+      setPublishGeohashDraft('')
       setMediaUrls([])
+      setManualGeohashMode(false)
+      setShowGeoMap(false)
       setPublishState('idle')
-      onClose()
+      handleClose()
     } catch (e) {
       setPublishState('error')
       setPublishError(e instanceof Error ? e.message : t('composer.publishFailed'))
     }
   }
 
+  const composeFieldClass = 'border border-brezn-text text-base font-normal text-brezn-text outline-none'
+  const geohashInputClass = `inline-block min-w-[6ch] max-w-[14ch] bg-brezn-bg px-1.5 py-0.5 ${composeFieldClass}`
+
   const cellLine = (
-    <div className="text-xs font-semibold">
+    <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs">
       {viewerGeo5 ? (
-        <span>
-          {t('composer.createInCell')}{' '}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowGeoMap((v) => !v)
-            }}
-            className="font-mono text-brezn-link underline underline-offset-2 hover:opacity-90"
-            aria-label={t('composer.showMapAria', { cell: viewerGeo5 })}
-            title={t('composer.showMapTitle')}
-          >
-            {viewerGeo5}
-          </button>
-        </span>
+        <>
+          <span className="font-semibold">{t('composer.createInCell')}</span>
+          {manualGeohashMode ? (
+            <input
+              type="text"
+              value={publishGeohashDraft}
+              onChange={(e) => setPublishGeohashDraft(e.target.value)}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className={geohashInputClass}
+              aria-label={t('composer.editGeohashAria')}
+            />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowGeoMap((v) => !v)
+                }}
+                className="font-mono text-brezn-link underline underline-offset-2 hover:opacity-90"
+                aria-label={t('composer.showMapAria', { cell: viewerGeo5 })}
+                title={t('composer.showMapTitle')}
+              >
+                {viewerGeo5}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  enterManualGeohashMode()
+                }}
+                className="inline-flex shrink-0 items-center rounded px-0.5 font-normal leading-none hover:opacity-80"
+                aria-label={t('composer.editGeohashAria')}
+              >
+                ✎
+              </button>
+            </>
+          )}
+        </>
       ) : (
         t('composer.createNew')
       )}
@@ -230,12 +302,12 @@ export function ComposerSheet(props: {
           </label>
         </>
       }
-      onClose={onClose}
+      onClose={handleClose}
       scrollable={false}
     >
       <div className="mt-1">{cellLine}</div>
 
-      {viewerGeo5 && showGeoMap ? (
+      {viewerGeo5 && showGeoMap && !manualGeohashMode ? (
         <div className="relative mt-2 h-[40vh] w-full overflow-hidden">
           <GeohashMap
             geohash={viewerGeo5}
@@ -266,7 +338,6 @@ export function ComposerSheet(props: {
                     referrerPolicy="no-referrer"
                     className="h-full w-full object-cover"
                     onError={(e) => {
-                      // Fallback to text if image fails to load
                       const target = e.currentTarget
                       target.style.display = 'none'
                       const parent = target.parentElement
@@ -286,7 +357,6 @@ export function ComposerSheet(props: {
                     muted
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      // Fallback to text if video fails to load
                       const target = e.currentTarget
                       target.style.display = 'none'
                       const parent = target.parentElement
@@ -325,13 +395,12 @@ export function ComposerSheet(props: {
         value={composerText}
         onChange={(e) => {
           setComposerText(e.target.value)
-          // Auto-resize textarea
           const el = e.target
           el.style.height = 'auto'
           el.style.height = `${Math.min(el.scrollHeight, 300)}px`
         }}
         placeholder={t('composer.placeholder')}
-        className="mt-2 mb-[env(safe-area-inset-bottom)] min-h-[120px] w-full resize-none border border-brezn-text p-3 text-base outline-none"
+        className={`mt-2 mb-[env(safe-area-inset-bottom)] min-h-[120px] w-full resize-none p-3 ${composeFieldClass}`}
         rows={5}
       />
       {publishState === 'error' && publishError ? (

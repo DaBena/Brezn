@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "טוען…"
+  },
+  "nav": {
+    "searchPlaceholder": "חיפוש פוסטים…",
+    "openChat": "פתיחת צ'אט",
+    "openMenu": "פתיחת תפריט"
+  },
+  "feed": {
+    "offlineBanner": "לא מקוון — מציג פוסטים אחרונים (קריאה בלבד).",
+    "locationTitle": "מיקום לפיד מקומי",
+    "locationBody": "האפליקציה צריכה את האזור שלך להצגת פוסטים מקומיים. ניתן לשנות מאוחר יותר. המיקום מצומצם לתא geohash (~5 ק\"מ) לפרטיות.",
+    "privacyStorage": "האפליקציה משתמשת באחסון מקומי. ללא מעקב, ללא שליחת נתונים אישיים אלינו. ראו",
+    "privacyLink": "קוד מקור, README ורישיון",
+    "privacyDisclaimer": "האפליקציה טוענת תוכן ממקורות חיצוניים (relay של nostr, שרתי קבצים). ללא אחריות על תוכן חיצוני.",
+    "privacyConfirm": "בהמשך מאשר/ת: קראתי ומסכים/ה.",
+    "allowLocation": "אישור מיקום",
+    "errorTitle": "שגיאה",
+    "tryAgain": "נסה שוב",
+    "relayFailPrefix": "חיבור relay נכשל. ",
+    "noRelayResponse": "אין תגובה מ-relay. בדוק/י רשימה או נסה/י מאוחר יותר.",
+    "waitingEose": "עדיין אין אירועים (ממתין ל-EOSE)…",
+    "noPostsYet": "עדיין אין פוסטים. נסה/י מאוחר יותר או relay אחר.",
+    "noRelays": "אין relay — בדוק/י הגדרות."
+  },
+  "settings": {
+    "title": "הגדרות",
+    "source": "מקור",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "ערכת נושא",
+    "switchToDark": "מצב כהה",
+    "switchToLight": "מצב בהיר"
+  },
+  "geohash": {
+    "searchRadius": "רדיוס חיפוש",
+    "lengthLabel": "אורך GeoHash:",
+    "length0": "0",
+    "queries3": "כל g",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "הקטנת רדיוס",
+    "increaseRadius": "הגדלת רדיוס",
+    "length": "אורך {{n}}",
+    "queriesCurrent": "כל הפוסטים עם מיקום",
+    "precisionFallback": "גבוה יותר = קטן יותר (מדויק) — פחות תוצאות.",
+    "cellSize": "{{w}} × {{h}} לתא"
+  },
+  "moderation": {
+    "blocklist": "רשימת חסימה",
+    "oneLineOneTerm": "שורה 1 = מונח 1 ({{count}}/200)",
+    "placeholder": "למשל\nbuy\nsats\nevil.example",
+    "saved": "רשימת חסימה נשמרה.",
+    "blockedUsers": "משתמשים חסומים",
+    "blockedCount": "{{count}} חסומים",
+    "unblock": "ביטול חסימה",
+    "noBlocked": "אין משתמשים חסומים",
+    "unblockedMsg": "החסימה בוטלה."
+  },
+  "keyMgmt": {
+    "title": "זהות",
+    "npub": "npub",
+    "copy": "העתקה",
+    "nsec": "nsec",
+    "show": "הצגה",
+    "hide": "הסתרה",
+    "neverShareNsec": "לעולם אל תשתף/י nsec.",
+    "npubCopied": "npub הועתק.",
+    "copyNpubHint": "הצגה והעתקת npub.",
+    "nsecCopied": "nsec הועתק.",
+    "copyNsecHint": "הצגה והעתקת nsec.",
+    "importTitle": "ייבוא זהות",
+    "importNsec": "ייבוא nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "הזן/י nsec",
+    "importSuccess": "הזהות יובאה. הדף ייטען מחדש…",
+    "importing": "מייבא…",
+    "import": "ייבוא",
+    "cancel": "ביטול",
+    "importFailed": "ייבוא nsec נכשל"
+  },
+  "relay": {
+    "title": "Relay",
+    "hint": "Relay לפיד, DM ופרסום. רק URL שברשימה (או ברירות מחדל) — ללא גילוי outbox אוטומטי.",
+    "empty": "אין relay. נדרש לפחות relay אחד לטעינה או פרסום. הוסף/י למטה או \"Default\" לברירת מחדל.",
+    "removeAria": "הסרת relay",
+    "placeholder": "wss://relay.example",
+    "add": "הוספה",
+    "default": "Default",
+    "test": "בדיקה",
+    "testing": "בודק…",
+    "unknown": "לא ידוע",
+    "reachable": "נגיש",
+    "unreachable": "לא נגיש",
+    "reachableWithRtt": "נגיש • {{rtt}}ms",
+    "unreachableWithErr": "לא נגיש • {{error}}",
+    "statusAria": "מצב relay: {{state}}",
+    "duplicate": "relay זה כבר ברשימה."
+  },
+  "mediaUpload": {
+    "title": "העלאת מדיה",
+    "hint": "URL ישיר או NIP-96. ברירת מחדל: {{default}}. ריק = כבוי.",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "פרופיל",
+    "loading": "טוען פרופיל…",
+    "name": "שם",
+    "namePlaceholder": "השם שלך (אופציונלי)",
+    "about": "אודות",
+    "aboutPlaceholder": "ביוגרפיה קצרה (אופציונלי)",
+    "picture": "תמונת פרופיל",
+    "pictureAlt": "תמונת פרופיל",
+    "onlyImages": "נתמכות רק תמונות.",
+    "imageTooLarge5": "התמונה גדולה מדי (עד 5 MB).",
+    "configureEndpointFirst": "הגדר/י קודם endpoint להעלאת מדיה.",
+    "uploading": "מעלה…",
+    "changeImage": "שינוי תמונה",
+    "uploadImage": "העלאת תמונה",
+    "resetConfirm": "לאפס פרופיל? שם, אודות ותמונה יוסרו.",
+    "reset": "איפוס",
+    "removeImage": "הסרת תמונה",
+    "urlPlaceholder": "או הזנ/י URL ישירות",
+    "resetDone": "הפרופיל אופס.",
+    "resetError": "שגיאה באיפוס פרופיל"
+  },
+  "chat": {
+    "title": "צ'אט",
+    "loading": "טוען שיחות…",
+    "offline": "לא מקוון — בדוק/י חיבור.",
+    "timeout": "פג זמן — relay לא מגיב. בדוק/י הגדרות relay.",
+    "loadError": "שגיאה בטעינת שיחות",
+    "empty": "עדיין אין שיחות"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "לא מקוון — לא ניתן לשלוח.",
+    "offline": "לא מקוון — בדוק/י חיבור.",
+    "timeout": "פג זמן — relay לא מגיב. בדוק/י הגדרות relay.",
+    "loadError": "שגיאה בטעינת הודעות",
+    "loading": "טוען הודעות…",
+    "empty": "עדיין אין הודעות",
+    "placeholder": "כתוב/י הודעה…",
+    "sendAria": "שליחת הודעה",
+    "sendingContent": "[שולח...]",
+    "sendError": "שגיאה בשליחת הודעה",
+    "hiddenByBlocklist": "הודעה מוסתרת (תואמת רשימת חסימה).",
+    "openPeerProfileAria": "פתיחת פרופיל"
+  },
+  "composer": {
+    "srTitle": "פוסט חדש",
+    "publish": "פרסום",
+    "publishing": "מפרסם…",
+    "publishAria": "פרסום פוסט",
+    "media": "מדיה",
+    "uploading": "מעלה…",
+    "mediaAria": "הוספת מדיה",
+    "createInCell": "פוסט חדש בתא",
+    "createNew": "פוסט חדש",
+    "showMapAria": "הצגת תא {{cell}} במפה",
+    "showMapTitle": "הצגת תא במפה",
+    "placeholder": "מה קורה באזור שלך?",
+    "removeMediaAria": "הסרת מדיה",
+    "noUploadEndpoint": "אין endpoint להעלאה (הגדרות → העלאת מדיה).",
+    "onlyImagesVideos": "נתמכים רק תמונות או וידאו.",
+    "videoTooLarge": "וידאו גדול מדי (עד 25 MB).",
+    "imageTooLarge": "תמונה גדולה מדי (עד 12 MB).",
+    "compressFailed": "דחיסת תמונה נכשלה.",
+    "uploadFailed": "העלאה נכשלה.",
+    "publishFailed": "פרסום נכשל.",
+    "invalidGeohash": "Geohash לא תקין.",
+    "editGeohashAria": "ערוך geohash"
+  },
+  "feedArticle": {
+    "deleted": "נמחק — מתפשט ל-relay",
+    "deletedAria": "פוסט שנמחק",
+    "openPost": "פתיחת פוסט",
+    "sendReaction": "שליחת תגובה",
+    "sendReactionCount": "שליחת תגובה ({{count}})",
+    "loadOlder": "הצג עוד",
+    "loading": "טוען…"
+  },
+  "pwa": {
+    "title": "עדכון זמין",
+    "body": "גרסה חדשה נטענה. רענן/י להפעלה.",
+    "reload": "רענון",
+    "close": "סגירה"
+  },
+  "adblock": {
+    "title": "Service Worker נחסם",
+    "body": "חוסם פרסומות עלול לחסום Service Worker. כבה/י עבור אתר זה או הוסף/י חריגה.",
+    "close": "סגירה"
+  },
+  "composeBtn": {
+    "aria": "יצירת פוסט חדש"
+  },
+  "errorBoundary": {
+    "title": "משהו השתבש",
+    "body": "שגיאה בלתי צפויה. נסה/י לרענן.",
+    "details": "פרטי שגיאה",
+    "errorLabel": "שגיאה:",
+    "stack": "Stack trace:",
+    "componentStack": "Component stack:",
+    "tryAgain": "נסה שוב",
+    "reload": "רענון דף"
+  },
+  "app": {
+    "publishFailed": "פרסום נכשל.",
+    "offlineComments": "לא מקוון — תגובות לקריאה בלבד.",
+    "offlineDelete": "לא מקוון — לא ניתן לשלוח מחיקה."
+  },
+  "thread": {
+    "reportRoot": "דיווח על פוסט ראשי",
+    "reportReply": "דיווח על תגובה",
+    "reportReason": "סיבת דיווח (אופציונלי)",
+    "submitReport": "שליחת דיווח",
+    "replies": "תגובות ({{count}})",
+    "offline": "לא מקוון",
+    "replyPlaceholder": "כתוב/י תגובה…",
+    "sendDeletionAria": "שליחת אירוע מחיקה NIP-09",
+    "blockUserAria": "חסימת משתמש",
+    "blockUserTitle": "חסימת משתמש",
+    "delete": "מחיקה",
+    "deleteSending": "שולח…",
+    "block": "חסימה",
+    "blocking": "חוסם…",
+    "blockHeading": "חסימת {{label}}",
+    "reportHint": "אופציונלי: סיבת דיווח. יישלח ל-relay דרך NIP-56.",
+    "reply": "תגובה",
+    "replySending": "שולח…",
+    "userBlocked": "המשתמש נחסם.",
+    "blockingFailed": "החסימה נכשלה.",
+    "offlineBlock": "לא מקוון — לא ניתן לחסום.",
+    "deleteFailed": "אירוע מחיקה נכשל.",
+    "publishFailedFallback": "פרסום נכשל."
+  },
+  "profileSheet": {
+    "openPictureAria": "פתיחת תמונת פרופיל",
+    "dmAria": "פתיחת הודעה ישירה",
+    "message": "הודעה",
+    "offlineHint": "לא מקוון — פוסטים בפרופיל עלולים להיות חלקיים.",
+    "loadingPosts": "טוען פוסטים…",
+    "noPosts": "עדיין אין פוסטים",
+    "noPostsFromRelays": "עדיין לא נמצאו פוסטים מ-relay.",
+    "loadError": "טעינת פוסטים נכשלה."
+  },
+  "geohashMap": {
+    "gpsAria": "מיקום GPS",
+    "gpsTitle": "מיקום GPS"
+  },
+  "postIdentity": {
+    "openProfile": "פתיחת פרופיל"
+  },
+  "quotedPost": {
+    "loadingReferenced": "טוען פוסט מצוטט…",
+    "noText": "(ללא טקסט)"
+  },
+  "time": {
+    "justNow": "עכשיו",
+    "minutesAgo": "לפני {{count}} ד'",
+    "hoursAgo": "לפני {{count}} ש'",
+    "daysAgo": "לפני {{count}} י'"
+  },
+  "common": {
+    "loading": "טוען…",
+    "close": "סגירה"
+  }
+}

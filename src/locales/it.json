@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Raggio di ricerca",
     "lengthLabel": "Lunghezza geohash:",
-    "length0": "0 (attuale + est/ovest)",
-    "queries3": "3 query",
+    "length0": "0",
+    "queries3": "tutti i g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Riduci raggio",
     "increaseRadius": "Aumenta raggio",
     "length": "Lunghezza {{n}}",
-    "queriesCurrent": "3 query (attuale + est/ovest)",
+    "queriesCurrent": "post geotaggati",
     "precisionFallback": "Più alto = più piccolo (più preciso), ma meno risultati.",
     "cellSize": "{{w}} × {{h}} per cella"
   },
@@ -157,8 +157,8 @@
     "media": "Media",
     "uploading": "Caricamento…",
     "mediaAria": "Aggiungi media",
-    "createInCell": "nuovo post nella cella",
-    "createNew": "nuovo post",
+    "createInCell": "Nuovo post in cella",
+    "createNew": "Nuovo post",
     "showMapAria": "Mostra cella {{cell}} sulla mappa",
     "showMapTitle": "Mostra cella sulla mappa",
     "placeholder": "Cosa succede nella tua zona?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Immagine troppo grande (max 12 MB).",
     "compressFailed": "Compressione immagine fallita.",
     "uploadFailed": "Upload fallito.",
-    "publishFailed": "Pubblicazione fallita."
+    "publishFailed": "Pubblicazione fallita.",
+    "invalidGeohash": "Geohash non valido.",
+    "editGeohashAria": "Modifica geohash"
   },
   "feedArticle": {
     "deleted": "Eliminato — propagazione ai relay",
@@ -181,7 +183,7 @@
     "loading": "Caricamento…"
   },
   "pwa": {
-    "title": "Aggiornamento disponibile",
+    "title": "Aggiornamento",
     "body": "È stata caricata una nuova versione. Ricarica per attivarla.",
     "reload": "Ricarica",
     "close": "Chiudi"
@@ -199,7 +201,7 @@
     "body": "Errore imprevisto. Prova a ricaricare la pagina.",
     "details": "Dettagli errore",
     "errorLabel": "Errore:",
-    "stack": "Stack trace:",
+    "stack": "Stack:",
     "componentStack": "Stack componenti:",
     "tryAgain": "Riprova",
     "reload": "Ricarica pagina"
@@ -216,7 +218,7 @@
     "submitReport": "Invia segnalazione",
     "replies": "Risposte ({{count}})",
     "offline": "Offline",
-    "replyPlaceholder": "Scrivi una risposta…",
+    "replyPlaceholder": "Rispondi…",
     "sendDeletionAria": "Invia evento eliminazione NIP-09",
     "blockUserAria": "Blocca utente",
     "blockUserTitle": "Blocca utente",
@@ -231,8 +233,8 @@
     "userBlocked": "Utente bloccato.",
     "blockingFailed": "Blocco non riuscito.",
     "offlineBlock": "Offline — impossibile bloccare l’utente.",
-    "deleteFailed": "Invio dell’evento di eliminazione non riuscito.",
-    "publishFailedFallback": "Pubblicazione non riuscita."
+    "deleteFailed": "Eliminazione fallita.",
+    "publishFailedFallback": "Pubblicazione fallita."
   },
   "profileSheet": {
     "openPictureAria": "Apri foto profilo",
@@ -263,6 +265,6 @@
   },
   "quotedPost": {
     "loadingReferenced": "Caricamento post citato…",
-    "noText": "(nessun testo)"
+    "noText": "(vuoto)"
   }
 }

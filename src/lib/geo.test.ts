@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import geohash from 'ngeohash'
 import {
+  bearingDegrees,
+  calculateApproxDistance,
   encodeGeohash,
+  formatApproxDistance,
   generateGeohashTags,
   GeolocationRequestFailedError,
+  geohashCellMapUrl,
   getBrowserLocation,
+  parsePublishGeohashInput,
 } from './geo'
+import type { Event } from './nostrPrimitives'
 
 describe('geo', () => {
   it('encodeGeohash returns ngeohash.encode with correct length', () => {
@@ -21,6 +27,10 @@ describe('geo', () => {
     expect(tags).toHaveLength(5)
   })
 
+  it('generateGeohashTags includes prefixes beyond length 5 when given longer hash', () => {
+    expect(generateGeohashTags('u0m1xd')).toEqual(['u', 'u0', 'u0m', 'u0m1', 'u0m1x', 'u0m1xd'])
+  })
+
   it('generateGeohashTags generates prefixes only up to actual length', () => {
     const geo3 = 'u0m'
     const tags = generateGeohashTags(geo3)
@@ -31,6 +41,67 @@ describe('geo', () => {
 
   it('generateGeohashTags handles empty string', () => {
     expect(generateGeohashTags('')).toEqual([])
+  })
+
+  describe('parsePublishGeohashInput', () => {
+    it('treats empty as default', () => {
+      expect(parsePublishGeohashInput('')).toEqual({ kind: 'default' })
+      expect(parsePublishGeohashInput('  ')).toEqual({ kind: 'default' })
+    })
+    it('accepts valid override', () => {
+      expect(parsePublishGeohashInput('U0m')).toEqual({ kind: 'override', geohash: 'u0m' })
+    })
+    it('rejects invalid characters and overlong input', () => {
+      expect(parsePublishGeohashInput('ailo')).toEqual({ kind: 'invalid' })
+      expect(parsePublishGeohashInput('u'.repeat(13))).toEqual({ kind: 'invalid' })
+    })
+  })
+
+  describe('formatApproxDistance', () => {
+    it('formats without leading tilde', () => {
+      expect(formatApproxDistance(2.34)).toBe('2,3 km')
+      expect(formatApproxDistance(50)).toBe('50 km')
+      expect(formatApproxDistance(0.4)).toBe('400 m')
+    })
+  })
+
+  describe('bearingDegrees', () => {
+    it('returns 0 for due north', () => {
+      expect(bearingDegrees({ lat: 48, lon: 11 }, { lat: 49, lon: 11 })).toBeCloseTo(0, 5)
+    })
+    it('returns ~90 for due east', () => {
+      expect(bearingDegrees({ lat: 0, lon: 0 }, { lat: 0, lon: 1 })).toBeCloseTo(90, 0)
+    })
+    it('returns null when points coincide', () => {
+      expect(bearingDegrees({ lat: 10, lon: 20 }, { lat: 10, lon: 20 })).toBeNull()
+    })
+  })
+
+  describe('geohashCellMapUrl', () => {
+    it('links to esp.info cell viewer for the geohash', () => {
+      expect(geohashCellMapUrl('u1hzz')).toBe('https://esp.info/geohash/u1hzz')
+    })
+    it('rejects invalid geohash characters', () => {
+      expect(geohashCellMapUrl('ailo')).toBeNull()
+      expect(geohashCellMapUrl('')).toBeNull()
+    })
+  })
+
+  describe('calculateApproxDistance', () => {
+    it('returns text, bearing and geohash cell map URL', () => {
+      const evt = {
+        tags: [
+          ['g', 'u1'],
+          ['g', 'u1hzz'],
+        ],
+      } as Event
+      const info = calculateApproxDistance(evt, { lat: 48.14, lon: 11.58 })
+      expect(info).not.toBeNull()
+      expect(info!.text).toMatch(/m|km/)
+      expect(info!.text.startsWith('~')).toBe(false)
+      expect(info!.mapUrl).toBe('https://esp.info/geohash/u1hzz')
+      expect(info!.bearingDeg).toEqual(expect.any(Number))
+    })
   })
 
   describe('getBrowserLocation', () => {

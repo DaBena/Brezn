@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Arama yarıçapı",
     "lengthLabel": "Geohash uzunluğu:",
-    "length0": "0 (mevcut + doğu/batı)",
-    "queries3": "3 sorgu",
+    "length0": "0",
+    "queries3": "tüm g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Yarıçapı azalt",
     "increaseRadius": "Yarıçapı artır",
     "length": "Uzunluk {{n}}",
-    "queriesCurrent": "3 sorgu (mevcut + doğu/batı)",
+    "queriesCurrent": "tüm konumlu gönderiler",
     "precisionFallback": "Daha yüksek = daha küçük (daha kesin) — ancak daha az sonuç.",
     "cellSize": "Hücre başına {{w}} × {{h}}"
   },
@@ -53,11 +53,11 @@
     "oneLineOneTerm": "1 satır = 1 terim ({{count}}/200)",
     "placeholder": "ör.\nsatın al\nsats\nevil.example",
     "saved": "Engel listesi kaydedildi.",
-    "blockedUsers": "Engellenen kullanıcılar",
+    "blockedUsers": "Engellenenler",
     "blockedCount": "{{count}} engellendi",
     "unblock": "Engeli kaldır",
     "noBlocked": "Engellenen kullanıcı yok",
-    "unblockedMsg": "Kullanıcının engeli kaldırıldı."
+    "unblockedMsg": "Engel kaldırıldı."
   },
   "keyMgmt": {
     "title": "Kimlik",
@@ -157,8 +157,8 @@
     "media": "Medya",
     "uploading": "Yükleniyor…",
     "mediaAria": "Medya ekle",
-    "createInCell": "hücrede yeni gönderi oluştur",
-    "createNew": "yeni gönderi oluştur",
+    "createInCell": "Hücrede yeni gönderi",
+    "createNew": "Yeni gönderi",
     "showMapAria": "{{cell}} hücresini haritada göster",
     "showMapTitle": "Hücreyi haritada göster",
     "placeholder": "Bölgenizde neler oluyor?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Görsel çok büyük (en fazla 12 MB).",
     "compressFailed": "Görsel sıkıştırılamadı.",
     "uploadFailed": "Yükleme başarısız.",
-    "publishFailed": "Yayınlama başarısız."
+    "publishFailed": "Yayınlama başarısız.",
+    "invalidGeohash": "Geçersiz geohash.",
+    "editGeohashAria": "Geohash düzenle"
   },
   "feedArticle": {
     "deleted": "Silindi — relay’lere yayılıyor",
@@ -177,7 +179,7 @@
     "openPost": "Gönderiyi aç",
     "sendReaction": "Tepki gönder",
     "sendReactionCount": "Tepki gönder ({{count}})",
-    "loadOlder": "Daha fazla göster",
+    "loadOlder": "Daha fazla",
     "loading": "Yükleniyor…"
   },
   "pwa": {
@@ -218,13 +220,13 @@
     "offline": "Çevrimdışı",
     "replyPlaceholder": "Yanıt yazın…",
     "sendDeletionAria": "NIP-09 silme olayı gönder",
-    "blockUserAria": "Kullanıcıyı engelle",
-    "blockUserTitle": "Kullanıcıyı engelle",
+    "blockUserAria": "Engelle",
+    "blockUserTitle": "Engelle",
     "delete": "Sil",
     "deleteSending": "Gönderiliyor…",
     "block": "Engelle",
     "blocking": "Engelleniyor…",
-    "blockHeading": "{{label}} kullanıcısını engelle",
+    "blockHeading": "Engelle: {{label}}",
     "reportHint": "İsteğe bağlı: bildirim nedeni. NIP-56 ile relay’lere gönderilir.",
     "reply": "Yanıtla",
     "replySending": "Gönderiliyor…",

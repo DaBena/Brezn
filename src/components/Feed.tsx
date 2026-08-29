@@ -70,13 +70,13 @@ export function Feed(props: {
   }, [searchQuery])
 
   const approxDistanceById = useMemo(() => {
-    if (!viewerPoint) return {} as Record<string, string>
-    const out: Record<string, string> = {}
+    if (!viewerPoint) return {} as Record<string, ReturnType<typeof calculateApproxDistance>>
+    const out: Record<string, NonNullable<ReturnType<typeof calculateApproxDistance>>> = {}
     for (const evt of displayedEvents) {
-      const label = isNip52CalendarKind(evt.kind)
+      const info = isNip52CalendarKind(evt.kind)
         ? nip52DistanceLabel(evt, viewerPoint)
         : calculateApproxDistance(evt, viewerPoint)
-      if (label) out[evt.id] = label
+      if (info) out[evt.id] = info
     }
     return out
   }, [displayedEvents, viewerPoint])
@@ -193,7 +193,7 @@ export function Feed(props: {
                     isDeleted={false}
                     contentPreview={truncateFeedCardContent(feedEventCardPlainText(evt), evt.tags)}
                     profilesByPubkey={profilesByPubkey}
-                    distanceLabel={approxDistanceById[evt.id]}
+                    distance={approxDistanceById[evt.id]}
                     client={client}
                     onOpenThread={onOpenThread}
                     onOpenProfile={onOpenProfile}

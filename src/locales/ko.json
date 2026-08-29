@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "검색 반경",
     "lengthLabel": "Geohash 길이:",
-    "length0": "0 (현재 + 동/서)",
-    "queries3": "3개 쿼리",
-    "geoHashLabel": "GeoHash:",
-    "geoHashEmpty": "GeoHash: -",
+    "length0": "0",
+    "queries3": "모든 g",
+    "geoHashLabel": "Geohash:",
+    "geoHashEmpty": "Geohash: -",
     "decreaseRadius": "반경 줄이기",
     "increaseRadius": "반경 늘리기",
     "length": "길이 {{n}}",
-    "queriesCurrent": "3개 쿼리 (현재 + 동/서)",
+    "queriesCurrent": "위치 게시물 전체",
     "precisionFallback": "높을수록 더 작고 정확 — 결과는 더 적습니다.",
     "cellSize": "셀당 {{w}} × {{h}}"
   },
@@ -157,8 +157,8 @@
     "media": "미디어",
     "uploading": "업로드 중…",
     "mediaAria": "미디어 추가",
-    "createInCell": "셀에 새 게시물 만들기",
-    "createNew": "새 게시물 만들기",
+    "createInCell": "셀에 새 게시물",
+    "createNew": "새 게시물",
     "showMapAria": "지도에서 셀 {{cell}} 표시",
     "showMapTitle": "지도에서 셀 표시",
     "placeholder": "이 지역에서 무슨 일이 있나요?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "이미지가 너무 큽니다(최대 12MB).",
     "compressFailed": "이미지 압축 실패.",
     "uploadFailed": "업로드 실패.",
-    "publishFailed": "게시 실패."
+    "publishFailed": "게시 실패.",
+    "invalidGeohash": "잘못된 geohash.",
+    "editGeohashAria": "geohash 편집"
   },
   "feedArticle": {
     "deleted": "삭제됨 — 릴레이에 전파 중",

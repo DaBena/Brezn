@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "Memuat…"
+  },
+  "nav": {
+    "searchPlaceholder": "Cari posting…",
+    "openChat": "Buka chat",
+    "openMenu": "Buka menu"
+  },
+  "feed": {
+    "offlineBanner": "Offline — menampilkan posting terakhir (hanya baca).",
+    "locationTitle": "Lokasi untuk feed lokal",
+    "locationBody": "Aplikasi perlu area perkiraan untuk menampilkan posting lokal. Bisa diubah nanti. Posisi dikurangi ke sel geohash (~5 km) untuk privasi.",
+    "privacyStorage": "Aplikasi memakai penyimpanan lokal di perangkat. Tanpa pelacakan dan tanpa data pribadi ke kami. Lihat",
+    "privacyLink": "sumber, README & lisensi",
+    "privacyDisclaimer": "Aplikasi memuat konten dari sumber eksternal (relay nostr, server file). Kami tidak bertanggung jawab atas konten eksternal.",
+    "privacyConfirm": "Dengan melanjutkan: saya sudah membaca dan setuju.",
+    "allowLocation": "Izinkan lokasi",
+    "errorTitle": "Kesalahan",
+    "tryAgain": "Coba lagi",
+    "relayFailPrefix": "Koneksi relay gagal. ",
+    "noRelayResponse": "Tidak ada respons dari relay. Periksa daftar atau coba lagi nanti.",
+    "waitingEose": "Belum ada event (menunggu EOSE)…",
+    "noPostsYet": "Belum ada posting. Coba lagi nanti atau ganti relay.",
+    "noRelays": "Belum ada relay — periksa Pengaturan."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "source": "Sumber",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Tema",
+    "switchToDark": "Mode gelap",
+    "switchToLight": "Mode terang"
+  },
+  "geohash": {
+    "searchRadius": "Radius pencarian",
+    "lengthLabel": "Panjang geohash:",
+    "length0": "0",
+    "queries3": "semua g",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Perkecil radius",
+    "increaseRadius": "Perbesar radius",
+    "length": "Panjang {{n}}",
+    "queriesCurrent": "semua post geo",
+    "precisionFallback": "Lebih tinggi = lebih kecil (lebih presisi) — hasil lebih sedikit.",
+    "cellSize": "{{w}} × {{h}} per sel"
+  },
+  "moderation": {
+    "blocklist": "Daftar blokir",
+    "oneLineOneTerm": "1 baris = 1 istilah ({{count}}/200)",
+    "placeholder": "mis.\nbuy\nsats\nevil.example",
+    "saved": "Daftar blokir disimpan.",
+    "blockedUsers": "Pengguna diblokir",
+    "blockedCount": "{{count}} diblokir",
+    "unblock": "Buka blokir",
+    "noBlocked": "Tidak ada yang diblokir",
+    "unblockedMsg": "Blokir dicabut."
+  },
+  "keyMgmt": {
+    "title": "Identitas",
+    "npub": "npub",
+    "copy": "Salin",
+    "nsec": "nsec",
+    "show": "Tampilkan",
+    "hide": "Sembunyikan",
+    "neverShareNsec": "Jangan bagikan nsec.",
+    "npubCopied": "npub disalin.",
+    "copyNpubHint": "Tampilkan & salin npub.",
+    "nsecCopied": "nsec disalin.",
+    "copyNsecHint": "Tampilkan & salin nsec.",
+    "importTitle": "Impor identitas",
+    "importNsec": "Impor nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Masukkan nsec",
+    "importSuccess": "Identitas diimpor. Halaman dimuat ulang…",
+    "importing": "Mengimpor…",
+    "import": "Impor",
+    "cancel": "Batal",
+    "importFailed": "Gagal impor nsec"
+  },
+  "relay": {
+    "title": "Relay",
+    "hint": "Relay untuk feed, DM, dan publikasi. Hanya URL yang Anda daftar (atau default bawaan) — tanpa penemuan relay outbox otomatis.",
+    "empty": "Belum ada relay. Posting tidak bisa dimuat atau dipublikasikan tanpa minimal satu relay. Tambah di bawah atau pakai tombol \"Default\".",
+    "removeAria": "Hapus relay",
+    "placeholder": "wss://relay.example",
+    "add": "Tambah",
+    "default": "Default",
+    "test": "Uji",
+    "testing": "Menguji…",
+    "unknown": "tak dikenal",
+    "reachable": "terjangkau",
+    "unreachable": "tak terjangkau",
+    "reachableWithRtt": "terjangkau • {{rtt}}ms",
+    "unreachableWithErr": "tak terjangkau • {{error}}",
+    "statusAria": "Status relay: {{state}}",
+    "duplicate": "Relay sudah ada di daftar."
+  },
+  "mediaUpload": {
+    "title": "Unggah media",
+    "hint": "URL langsung atau NIP-96. Default: {{default}}. Kosong = mati.",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "Profil",
+    "loading": "Memuat profil…",
+    "name": "Nama",
+    "namePlaceholder": "Nama Anda (opsional)",
+    "about": "Tentang",
+    "aboutPlaceholder": "Bio singkat (opsional)",
+    "picture": "Foto profil",
+    "pictureAlt": "Foto profil",
+    "onlyImages": "Hanya gambar didukung.",
+    "imageTooLarge5": "Gambar terlalu besar (maks. 5 MB).",
+    "configureEndpointFirst": "Atur endpoint unggah media dulu.",
+    "uploading": "Mengunggah…",
+    "changeImage": "Ganti gambar",
+    "uploadImage": "Unggah gambar",
+    "resetConfirm": "Reset profil? Nama, tentang, dan foto akan dihapus.",
+    "reset": "Reset",
+    "removeImage": "Hapus gambar",
+    "urlPlaceholder": "Atau masukkan URL",
+    "resetDone": "Profil direset.",
+    "resetError": "Gagal reset profil"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Memuat percakapan…",
+    "offline": "Offline — periksa koneksi internet.",
+    "timeout": "Timeout — relay tidak merespons. Periksa pengaturan relay.",
+    "loadError": "Gagal memuat percakapan",
+    "empty": "Belum ada percakapan"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Offline — pesan tidak bisa dikirim.",
+    "offline": "Offline — periksa koneksi internet.",
+    "timeout": "Timeout — relay tidak merespons. Periksa pengaturan relay.",
+    "loadError": "Gagal memuat pesan",
+    "loading": "Memuat pesan…",
+    "empty": "Belum ada pesan",
+    "placeholder": "Tulis pesan…",
+    "sendAria": "Kirim pesan",
+    "sendingContent": "[mengirim...]",
+    "sendError": "Gagal kirim pesan",
+    "hiddenByBlocklist": "Pesan disembunyikan (cocok daftar blokir).",
+    "openPeerProfileAria": "Buka profil"
+  },
+  "composer": {
+    "srTitle": "Posting baru",
+    "publish": "Publikasikan",
+    "publishing": "Mempublikasikan…",
+    "publishAria": "Terbitkan",
+    "media": "Media",
+    "uploading": "Mengunggah…",
+    "mediaAria": "Tambah media",
+    "createInCell": "Post baru di sel",
+    "createNew": "Post baru",
+    "showMapAria": "Tampilkan sel {{cell}} di peta",
+    "showMapTitle": "Tampilkan sel di peta",
+    "placeholder": "Apa yang terjadi di sekitar Anda?",
+    "removeMediaAria": "Hapus media",
+    "noUploadEndpoint": "Belum ada endpoint unggah (Pengaturan → Unggah media).",
+    "onlyImagesVideos": "Hanya gambar atau video didukung.",
+    "videoTooLarge": "Video terlalu besar (maks. 25 MB).",
+    "imageTooLarge": "Gambar terlalu besar (maks. 12 MB).",
+    "compressFailed": "Gagal kompres gambar.",
+    "uploadFailed": "Unggah gagal.",
+    "publishFailed": "Publikasi gagal.",
+    "invalidGeohash": "Geohash tidak valid.",
+    "editGeohashAria": "Edit geohash"
+  },
+  "feedArticle": {
+    "deleted": "Dihapus — disebar ke relay",
+    "deletedAria": "Posting dihapus",
+    "openPost": "Buka posting",
+    "sendReaction": "Kirim reaksi",
+    "sendReactionCount": "Kirim reaksi ({{count}})",
+    "loadOlder": "Tampilkan lebih",
+    "loading": "Memuat…"
+  },
+  "pwa": {
+    "title": "Pembaruan tersedia",
+    "body": "Versi baru dimuat. Muat ulang untuk mengaktifkan.",
+    "reload": "Muat ulang",
+    "close": "Tutup"
+  },
+  "adblock": {
+    "title": "Service worker diblokir",
+    "body": "Pemblokir iklan mungkin memblokir service worker. Nonaktifkan untuk situs ini atau buat pengecualian.",
+    "close": "Tutup"
+  },
+  "composeBtn": {
+    "aria": "Buat posting baru"
+  },
+  "errorBoundary": {
+    "title": "Terjadi kesalahan",
+    "body": "Kesalahan tak terduga. Coba muat ulang halaman.",
+    "details": "Detail kesalahan",
+    "errorLabel": "Kesalahan:",
+    "stack": "Stack trace:",
+    "componentStack": "Stack komponen:",
+    "tryAgain": "Coba lagi",
+    "reload": "Muat ulang halaman"
+  },
+  "app": {
+    "publishFailed": "Publikasi gagal.",
+    "offlineComments": "Offline — komentar hanya baca.",
+    "offlineDelete": "Offline — event penghapusan tidak bisa dikirim."
+  },
+  "thread": {
+    "reportRoot": "Laporkan posting utama",
+    "reportReply": "Laporkan balasan",
+    "reportReason": "Alasan laporan (opsional)",
+    "submitReport": "Kirim laporan",
+    "replies": "Balasan ({{count}})",
+    "offline": "Offline",
+    "replyPlaceholder": "Tulis balasan…",
+    "sendDeletionAria": "Kirim event penghapusan NIP-09",
+    "blockUserAria": "Blokir pengguna",
+    "blockUserTitle": "Blokir pengguna",
+    "delete": "Hapus",
+    "deleteSending": "Mengirim…",
+    "block": "Blokir",
+    "blocking": "Memblokir…",
+    "blockHeading": "Blokir {{label}}",
+    "reportHint": "Opsional: alasan melaporkan pengguna ini. Dikirim ke relay via NIP-56.",
+    "reply": "Balas",
+    "replySending": "Mengirim…",
+    "userBlocked": "Pengguna diblokir.",
+    "blockingFailed": "Gagal memblokir.",
+    "offlineBlock": "Offline — tidak bisa blokir.",
+    "deleteFailed": "Event penghapusan gagal.",
+    "publishFailedFallback": "Publikasi gagal."
+  },
+  "profileSheet": {
+    "openPictureAria": "Buka foto profil",
+    "dmAria": "Buka pesan langsung",
+    "message": "Pesan",
+    "offlineHint": "Offline — posting profil mungkin tidak lengkap.",
+    "loadingPosts": "Memuat posting…",
+    "noPosts": "Belum ada posting",
+    "noPostsFromRelays": "Belum ada posting dari relay.",
+    "loadError": "Gagal memuat posting."
+  },
+  "geohashMap": {
+    "gpsAria": "Lokasi GPS",
+    "gpsTitle": "Lokasi GPS"
+  },
+  "postIdentity": {
+    "openProfile": "Buka profil"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Memuat posting referensi…",
+    "noText": "(tanpa teks)"
+  },
+  "time": {
+    "justNow": "baru saja",
+    "minutesAgo": "{{count}}m lalu",
+    "hoursAgo": "{{count}}j lalu",
+    "daysAgo": "{{count}}h lalu"
+  },
+  "common": {
+    "loading": "Memuat…",
+    "close": "Tutup"
+  }
+}

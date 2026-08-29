@@ -4,6 +4,7 @@ import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import { DEFAULT_RELAYS, parseRelayUrlOrThrow, type BreznNostrClient } from '../../lib/nostrClient'
 import { RELAY_WEBSOCKET_TEST_TIMEOUT_MS } from '../../lib/constants'
+import { probeMediaUploadEndpoint } from '../../lib/mediaUpload'
 import { CloseIcon } from '../CloseIcon'
 import { useToast } from '../ToastContext'
 
@@ -18,6 +19,7 @@ type RelayTestState = 'idle' | 'running' | 'error'
 
 type RelaySettingsProps = {
   client: BreznNostrClient
+  mediaEndpoint?: string
 }
 
 function testRelay(
@@ -93,15 +95,18 @@ function asErrorMessage(e: unknown): string {
   return String(e)
 }
 
-export function RelaySettings({ client }: RelaySettingsProps) {
+export function RelaySettings({ client, mediaEndpoint = '' }: RelaySettingsProps) {
   const { t } = useTranslation()
   const { showToast } = useToast()
   const [relaysUi, setRelaysUi] = useState<string[]>(() => client.getRelays())
   const [newRelay, setNewRelay] = useState('')
   const [relayTestResults, setRelayTestResults] = useState<Record<string, RelayStatusLite>>({})
+  const [mediaTestResult, setMediaTestResult] = useState<RelayStatusLite | null>(null)
   const [relayTestState, setRelayTestState] = useState<RelayTestState>('idle')
   const [relayTestError, setRelayTestError] = useState<string | null>(null)
   const [relayTestTriggered, setRelayTestTriggered] = useState(false)
+
+  const mediaEndpointTrimmed = mediaEndpoint.trim()
 
   useEffect(() => {
     setRelaysUi(client.getRelays())
@@ -119,13 +124,14 @@ export function RelaySettings({ client }: RelaySettingsProps) {
     setRelayTestTriggered(true)
     setRelayTestState('running')
     setRelayTestError(null)
+    setMediaTestResult(null)
 
     const urls = relaysUi
     const timeoutMs = RELAY_WEBSOCKET_TEST_TIMEOUT_MS
 
     try {
-      await Promise.all(
-        urls.map(async (url) => {
+      await Promise.all([
+        ...urls.map(async (url) => {
           const r = await testRelay(url, timeoutMs)
           setRelayTestResults((prev) => ({
             ...prev,
@@ -134,13 +140,44 @@ export function RelaySettings({ client }: RelaySettingsProps) {
               : { url, reachable: false, rttMs: undefined, lastError: r.error ?? 'Unreachable' },
           }))
         }),
-      )
+        ...(mediaEndpointTrimmed
+          ? [
+              (async () => {
+                const ac = new AbortController()
+                const timer = globalThis.setTimeout(() => ac.abort(), timeoutMs)
+                try {
+                  const r = await probeMediaUploadEndpoint(mediaEndpointTrimmed, {
+                    signal: ac.signal,
+                  })
+                  setMediaTestResult(
+                    r.ok
+                      ? {
+                          url: mediaEndpointTrimmed,
+                          reachable: true,
+                          rttMs: r.rttMs,
+                          lastError: undefined,
+                        }
+                      : {
+                          url: mediaEndpointTrimmed,
+                          reachable: false,
+                          lastError: r.error ?? 'Unreachable',
+                        },
+                  )
+                } finally {
+                  globalThis.clearTimeout(timer)
+                }
+              })(),
+            ]
+          : []),
+      ])
       setRelayTestState('idle')
     } catch (e) {
       setRelayTestState('error')
       setRelayTestError(asErrorMessage(e))
     }
   }
+
+  const canRunTests = relaysUi.length > 0 || mediaEndpointTrimmed.length > 0
 
   return (
     <div className="p-3">
@@ -228,7 +265,7 @@ export function RelaySettings({ client }: RelaySettingsProps) {
           <button
             type="button"
             onClick={() => void runRelayTests()}
-            disabled={relayTestState === 'running' || relaysUi.length === 0}
+            disabled={relayTestState === 'running' || !canRunTests}
             className={`shrink-0 rounded-xl px-3 py-2 text-xs ${buttonBase}`}
           >
             {relayTestState === 'running' ? t('relay.testing') : t('relay.test')}
@@ -284,6 +321,36 @@ export function RelaySettings({ client }: RelaySettingsProps) {
               </div>
             )
           })}
+          {mediaEndpointTrimmed && mediaTestResult ? (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-brezn-border bg-brezn-panel p-2">
+              <div className="min-w-0">
+                <div className="truncate text-xs font-semibold text-brezn-muted">
+                  {t('mediaUpload.title')}
+                </div>
+                <div className="truncate font-mono text-xs">{mediaTestResult.url}</div>
+                <div className="truncate text-[11px] text-brezn-muted">
+                  {mediaTestResult.reachable === 'unknown'
+                    ? t('relay.unknown')
+                    : mediaTestResult.reachable
+                      ? typeof mediaTestResult.rttMs === 'number'
+                        ? t('relay.reachableWithRtt', { rtt: mediaTestResult.rttMs })
+                        : t('relay.reachable')
+                      : mediaTestResult.lastError
+                        ? t('relay.unreachableWithErr', { error: mediaTestResult.lastError })
+                        : t('relay.unreachable')}
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'h-2.5 w-2.5 shrink-0 rounded-full',
+                  mediaTestResult.reachable ? 'bg-brezn-success' : 'bg-brezn-error',
+                )}
+                aria-label={t('relay.statusAria', {
+                  state: mediaTestResult.reachable ? t('relay.reachable') : t('relay.unreachable'),
+                })}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "載入中…"
+  },
+  "nav": {
+    "searchPlaceholder": "搜尋貼文…",
+    "openChat": "開啟聊天",
+    "openMenu": "開啟選單"
+  },
+  "feed": {
+    "offlineBanner": "離線 — 顯示上次看到的貼文（唯讀）。",
+    "locationTitle": "本地動態的位置",
+    "locationBody": "需要大致區域以顯示附近貼文，之後可更改。位置會模糊到 geohash 格（約 5 公里）以保護隱私。",
+    "privacyStorage": "本應用使用裝置本地儲存，不追蹤、不傳個人資料給我們。參見",
+    "privacyLink": "原始碼、README 與授權",
+    "privacyDisclaimer": "內容來自外部（Nostr 中繼、檔案伺服器），不對外部內容負責。",
+    "privacyConfirm": "繼續即表示您已了解並同意。",
+    "allowLocation": "允許位置",
+    "errorTitle": "錯誤",
+    "tryAgain": "重試",
+    "relayFailPrefix": "中繼連線失敗。",
+    "noRelayResponse": "中繼無回應，請檢查列表或稍後再試。",
+    "waitingEose": "尚無事件（等待 EOSE）…",
+    "noPostsYet": "尚無貼文，請稍後或更換中繼。",
+    "noRelays": "尚無中繼 — 請檢查設定。"
+  },
+  "settings": {
+    "title": "設定",
+    "source": "原始碼",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "主題",
+    "switchToDark": "深色模式",
+    "switchToLight": "淺色模式"
+  },
+  "geohash": {
+    "searchRadius": "搜尋半徑",
+    "lengthLabel": "Geohash 長度：",
+    "length0": "0",
+    "queries3": "全部 g",
+    "geoHashLabel": "GeoHash：",
+    "geoHashEmpty": "GeoHash：-",
+    "decreaseRadius": "縮小半徑",
+    "increaseRadius": "擴大半徑",
+    "length": "長度 {{n}}",
+    "queriesCurrent": "全部定位貼文",
+    "precisionFallback": "數值越大格越小（更精確），但結果更少。",
+    "cellSize": "每格約 {{w}} × {{h}}"
+  },
+  "moderation": {
+    "blocklist": "封鎖清單",
+    "oneLineOneTerm": "1 行 = 1 詞（{{count}}/200）",
+    "placeholder": "例如\nbuy\nsats\nevil.example",
+    "saved": "封鎖清單已儲存。",
+    "blockedUsers": "已封鎖使用者",
+    "blockedCount": "已封鎖 {{count}} 人",
+    "unblock": "解除封鎖",
+    "noBlocked": "無封鎖使用者",
+    "unblockedMsg": "已解除封鎖。"
+  },
+  "keyMgmt": {
+    "title": "身分",
+    "npub": "npub",
+    "copy": "複製",
+    "nsec": "nsec",
+    "show": "顯示",
+    "hide": "隱藏",
+    "neverShareNsec": "請勿分享 nsec。",
+    "npubCopied": "已複製 npub。",
+    "copyNpubHint": "顯示並複製 npub。",
+    "nsecCopied": "已複製 nsec。",
+    "copyNsecHint": "顯示並複製 nsec。",
+    "importTitle": "匯入身分",
+    "importNsec": "匯入 nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "請輸入 nsec",
+    "importSuccess": "身分已匯入，即將重新載入…",
+    "importing": "匯入中…",
+    "import": "匯入",
+    "cancel": "取消",
+    "importFailed": "匯入 nsec 失敗"
+  },
+  "relay": {
+    "title": "中繼",
+    "hint": "用於動態、DM 與發文的 relay。僅使用您列出的 URL（或內建預設），不自動探索 outbox。",
+    "empty": "尚未設定 relay。至少需一個才能載入或發文。請在下方新增或使用「Default」。",
+    "removeAria": "移除 relay",
+    "placeholder": "wss://relay.example",
+    "add": "新增",
+    "default": "Default",
+    "test": "測試",
+    "testing": "測試中…",
+    "unknown": "未知",
+    "reachable": "可連線",
+    "unreachable": "無法連線",
+    "reachableWithRtt": "可連線 • {{rtt}}ms",
+    "unreachableWithErr": "無法連線 • {{error}}",
+    "statusAria": "Relay 狀態：{{state}}",
+    "duplicate": "此 relay 已在列表中。"
+  },
+  "mediaUpload": {
+    "title": "媒體上傳",
+    "hint": "直接 URL 或 NIP-96。預設：{{default}}。空白 = 關閉。",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "個人檔案",
+    "loading": "載入個人檔案…",
+    "name": "名稱",
+    "namePlaceholder": "您的名稱（選填）",
+    "about": "簡介",
+    "aboutPlaceholder": "簡短自我介紹（選填）",
+    "picture": "大頭貼",
+    "pictureAlt": "大頭貼",
+    "onlyImages": "僅支援圖片。",
+    "imageTooLarge5": "圖片過大（上限 5 MB）。",
+    "configureEndpointFirst": "請先設定媒體上傳端點。",
+    "uploading": "上傳中…",
+    "changeImage": "更換圖片",
+    "uploadImage": "上傳圖片",
+    "resetConfirm": "確定重設個人檔案？名稱、簡介與大頭貼將被移除。",
+    "reset": "重設",
+    "removeImage": "移除圖片",
+    "urlPlaceholder": "或直接輸入 URL",
+    "resetDone": "個人檔案已重設。",
+    "resetError": "重設個人檔案失敗"
+  },
+  "chat": {
+    "title": "聊天",
+    "loading": "載入對話…",
+    "offline": "離線 — 請檢查網路。",
+    "timeout": "逾時 — 中繼無回應，請檢查設定。",
+    "loadError": "載入對話失敗",
+    "empty": "尚無對話"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "離線 — 無法傳送訊息。",
+    "offline": "離線 — 請檢查網路。",
+    "timeout": "逾時 — 中繼無回應，請檢查設定。",
+    "loadError": "載入訊息失敗",
+    "loading": "載入訊息…",
+    "empty": "尚無訊息",
+    "placeholder": "撰寫訊息…",
+    "sendAria": "傳送訊息",
+    "sendingContent": "[傳送中...]",
+    "sendError": "傳送失敗",
+    "hiddenByBlocklist": "訊息已隱藏（符合封鎖關鍵字）。",
+    "openPeerProfileAria": "開啟個人檔案"
+  },
+  "composer": {
+    "srTitle": "新貼文",
+    "publish": "發布",
+    "publishing": "發布中…",
+    "publishAria": "發布貼文",
+    "media": "媒體",
+    "uploading": "上傳中…",
+    "mediaAria": "新增媒體",
+    "createInCell": "在此格發新貼",
+    "createNew": "新發文",
+    "showMapAria": "在地圖顯示格 {{cell}}",
+    "showMapTitle": "在地圖顯示格",
+    "placeholder": "附近發生什麼事？",
+    "removeMediaAria": "移除媒體",
+    "noUploadEndpoint": "未設定上傳端點（設定 → 媒體上傳）。",
+    "onlyImagesVideos": "僅支援圖片或影片。",
+    "videoTooLarge": "影片過大（上限 25 MB）。",
+    "imageTooLarge": "圖片過大（上限 12 MB）。",
+    "compressFailed": "壓縮圖片失敗。",
+    "uploadFailed": "上傳失敗。",
+    "publishFailed": "發布失敗。",
+    "invalidGeohash": "Geohash 無效。",
+    "editGeohashAria": "編輯 geohash"
+  },
+  "feedArticle": {
+    "deleted": "已刪除 — 同步至中繼",
+    "deletedAria": "已刪除貼文",
+    "openPost": "開啟貼文",
+    "sendReaction": "傳送反應",
+    "sendReactionCount": "傳送反應（{{count}}）",
+    "loadOlder": "顯示更多",
+    "loading": "載入中…"
+  },
+  "pwa": {
+    "title": "有可用更新",
+    "body": "已載入新版本，重新載入以啟用。",
+    "reload": "重新載入",
+    "close": "關閉"
+  },
+  "adblock": {
+    "title": "Service Worker 被阻擋",
+    "body": "廣告阻擋器可能阻擋 service worker。請為此網站停用或加入例外。",
+    "close": "關閉"
+  },
+  "composeBtn": {
+    "aria": "建立新貼文"
+  },
+  "errorBoundary": {
+    "title": "發生錯誤",
+    "body": "發生未預期錯誤，請重新整理頁面。",
+    "details": "錯誤詳情",
+    "errorLabel": "錯誤：",
+    "stack": "Stack trace：",
+    "componentStack": "元件堆疊：",
+    "tryAgain": "重試",
+    "reload": "重新整理"
+  },
+  "app": {
+    "publishFailed": "發布失敗。",
+    "offlineComments": "離線 — 留言僅可閱讀。",
+    "offlineDelete": "離線 — 無法傳送刪除事件。"
+  },
+  "thread": {
+    "reportRoot": "檢舉主貼文",
+    "reportReply": "檢舉回覆",
+    "reportReason": "檢舉原因（選填）",
+    "submitReport": "提交檢舉",
+    "replies": "回覆（{{count}}）",
+    "offline": "離線",
+    "replyPlaceholder": "撰寫回覆…",
+    "sendDeletionAria": "傳送 NIP-09 刪除事件",
+    "blockUserAria": "封鎖使用者",
+    "blockUserTitle": "封鎖使用者",
+    "delete": "刪除",
+    "deleteSending": "傳送中…",
+    "block": "封鎖",
+    "blocking": "封鎖中…",
+    "blockHeading": "封鎖 {{label}}",
+    "reportHint": "選填：檢舉原因，將透過 NIP-56 傳至中繼。",
+    "reply": "回覆",
+    "replySending": "傳送中…",
+    "userBlocked": "已封鎖使用者。",
+    "blockingFailed": "封鎖失敗。",
+    "offlineBlock": "離線 — 無法封鎖。",
+    "deleteFailed": "刪除事件失敗。",
+    "publishFailedFallback": "發布失敗。"
+  },
+  "profileSheet": {
+    "openPictureAria": "開啟大頭貼",
+    "dmAria": "開啟私訊",
+    "message": "訊息",
+    "offlineHint": "離線 — 個人貼文可能不完整。",
+    "loadingPosts": "載入貼文…",
+    "noPosts": "尚無貼文",
+    "noPostsFromRelays": "中繼尚無貼文。",
+    "loadError": "無法載入貼文。"
+  },
+  "geohashMap": {
+    "gpsAria": "GPS 位置",
+    "gpsTitle": "GPS 位置"
+  },
+  "postIdentity": {
+    "openProfile": "開啟個人檔案"
+  },
+  "quotedPost": {
+    "loadingReferenced": "載入引用貼文…",
+    "noText": "（無文字）"
+  },
+  "time": {
+    "justNow": "剛剛",
+    "minutesAgo": "{{count}} 分鐘前",
+    "hoursAgo": "{{count}} 小時前",
+    "daysAgo": "{{count}} 天前"
+  },
+  "common": {
+    "loading": "載入中…",
+    "close": "關閉"
+  }
+}

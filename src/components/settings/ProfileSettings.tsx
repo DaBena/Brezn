@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
-import { uploadMediaFile } from '../../lib/mediaUpload'
+import { compressImage, uploadMediaFile } from '../../lib/mediaUpload'
 
 const PROFILE_ABOUT_MAX_LENGTH = 5000
 
@@ -204,13 +204,6 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       return
                     }
 
-                    const maxBytes = 5 * 1024 * 1024 // 5 MB
-                    if (file.size > maxBytes) {
-                      setProfileUploadState('error')
-                      setProfileUploadError(t('profileSettings.imageTooLarge5'))
-                      return
-                    }
-
                     if (!mediaEndpoint) {
                       setProfileUploadState('error')
                       setProfileUploadError(t('profileSettings.configureEndpointFirst'))
@@ -220,7 +213,22 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                     setProfileUploadState('uploading')
                     setProfileUploadError(null)
                     try {
-                      const { url } = await uploadMediaFile({ endpoint: mediaEndpoint, file })
+                      let fileToUpload = file
+                      if (!name.endsWith('.svg')) {
+                        fileToUpload = await compressImage(file, 1920, 1920, 0.85)
+                      }
+
+                      const maxBytes = 5 * 1024 * 1024 // 5 MB
+                      if (fileToUpload.size > maxBytes) {
+                        setProfileUploadState('error')
+                        setProfileUploadError(t('profileSettings.imageTooLarge5'))
+                        return
+                      }
+
+                      const { url } = await uploadMediaFile({
+                        endpoint: mediaEndpoint,
+                        file: fileToUpload,
+                      })
                       setProfilePicture(url)
                       setProfileUploadState('idle')
                     } catch (err) {

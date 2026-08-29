@@ -127,7 +127,7 @@ describe('nostrClient geohash length', () => {
   it('clamps geohash length to valid range', () => {
     const client = createNostrClient()
     client.setGeohashLength(0)
-    expect(client.getGeohashLength()).toBe(0) // 0 is now a valid value (queries current + east/west)
+    expect(client.getGeohashLength()).toBe(0) // 0 = global geotagged feed (#g all base32 prefixes)
 
     client.setGeohashLength(10)
     expect(client.getGeohashLength()).toBe(5)

@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Bán kính tìm kiếm",
     "lengthLabel": "Độ dài geohash:",
-    "length0": "0 (hiện tại + đông/tây)",
-    "queries3": "3 truy vấn",
+    "length0": "0",
+    "queries3": "mọi g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Giảm bán kính",
     "increaseRadius": "Tăng bán kính",
     "length": "Độ dài {{n}}",
-    "queriesCurrent": "3 truy vấn (hiện tại + đông/tây)",
+    "queriesCurrent": "mọi bài có vị trí",
     "precisionFallback": "Cao hơn = nhỏ hơn (chính xác hơn) — nhưng ít kết quả hơn.",
     "cellSize": "{{w}} × {{h}} mỗi ô"
   },
@@ -157,8 +157,8 @@
     "media": "Media",
     "uploading": "Đang tải lên…",
     "mediaAria": "Thêm media",
-    "createInCell": "tạo bài mới trong ô",
-    "createNew": "tạo bài mới",
+    "createInCell": "Bài mới trong ô",
+    "createNew": "Bài mới",
     "showMapAria": "Hiện ô {{cell}} trên bản đồ",
     "showMapTitle": "Hiện ô trên bản đồ",
     "placeholder": "Chuyện gì đang xảy ra quanh bạn?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Ảnh quá lớn (tối đa 12 MB).",
     "compressFailed": "Nén ảnh thất bại.",
     "uploadFailed": "Tải lên thất bại.",
-    "publishFailed": "Đăng thất bại."
+    "publishFailed": "Đăng thất bại.",
+    "invalidGeohash": "Geohash không hợp lệ.",
+    "editGeohashAria": "Sửa geohash"
   },
   "feedArticle": {
     "deleted": "Đã xóa — đang lan tới relay",
@@ -199,7 +201,7 @@
     "body": "Lỗi không mong muốn. Hãy tải lại trang.",
     "details": "Chi tiết lỗi",
     "errorLabel": "Lỗi:",
-    "stack": "Stack trace:",
+    "stack": "Stack:",
     "componentStack": "Component stack:",
     "tryAgain": "Thử lại",
     "reload": "Tải lại trang"
@@ -218,8 +220,8 @@
     "offline": "Ngoại tuyến",
     "replyPlaceholder": "Viết trả lời…",
     "sendDeletionAria": "Gửi sự kiện xóa NIP-09",
-    "blockUserAria": "Chặn người dùng",
-    "blockUserTitle": "Chặn người dùng",
+    "blockUserAria": "Chặn",
+    "blockUserTitle": "Chặn",
     "delete": "Xóa",
     "deleteSending": "Đang gửi…",
     "block": "Chặn",
@@ -263,6 +265,6 @@
   },
   "quotedPost": {
     "loadingReferenced": "Đang tải bài được trích dẫn…",
-    "noText": "(không có nội dung)"
+    "noText": "(trống)"
   }
 }

@@ -17,7 +17,7 @@
     "privacyConfirm": "Mit Fortfahren bestätigst du: Ich habe mich informiert und stimme zu.",
     "allowLocation": "Standort erlauben",
     "errorTitle": "Fehler",
-    "tryAgain": "Erneut versuchen",
+    "tryAgain": "Nochmal",
     "relayFailPrefix": "Relay-Verbindung fehlgeschlagen. ",
     "noRelayResponse": "Keine Antwort von den Relays. Relay-Liste prüfen oder später erneut versuchen.",
     "waitingEose": "Noch keine Events (warte auf EOSE)…",
@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "Suchradius",
     "lengthLabel": "Geohash-Länge:",
-    "length0": "0 (aktuell + Ost/West)",
-    "queries3": "3 Abfragen",
+    "length0": "0",
+    "queries3": "alle g-Tags",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Radius verkleinern",
     "increaseRadius": "Radius vergrößern",
     "length": "Länge {{n}}",
-    "queriesCurrent": "3 Abfragen (aktuell + Ost/West)",
+    "queriesCurrent": "alle geotaggten Posts",
     "precisionFallback": "Höher = kleiner (genauer) – aber weniger Treffer.",
     "cellSize": "{{w}} × {{h}} pro Zelle"
   },
@@ -79,7 +79,7 @@
     "importing": "Importiere...",
     "import": "Importieren",
     "cancel": "Abbrechen",
-    "importFailed": "nsec konnte nicht importiert werden"
+    "importFailed": "Import fehlgeschlagen."
   },
   "relay": {
     "title": "Relays",
@@ -150,15 +150,15 @@
     "openPeerProfileAria": "Profil öffnen"
   },
   "composer": {
-    "srTitle": "Neuer Beitrag",
-    "publish": "Veröffentlichen",
-    "publishing": "Veröffentliche…",
-    "publishAria": "Beitrag veröffentlichen",
+    "srTitle": "Neuer Post",
+    "publish": "Posten",
+    "publishing": "Poste…",
+    "publishAria": "Posten",
     "media": "Medien",
     "uploading": "Lade hoch…",
-    "mediaAria": "Medien hinzufügen",
-    "createInCell": "neuer Beitrag in Zelle",
-    "createNew": "neuer Beitrag",
+    "mediaAria": "Medien",
+    "createInCell": "Neuer Post in Zelle",
+    "createNew": "Neuer Post",
     "showMapAria": "Zelle {{cell}} auf Karte",
     "showMapTitle": "Zelle auf Karte",
     "placeholder": "Was passiert bei dir in der Gegend?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Bild zu groß (max. 12 MB).",
     "compressFailed": "Bild konnte nicht komprimiert werden.",
     "uploadFailed": "Upload fehlgeschlagen.",
-    "publishFailed": "Veröffentlichung fehlgeschlagen."
+    "publishFailed": "Posten fehlgeschlagen.",
+    "invalidGeohash": "Ungültiger Geohash.",
+    "editGeohashAria": "Geohash bearbeiten"
   },
   "feedArticle": {
     "deleted": "Gelöscht – wird an Relays verteilt",
@@ -201,11 +203,11 @@
     "errorLabel": "Fehler:",
     "stack": "Stacktrace:",
     "componentStack": "Komponenten-Stack:",
-    "tryAgain": "Erneut versuchen",
+    "tryAgain": "Nochmal",
     "reload": "Seite neu laden"
   },
   "app": {
-    "publishFailed": "Veröffentlichung fehlgeschlagen.",
+    "publishFailed": "Posten fehlgeschlagen.",
     "offlineComments": "Offline – Kommentare nur lesbar.",
     "offlineDelete": "Offline – Lösch-Ereignis kann nicht gesendet werden."
   },
@@ -218,8 +220,8 @@
     "offline": "Offline",
     "replyPlaceholder": "Antwort schreiben…",
     "sendDeletionAria": "NIP-09-Lösch-Event senden",
-    "blockUserAria": "Nutzer blockieren",
-    "blockUserTitle": "Nutzer blockieren",
+    "blockUserAria": "Blockieren",
+    "blockUserTitle": "Blockieren",
     "delete": "Löschen",
     "deleteSending": "Sende…",
     "block": "Blockieren",
@@ -229,20 +231,20 @@
     "reply": "Antworten",
     "replySending": "Sende…",
     "userBlocked": "Nutzer blockiert.",
-    "blockingFailed": "Blockieren fehlgeschlagen.",
-    "offlineBlock": "Offline – Nutzer kann nicht blockiert werden.",
-    "deleteFailed": "Lösch-Event konnte nicht gesendet werden.",
-    "publishFailedFallback": "Veröffentlichen fehlgeschlagen."
+    "blockingFailed": "Block fehlgeschlagen.",
+    "offlineBlock": "Offline – Blockieren nicht möglich.",
+    "deleteFailed": "Löschen fehlgeschlagen.",
+    "publishFailedFallback": "Posten fehlgeschlagen."
   },
   "profileSheet": {
     "openPictureAria": "Profilbild öffnen",
     "dmAria": "Direktnachricht öffnen",
     "message": "Nachricht",
     "offlineHint": "Offline – Profilbeiträge ggf. unvollständig.",
-    "loadingPosts": "Beiträge werden geladen…",
+    "loadingPosts": "Lade Posts…",
     "noPosts": "Noch keine Beiträge",
     "noPostsFromRelays": "Noch keine Beiträge von den Relays.",
-    "loadError": "Beiträge konnten nicht geladen werden."
+    "loadError": "Posts nicht geladen."
   },
   "geohashMap": {
     "gpsAria": "GPS-Standort",

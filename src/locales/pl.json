@@ -37,23 +37,23 @@
   "geohash": {
     "searchRadius": "Promień wyszukiwania",
     "lengthLabel": "Długość geohash:",
-    "length0": "0 (bieżący + wschód/zachód)",
-    "queries3": "3 zapytania",
+    "length0": "0",
+    "queries3": "wszystkie g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Zmniejsz promień",
     "increaseRadius": "Zwiększ promień",
     "length": "Długość {{n}}",
-    "queriesCurrent": "3 zapytania (bieżący + wschód/zachód)",
+    "queriesCurrent": "wszystkie posty geo",
     "precisionFallback": "Wyższa = mniejsza (dokładniejsza) — ale mniej wyników.",
     "cellSize": "{{w}} × {{h}} na komórkę"
   },
   "moderation": {
-    "blocklist": "Lista blokowanych",
+    "blocklist": "Blokady",
     "oneLineOneTerm": "1 linia = 1 wyraz ({{count}}/200)",
     "placeholder": "np.\nkup\nsats\nevil.example",
     "saved": "Lista zapisana.",
-    "blockedUsers": "Zablokowani użytkownicy",
+    "blockedUsers": "Zablokowani",
     "blockedCount": "{{count}} zablokowanych",
     "unblock": "Odblokuj",
     "noBlocked": "Brak zablokowanych",
@@ -157,8 +157,8 @@
     "media": "Media",
     "uploading": "Przesyłanie…",
     "mediaAria": "Dodaj media",
-    "createInCell": "utwórz nowy post w komórce",
-    "createNew": "utwórz nowy post",
+    "createInCell": "Nowy post w komórce",
+    "createNew": "Nowy post",
     "showMapAria": "Pokaż komórkę {{cell}} na mapie",
     "showMapTitle": "Pokaż komórkę na mapie",
     "placeholder": "Co dzieje się w Twojej okolicy?",
@@ -169,7 +169,9 @@
     "imageTooLarge": "Obraz jest za duży (maks. 12 MB).",
     "compressFailed": "Nie udało się skompresować obrazu.",
     "uploadFailed": "Przesyłanie nie powiodło się.",
-    "publishFailed": "Publikacja nie powiodła się."
+    "publishFailed": "Publikacja nie powiodła się.",
+    "invalidGeohash": "Nieprawidłowy geohash.",
+    "editGeohashAria": "Edytuj geohash"
   },
   "feedArticle": {
     "deleted": "Usunięto — propagacja do relay’ów",
@@ -205,7 +207,7 @@
     "reload": "Odśwież stronę"
   },
   "app": {
-    "publishFailed": "Publikacja nie powiodła się.",
+    "publishFailed": "Publikacja nieudana.",
     "offlineComments": "Offline — komentarze tylko do odczytu.",
     "offlineDelete": "Offline — nie można wysłać zdarzenia usunięcia."
   },
@@ -218,8 +220,8 @@
     "offline": "Offline",
     "replyPlaceholder": "Napisz odpowiedź…",
     "sendDeletionAria": "Wyślij zdarzenie usunięcia NIP-09",
-    "blockUserAria": "Zablokuj użytkownika",
-    "blockUserTitle": "Zablokuj użytkownika",
+    "blockUserAria": "Zablokuj",
+    "blockUserTitle": "Zablokuj",
     "delete": "Usuń",
     "deleteSending": "Wysyłanie…",
     "block": "Zablokuj",
@@ -228,11 +230,11 @@
     "reportHint": "Opcjonalnie: powód zgłoszenia. Zostanie wysłany do relay’ów przez NIP-56.",
     "reply": "Odpowiedz",
     "replySending": "Wysyłanie…",
-    "userBlocked": "Użytkownik zablokowany.",
-    "blockingFailed": "Blokowanie nie powiodło się.",
+    "userBlocked": "Zablokowano.",
+    "blockingFailed": "Blokada nieudana.",
     "offlineBlock": "Offline — nie można zablokować użytkownika.",
-    "deleteFailed": "Nie udało się wysłać zdarzenia usunięcia.",
-    "publishFailedFallback": "Publikacja nie powiodła się."
+    "deleteFailed": "Usuwanie nieudane.",
+    "publishFailedFallback": "Publikacja nieudana."
   },
   "profileSheet": {
     "openPictureAria": "Otwórz zdjęcie profilowe",

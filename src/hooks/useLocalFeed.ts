@@ -62,7 +62,8 @@ export function useLocalFeed(params: {
 
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
-  // geohashLength 0 → REQ uses full 5-char cell; else prefix matches the precision selector.
+  // geohashLength 0 → keep full geo5 for distance/UI; REQ uses all 32 `#g` prefixes.
+  // Else slice geo5 to the precision selector.
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
       ? initialSavedGeo5.slice(0, initialGeohashLength)
@@ -345,30 +346,17 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // Precision 0 + full cell: one grouped REQ per neighbor band instead of staggered subs.
-    if (geohashLength === 0 && queryGeohash.length === 5) {
-      const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
-      const filters = cellsToQuery.map((cell) => ({
+    // One REQ: mode 0 uses all 32 base32 `#g` prefixes; else the sliced query cell.
+    const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
+    const unsub = client.subscribe(
+      {
         kinds: feedKinds,
-        '#g': [cell],
+        '#g': cellsToQuery,
         limit: FEED_QUERY_LIMIT,
-      }))
-      unsubRef.current = client.subscribeGrouped(
-        filters,
-        { onevent: onEvent, oneose: onEose, onclose: onClose },
-        'feed-cells',
-      )
-    } else {
-      const unsub = client.subscribe(
-        {
-          kinds: feedKinds,
-          '#g': [queryGeohash],
-          limit: FEED_QUERY_LIMIT,
-        },
-        { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
-      )
-      unsubRef.current = unsub
-    }
+      },
+      { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
+    )
+    unsubRef.current = unsub
     return () => {
       cancelled = true
       if (rafFlushId != null) cancelAnimationFrame(rafFlushId)
@@ -489,20 +477,19 @@ export function useLocalFeed(params: {
         finish(newEventCount)
       }
 
-      const filters = cellsForLoadMore.map((cell) => ({
-        kinds: kindsLoadMore,
-        '#g': [cell],
-        limit: FEED_QUERY_LIMIT,
-        until,
-      }))
-      const unsub = client.subscribeGrouped(
-        filters,
+      const unsub = client.subscribe(
+        {
+          kinds: kindsLoadMore,
+          '#g': cellsForLoadMore,
+          limit: FEED_QUERY_LIMIT,
+          until,
+        },
         {
           onevent: onEventLoadMore,
           oneose: markDone,
           onclose: markDone,
+          immediate: true,
         },
-        'feed-loadmore',
       )
       unsubs.push(unsub)
 

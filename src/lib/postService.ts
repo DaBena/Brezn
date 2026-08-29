@@ -7,17 +7,20 @@ function createGeoTags(geohash: string): [string, string][] {
   return generateGeohashTags(geohash).map((g) => ['g', g] as [string, string])
 }
 
+/**
+ * @param viewerGeo5 - Saved viewer cell (required for default geotags).
+ * @param publishGeohash - Optional override for this post only; does not change viewer location.
+ */
 export async function publishPost(
   client: BreznNostrClient,
   content: string,
   viewerGeo5: string | null,
+  publishGeohash?: string | null,
 ): Promise<void> {
-  // Use full 5-digit geohash for posting (not the shortened geoCell)
-  if (!viewerGeo5) throw new Error('Location missing (reload feed).')
+  const geo = (publishGeohash ?? viewerGeo5)?.trim() || null
+  if (!geo) throw new Error('Location missing (reload feed).')
 
-  // Generate all geohash tags (prefixes 1-5) for maximum discoverability
-  // viewerGeo5 is always 5 digits, so all prefixes are generated
-  const geoTags = createGeoTags(viewerGeo5)
+  const geoTags = createGeoTags(geo)
 
   await client.publish({
     kind: NOSTR_KINDS.note,

@@ -1,0 +1,270 @@
+{
+  "root": {
+    "loading": "Завантаження…"
+  },
+  "nav": {
+    "searchPlaceholder": "Пошук постів…",
+    "openChat": "Відкрити чат",
+    "openMenu": "Відкрити меню"
+  },
+  "feed": {
+    "offlineBanner": "Офлайн — показ останніх постів (лише читання).",
+    "locationTitle": "Локація для локальної стрічки",
+    "locationBody": "Потрібен приблизний район для локальних постів. Можна змінити пізніше. Позиція зводиться до geohash (~5 км) для приватності.",
+    "privacyStorage": "Додаток використовує локальне сховище. Без відстеження і без передачі даних нам. Див.",
+    "privacyLink": "код, README і ліцензія",
+    "privacyDisclaimer": "Контент з зовнішніх джерел (nostr-реле, файлові сервери). Ми не відповідаємо за зовнішній контент.",
+    "privacyConfirm": "Продовжуючи, ви підтверджуєте: ознайомився і погоджуюсь.",
+    "allowLocation": "Дозволити локацію",
+    "errorTitle": "Помилка",
+    "tryAgain": "Повторити",
+    "relayFailPrefix": "Збій з'єднання з реле. ",
+    "noRelayResponse": "Немає відповіді від реле. Перевірте список або спробуйте пізніше.",
+    "waitingEose": "Подій ще немає (очікування EOSE)…",
+    "noPostsYet": "Постів ще немає. Спробуйте пізніше або інші реле.",
+    "noRelays": "Реле немає — перевірте Налаштування."
+  },
+  "settings": {
+    "title": "Налаштування",
+    "source": "Код",
+    "github": "GitHub"
+  },
+  "theme": {
+    "label": "Тема",
+    "switchToDark": "Темна тема",
+    "switchToLight": "Світла тема"
+  },
+  "geohash": {
+    "searchRadius": "Радіус пошуку",
+    "lengthLabel": "Довжина geohash:",
+    "length0": "0",
+    "queries3": "усі g",
+    "geoHashLabel": "GeoHash:",
+    "geoHashEmpty": "GeoHash: -",
+    "decreaseRadius": "Зменшити радіус",
+    "increaseRadius": "Збільшити радіус",
+    "length": "Довжина {{n}}",
+    "queriesCurrent": "усі геопости",
+    "precisionFallback": "Більше = менша клітинка (точніше) — менше результатів.",
+    "cellSize": "{{w}} × {{h}} на клітинку"
+  },
+  "moderation": {
+    "blocklist": "Блоклист",
+    "oneLineOneTerm": "1 рядок = 1 термін ({{count}}/200)",
+    "placeholder": "напр.\nbuy\nsats\nevil.example",
+    "saved": "Блоклист збережено.",
+    "blockedUsers": "Заблоковані",
+    "blockedCount": "{{count}} заблоковано",
+    "unblock": "Розблокувати",
+    "noBlocked": "Немає заблокованих",
+    "unblockedMsg": "Розблоковано."
+  },
+  "keyMgmt": {
+    "title": "Ідентичність",
+    "npub": "npub",
+    "copy": "Копіювати",
+    "nsec": "nsec",
+    "show": "Показати",
+    "hide": "Сховати",
+    "neverShareNsec": "Не діліться nsec.",
+    "npubCopied": "npub скопійовано.",
+    "copyNpubHint": "Показати і скопіювати npub.",
+    "nsecCopied": "nsec скопійовано.",
+    "copyNsecHint": "Показати і скопіювати nsec.",
+    "importTitle": "Імпорт ідентичності",
+    "importNsec": "Імпорт nsec",
+    "importPlaceholder": "nsec1...",
+    "pleaseEnterNsec": "Введіть nsec",
+    "importSuccess": "Ідентичність імпортовано. Перезавантаження…",
+    "importing": "Імпорт…",
+    "import": "Імпорт",
+    "cancel": "Скасувати",
+    "importFailed": "Не вдалося імпортувати nsec"
+  },
+  "relay": {
+    "title": "Реле",
+    "hint": "Реле для стрічки, DM і публікації. Лише URL зі списку (або вбудовані) — без автопошуку outbox.",
+    "empty": "Реле не налаштовано. Без хоча б одного реле пости не завантажуються і не публікуються. Додайте нижче або \"Default\".",
+    "removeAria": "Видалити реле",
+    "placeholder": "wss://relay.example",
+    "add": "Додати",
+    "default": "Default",
+    "test": "Тест",
+    "testing": "Тест…",
+    "unknown": "невідомо",
+    "reachable": "доступне",
+    "unreachable": "недоступне",
+    "reachableWithRtt": "доступне • {{rtt}}ms",
+    "unreachableWithErr": "недоступне • {{error}}",
+    "statusAria": "Статус реле: {{state}}",
+    "duplicate": "Це реле вже у списку."
+  },
+  "mediaUpload": {
+    "title": "Завантаження медіа",
+    "hint": "URL або NIP-96. За замовч.: {{default}}. Порожньо = вимк.",
+    "defaultBtn": "Default"
+  },
+  "profileSettings": {
+    "title": "Профіль",
+    "loading": "Завантаження профілю…",
+    "name": "Ім'я",
+    "namePlaceholder": "Ваше ім'я (необов'язково)",
+    "about": "Про себе",
+    "aboutPlaceholder": "Короткий опис (необов'язково)",
+    "picture": "Фото профілю",
+    "pictureAlt": "Фото профілю",
+    "onlyImages": "Лише зображення.",
+    "imageTooLarge5": "Зображення завелике (макс. 5 МБ).",
+    "configureEndpointFirst": "Спочатку налаштуйте endpoint медіа.",
+    "uploading": "Завантаження…",
+    "changeImage": "Змінити фото",
+    "uploadImage": "Завантажити фото",
+    "resetConfirm": "Скинути профіль? Ім'я, опис і фото будуть видалені.",
+    "reset": "Скинути",
+    "removeImage": "Видалити фото",
+    "urlPlaceholder": "Або введіть URL",
+    "resetDone": "Профіль скинуто.",
+    "resetError": "Помилка скидання профілю"
+  },
+  "chat": {
+    "title": "Чат",
+    "loading": "Завантаження розмов…",
+    "offline": "Офлайн — перевірте інтернет.",
+    "timeout": "Таймаут — реле не відповідають. Перевірте налаштування.",
+    "loadError": "Помилка завантаження розмов",
+    "empty": "Розмов ще немає"
+  },
+  "dm": {
+    "titlePrefix": "DM:",
+    "offlineSend": "Офлайн — повідомлення не надіслати.",
+    "offline": "Офлайн — перевірте інтернет.",
+    "timeout": "Таймаут — реле не відповідають. Перевірте налаштування.",
+    "loadError": "Помилка завантаження повідомлень",
+    "loading": "Завантаження повідомлень…",
+    "empty": "Повідомлень ще немає",
+    "placeholder": "Написати повідомлення…",
+    "sendAria": "Надіслати",
+    "sendingContent": "[надсилання...]",
+    "sendError": "Помилка надсилання",
+    "hiddenByBlocklist": "Приховано (блоклист ключових слів).",
+    "openPeerProfileAria": "Відкрити профіль"
+  },
+  "composer": {
+    "srTitle": "Новий пост",
+    "publish": "Опублікувати",
+    "publishing": "Публікація…",
+    "publishAria": "Опублікувати пост",
+    "media": "Медіа",
+    "uploading": "Завантаження…",
+    "mediaAria": "Додати медіа",
+    "createInCell": "Новий пост у комірці",
+    "createNew": "Новий пост",
+    "showMapAria": "Показати клітинку {{cell}} на мапі",
+    "showMapTitle": "Показати клітинку на мапі",
+    "placeholder": "Що відбувається поруч?",
+    "removeMediaAria": "Видалити медіа",
+    "noUploadEndpoint": "Немає endpoint (Налаштування → Медіа).",
+    "onlyImagesVideos": "Лише зображення або відео.",
+    "videoTooLarge": "Відео завелике (макс. 25 МБ).",
+    "imageTooLarge": "Зображення завелике (макс. 12 МБ).",
+    "compressFailed": "Не вдалося стиснути зображення.",
+    "uploadFailed": "Завантаження не вдалося.",
+    "publishFailed": "Публікація не вдалася.",
+    "invalidGeohash": "Невірний geohash.",
+    "editGeohashAria": "Редагувати geohash"
+  },
+  "feedArticle": {
+    "deleted": "Видалено — розповсюдження на реле",
+    "deletedAria": "Видалений пост",
+    "openPost": "Відкрити пост",
+    "sendReaction": "Надіслати реакцію",
+    "sendReactionCount": "Реакція ({{count}})",
+    "loadOlder": "Показати більше",
+    "loading": "Завантаження…"
+  },
+  "pwa": {
+    "title": "Доступне оновлення",
+    "body": "Завантажено нову версію. Перезавантажте для активації.",
+    "reload": "Оновити",
+    "close": "Закрити"
+  },
+  "adblock": {
+    "title": "Service worker заблоковано",
+    "body": "Блокувальник реклами може блокувати service worker. Вимкніть для цього сайту або додайте виняток.",
+    "close": "Закрити"
+  },
+  "composeBtn": {
+    "aria": "Створити пост"
+  },
+  "errorBoundary": {
+    "title": "Щось пішло не так",
+    "body": "Несподівана помилка. Спробуйте оновити сторінку.",
+    "details": "Деталі помилки",
+    "errorLabel": "Помилка:",
+    "stack": "Stack trace:",
+    "componentStack": "Stack компонентів:",
+    "tryAgain": "Повторити",
+    "reload": "Оновити сторінку"
+  },
+  "app": {
+    "publishFailed": "Публікація не вдалася.",
+    "offlineComments": "Офлайн — коментарі лише для читання.",
+    "offlineDelete": "Офлайн — подію видалення не надіслати."
+  },
+  "thread": {
+    "reportRoot": "Поскаржитись на пост",
+    "reportReply": "Скарга на відповідь",
+    "reportReason": "Причина скарги (необов'язково)",
+    "submitReport": "Надіслати скаргу",
+    "replies": "Відповіді ({{count}})",
+    "offline": "Офлайн",
+    "replyPlaceholder": "Написати відповідь…",
+    "sendDeletionAria": "Надіслати подію видалення NIP-09",
+    "blockUserAria": "Заблокувати",
+    "blockUserTitle": "Заблокувати",
+    "delete": "Видалити",
+    "deleteSending": "Надсилання…",
+    "block": "Блок",
+    "blocking": "Блокування…",
+    "blockHeading": "Заблокувати {{label}}",
+    "reportHint": "Необов'язково: причина скарги. Надсилається на реле через NIP-56.",
+    "reply": "Відповісти",
+    "replySending": "Надсилання…",
+    "userBlocked": "Заблоковано.",
+    "blockingFailed": "Блокування не вдалося.",
+    "offlineBlock": "Офлайн — блокування неможливе.",
+    "deleteFailed": "Подію видалення не надіслано.",
+    "publishFailedFallback": "Публікація не вдалася."
+  },
+  "profileSheet": {
+    "openPictureAria": "Відкрити фото профілю",
+    "dmAria": "Відкрити повідомлення",
+    "message": "Повідомлення",
+    "offlineHint": "Офлайн — пости профілю можуть бути неповними.",
+    "loadingPosts": "Завантаження постів…",
+    "noPosts": "Постів ще немає",
+    "noPostsFromRelays": "Постів з реле ще немає.",
+    "loadError": "Не вдалося завантажити пости."
+  },
+  "geohashMap": {
+    "gpsAria": "GPS-локація",
+    "gpsTitle": "GPS-локація"
+  },
+  "postIdentity": {
+    "openProfile": "Відкрити профіль"
+  },
+  "quotedPost": {
+    "loadingReferenced": "Завантаження цитованого поста…",
+    "noText": "(без тексту)"
+  },
+  "time": {
+    "justNow": "щойно",
+    "minutesAgo": "{{count}}хв тому",
+    "hoursAgo": "{{count}}год тому",
+    "daysAgo": "{{count}}д тому"
+  },
+  "common": {
+    "loading": "Завантаження…",
+    "close": "Закрити"
+  }
+}

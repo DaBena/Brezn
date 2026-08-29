@@ -97,7 +97,7 @@ export function ProfileSheet(props: {
   const about = profile?.about?.trim() || null
 
   const approxDistanceById = useMemo(() => {
-    const map: Record<string, string | null> = {}
+    const map: Record<string, ReturnType<typeof calculateApproxDistance>> = {}
     for (const evt of displayedEvents) {
       map[evt.id] = isNip52CalendarKind(evt.kind)
         ? nip52DistanceLabel(evt, viewerPoint)
@@ -215,7 +215,7 @@ export function ProfileSheet(props: {
               evt={evt}
               isDeleted={false}
               contentPreview={truncateProfileCardContent(feedEventCardPlainText(evt))}
-              distanceLabel={approxDistanceById[evt.id]}
+              distance={approxDistanceById[evt.id]}
               client={client}
               reactionsByNoteId={reactionsByNoteId}
               canReact={canReact}

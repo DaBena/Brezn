@@ -1,6 +1,6 @@
 {
   "root": {
-    "loading": "در حال بارگذاری…"
+    "loading": "بارگذاری…"
   },
   "nav": {
     "searchPlaceholder": "جستجوی پست‌ها…",
@@ -37,14 +37,14 @@
   "geohash": {
     "searchRadius": "شعاع جستجو",
     "lengthLabel": "طول ژئوهش:",
-    "length0": "۰ (فعلی + شرق/غرب)",
-    "queries3": "۳ پرس‌وجو",
+    "length0": "0",
+    "queries3": "همه g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "کاهش شعاع",
     "increaseRadius": "افزایش شعاع",
     "length": "طول {{n}}",
-    "queriesCurrent": "۳ پرس‌وجو (فعلی + شرق/غرب)",
+    "queriesCurrent": "همه پست‌های مکان‌دار",
     "precisionFallback": "بیشتر = کوچک‌تر (دقیق‌تر) — اما نتایج کمتر.",
     "cellSize": "{{w}} × {{h}} در هر سلول"
   },
@@ -157,8 +157,8 @@
     "media": "رسانه",
     "uploading": "در حال بارگذاری…",
     "mediaAria": "افزودن رسانه",
-    "createInCell": "ایجاد پست جدید در سلول",
-    "createNew": "ایجاد پست جدید",
+    "createInCell": "پست جدید در سلول",
+    "createNew": "پست جدید",
     "showMapAria": "نمایش سلول {{cell}} روی نقشه",
     "showMapTitle": "نمایش سلول روی نقشه",
     "placeholder": "در منطقه شما چه خبر است؟",
@@ -169,7 +169,9 @@
     "imageTooLarge": "تصویر بسیار بزرگ است (حداکثر ۱۲ مگابایت).",
     "compressFailed": "فشرده‌سازی تصویر ناموفق بود.",
     "uploadFailed": "بارگذاری ناموفق بود.",
-    "publishFailed": "انتشار ناموفق بود."
+    "publishFailed": "انتشار ناموفق بود.",
+    "invalidGeohash": "Geohash نامعتبر.",
+    "editGeohashAria": "ویرایش geohash"
   },
   "feedArticle": {
     "deleted": "حذف شد — در حال انتشار به رله‌ها",
@@ -223,7 +225,7 @@
     "delete": "حذف",
     "deleteSending": "در حال ارسال…",
     "block": "مسدود",
-    "blocking": "در حال مسدود کردن…",
+    "blocking": "مسدود…",
     "blockHeading": "مسدود کردن {{label}}",
     "reportHint": "اختیاری: دلیل گزارش. از طریق NIP-56 به رله‌ها ارسال می‌شود.",
     "reply": "پاسخ",
@@ -258,7 +260,7 @@
     "daysAgo": "{{count}} روز پیش"
   },
   "common": {
-    "loading": "در حال بارگذاری…",
+    "loading": "بارگذاری…",
     "close": "بستن"
   },
   "quotedPost": {
