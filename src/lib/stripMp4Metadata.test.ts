@@ -118,9 +118,7 @@ describe('stripMp4MetadataInPlace', () => {
     // version/flags untouched
     expect([...copy.slice(mvhdContent, mvhdContent + 4)]).toEqual([0, 0, 0, 0])
     // creation + modification zeroed
-    expect([...copy.slice(mvhdContent + 4, mvhdContent + 12)]).toEqual([
-      0, 0, 0, 0, 0, 0, 0, 0,
-    ])
+    expect([...copy.slice(mvhdContent + 4, mvhdContent + 12)]).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
     // timescale preserved
     expect([...copy.slice(mvhdContent + 12, mvhdContent + 16)]).toEqual([...u32be(1000)])
   })

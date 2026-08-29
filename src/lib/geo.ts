@@ -10,8 +10,7 @@ export const GEOHASH_TAG_LEN_MAX = 12
 export type GeohashLength = 1 | 2 | 3 | 4 | 5
 
 /** Geohash base32 alphabet (no a, i, l, o). */
-export const GEOHASH_BASE32_CHARS =
-  '0123456789bcdefghjkmnpqrstuvwxyz' as const
+export const GEOHASH_BASE32_CHARS = '0123456789bcdefghjkmnpqrstuvwxyz' as const
 
 const GEOHASH_CHAR_RE = /^[0-9b-hjkmnp-z]+$/
 
@@ -23,9 +22,7 @@ export const GEOHASH_BASE32_PREFIXES: readonly string[] = GEOHASH_BASE32_CHARS.s
  * Empty → use default geo5; invalid charset/length → invalid.
  */
 export type PublishGeohashParse =
-  | { kind: 'default' }
-  | { kind: 'override'; geohash: string }
-  | { kind: 'invalid' }
+  { kind: 'default' } | { kind: 'override'; geohash: string } | { kind: 'invalid' }
 
 export function parsePublishGeohashInput(raw: string): PublishGeohashParse {
   const h = (raw ?? '').trim().toLowerCase()

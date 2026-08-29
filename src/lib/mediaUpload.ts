@@ -250,12 +250,7 @@ export async function probeMediaUploadEndpoint(
       apiUrl: resolved.url,
     }
   } catch (e) {
-    const msg =
-      e instanceof Error
-        ? e.name === 'AbortError'
-          ? 'Timeout'
-          : e.message
-        : String(e)
+    const msg = e instanceof Error ? (e.name === 'AbortError' ? 'Timeout' : e.message) : String(e)
     return { ok: false, error: msg }
   }
 }

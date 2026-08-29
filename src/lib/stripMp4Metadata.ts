@@ -200,8 +200,7 @@ export async function stripMp4ContainerMetadata(file: File): Promise<File> {
 
     const name = (file.name ?? '').toLowerCase()
     const mime = (file.type ?? '').toLowerCase()
-    const isMov =
-      name.endsWith('.mov') || mime === 'video/quicktime' || mime.includes('quicktime')
+    const isMov = name.endsWith('.mov') || mime === 'video/quicktime' || mime.includes('quicktime')
     const outName = isMov ? 'video.mov' : 'video.mp4'
     const outType = file.type || (isMov ? 'video/quicktime' : 'video/mp4')
 

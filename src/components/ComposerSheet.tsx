@@ -197,7 +197,8 @@ export function ComposerSheet(props: {
     }
   }
 
-  const composeFieldClass = 'border border-brezn-text text-base font-normal text-brezn-text outline-none'
+  const composeFieldClass =
+    'border border-brezn-text text-base font-normal text-brezn-text outline-none'
   const geohashInputClass = `inline-block min-w-[6ch] max-w-[14ch] bg-brezn-bg px-1.5 py-0.5 ${composeFieldClass}`
 
   const cellLine = (

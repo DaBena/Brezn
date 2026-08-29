@@ -148,11 +148,7 @@ export function SettingsSheet(props: {
 
         <KeyManagement client={client} />
 
-        <RelaySettings
-          key={`relays-${resetKey}`}
-          client={client}
-          mediaEndpoint={mediaEndpoint}
-        />
+        <RelaySettings key={`relays-${resetKey}`} client={client} mediaEndpoint={mediaEndpoint} />
 
         <MediaUploadSettings
           key={`media-${resetKey}`}
