@@ -138,35 +138,33 @@ export function DMSheet(props: {
 
     const since = Math.floor(Date.now() / 1000) - 60
 
-    function onIncomingDm(fromMe: boolean, evt: Event) {
-      try {
-        const decryptedContent = client.decryptDM(evt)
-        const newMessage: DecryptedDM = { event: evt, decryptedContent, isFromMe: fromMe }
-        if (!alive) return
-        setMessages((prev) => mergeIncomingDm(prev, newMessage, fromMe))
-      } catch (e) {
-        console.error('Failed to decrypt DM:', e)
-      }
+    function onIncomingDm(evt: Event) {
+      const parsed = client.interpretDM(evt)
+      if (!parsed || parsed.otherPubkey !== peer) return
+      if (!alive) return
+      setMessages((prev) =>
+        mergeIncomingDm(
+          prev,
+          {
+            event: parsed.event,
+            decryptedContent: parsed.decryptedContent,
+            isFromMe: parsed.isFromMe,
+          },
+          parsed.isFromMe,
+        ),
+      )
     }
 
     const unsub = client.subscribeGrouped(
       [
-        { kinds: [4], authors: [me], since, limit: 200 },
-        { kinds: [4], authors: [peer], '#p': [me], since },
+        { kinds: [NOSTR_KINDS.giftWrap], '#p': [me], since, limit: 200 },
+        { kinds: [NOSTR_KINDS.encryptedDm], authors: [me], since, limit: 200 },
+        { kinds: [NOSTR_KINDS.encryptedDm], authors: [peer], '#p': [me], since },
       ],
       {
         onevent: (evt) => {
           if (blockedPubkeys.some((b) => b.toLowerCase() === peer)) return
-          const author = evt.pubkey.toLowerCase()
-          if (author === me) {
-            const p = evt.tags
-              .find((t) => t[0] === 'p' && typeof t[1] === 'string')?.[1]
-              ?.toLowerCase()
-            if (p !== peer) return
-            onIncomingDm(true, evt)
-          } else if (author === peer) {
-            onIncomingDm(false, evt)
-          }
+          onIncomingDm(evt)
         },
       },
       'dm-live',
@@ -203,7 +201,7 @@ export function DMSheet(props: {
         id: tempId,
         pubkey: myPubkey,
         created_at: Math.floor(Date.now() / 1000),
-        kind: 4,
+        kind: NOSTR_KINDS.privateDm,
         tags: [['p', peer]],
         content: t('dm.sendingContent'),
         sig: '',

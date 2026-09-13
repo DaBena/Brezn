@@ -20,7 +20,7 @@ After installation, Brezn appears with its own icon on your home screen and open
 ## What is Nostr?
 
 [Notes and Other Stuff Transmitted by Relays](https://fiatjaf.com/nostr.html) is an open, decentralized protocol for social networking.
-Messages (events) are stored and distributed by many independent relays. Different Nostr apps speak the same protocol and can access the same content.
+Events are stored and distributed by many independent relays. Different Nostr apps speak the same protocol and can access the same content.
 Your identity consists of a key pair (npub/nsec) and is not bound to a server or app. If a relay goes down, you simply use others without losing your identity or content.
 
 ## Network Architectures Compared

@@ -10,6 +10,14 @@ import {
   type Event,
   type Filter,
 } from './nostrPrimitives'
+import {
+  NIP17_KINDS,
+  dmPeerFromRumor,
+  rumorToLogicalEvent,
+  unwrapGiftWrap,
+  wrapDirectMessage,
+} from './nip17'
+import { NOSTR_KINDS } from './breznNostr'
 import { ndkEventToBreznEvent } from './ndkEventUtils'
 import { normalizeMutedTerms } from './moderation'
 import {
@@ -118,7 +126,7 @@ export type GetDMsWithOptions = {
  * - Network connections to Nostr relays
  * - Local moderation (blocklist, muted terms)
  * - Feed preferences (geohash length)
- * - Direct messages (NIP-04 encrypted)
+ * - Direct messages (NIP-17 gift wrap + NIP-44; legacy NIP-04 still readable)
  * - Profile metadata
  *
  * All state is persisted to localStorage/IndexedDB and survives page reloads.
@@ -273,21 +281,27 @@ export type BreznNostrClient = {
   setTheme(theme: 'light' | 'dark'): void
 
   /**
-   * Send an encrypted direct message (NIP-04).
+   * Send an encrypted direct message (NIP-17 / NIP-44 gift wrap).
+   * Publishes wraps to the recipient and a self-copy for the sender.
    * @param recipientPubkey - Recipient's public key (64 hex chars)
    * @param content - Plaintext message content
-   * @returns Promise resolving to event ID
+   * @returns Promise resolving to the inner rumor event ID
    */
   sendDM(recipientPubkey: string, content: string): Promise<string>
 
   /**
-   * Decrypt a direct message event (NIP-04).
-   * Handles both sent and received messages.
-   * @param event - Encrypted DM event (kind 4)
-   * @returns Decrypted plaintext (NIP-04 uses sync crypto)
+   * Decrypt a direct message event (NIP-17 gift wrap or legacy NIP-04 kind 4).
+   * @param event - Encrypted DM event (kind 1059 or kind 4)
+   * @returns Decrypted plaintext
    * @throws If decryption fails
    */
   decryptDM(event: Event): string
+
+  /**
+   * Decrypt and normalize a DM wire event into the logical message used by the UI.
+   * @returns Parsed DM, or `null` if the event is not a decryptable Brezn DM
+   */
+  interpretDM(event: Event): (DecryptedDM & { otherPubkey: string }) | null
 
   /**
    * Get list of conversations (unique DM partners).
@@ -916,36 +930,173 @@ export function createNostrClient(): BreznNostrClient {
     saveState({ settings: { ...s.settings, theme } })
   }
 
-  // Direct Messages (NIP-04)
+  async function publishSigned(event: Event, relayUrls?: readonly string[]): Promise<string> {
+    const relays = [...(relayUrls ?? getRelays())]
+    if (relays.length === 0) {
+      throw new Error('No relays configured')
+    }
+    const ev = new NDKEvent(ndk, event)
+    const relaySet = NDKRelaySet.fromRelayUrls(relays, ndk, true, ndk.pool)
+    try {
+      await ev.publish(relaySet, 60_000, 1)
+    } catch (e) {
+      if (e == null) {
+        throw new Error('Publish failed (no error detail from relay stack).', { cause: e })
+      }
+      throw e
+    }
+    return ev.id
+  }
+
+  /** Best-effort: advertise preferred DM inbox relays (NIP-17 kind 10050). */
+  async function publishDmRelaysList(): Promise<void> {
+    const relays = getRelays()
+    if (relays.length === 0) return
+    try {
+      await publish({
+        kind: NOSTR_KINDS.dmRelays,
+        content: '',
+        tags: relays.map((url) => ['relay', url]),
+      })
+    } catch {
+      // Non-fatal: DMs still work via configured relays.
+    }
+  }
+
+  /**
+   * Fetch recipient kind-10050 DM relays with a short timeout; fall back to our relays.
+   */
+  async function resolveDmPublishRelays(recipientPubkey: string): Promise<string[]> {
+    const fallback = getRelays()
+    const peer = recipientPubkey.trim().toLowerCase()
+    if (fallback.length === 0) return []
+
+    return await new Promise((resolve) => {
+      let settled = false
+      const found: string[] = []
+      const finish = (urls: string[]) => {
+        if (settled) return
+        settled = true
+        clearTimeout(tid)
+        unsub()
+        resolve(urls.length > 0 ? urls : fallback)
+      }
+      const tid = setTimeout(() => finish(found), 2500)
+      const unsub = subscribe(
+        { kinds: [NOSTR_KINDS.dmRelays], authors: [peer], limit: 1 },
+        {
+          immediate: true,
+          onevent: (evt) => {
+            for (const t of evt.tags) {
+              if (t[0] === 'relay' && typeof t[1] === 'string' && t[1].startsWith('wss://')) {
+                found.push(t[1])
+              }
+            }
+            finish(found)
+          },
+          oneose: () => finish(found),
+          onclose: () => finish(found),
+        },
+      )
+    })
+  }
+
+  type ParsedDm = {
+    logicalEvent: Event
+    decryptedContent: string
+    isFromMe: boolean
+    otherPubkey: string
+  }
+
+  function parseDmEvent(event: Event): ParsedDm {
+    const { skHex, pubkey } = ensureIdentity()
+    const me = pubkey.toLowerCase()
+
+    if (event.kind === NIP17_KINDS.giftWrap || event.kind === NOSTR_KINDS.giftWrap) {
+      const rumor = unwrapGiftWrap(event, hexToBytes(skHex))
+      if (rumor.kind !== NIP17_KINDS.chat && rumor.kind !== 15) {
+        throw new Error(`unsupported NIP-17 rumor kind ${rumor.kind}`)
+      }
+      const otherPubkey = dmPeerFromRumor(rumor, me)
+      if (!otherPubkey) {
+        throw new Error('Could not determine DM peer from rumor')
+      }
+      return {
+        logicalEvent: rumorToLogicalEvent(rumor),
+        decryptedContent: rumor.content,
+        isFromMe: rumor.pubkey.toLowerCase() === me,
+        otherPubkey,
+      }
+    }
+
+    if (event.kind === NOSTR_KINDS.encryptedDm || event.kind === 4) {
+      const senderPubkey = event.pubkey
+      const isFromMe = senderPubkey.toLowerCase() === me
+      let decryptedContent: string
+      if (isFromMe) {
+        const recipientPubkey = dmRecipientPubkeyLower(event)
+        if (!recipientPubkey) {
+          throw new Error('Recipient pubkey not found in tags')
+        }
+        decryptedContent = nip04.decrypt(hexToBytes(skHex), recipientPubkey, event.content)
+        return {
+          logicalEvent: event,
+          decryptedContent,
+          isFromMe: true,
+          otherPubkey: recipientPubkey,
+        }
+      }
+      decryptedContent = nip04.decrypt(hexToBytes(skHex), senderPubkey.toLowerCase(), event.content)
+      return {
+        logicalEvent: event,
+        decryptedContent,
+        isFromMe: false,
+        otherPubkey: senderPubkey.toLowerCase(),
+      }
+    }
+
+    throw new Error(`unsupported DM event kind ${event.kind}`)
+  }
+
+  // Direct Messages (NIP-17 send; NIP-17 + legacy NIP-04 receive)
   async function sendDM(recipientPubkey: string, content: string): Promise<string> {
     await whenIdentityReady
     const { skHex } = ensureIdentity()
     const peerHex = recipientPubkey.trim().toLowerCase()
-    const encrypted = nip04.encrypt(hexToBytes(skHex), peerHex, content)
-    return await publish({
-      kind: 4,
-      content: encrypted,
-      tags: [['p', peerHex]],
-    })
+    if (!/^[0-9a-f]{64}$/.test(peerHex)) {
+      throw new Error('Invalid recipient pubkey')
+    }
+    const plaintext = content
+    if (!plaintext.trim()) {
+      throw new Error('Message is empty')
+    }
+
+    void publishDmRelaysList()
+
+    const { rumor, wraps } = wrapDirectMessage(hexToBytes(skHex), peerHex, plaintext)
+    const recipientRelays = await resolveDmPublishRelays(peerHex)
+    const ourRelays = getRelays()
+
+    const results = await Promise.allSettled(
+      wraps.map((wrap) => {
+        const p = dmRecipientPubkeyLower(wrap)
+        const urls = p === peerHex ? recipientRelays : ourRelays
+        return publishSigned(wrap, urls.length > 0 ? urls : ourRelays)
+      }),
+    )
+    if (!results.some((r) => r.status === 'fulfilled')) {
+      const firstErr = results.find((r) => r.status === 'rejected') as
+        PromiseRejectedResult | undefined
+      throw firstErr?.reason instanceof Error
+        ? firstErr.reason
+        : new Error('Failed to publish NIP-17 gift wraps')
+    }
+    return rumor.id
   }
 
   function decryptDM(event: Event): string {
-    const { skHex, pubkey } = ensureIdentity()
-    const me = pubkey.toLowerCase()
-    const senderPubkey = event.pubkey
-    const isFromMe = senderPubkey.toLowerCase() === me
-
     try {
-      if (isFromMe) {
-        const recipientPubkey = event.tags.find(
-          (t) => t[0] === 'p' && typeof t[1] === 'string',
-        )?.[1]
-        if (!recipientPubkey) {
-          throw new Error('Recipient pubkey not found in tags')
-        }
-        return nip04.decrypt(hexToBytes(skHex), recipientPubkey.toLowerCase(), event.content)
-      }
-      return nip04.decrypt(hexToBytes(skHex), senderPubkey.toLowerCase(), event.content)
+      return parseDmEvent(event).decryptedContent
     } catch (e) {
       throw new Error(`Failed to decrypt DM: ${e instanceof Error ? e.message : 'Unknown error'}`, {
         cause: e,
@@ -953,13 +1104,26 @@ export function createNostrClient(): BreznNostrClient {
     }
   }
 
+  function interpretDM(event: Event): (DecryptedDM & { otherPubkey: string }) | null {
+    try {
+      const parsed = parseDmEvent(event)
+      return {
+        event: parsed.logicalEvent,
+        decryptedContent: parsed.decryptedContent,
+        isFromMe: parsed.isFromMe,
+        otherPubkey: parsed.otherPubkey,
+      }
+    } catch {
+      return null
+    }
+  }
+
   /**
-   * Per-relay DM history: two filters on one relay only so a slow relay does not block the others.
+   * Per-relay DM history: filters on one relay only so a slow relay does not block the others.
    */
   function subscribeDmOnSingleRelay(
     relayUrl: string,
-    filterA: Filter,
-    filterB: Filter,
+    filters: Filter[],
     onevent: (evt: Event) => void,
     label: string,
     timeoutMs: number = GET_DM_HISTORY_TIMEOUT_MS,
@@ -978,7 +1142,12 @@ export function createNostrClient(): BreznNostrClient {
 
       const tid = setTimeout(finishRelay, timeoutMs)
 
-      sub = ndk.subscribe([filterA, filterB], {
+      if (filters.length === 0) {
+        finishRelay()
+        return
+      }
+
+      sub = ndk.subscribe(filters, {
         groupable: false,
         closeOnEose: true,
         relayUrls: [relayUrl],
@@ -1003,20 +1172,19 @@ export function createNostrClient(): BreznNostrClient {
 
     const conversations = new Map<string, Conversation>()
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
-    const filterIn: Filter = { kinds: [4], '#p': [me], since, limit: 100 }
-    const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 100 }
+    const filters: Filter[] = [
+      { kinds: [NOSTR_KINDS.giftWrap], '#p': [me], since, limit: 200 },
+      { kinds: [NOSTR_KINDS.encryptedDm], '#p': [me], since, limit: 100 },
+      { kinds: [NOSTR_KINDS.encryptedDm], authors: [me], since, limit: 100 },
+    ]
 
-    function mergeConversation(otherPubkey: string, evt: Event) {
-      let preview = '[encrypted]'
-      let decryptedForModeration = ''
-      try {
-        const decrypted = decryptDM(evt)
-        decryptedForModeration = decrypted
-        preview = decrypted.slice(0, 50)
-      } catch {
-        // keep default preview
-      }
-      const fromPeer = evt.pubkey.toLowerCase() !== me
+    function mergeConversation(
+      otherPubkey: string,
+      createdAt: number,
+      preview: string,
+      decryptedForModeration: string,
+      fromPeer: boolean,
+    ) {
       const existing = conversations.get(otherPubkey)
 
       let lastMessageAt = existing?.lastMessageAt ?? 0
@@ -1026,21 +1194,21 @@ export function createNostrClient(): BreznNostrClient {
       let lastPeerMessageAt = existing?.lastPeerMessageAt ?? 0
       let lastViewerMessageAt = existing?.lastViewerMessageAt ?? 0
 
-      if (evt.created_at >= lastMessageAt) {
-        lastMessageAt = evt.created_at
+      if (createdAt >= lastMessageAt) {
+        lastMessageAt = createdAt
         lastMessagePreview = preview
       }
 
       if (fromPeer) {
-        if (evt.created_at >= lastPeerMessageAt) {
-          lastPeerMessageAt = evt.created_at
+        if (createdAt >= lastPeerMessageAt) {
+          lastPeerMessageAt = createdAt
           lastPeerPreview = preview
           lastPeerTextForModeration = decryptedForModeration
             ? decryptedForModeration.slice(0, DM_PEER_MODERATION_TEXT_MAX)
             : ''
         }
-      } else if (evt.created_at >= lastViewerMessageAt) {
-        lastViewerMessageAt = evt.created_at
+      } else if (createdAt >= lastViewerMessageAt) {
+        lastViewerMessageAt = createdAt
       }
 
       conversations.set(otherPubkey, {
@@ -1063,21 +1231,18 @@ export function createNostrClient(): BreznNostrClient {
       relays.map((relayUrl, idx) =>
         subscribeDmOnSingleRelay(
           relayUrl,
-          filterIn,
-          filterOut,
+          filters,
           (evt) => {
             try {
-              if (evt.pubkey.toLowerCase() === me) {
-                const raw =
-                  evt.tags.find((t) => t[0] === 'p' && typeof t[1] === 'string')?.[1] ?? null
-                const otherPubkey = raw?.toLowerCase() ?? null
-                if (!otherPubkey) return
-                mergeConversation(otherPubkey, evt)
-              } else {
-                const otherPubkey = evt.pubkey?.toLowerCase()
-                if (!otherPubkey) return
-                mergeConversation(otherPubkey, evt)
-              }
+              const parsed = parseDmEvent(evt)
+              const preview = parsed.decryptedContent.slice(0, 50)
+              mergeConversation(
+                parsed.otherPubkey,
+                parsed.logicalEvent.created_at,
+                preview,
+                parsed.isFromMe ? '' : parsed.decryptedContent,
+                !parsed.isFromMe,
+              )
             } catch {
               // ignore single-event errors
             }
@@ -1103,8 +1268,11 @@ export function createNostrClient(): BreznNostrClient {
     const peer = otherPubkey.trim().toLowerCase()
 
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90 // last 90 days
-    const filterOut: Filter = { kinds: [4], authors: [me], since, limit: 500 }
-    const filterIn: Filter = { kinds: [4], authors: [peer], '#p': [me], since, limit: 200 }
+    const filters: Filter[] = [
+      { kinds: [NOSTR_KINDS.giftWrap], '#p': [me], since, limit: 500 },
+      { kinds: [NOSTR_KINDS.encryptedDm], authors: [me], since, limit: 500 },
+      { kinds: [NOSTR_KINDS.encryptedDm], authors: [peer], '#p': [me], since, limit: 200 },
+    ]
 
     const relays = getRelays()
     if (relays.length === 0) {
@@ -1127,34 +1295,18 @@ export function createNostrClient(): BreznNostrClient {
       relays.map((relayUrl, idx) =>
         subscribeDmOnSingleRelay(
           relayUrl,
-          filterOut,
-          filterIn,
+          filters,
           (evt) => {
-            const author = evt.pubkey.toLowerCase()
-            if (author === me) {
-              const rec = dmRecipientPubkeyLower(evt)
-              if (rec !== peer) return
-              try {
-                const decryptedContent = decryptDM(evt)
-                messages.push({
-                  event: evt,
-                  decryptedContent,
-                  isFromMe: true,
-                })
-              } catch {
-                // Skip undecryptable outgoing events
-              }
-            } else if (author === peer) {
-              try {
-                const decryptedContent = decryptDM(evt)
-                messages.push({
-                  event: evt,
-                  decryptedContent,
-                  isFromMe: false,
-                })
-              } catch {
-                // Skip undecryptable incoming events
-              }
+            try {
+              const parsed = parseDmEvent(evt)
+              if (parsed.otherPubkey !== peer) return
+              messages.push({
+                event: parsed.logicalEvent,
+                decryptedContent: parsed.decryptedContent,
+                isFromMe: parsed.isFromMe,
+              })
+            } catch {
+              // Skip undecryptable events
             }
           },
           `brezn-dm-history-${idx}`,
@@ -1354,6 +1506,7 @@ export function createNostrClient(): BreznNostrClient {
     setTheme,
     sendDM,
     decryptDM,
+    interpretDM,
     getConversations,
     getDMsWith,
     updateProfile,

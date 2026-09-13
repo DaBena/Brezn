@@ -1,5 +1,5 @@
 /**
- * Nostr primitives for Brezn: NDK for `nip19`, local wire types, Noble for keys + NIP-04.
+ * Nostr primitives for Brezn: NDK for `nip19`, local wire types, Noble for keys + NIP-04/44.
  *
  * Brezn code does not import `nostr-tools` directly. `nostr-tools` remains a **runtime**
  * dependency only because `@nostr-dev-kit/ndk` resolves it from the app `node_modules`
@@ -10,9 +10,11 @@ import { schnorr, secp256k1 } from '@noble/curves/secp256k1'
 import { bytesToHex, randomBytes } from '@noble/hashes/utils'
 import { base64 } from '@scure/base'
 import { nip19 } from '@nostr-dev-kit/ndk'
+import { nip44 } from './nip44'
 
 export type { Event, Filter } from './nostrWireTypes'
 export { nip19 }
+export { nip44 }
 
 const utf8Decoder = new TextDecoder('utf-8')
 const utf8Encoder = new TextEncoder()
