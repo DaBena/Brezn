@@ -97,7 +97,18 @@
     "reachableWithRtt": "可达 • {{rtt}}ms",
     "unreachableWithErr": "不可达 • {{error}}",
     "statusAria": "中继状态：{{state}}",
-    "duplicate": "该中继已在列表中。"
+    "duplicate": "该中继已在列表中。",
+    "removeAskTitle": "移除 relay {{url}}",
+    "removeAskBody": "是否也要生成新身份？",
+    "removeKeepKeys": "否",
+    "removeChangeKeys": "是",
+    "removeNsecTitle": "你备份过 nsec 了吗？",
+    "removeNsecBody": "新的密钥对会替换此设备上的身份。没有备份将无法恢复。",
+    "removeNsecNo": "否",
+    "removeNsecYes": "是",
+    "removeIdentityDone": "正在创建新身份…",
+    "removeAskLoss": "这将替换此设备上的 nsec。你将无法再读取私信，也不能再用此身份发帖或管理帖子。已在 relay 上的帖子仍属于旧身份。",
+    "removeIdentityAborted": "未做任何更改。生成新身份前请先备份 nsec。"
   },
   "mediaUpload": {
     "title": "媒体上传",

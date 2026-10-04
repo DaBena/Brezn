@@ -97,7 +97,18 @@
     "reachableWithRtt": "terjangkau • {{rtt}}ms",
     "unreachableWithErr": "tak terjangkau • {{error}}",
     "statusAria": "Status relay: {{state}}",
-    "duplicate": "Relay sudah ada di daftar."
+    "duplicate": "Relay sudah ada di daftar.",
+    "removeAskTitle": "Hapus relay {{url}}",
+    "removeAskBody": "Apakah Anda juga ingin membuat identitas baru?",
+    "removeKeepKeys": "Tidak",
+    "removeChangeKeys": "Ya",
+    "removeNsecTitle": "Sudah cadangkan nsec Anda?",
+    "removeNsecBody": "Pasangan kunci baru mengganti identitas di perangkat ini. Tanpa cadangan tidak bisa dipulihkan.",
+    "removeNsecNo": "Tidak",
+    "removeNsecYes": "Ya",
+    "removeIdentityDone": "Membuat identitas baru…",
+    "removeAskLoss": "Ini akan mengganti nsec di perangkat ini. Anda kehilangan akses ke DM dan tidak bisa lagi memposting atau mengelola postingan sebagai identitas ini. Postingan di relay tetap di bawah identitas lama.",
+    "removeIdentityAborted": "Tidak ada yang berubah. Cadangkan nsec sebelum membuat identitas baru."
   },
   "mediaUpload": {
     "title": "Unggah media",

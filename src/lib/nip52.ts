@@ -97,6 +97,37 @@ export function nip52Summary(evt: Event): string | undefined {
   return firstNonEmptyTagValue(evt, 'summary')
 }
 
+function normComparableText(s: string): string {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+/** Event page URL from `url` or an http(s) `r` tag. */
+export function nip52EventUrl(evt: Event): string | undefined {
+  const tagged = firstNonEmptyTagValue(evt, 'url')
+  if (tagged && /^https?:\/\//i.test(tagged)) return tagged
+  for (const t of evt.tags) {
+    if (t[0] !== 'r' || typeof t[1] !== 'string') continue
+    const v = t[1].trim()
+    if (/^https?:\/\//i.test(v)) return v
+  }
+  return undefined
+}
+
+/** One description: drop summary when it duplicates `content`. */
+export function nip52Description(evt: Event): string | undefined {
+  const summary = (nip52Summary(evt) ?? '').trim()
+  const content = (evt.content ?? '').trim()
+  if (!summary && !content) return undefined
+  if (!summary) return content
+  if (!content) return summary
+  const ns = normComparableText(summary)
+  const nc = normComparableText(content)
+  if (ns === nc) return summary
+  if (nc.includes(ns)) return content
+  if (ns.includes(nc)) return summary
+  return `${summary}\n\n${content}`
+}
+
 export function isValidNip52CalendarEvent(evt: Event): boolean {
   if (!isNip52CalendarKind(evt.kind)) return false
   const d = firstNonEmptyTagValue(evt, 'd')
@@ -106,20 +137,18 @@ export function isValidNip52CalendarEvent(evt: Event): boolean {
 }
 
 /**
- * Plain text for feed/profile list cards — same shape as kind 1 `content` (one `PostContent` block).
- * Title, schedule, location, url, then summary + raw `content`.
+ * Plain text for feed/profile search and fallbacks.
+ * Title, schedule, location, url, then a single description (summary/content deduped).
  */
 export function nip52FeedCardPostContent(evt: Event): string {
   if (!isNip52CalendarKind(evt.kind)) return evt.content ?? ''
-  const title = nip52Title(evt)
-  const schedule = nip52FormatSchedule(evt)
-  const loc = nip52LocationsLine(evt)
-  const url = firstNonEmptyTagValue(evt, 'url')
-  const descParts = [nip52Summary(evt), evt.content ?? '']
-    .map((s) => (typeof s === 'string' ? s.trim() : ''))
-    .filter(Boolean)
-  const description = descParts.join('\n\n').trim()
-  const blocks = [title, schedule, loc, url, description].filter(Boolean)
+  const blocks = [
+    nip52Title(evt),
+    nip52FormatSchedule(evt),
+    nip52LocationsLine(evt),
+    nip52EventUrl(evt),
+    nip52Description(evt),
+  ].filter(Boolean)
   return blocks.join('\n\n').trim()
 }
 
@@ -176,7 +205,7 @@ export function nip52SearchBlob(evt: Event): string {
     nip52Title(evt),
     nip52Summary(evt) ?? '',
     nip52LocationsLine(evt) ?? '',
-    firstNonEmptyTagValue(evt, 'url') ?? '',
+    nip52EventUrl(evt) ?? '',
     ...nip52GeohashValues(evt),
     ...nip52LocationStrings(evt),
   ]

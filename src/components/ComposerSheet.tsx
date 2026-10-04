@@ -202,7 +202,7 @@ export function ComposerSheet(props: {
   const geohashInputClass = `inline-block min-w-[6ch] max-w-[14ch] bg-brezn-bg px-1.5 py-0.5 ${composeFieldClass}`
 
   const cellLine = (
-    <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs">
+    <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-base">
       {viewerGeo5 ? (
         <>
           <span className="font-semibold">{t('composer.createInCell')}</span>

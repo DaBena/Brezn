@@ -97,7 +97,18 @@
     "reachableWithRtt": "raggiungibile • {{rtt}}ms",
     "unreachableWithErr": "non raggiungibile • {{error}}",
     "statusAria": "Stato relay: {{state}}",
-    "duplicate": "Questo relay è già nell’elenco."
+    "duplicate": "Questo relay è già nell’elenco.",
+    "removeAskTitle": "Rimuovi relay {{url}}",
+    "removeAskBody": "Vuoi anche generare una nuova identità?",
+    "removeKeepKeys": "No",
+    "removeChangeKeys": "Sì",
+    "removeNsecTitle": "Hai fatto un backup del tuo nsec?",
+    "removeNsecBody": "Una nuova coppia di chiavi sostituisce questa identità su questo dispositivo. Senza backup non puoi ripristinarla.",
+    "removeNsecNo": "No",
+    "removeNsecYes": "Sì",
+    "removeIdentityDone": "Creazione di una nuova identità…",
+    "removeAskLoss": "Questo sostituirà l’nsec su questo dispositivo. Perderai l’accesso ai DM e non potrai più pubblicare o gestire i post con questa identità. I post già sui relay restano sotto la vecchia identità.",
+    "removeIdentityAborted": "Niente è cambiato. Fai un backup del nsec prima di generare una nuova identità."
   },
   "mediaUpload": {
     "title": "Caricamento media",

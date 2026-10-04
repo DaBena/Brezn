@@ -3,6 +3,8 @@ import type { Event } from './nostrPrimitives'
 import {
   NIP52_KIND_TIME_EVENT,
   nip52CalendarMatchesQueryCells,
+  nip52Description,
+  nip52EventUrl,
   nip52FeedCardPostContent,
   nip52ReplaceableMergeKey,
   nip52Title,
@@ -112,7 +114,7 @@ describe('nip52FeedCardPostContent', () => {
     expect(out.length).toBeGreaterThan('Picnic'.length + 'calendar'.length)
   })
 
-  it('joins summary and content under tags', () => {
+  it('joins distinct summary and content under tags', () => {
     const evt = baseEvt({
       content: '#calendar\nDetails here',
       tags: [
@@ -129,6 +131,22 @@ describe('nip52FeedCardPostContent', () => {
     expect(out).toContain('#calendar')
   })
 
+  it('does not repeat identical summary and content', () => {
+    const text = 'A short event description used in both summary and content.'
+    const evt = baseEvt({
+      content: text,
+      tags: [
+        ['d', 'x'],
+        ['title', 'Example Event'],
+        ['start', '1700000000'],
+        ['summary', text],
+      ],
+    })
+    const out = nip52FeedCardPostContent(evt)
+    expect(out.match(/short event description/g)).toHaveLength(1)
+    expect(nip52Description(evt)).toBe(text)
+  })
+
   it('includes url tag when present', () => {
     const evt = baseEvt({
       tags: [
@@ -139,6 +157,20 @@ describe('nip52FeedCardPostContent', () => {
       ],
     })
     expect(nip52FeedCardPostContent(evt)).toContain('https://example.com/event')
+  })
+
+  it('uses http r tag when url tag is missing', () => {
+    const href = 'https://example.com/events/example-show'
+    const evt = baseEvt({
+      tags: [
+        ['d', 'x'],
+        ['title', 'Meet'],
+        ['start', '1700000000'],
+        ['r', href],
+      ],
+    })
+    expect(nip52EventUrl(evt)).toBe(href)
+    expect(nip52FeedCardPostContent(evt)).toContain(href)
   })
 })
 

@@ -97,7 +97,18 @@
     "reachableWithRtt": "נגיש • {{rtt}}ms",
     "unreachableWithErr": "לא נגיש • {{error}}",
     "statusAria": "מצב relay: {{state}}",
-    "duplicate": "relay זה כבר ברשימה."
+    "duplicate": "relay זה כבר ברשימה.",
+    "removeAskTitle": "הסר ריליי {{url}}",
+    "removeAskBody": "ליצור גם זהות חדשה?",
+    "removeKeepKeys": "לא",
+    "removeChangeKeys": "כן",
+    "removeNsecTitle": "גיבית את ה-nsec?",
+    "removeNsecBody": "זוג מפתחות חדש מחליף את הזהות במכשיר. בלי גיבוי לא ניתן לשחזר.",
+    "removeNsecNo": "לא",
+    "removeNsecYes": "כן",
+    "removeIdentityDone": "יוצרים זהות חדשה…",
+    "removeAskLoss": "זה יחליף את ה-nsec במכשיר. תאבד/י גישה להודעות ישירות ולא תוכל/י לפרסם או לנהל פוסטים בזהות הזו. פוסטים שכבר בריליי יישארו תחת הזהות הישנה.",
+    "removeIdentityAborted": "שום דבר לא השתנה. גבה/י את ה-nsec לפני יצירת זהות חדשה."
   },
   "mediaUpload": {
     "title": "העלאת מדיה",

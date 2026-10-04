@@ -8,6 +8,8 @@ import { buttonBase, reactionButtonClasses } from '../lib/buttonStyles'
 import { feedListPostCardClass, feedListPostDeletedClass } from '../lib/uiClasses'
 import { formatEventCardTimestamp } from '../lib/nostrUtils'
 import { PostContent } from './PostContent'
+import { Nip52EventContent } from './Nip52EventContent'
+import { isNip52CalendarKind } from '../lib/nip52'
 import { PostIdentity } from './PostIdentity'
 import { HeartIcon } from './HeartIcon'
 import { DistanceLabel } from './DistanceLabel'
@@ -40,6 +42,33 @@ export type FeedEventArticleProps =
 
 function displayNameFromTags(evt: Event): string | undefined {
   return evt.tags.find((t) => t[0] === 'n')?.[1]
+}
+
+function EventCardBody(props: {
+  evt: Event
+  contentPreview: string
+  client: BreznNostrClient
+  onOpenThread: (evt: Event) => void
+  onOpenProfile?: (pubkey: string) => void
+}) {
+  const { evt, contentPreview, client, onOpenThread, onOpenProfile } = props
+  return (
+    <div className="mt-2 min-w-0 max-w-full">
+      {isNip52CalendarKind(evt.kind) ? (
+        <Nip52EventContent evt={evt} interactive />
+      ) : (
+        <PostContent
+          content={contentPreview}
+          tags={evt.tags}
+          interactive
+          compact
+          client={client}
+          onOpenThread={onOpenThread}
+          onOpenProfile={onOpenProfile}
+        />
+      )}
+    </div>
+  )
 }
 
 export function FeedEventArticle(props: FeedEventArticleProps) {
@@ -79,17 +108,13 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
             {dist}
           </div>
         )}
-        <div className="mt-2 min-w-0 max-w-full">
-          <PostContent
-            content={contentPreview}
-            tags={evt.tags}
-            interactive
-            compact
-            client={client}
-            onOpenThread={onOpenThread}
-            onOpenProfile={props.onOpenProfile}
-          />
-        </div>
+        <EventCardBody
+          evt={evt}
+          contentPreview={contentPreview}
+          client={client}
+          onOpenThread={onOpenThread}
+          onOpenProfile={props.onOpenProfile}
+        />
       </article>
     )
   }
@@ -117,17 +142,13 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
             {dist}
           </div>
         </div>
-        <div className="mt-2 min-w-0 max-w-full">
-          <PostContent
-            content={contentPreview}
-            tags={evt.tags}
-            interactive
-            compact
-            client={client}
-            onOpenThread={onOpenThread}
-            onOpenProfile={props.onOpenProfile}
-          />
-        </div>
+        <EventCardBody
+          evt={evt}
+          contentPreview={contentPreview}
+          client={client}
+          onOpenThread={onOpenThread}
+          onOpenProfile={props.onOpenProfile}
+        />
       </article>
     )
   }
@@ -168,17 +189,13 @@ export function FeedEventArticle(props: FeedEventArticleProps) {
           <span className="font-mono">{reactionsByNoteId[evt.id]?.total ?? 0}</span>
         </button>
       </div>
-      <div className="mt-2 min-w-0 max-w-full">
-        <PostContent
-          content={contentPreview}
-          tags={evt.tags}
-          interactive
-          compact
-          client={client}
-          onOpenThread={onOpenThread}
-          onOpenProfile={props.onOpenProfile}
-        />
-      </div>
+      <EventCardBody
+        evt={evt}
+        contentPreview={contentPreview}
+        client={client}
+        onOpenThread={onOpenThread}
+        onOpenProfile={props.onOpenProfile}
+      />
     </article>
   )
 }

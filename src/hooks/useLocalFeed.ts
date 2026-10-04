@@ -18,7 +18,11 @@ import {
   FEED_SUBSCRIPTION_BATCH_MAX_MS,
 } from '../lib/constants'
 import { mergeFeedIncoming } from '../lib/feedBatchMerge'
-import { filterFeedEventsByQuery, getQueryCellsForFeed } from '../lib/feedGeoMatch'
+import {
+  buildFeedGeoFilters,
+  filterFeedEventsByQuery,
+  getQueryCellsForFeed,
+} from '../lib/feedGeoMatch'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'
 import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from '../lib/breznNostr'
 import {
@@ -62,7 +66,7 @@ export function useLocalFeed(params: {
 
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
-  // geohashLength 0 → keep full geo5 for distance/UI; REQ uses all 32 `#g` prefixes.
+  // geohashLength 0 → keep full geo5 for distance/UI; REQ uses global 1-char `#g` plus home cell tags.
   // Else slice geo5 to the precision selector.
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
@@ -346,15 +350,13 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    // One REQ: mode 0 uses all 32 base32 `#g` prefixes; else the sliced query cell.
-    const cellsToQuery = getQueryCellsForFeed(queryGeohash, geohashLength)
-    const unsub = client.subscribe(
-      {
+    const unsub = client.subscribeGrouped(
+      buildFeedGeoFilters(viewerGeo5 ?? queryGeohash, geohashLength, {
         kinds: feedKinds,
-        '#g': cellsToQuery,
         limit: FEED_QUERY_LIMIT,
-      },
-      { onevent: onEvent, oneose: onEose, onclose: onClose, immediate: true },
+      }),
+      { onevent: onEvent, oneose: onEose, onclose: onClose },
+      'feed',
     )
     unsubRef.current = unsub
     return () => {
@@ -477,19 +479,18 @@ export function useLocalFeed(params: {
         finish(newEventCount)
       }
 
-      const unsub = client.subscribe(
-        {
+      const unsub = client.subscribeGrouped(
+        buildFeedGeoFilters(viewerGeo5 ?? queryGeohash, geohashLength, {
           kinds: kindsLoadMore,
-          '#g': cellsForLoadMore,
           limit: FEED_QUERY_LIMIT,
           until,
-        },
+        }),
         {
           onevent: onEventLoadMore,
           oneose: markDone,
           onclose: markDone,
-          immediate: true,
         },
+        'feed',
       )
       unsubs.push(unsub)
 

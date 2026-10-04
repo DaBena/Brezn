@@ -1,5 +1,5 @@
-import type { Event } from './nostrPrimitives'
-import { GEOHASH_BASE32_PREFIXES } from './geo'
+import type { Event, Filter } from './nostrPrimitives'
+import { GEOHASH_BASE32_PREFIXES, generateGeohashTags } from './geo'
 import { NOSTR_KINDS } from './breznNostr'
 import {
   isNip52CalendarKind,
@@ -9,8 +9,32 @@ import {
 import { isReplyNote } from './nostrUtils'
 
 /**
- * `#g` values for the feed REQ.
- * Mode 0: all 32 base32 1-char prefixes (global geotagged feed, one filter).
+ * Relay `#g` is exact match. Length 2+ can query the sliced cell alone.
+ * Length 0/1 would miss notes that skip the 1-char `g` tag, so add a second
+ * filter for the viewer's length≥2 prefixes (own `limit`, not mixed into the wide query).
+ */
+export function buildFeedGeoFilters(
+  geo5: string,
+  geohashLength: number,
+  base: Pick<Filter, 'kinds' | 'limit' | 'until'>,
+): Filter[] {
+  const cell = geo5.trim().toLowerCase()
+  if (geohashLength >= 2) {
+    return [{ ...base, '#g': [cell.slice(0, geohashLength)] }]
+  }
+
+  const radius = geohashLength === 0 ? [...GEOHASH_BASE32_PREFIXES] : [cell.slice(0, 1)]
+  const home = generateGeohashTags(cell).filter((t) => t.length >= 2)
+  if (home.length === 0) return [{ ...base, '#g': radius }]
+  return [
+    { ...base, '#g': radius },
+    { ...base, '#g': home },
+  ]
+}
+
+/**
+ * `#g` values for client-side keep/drop (union of relay groups).
+ * Mode 0: all 32 base32 1-char prefixes (prefix-match any geotagged root).
  * Otherwise: the active query prefix only.
  */
 export function getQueryCellsForFeed(queryGeohash: string, geohashLength: number): string[] {

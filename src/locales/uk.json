@@ -97,7 +97,18 @@
     "reachableWithRtt": "доступне • {{rtt}}ms",
     "unreachableWithErr": "недоступне • {{error}}",
     "statusAria": "Статус реле: {{state}}",
-    "duplicate": "Це реле вже у списку."
+    "duplicate": "Це реле вже у списку.",
+    "removeAskTitle": "Видалити реле {{url}}",
+    "removeAskBody": "Також згенерувати нову особу?",
+    "removeKeepKeys": "Ні",
+    "removeChangeKeys": "Так",
+    "removeNsecTitle": "Ви зробили резервну копію nsec?",
+    "removeNsecBody": "Нова пара ключів замінює цю особу на пристрої. Без копії її не відновити.",
+    "removeNsecNo": "Ні",
+    "removeNsecYes": "Так",
+    "removeIdentityDone": "Створюємо нову особу…",
+    "removeAskLoss": "Це замінить nsec на цьому пристрої. Ви втратите доступ до DM і більше не зможете публікувати чи керувати дописами від цієї особи. Дописи на релеях залишаться під старою особою.",
+    "removeIdentityAborted": "Нічого не змінено. Збережіть nsec, перш ніж генерувати нову особу."
   },
   "mediaUpload": {
     "title": "Завантаження медіа",

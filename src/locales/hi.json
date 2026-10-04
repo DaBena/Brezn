@@ -97,7 +97,18 @@
     "reachableWithRtt": "पहुँच योग्य • {{rtt}} ms",
     "unreachableWithErr": "अपहुँच • {{error}}",
     "statusAria": "रिले स्थिति: {{state}}",
-    "duplicate": "यह relay पहले से सूची में है।"
+    "duplicate": "यह relay पहले से सूची में है।",
+    "removeAskTitle": "रिले {{url}} हटाएँ",
+    "removeAskBody": "क्या आप भी एक नई पहचान बनाना चाहते हैं?",
+    "removeKeepKeys": "नहीं",
+    "removeChangeKeys": "हाँ",
+    "removeNsecTitle": "क्या आपने nsec का बैकअप लिया है?",
+    "removeNsecBody": "नई कुंजी-जोड़ी इस डिवाइस की पहचान बदल देती है। बैकअप के बिना उसे वापस नहीं ला सकते।",
+    "removeNsecNo": "नहीं",
+    "removeNsecYes": "हाँ",
+    "removeIdentityDone": "नई पहचान बनाई जा रही है…",
+    "removeAskLoss": "इससे इस डिवाइस पर nsec बदल जाएगा। आपके DM खुल नहीं पाएँगे और इस पहचान से पोस्ट या प्रबंधन नहीं हो सकेगा। रिले पर मौजूदा पोस्ट पुरानी पहचान के तहत रहेंगे।",
+    "removeIdentityAborted": "कुछ नहीं बदला। नई पहचान बनाने से पहले nsec का बैकअप लें।"
   },
   "mediaUpload": {
     "title": "मीडिया अपलोड",

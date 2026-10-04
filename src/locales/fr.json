@@ -97,7 +97,18 @@
     "reachableWithRtt": "joignable • {{rtt}}ms",
     "unreachableWithErr": "injoignable • {{error}}",
     "statusAria": "État du relay : {{state}}",
-    "duplicate": "Ce relay est déjà dans la liste."
+    "duplicate": "Ce relay est déjà dans la liste.",
+    "removeAskTitle": "Retirer le relay {{url}}",
+    "removeAskBody": "Voulez-vous aussi générer une nouvelle identité ?",
+    "removeKeepKeys": "Non",
+    "removeChangeKeys": "Oui",
+    "removeNsecTitle": "Avez-vous sauvegardé votre nsec ?",
+    "removeNsecBody": "Un nouveau couple de clés remplace cette identité sur cet appareil. Sans sauvegarde, vous ne pourrez pas la restaurer.",
+    "removeNsecNo": "Non",
+    "removeNsecYes": "Oui",
+    "removeIdentityDone": "Création d’une nouvelle identité…",
+    "removeAskLoss": "Cela remplacera le nsec sur cet appareil. Vous perdrez l’accès à vos DM et ne pourrez plus publier ni gérer les posts avec cette identité. Les posts déjà sur les relays restent sous l’ancienne identité.",
+    "removeIdentityAborted": "Rien n’a changé. Sauvegardez votre nsec avant de générer une nouvelle identité."
   },
   "mediaUpload": {
     "title": "Envoi de médias",

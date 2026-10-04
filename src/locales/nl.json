@@ -97,7 +97,18 @@
     "reachableWithRtt": "bereikbaar • {{rtt}}ms",
     "unreachableWithErr": "onbereikbaar • {{error}}",
     "statusAria": "Relaystatus: {{state}}",
-    "duplicate": "Deze relay staat al in je lijst."
+    "duplicate": "Deze relay staat al in je lijst.",
+    "removeAskTitle": "Relay {{url}} verwijderen",
+    "removeAskBody": "Wil je ook een nieuwe identiteit genereren?",
+    "removeKeepKeys": "Nee",
+    "removeChangeKeys": "Ja",
+    "removeNsecTitle": "Heb je een back-up van je nsec gemaakt?",
+    "removeNsecBody": "Een nieuw sleutelpaar vervangt deze identiteit op dit apparaat. Zonder back-up kun je die niet herstellen.",
+    "removeNsecNo": "Nee",
+    "removeNsecYes": "Ja",
+    "removeIdentityDone": "Nieuwe identiteit wordt aangemaakt…",
+    "removeAskLoss": "Dit vervangt de nsec op dit apparaat. Je verliest toegang tot je DMs en kunt niet meer posten of berichten beheren als deze identiteit. Berichten op relays blijven onder de oude identiteit.",
+    "removeIdentityAborted": "Niets gewijzigd. Maak eerst een back-up van je nsec voordat je een nieuwe identiteit genereert."
   },
   "mediaUpload": {
     "title": "Media uploaden",

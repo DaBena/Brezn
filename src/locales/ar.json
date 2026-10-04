@@ -97,7 +97,18 @@
     "reachableWithRtt": "متاح • {{rtt}}ms",
     "unreachableWithErr": "غير متاح • {{error}}",
     "statusAria": "حالة المرحّل: {{state}}",
-    "duplicate": "هذا التتابع موجود بالفعل في القائمة."
+    "duplicate": "هذا التتابع موجود بالفعل في القائمة.",
+    "removeAskTitle": "إزالة الريلاي {{url}}",
+    "removeAskBody": "هل تريد أيضًا إنشاء هوية جديدة؟",
+    "removeKeepKeys": "لا",
+    "removeChangeKeys": "نعم",
+    "removeNsecTitle": "هل نسخت nsec احتياطيًا؟",
+    "removeNsecBody": "زوج مفاتيح جديد يستبدل هذه الهوية على الجهاز. بدون نسخة احتياطية لا يمكن استعادتها.",
+    "removeNsecNo": "لا",
+    "removeNsecYes": "نعم",
+    "removeIdentityDone": "جارٍ إنشاء هوية جديدة…",
+    "removeAskLoss": "سيؤدي ذلك إلى استبدال nsec على هذا الجهاز. ستفقد الوصول إلى رسائلك الخاصة ولن تتمكن من النشر أو إدارة المنشورات بهذه الهوية. المنشورات الموجودة على الريلايات تبقى تحت الهوية القديمة.",
+    "removeIdentityAborted": "لم يتغير شيء. انسخ nsec احتياطيًا قبل إنشاء هوية جديدة."
   },
   "mediaUpload": {
     "title": "رفع الوسائط",

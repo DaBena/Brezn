@@ -97,7 +97,18 @@
     "reachableWithRtt": "доступно • {{rtt}}ms",
     "unreachableWithErr": "недоступно • {{error}}",
     "statusAria": "Статус реле: {{state}}",
-    "duplicate": "Этот relay уже в списке."
+    "duplicate": "Этот relay уже в списке.",
+    "removeAskTitle": "Удалить реле {{url}}",
+    "removeAskBody": "Также сгенерировать новую личность?",
+    "removeKeepKeys": "Нет",
+    "removeChangeKeys": "Да",
+    "removeNsecTitle": "Вы сохранили резервную копию nsec?",
+    "removeNsecBody": "Новая пара ключей заменяет эту личность на устройстве. Без копии её не восстановить.",
+    "removeNsecNo": "Нет",
+    "removeNsecYes": "Да",
+    "removeIdentityDone": "Создаём новую личность…",
+    "removeAskLoss": "Это заменит nsec на этом устройстве. Вы потеряете доступ к личным сообщениям и больше не сможете публиковать и управлять записями от этой личности. Записи на релеях останутся под старой личностью.",
+    "removeIdentityAborted": "Ничего не изменилось. Сначала сохраните nsec, прежде чем создавать новую личность."
   },
   "mediaUpload": {
     "title": "Загрузка медиа",

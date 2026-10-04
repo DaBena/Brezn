@@ -97,7 +97,18 @@
     "reachableWithRtt": "kết nối được • {{rtt}} ms",
     "unreachableWithErr": "không kết nối được • {{error}}",
     "statusAria": "Trạng thái relay: {{state}}",
-    "duplicate": "Relay này đã có trong danh sách."
+    "duplicate": "Relay này đã có trong danh sách.",
+    "removeAskTitle": "Xóa relay {{url}}",
+    "removeAskBody": "Bạn cũng muốn tạo danh tính mới?",
+    "removeKeepKeys": "Không",
+    "removeChangeKeys": "Có",
+    "removeNsecTitle": "Bạn đã sao lưu nsec chưa?",
+    "removeNsecBody": "Cặp khóa mới thay danh tính trên thiết bị này. Không có sao lưu thì không khôi phục được.",
+    "removeNsecNo": "Không",
+    "removeNsecYes": "Có",
+    "removeIdentityDone": "Đang tạo danh tính mới…",
+    "removeAskLoss": "Thao tác này thay nsec trên thiết bị. Bạn mất quyền đọc DM và không thể đăng hay quản lý bài với danh tính này. Bài đã có trên relay vẫn thuộc danh tính cũ.",
+    "removeIdentityAborted": "Không có gì thay đổi. Hãy sao lưu nsec trước khi tạo danh tính mới."
   },
   "mediaUpload": {
     "title": "Tải media lên",

@@ -97,7 +97,18 @@
     "reachableWithRtt": "সংযোগযোগ্য • {{rtt}}ms",
     "unreachableWithErr": "অসংযোগযোগ্য • {{error}}",
     "statusAria": "রিলে অবস্থা: {{state}}",
-    "duplicate": "এই রিলে ইতিমধ্যে তালিকায় আছে।"
+    "duplicate": "এই রিলে ইতিমধ্যে তালিকায় আছে।",
+    "removeAskTitle": "রিলে {{url}} সরান",
+    "removeAskBody": "নতুন পরিচয়ও তৈরি করতে চান?",
+    "removeKeepKeys": "না",
+    "removeChangeKeys": "হ্যাঁ",
+    "removeNsecTitle": "nsec ব্যাকআপ করেছেন?",
+    "removeNsecBody": "নতুন কী-জোড়া এই ডিভাইসের পরিচয় বদলাবে। ব্যাকআপ ছাড়া ফিরিয়ে আনা যাবে না।",
+    "removeNsecNo": "না",
+    "removeNsecYes": "হ্যাঁ",
+    "removeIdentityDone": "নতুন পরিচয় তৈরি হচ্ছে…",
+    "removeAskLoss": "এতে এই ডিভাইসের nsec বদলে যাবে। DM দেখা যাবে না, এই পরিচয়ে পোস্ট বা পরিচালনাও করা যাবে না। রিলেতে থাকা পোস্ট পুরোনো পরিচয়েই থাকবে।",
+    "removeIdentityAborted": "কিছুই বদলায়নি। নতুন পরিচয় তৈরির আগে nsec ব্যাকআপ করুন।"
   },
   "mediaUpload": {
     "title": "মিডিয়া আপলোড",

@@ -97,7 +97,18 @@
     "reachableWithRtt": "erişilebilir • {{rtt}} ms",
     "unreachableWithErr": "erişilemez • {{error}}",
     "statusAria": "Relay durumu: {{state}}",
-    "duplicate": "Bu relay zaten listede."
+    "duplicate": "Bu relay zaten listede.",
+    "removeAskTitle": "Relay {{url}} kaldır",
+    "removeAskBody": "Yeni bir kimlik de oluşturmak ister misin?",
+    "removeKeepKeys": "Hayır",
+    "removeChangeKeys": "Evet",
+    "removeNsecTitle": "nsec yedeğini aldın mı?",
+    "removeNsecBody": "Yeni bir anahtar çifti bu cihazdaki kimliği değiştirir. Yedek olmadan geri yükleyemezsin.",
+    "removeNsecNo": "Hayır",
+    "removeNsecYes": "Evet",
+    "removeIdentityDone": "Yeni kimlik oluşturuluyor…",
+    "removeAskLoss": "Bu, cihazdaki nsec’i değiştirir. DM’lerine erişimi kaybedersin ve bu kimlikle artık paylaşım yapamaz veya gönderileri yönetemezsin. Relay’lerdeki gönderiler eski kimlik altında kalır.",
+    "removeIdentityAborted": "Hiçbir şey değişmedi. Yeni kimlik oluşturmadan önce nsec’ini yedekle."
   },
   "mediaUpload": {
     "title": "Medya yükleme",

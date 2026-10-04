@@ -97,7 +97,18 @@
     "reachableWithRtt": "erreichbar • {{rtt}}ms",
     "unreachableWithErr": "nicht erreichbar • {{error}}",
     "statusAria": "Relay-Status: {{state}}",
-    "duplicate": "Dieses Relay ist bereits in der Liste."
+    "duplicate": "Dieses Relay ist bereits in der Liste.",
+    "removeAskTitle": "Relay {{url}} entfernen",
+    "removeAskBody": "Möchtest du auch eine neue Identität erzeugen?",
+    "removeAskLoss": "Damit wird der nsec auf diesem Gerät ersetzt. Du verlierst den Zugriff auf deine DMs und kannst nicht mehr als diese Identität posten oder Beiträge verwalten. Beiträge auf Relays bleiben unter der alten Identität.",
+    "removeKeepKeys": "Nein",
+    "removeChangeKeys": "Ja",
+    "removeNsecTitle": "Hast du ein Backup deines nsec gemacht?",
+    "removeNsecBody": "Ein neues Schlüsselpaar ersetzt diese Identität auf diesem Gerät. Ohne Backup ist sie nicht wiederherstellbar.",
+    "removeNsecNo": "Nein",
+    "removeNsecYes": "Ja",
+    "removeIdentityDone": "Neue Identität wird erzeugt…",
+    "removeIdentityAborted": "Nichts geändert. Sichere zuerst dein nsec, bevor du eine neue Identität erzeugst."
   },
   "mediaUpload": {
     "title": "Medien-Upload",

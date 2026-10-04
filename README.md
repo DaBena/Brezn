@@ -36,6 +36,8 @@ Your identity consists of a key pair (npub/nsec) and is not bound to a server or
 Brezn is a client for the existing Nostr protocol with focus on local, location-based feeds using geohash tags and **not** its own social network.
 With the same keys and relays you can see the same content on other Nostr clients.
 
+Before media upload, Brezn tries **best-effort** to strip identifying metadata from images and videos. Images are re-encoded in [`compressImage`](src/lib/mediaUpload.ts); MP4/MOV containers are cleaned in [`stripMp4Metadata.ts`](src/lib/stripMp4Metadata.ts). Both run from [`ComposerSheet.tsx`](src/components/ComposerSheet.tsx).
+
 ## Tech Stack
 
 - `React` + `Vite`
@@ -65,7 +67,7 @@ Many thanks to the developers of the dependencies and operators of public Nostr 
 ## Legal stuff
 
 Brezn is a client application that connects to the Nostr network. The developer does not host published content, operate Nostr relays, or process any personal data.
-When you post or send a DM, events go straight to the relays of your choice. Those relays store and distribute content according to their own policies.
+When you use the app, traffic goes straight to the relays and media hosts of your choice. Those third-party servers store and distribute content according to their own policies and can see your IP address.
 Your keys and app settings are stored in your browser local storage on your device.
 Build artifacts are hosted on GitHub Pages; access data is handled under GitHub’s [Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
 Brezn is provided "as is" without warranties. The developer disclaims liability for damages arising from use of the software or the Nostr protocol.

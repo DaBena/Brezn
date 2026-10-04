@@ -97,7 +97,18 @@
     "reachableWithRtt": "接続可 • {{rtt}}ms",
     "unreachableWithErr": "接続不可 • {{error}}",
     "statusAria": "リレー状態: {{state}}",
-    "duplicate": "この relay はすでにリストにあります。"
+    "duplicate": "この relay はすでにリストにあります。",
+    "removeAskTitle": "リレー {{url}} を削除",
+    "removeAskBody": "新しい ID も生成しますか?",
+    "removeKeepKeys": "いいえ",
+    "removeChangeKeys": "はい",
+    "removeNsecTitle": "nsec をバックアップしましたか?",
+    "removeNsecBody": "新しい鍵ペアがこの端末の ID を置き換えます。バックアップがないと復元できません。",
+    "removeNsecNo": "いいえ",
+    "removeNsecYes": "はい",
+    "removeIdentityDone": "新しい ID を作成しています…",
+    "removeAskLoss": "この端末の nsec が置き換わります。DM にアクセスできなくなり、この ID として投稿・管理できなくなります。リレー上の既存の投稿は古い ID のまま残ります。",
+    "removeIdentityAborted": "変更はありません。新しい ID を生成する前に nsec をバックアップしてください。"
   },
   "mediaUpload": {
     "title": "メディアアップロード",

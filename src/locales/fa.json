@@ -97,7 +97,18 @@
     "reachableWithRtt": "در دسترس • {{rtt}} ms",
     "unreachableWithErr": "غیرقابل دسترس • {{error}}",
     "statusAria": "وضعیت رله: {{state}}",
-    "duplicate": "این relay از قبل در فهرست است."
+    "duplicate": "این relay از قبل در فهرست است.",
+    "removeAskTitle": "حذف رله {{url}}",
+    "removeAskBody": "می‌خواهید هویت جدیدی هم بسازید؟",
+    "removeKeepKeys": "خیر",
+    "removeChangeKeys": "بله",
+    "removeNsecTitle": "از nsec پشتیبان گرفته‌اید؟",
+    "removeNsecBody": "یک جفت کلید جدید این هویت را روی دستگاه جایگزین می‌کند. بدون پشتیبان بازنمی‌گردد.",
+    "removeNsecNo": "خیر",
+    "removeNsecYes": "بله",
+    "removeIdentityDone": "در حال ایجاد هویت جدید…",
+    "removeAskLoss": "این کار nsec را روی این دستگاه عوض می‌کند. به پیام‌های مستقیم دسترسی نخواهید داشت و دیگر نمی‌توانید با این هویت پست بگذارید یا مدیریت کنید. پست‌های موجود روی رله‌ها زیر هویت قبلی می‌مانند.",
+    "removeIdentityAborted": "چیزی تغییر نکرد. پیش از ساخت هویت جدید از nsec پشتیبان بگیرید."
   },
   "mediaUpload": {
     "title": "بارگذاری رسانه",

@@ -11,6 +11,8 @@ import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { useToast } from './ToastContext'
 import { Sheet } from './Sheet'
 import { PostContent } from './PostContent'
+import { Nip52EventContent } from './Nip52EventContent'
+import { isNip52CalendarKind } from '../lib/nip52'
 import { PostIdentity } from './PostIdentity'
 import { DistanceLabel } from './DistanceLabel'
 import { feedEventCardPlainText } from '../lib/feedContentPreview'
@@ -46,15 +48,19 @@ function PostCard(props: {
         </div>
       </div>
       <div className="mt-2">
-        <PostContent
-          content={feedEventCardPlainText(evt)}
-          tags={evt.tags}
-          linkMedia
-          mediaStacked
-          client={client}
-          onOpenThread={onOpenThread}
-          onOpenProfile={onOpenProfile}
-        />
+        {isNip52CalendarKind(evt.kind) ? (
+          <Nip52EventContent evt={evt} />
+        ) : (
+          <PostContent
+            content={feedEventCardPlainText(evt)}
+            tags={evt.tags}
+            linkMedia
+            mediaStacked
+            client={client}
+            onOpenThread={onOpenThread}
+            onOpenProfile={onOpenProfile}
+          />
+        )}
       </div>
     </article>
   )

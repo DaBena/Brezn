@@ -47,6 +47,26 @@ describe('nostrClient identity (no accounts)', () => {
     expect(id2.npub).toBe(id1.npub)
   })
 
+  it('rotateIdentity replaces the keypair and persists it', () => {
+    const client = createNostrClient()
+    const before = client.getPublicIdentity()
+    const after = client.rotateIdentity()
+    expect(after.pubkey).not.toBe(before.pubkey)
+    expect(after.npub).not.toBe(before.npub)
+    expect(client.getPublicIdentity().pubkey).toBe(after.pubkey)
+
+    const reloaded = createNostrClient()
+    expect(reloaded.getPublicIdentity().pubkey).toBe(after.pubkey)
+  })
+
+  it('rotateIdentity does not change the relay list', () => {
+    const client = createNostrClient()
+    const relays = [...client.getRelays()]
+    expect(relays.length).toBeGreaterThan(0)
+    client.rotateIdentity()
+    expect(client.getRelays()).toEqual(relays)
+  })
+
   it('persists keyword filters', () => {
     const client = createNostrClient()
     client.setMutedTerms(['spam', ' evil.example ', 'SPAM'])

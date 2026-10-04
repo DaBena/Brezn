@@ -238,7 +238,7 @@ export type BreznNostrClient = {
 
   /**
    * Get geohash length for feed queries (0-5).
-   * - 0: Global geotagged feed (`#g` = all 32 base32 1-char prefixes, one query)
+   * - 0: Global geotagged feed (`#g` = 32 one-char prefixes, plus a second local filter for length≥2 prefixes)
    * - 1: ~5000km × ~2500km per cell (largest)
    * - 2: ~1250km × ~625km per cell (default)
    * - 3: ~156km × ~78km per cell
@@ -340,6 +340,12 @@ export type BreznNostrClient = {
    * @throws If nsec is invalid or cannot be decoded
    */
   setIdentity(nsec: string): void
+
+  /**
+   * Replace the current identity with a newly generated keypair.
+   * Old notes and DMs stay on the network under the previous pubkey; this device can no longer sign as that identity.
+   */
+  rotateIdentity(): { pubkey: string; npub: string }
 
   /**
    * Flush in-memory state to localStorage / IndexedDB (e.g. after location consent ensures storage is ready).
@@ -1436,6 +1442,18 @@ export function createNostrClient(): BreznNostrClient {
     })
   }
 
+  function applyIdentityFromSkHex(skHex: string): { pubkey: string; npub: string } {
+    const pubkey = getPublicKey(hexToBytes(skHex))
+    const npub = nip19.npubEncode(pubkey)
+    stateCache = null
+    stateCacheInitialized = false
+    ephemeralIdentityWhileEncrypted = null
+    saveState({ skHex, pubkey, npub })
+    ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
+    resubscribeAll('identity-changed')
+    return { pubkey, npub }
+  }
+
   function setIdentity(nsec: string): void {
     const trimmed = nsec.trim()
     if (!trimmed) {
@@ -1457,27 +1475,18 @@ export function createNostrClient(): BreznNostrClient {
         throw new Error('Invalid nsec: secret key must be 32 bytes')
       }
 
-      // Derive public key from secret key
-      const pubkey = getPublicKey(skBytes)
-      const npub = nip19.npubEncode(pubkey)
-
-      // Clear state cache to force reload
-      stateCache = null
-      stateCacheInitialized = false
-      ephemeralIdentityWhileEncrypted = null
-
-      // Save new identity (this will encrypt it automatically)
-      saveState({ skHex, pubkey, npub })
-
-      ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
-      // Resubscribe all active subscriptions with new identity
-      resubscribeAll('identity-changed')
+      applyIdentityFromSkHex(skHex)
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to import nsec: ${error.message}`, { cause: error })
       }
       throw new Error('Failed to import nsec: Invalid format', { cause: error })
     }
+  }
+
+  function rotateIdentity(): { pubkey: string; npub: string } {
+    const skHex = bytesToHex(generateSecretKey())
+    return applyIdentityFromSkHex(skHex)
   }
 
   // Ensure identity exists immediately (no "accounts"/login flow).
@@ -1512,6 +1521,7 @@ export function createNostrClient(): BreznNostrClient {
     updateProfile,
     getMyProfile,
     setIdentity,
+    rotateIdentity,
     persistStateNow() {
       saveState(loadState())
     },

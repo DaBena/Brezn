@@ -97,7 +97,18 @@
     "reachableWithRtt": "osiągalny • {{rtt}} ms",
     "unreachableWithErr": "nieosiągalny • {{error}}",
     "statusAria": "Status relay’a: {{state}}",
-    "duplicate": "To relay jest już na liście."
+    "duplicate": "To relay jest już na liście.",
+    "removeAskTitle": "Usuń relay {{url}}",
+    "removeAskBody": "Czy chcesz też wygenerować nową tożsamość?",
+    "removeKeepKeys": "Nie",
+    "removeChangeKeys": "Tak",
+    "removeNsecTitle": "Czy masz kopię zapasową nsec?",
+    "removeNsecBody": "Nowa para kluczy zastępuje tę tożsamość na tym urządzeniu. Bez kopii nie przywrócisz jej.",
+    "removeNsecNo": "Nie",
+    "removeNsecYes": "Tak",
+    "removeIdentityDone": "Tworzenie nowej tożsamości…",
+    "removeAskLoss": "To zastąpi nsec na tym urządzeniu. Stracisz dostęp do DM i nie będziesz już móc publikować ani zarządzać postami jako ta tożsamość. Posty już na relayach zostaną pod starą tożsamością.",
+    "removeIdentityAborted": "Nic się nie zmieniło. Zrób kopię nsec, zanim wygenerujesz nową tożsamość."
   },
   "mediaUpload": {
     "title": "Przesyłanie mediów",

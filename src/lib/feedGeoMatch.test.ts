@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Event } from './nostrPrimitives'
 import {
+  buildFeedGeoFilters,
   feedRootEventMatchesQueryCells,
   filterFeedEventsByQuery,
   getQueryCellsForFeed,
@@ -17,6 +18,29 @@ describe('getQueryCellsForFeed', () => {
 
   it('uses single prefix cell otherwise', () => {
     expect(getQueryCellsForFeed('u09', 3)).toEqual(['u09'])
+  })
+})
+
+describe('buildFeedGeoFilters', () => {
+  const base = { kinds: [1, 31923], limit: 200 }
+
+  it('length ≥ 2 queries only the sliced cell', () => {
+    expect(buildFeedGeoFilters('u09vw', 2, base)).toEqual([{ ...base, '#g': ['u0'] }])
+    expect(buildFeedGeoFilters('u09vw', 3, base)).toEqual([{ ...base, '#g': ['u09'] }])
+  })
+
+  it('length 0/1 add a second home-cell filter for length≥2 prefixes', () => {
+    const home = ['u0', 'u09', 'u09v', 'u09vw']
+    const wide = buildFeedGeoFilters('u09vw', 0, base)
+    expect(wide).toHaveLength(2)
+    expect(wide[0]).toMatchObject({ ...base, '#g': [...GEOHASH_BASE32_PREFIXES] })
+    expect(wide[1]).toMatchObject({ ...base, '#g': home })
+
+    const len1 = buildFeedGeoFilters('u09vw', 1, base)
+    expect(len1).toEqual([
+      { ...base, '#g': ['u'] },
+      { ...base, '#g': home },
+    ])
   })
 })
 

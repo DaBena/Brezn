@@ -97,7 +97,18 @@
     "reachableWithRtt": "연결됨 • {{rtt}}ms",
     "unreachableWithErr": "연결 안 됨 • {{error}}",
     "statusAria": "릴레이 상태: {{state}}",
-    "duplicate": "이 relay는 이미 목록에 있습니다."
+    "duplicate": "이 relay는 이미 목록에 있습니다.",
+    "removeAskTitle": "릴레이 {{url}} 삭제",
+    "removeAskBody": "새 신원도 생성할까요?",
+    "removeKeepKeys": "아니요",
+    "removeChangeKeys": "예",
+    "removeNsecTitle": "nsec를 백업했나요?",
+    "removeNsecBody": "새 키 쌍이 이 기기의 신원을 바꿉니다. 백업이 없으면 복구할 수 없습니다.",
+    "removeNsecNo": "아니요",
+    "removeNsecYes": "예",
+    "removeIdentityDone": "새 신원 만드는 중…",
+    "removeAskLoss": "이 기기의 nsec가 교체됩니다. DM에 접근할 수 없고 이 신원으로 게시하거나 관리할 수 없습니다. 릴레이에 이미 있는 게시물은 이전 신원으로 남습니다.",
+    "removeIdentityAborted": "변경 사항 없음. 새 신원을 만들기 전에 nsec를 백업하세요."
   },
   "mediaUpload": {
     "title": "미디어 업로드",

@@ -97,7 +97,18 @@
     "reachableWithRtt": "可連線 • {{rtt}}ms",
     "unreachableWithErr": "無法連線 • {{error}}",
     "statusAria": "Relay 狀態：{{state}}",
-    "duplicate": "此 relay 已在列表中。"
+    "duplicate": "此 relay 已在列表中。",
+    "removeAskTitle": "移除 relay {{url}}",
+    "removeAskBody": "是否也要產生新身分？",
+    "removeKeepKeys": "否",
+    "removeChangeKeys": "是",
+    "removeNsecTitle": "你備份過 nsec 了嗎？",
+    "removeNsecBody": "新的金鑰對會取代此裝置上的身分。沒有備份將無法還原。",
+    "removeNsecNo": "否",
+    "removeNsecYes": "是",
+    "removeIdentityDone": "正在建立新身分…",
+    "removeAskLoss": "這會取代此裝置上的 nsec。你將無法再讀取私訊，也不能再用此身分發文或管理貼文。已在 relay 上的貼文仍屬於舊身分。",
+    "removeIdentityAborted": "未做任何變更。產生新身分前請先備份 nsec。"
   },
   "mediaUpload": {
     "title": "媒體上傳",

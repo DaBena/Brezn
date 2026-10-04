@@ -97,7 +97,18 @@
     "reachableWithRtt": "เชื่อมต่อได้ • {{rtt}}ms",
     "unreachableWithErr": "เชื่อมต่อไม่ได้ • {{error}}",
     "statusAria": "สถานะ relay: {{state}}",
-    "duplicate": "relay นี้อยู่ในรายการแล้ว"
+    "duplicate": "relay นี้อยู่ในรายการแล้ว",
+    "removeAskTitle": "ลบรีเลย์ {{url}}",
+    "removeAskBody": "ต้องการสร้างตัวตนใหม่ด้วยหรือไม่",
+    "removeKeepKeys": "ไม่",
+    "removeChangeKeys": "ใช่",
+    "removeNsecTitle": "สำรอง nsec ไว้แล้วหรือยัง",
+    "removeNsecBody": "คู่กุญแจใหม่จะแทนที่ตัวตนบนอุปกรณ์นี้ หากไม่มีข้อมูลสำรองจะกู้คืนไม่ได้",
+    "removeNsecNo": "ไม่",
+    "removeNsecYes": "ใช่",
+    "removeIdentityDone": "กำลังสร้างตัวตนใหม่…",
+    "removeAskLoss": "การนี้จะแทนที่ nsec บนอุปกรณ์นี้ คุณจะเข้าถึง DM ไม่ได้ และโพสต์หรือจัดการโพสต์ในฐานะตัวตนนี้ไม่ได้อีก โพสต์ที่มีอยู่บนรีเลย์ยังอยู่ภายใต้ตัวตนเดิม",
+    "removeIdentityAborted": "ไม่มีการเปลี่ยนแปลง สำรอง nsec ก่อนสร้างตัวตนใหม่"
   },
   "mediaUpload": {
     "title": "อัปโหลดสื่อ",
