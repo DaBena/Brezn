@@ -64,5 +64,8 @@
     "vite": "^8.3.2",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "find-yarn-workspace-root": "file:scripts/stubs/find-yarn-workspace-root"
   }
 }

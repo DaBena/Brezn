@@ -1,0 +1,7 @@
+{
+  "name": "find-yarn-workspace-root",
+  "version": "2.0.0",
+  "private": true,
+  "description": "npm-only stub: drop micromatch/braces (CVE-2026-93687) from patch-package.",
+  "main": "index.js"
+}
