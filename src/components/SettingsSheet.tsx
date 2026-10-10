@@ -9,6 +9,7 @@ import { RelaySettings } from './settings/RelaySettings'
 import { MediaUploadSettings } from './settings/MediaUploadSettings'
 import { ProfileSettings } from './settings/ProfileSettings'
 import { ThemeSettings } from './settings/ThemeSettings'
+import { FollowSettings } from './settings/FollowSettings'
 import { useTheme } from '../hooks/useTheme'
 import { useToast } from './ToastContext'
 
@@ -21,6 +22,7 @@ export function SettingsSheet(props: {
   geoCell: string | null
   onGeohashLengthChange: (length: number) => void
   onRelaysChanged?: () => void
+  onFollowsChanged?: () => void
 }) {
   const {
     open,
@@ -31,6 +33,7 @@ export function SettingsSheet(props: {
     geoCell,
     onGeohashLengthChange,
     onRelaysChanged,
+    onFollowsChanged,
   } = props
 
   const { t } = useTranslation()
@@ -144,6 +147,12 @@ export function SettingsSheet(props: {
           key={`moderation-${resetKey}`}
           client={client}
           onModerationChanged={onModerationChanged}
+        />
+
+        <FollowSettings
+          key={`follows-${resetKey}`}
+          client={client}
+          onFollowsChanged={onFollowsChanged}
         />
 
         <KeyManagement client={client} />

@@ -25,8 +25,6 @@ export function GeohashSettings({
 }: GeohashSettingsProps) {
   const { t } = useTranslation()
 
-  const precisionLine = geohashLength === 0 ? t('geohash.queries3') : cellSizeHint(geohashLength, t)
-
   const lengthSubline =
     geohashLength === 0 ? t('geohash.queriesCurrent') : cellSizeHint(geohashLength, t)
 
@@ -34,8 +32,7 @@ export function GeohashSettings({
     <div className="p-3">
       <div className="text-xs font-semibold text-brezn-muted">{t('geohash.searchRadius')}</div>
       <div className="mt-1 text-xs text-brezn-muted">
-        {t('geohash.lengthLabel')} {geohashLength === 0 ? t('geohash.length0') : geohashLength} •{' '}
-        {precisionLine}
+        {t('geohash.lengthLabel')} {geohashLength === 0 ? t('geohash.length0') : geohashLength}
       </div>
       {geoCell ? (
         <div className="mt-1 text-xs text-brezn-muted">

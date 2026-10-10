@@ -3,7 +3,7 @@
     "loading": "Laden…"
   },
   "nav": {
-    "searchPlaceholder": "Beiträge suchen…",
+    "searchPlaceholder": "Suchen…",
     "openChat": "Chat öffnen",
     "openMenu": "Menü öffnen"
   },
@@ -38,7 +38,6 @@
     "searchRadius": "Suchradius",
     "lengthLabel": "Geohash-Länge:",
     "length0": "0",
-    "queries3": "alle g-Tags",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Radius verkleinern",
@@ -46,7 +45,7 @@
     "length": "Länge {{n}}",
     "queriesCurrent": "alle geotaggten Posts",
     "precisionFallback": "Höher = kleiner (genauer) – aber weniger Treffer.",
-    "cellSize": "{{w}} × {{h}} pro Zelle"
+    "cellSize": "{{w}} × {{h}}, plus 8 Nachbarn"
   },
   "moderation": {
     "blocklist": "Blockliste",
@@ -246,6 +245,18 @@
     "offlineBlock": "Offline – Blockieren nicht möglich.",
     "deleteFailed": "Löschen fehlgeschlagen.",
     "publishFailedFallback": "Posten fehlgeschlagen."
+  },
+  "search": {
+    "people": "Personen",
+    "posts": "Beiträge",
+    "noResults": "Keine Treffer.",
+    "searching": "Suche…"
+  },
+  "follow": {
+    "follow": "Folgen",
+    "unfollow": "Entfolgen",
+    "followingList": "Folge ich",
+    "empty": "Du folgst noch niemandem."
   },
   "profileSheet": {
     "openPictureAria": "Profilbild öffnen",

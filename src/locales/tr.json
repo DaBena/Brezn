@@ -38,7 +38,6 @@
     "searchRadius": "Arama yarıçapı",
     "lengthLabel": "Geohash uzunluğu:",
     "length0": "0",
-    "queries3": "tüm g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Yarıçapı azalt",
@@ -46,7 +45,7 @@
     "length": "Uzunluk {{n}}",
     "queriesCurrent": "tüm konumlu gönderiler",
     "precisionFallback": "Daha yüksek = daha küçük (daha kesin) — ancak daha az sonuç.",
-    "cellSize": "Hücre başına {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}, artı 8 komşu"
   },
   "moderation": {
     "blocklist": "Engel listesi",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "Alıntılanan gönderi yükleniyor…",
     "noText": "(metin yok)"
+  },
+  "search": {
+    "people": "Kişiler",
+    "posts": "Gönderiler",
+    "noResults": "Sonuç yok.",
+    "searching": "Aranıyor…"
+  },
+  "follow": {
+    "follow": "Takip et",
+    "unfollow": "Takipten çık",
+    "followingList": "Takip edilenler",
+    "empty": "Henüz kimseyi takip etmiyorsun."
   }
 }

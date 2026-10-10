@@ -13,6 +13,7 @@ import { feedEventCardPlainText, truncateProfileCardContent } from '../lib/feedC
 import { Sheet } from './Sheet'
 import { FEED_RENDER_CHUNK } from '../lib/constants'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
+import { FollowButton } from './FollowButton'
 
 export function ProfileSheet(props: {
   open: boolean
@@ -33,6 +34,8 @@ export function ProfileSheet(props: {
   onOpenDM?: () => void
   /** Warm start from feed list; merged with sheet subscription. */
   cachedProfile?: Profile
+  isFollowed?: boolean
+  onToggleFollow?: () => void
 }) {
   const {
     open,
@@ -51,6 +54,8 @@ export function ProfileSheet(props: {
     onOpenProfile,
     onNoteIdsChange,
     onOpenDM,
+    isFollowed = false,
+    onToggleFollow,
   } = props
 
   const { t } = useTranslation()
@@ -170,29 +175,38 @@ export function ProfileSheet(props: {
                   </p>
                 ) : null}
               </div>
-              {onOpenDM ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenDM()}
-                  disabled={isOffline}
-                  aria-label="Open direct message"
-                  className={`flex shrink-0 items-center justify-center gap-2 self-center rounded-xl px-4 py-2.5 text-sm font-semibold sm:self-start ${buttonBase}`}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    aria-hidden="true"
-                    className="opacity-90"
+              <div className="flex shrink-0 flex-col gap-2 self-center sm:self-start">
+                {onToggleFollow ? (
+                  <FollowButton
+                    isFollowed={isFollowed}
+                    disabled={isOffline}
+                    onClick={onToggleFollow}
+                  />
+                ) : null}
+                {onOpenDM ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDM()}
+                    disabled={isOffline}
+                    aria-label="Open direct message"
+                    className={`flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${buttonBase}`}
                   >
-                    <path
-                      fill="currentColor"
-                      d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
-                    />
-                  </svg>
-                  <span>{t('profileSheet.message')}</span>
-                </button>
-              ) : null}
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      aria-hidden="true"
+                      className="opacity-90"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
+                      />
+                    </svg>
+                    <span>{t('profileSheet.message')}</span>
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </header>

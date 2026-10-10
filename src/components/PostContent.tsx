@@ -3,9 +3,11 @@ import type { Event } from '../lib/nostrPrimitives'
 import { cn } from '../lib/cn'
 import { preparePostContentSource } from '../lib/postContentProse'
 import {
+  blueskyVideoPosterUrl,
   extractLinks,
   extractPostReferences,
   extractProfileReferences,
+  isHlsPlaylistUrl,
   isSafeUrl,
 } from '../lib/urls'
 import type { BreznNostrClient } from '../lib/nostrClient'
@@ -117,6 +119,70 @@ function ImagePreview(props: {
   return <div className="block overflow-hidden">{image}</div>
 }
 
+function FileOrHlsVideo(props: { url: string; compact: boolean; onFail?: (url: string) => void }) {
+  const { url, compact, onFail } = props
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const onFailRef = useRef(onFail)
+  onFailRef.current = onFail
+  const hls = isHlsPlaylistUrl(url)
+  const poster = blueskyVideoPosterUrl(url) ?? undefined
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !hls) return
+    let cancelled = false
+    let player: { destroy: () => void } | null = null
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url
+      return () => {
+        video.removeAttribute('src')
+        video.load()
+      }
+    }
+
+    void import('hls.js')
+      .then(({ default: Hls }) => {
+        if (cancelled || !videoRef.current) return
+        if (!Hls.isSupported()) {
+          onFailRef.current?.(url)
+          return
+        }
+        const instance = new Hls({ enableWorker: true, capLevelToPlayerSize: true })
+        player = instance
+        instance.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) onFailRef.current?.(url)
+        })
+        instance.loadSource(url)
+        instance.attachMedia(videoRef.current)
+      })
+      .catch(() => {
+        if (!cancelled) onFailRef.current?.(url)
+      })
+
+    return () => {
+      cancelled = true
+      player?.destroy()
+    }
+  }, [hls, url])
+
+  return (
+    <video
+      ref={videoRef}
+      src={hls ? undefined : url}
+      poster={poster}
+      controls
+      playsInline
+      preload="metadata"
+      referrerPolicy="no-referrer"
+      className={`block w-full bg-black object-contain ${compact ? 'max-h-64' : 'max-h-[min(70vh,36rem)]'}`}
+      onError={() => {
+        if (!hls) onFail?.(url)
+      }}
+    />
+  )
+}
+
 function VideoPreview(props: {
   url: string
   loadMedia: boolean
@@ -141,17 +207,7 @@ function VideoPreview(props: {
     )
   }
 
-  const video = (
-    <video
-      src={url}
-      controls
-      playsInline
-      preload="metadata"
-      referrerPolicy="no-referrer"
-      className={`block w-full ${compact ? 'max-h-64' : ''}`}
-      onError={() => onFail?.(url)}
-    />
-  )
+  const video = <FileOrHlsVideo url={url} compact={compact} onFail={onFail} />
 
   if (linkMedia) {
     return (

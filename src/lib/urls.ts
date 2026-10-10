@@ -228,7 +228,7 @@ export function uniqueUrls(urls: string[]): string[] {
 }
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg']
-const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv']
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.m3u8']
 
 function hasExtension(url: string, extensions: string[]): boolean {
   try {
@@ -246,6 +246,28 @@ export function isLikelyImageUrl(url: string): boolean {
 
 export function isLikelyVideoUrl(url: string): boolean {
   return hasExtension(url, VIDEO_EXTENSIONS)
+}
+
+/** HLS playlist. Chrome and Firefox need a player; Safari can use the video element. */
+export function isHlsPlaylistUrl(url: string): boolean {
+  return hasExtension(url, ['.m3u8'])
+}
+
+/**
+ * Bluesky publishes each video as `.../playlist.m3u8` next to `.../thumbnail.jpg`.
+ * Returns that poster when the URL matches, otherwise null.
+ */
+export function blueskyVideoPosterUrl(playlistUrl: string): string | null {
+  try {
+    const parsed = new URL(playlistUrl)
+    const host = parsed.hostname.toLowerCase()
+    if (host !== 'video.bsky.app' && host !== 'video.cdn.bsky.app') return null
+    if (!parsed.pathname.toLowerCase().endsWith('/playlist.m3u8')) return null
+    parsed.pathname = parsed.pathname.replace(/\/playlist\.m3u8$/i, '/thumbnail.jpg')
+    return parsed.toString()
+  } catch {
+    return null
+  }
 }
 
 // Validate that a URL is safe to use in href attributes

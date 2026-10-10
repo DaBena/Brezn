@@ -18,10 +18,3 @@ export function getSavedGeo5(): string | null {
 export function setSavedGeo5(geo5: string): void {
   saveJsonSync(LAST_LOCATION_KEY, geo5)
 }
-
-/**
- * True if the user has ever saved a location (consent: saw notice and clicked Allow location).
- */
-export function hasLocationConsent(): boolean {
-  return getSavedGeo5() !== null
-}

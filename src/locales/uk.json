@@ -38,7 +38,6 @@
     "searchRadius": "Радіус пошуку",
     "lengthLabel": "Довжина geohash:",
     "length0": "0",
-    "queries3": "усі g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Зменшити радіус",
@@ -46,7 +45,7 @@
     "length": "Довжина {{n}}",
     "queriesCurrent": "усі геопости",
     "precisionFallback": "Більше = менша клітинка (точніше) — менше результатів.",
-    "cellSize": "{{w}} × {{h}} на клітинку"
+    "cellSize": "{{w}} × {{h}}, плюс 8 сусідів"
   },
   "moderation": {
     "blocklist": "Блоклист",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "Завантаження…",
     "close": "Закрити"
+  },
+  "search": {
+    "people": "Люди",
+    "posts": "Дописи",
+    "noResults": "Немає результатів.",
+    "searching": "Пошук…"
+  },
+  "follow": {
+    "follow": "Стежити",
+    "unfollow": "Не стежити",
+    "followingList": "Стежу",
+    "empty": "Ви ще ні за ким не стежите."
   }
 }

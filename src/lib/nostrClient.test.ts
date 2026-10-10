@@ -2,7 +2,7 @@ import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setSavedGeo5 } from './lastLocation'
 import { grantBreznIndexedDbWrites } from './storage'
-import { createNostrClient, parseRelayUrlOrThrow } from './nostrClient'
+import { createNostrClient, DEFAULT_RELAYS, parseRelayUrlOrThrow } from './nostrClient'
 
 describe('nostrClient NDK / Vitest', () => {
   beforeEach(() => {
@@ -65,6 +65,65 @@ describe('nostrClient identity (no accounts)', () => {
     expect(relays.length).toBeGreaterThan(0)
     client.rotateIdentity()
     expect(client.getRelays()).toEqual(relays)
+  })
+
+  it('includes NIP-50 search relays in the default relay list', () => {
+    expect(DEFAULT_RELAYS).toContain('wss://search.nos.today')
+    expect(DEFAULT_RELAYS).toContain('wss://relay.ditto.pub')
+    const client = createNostrClient()
+    const normalized = client.getRelays().map((u) => u.replace(/\/+$/, ''))
+    expect(normalized).toContain('wss://search.nos.today')
+    expect(normalized).toContain('wss://relay.ditto.pub')
+  })
+
+  it('merges new bootstrap relays into an older saved default subset', async () => {
+    createNostrClient()
+    const raw = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}') as {
+      settings?: { relays?: string[]; bootstrapRelaysRev?: number }
+    }
+    raw.settings = {
+      ...raw.settings,
+      relays: [
+        'wss://relay.damus.io',
+        'wss://nos.lol',
+        'wss://offchain.pub',
+        'wss://bitcoiner.social',
+      ],
+    }
+    delete raw.settings.bootstrapRelaysRev
+    localStorage.setItem('brezn:v1', JSON.stringify(raw))
+    vi.resetModules()
+    const { createNostrClient: createFresh } = await import('./nostrClient')
+    const relays = createFresh()
+      .getRelays()
+      .map((u) => u.replace(/\/+$/, ''))
+    expect(relays).toContain('wss://search.nos.today')
+    expect(relays).toContain('wss://relay.ditto.pub')
+    expect(relays).toContain('wss://relay.damus.io')
+  })
+
+  it('does not merge bootstrap relays into a custom saved list', async () => {
+    createNostrClient()
+    const raw = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}') as {
+      settings?: { relays?: string[]; bootstrapRelaysRev?: number }
+    }
+    raw.settings = { ...raw.settings, relays: ['wss://only-mine.example.com'] }
+    delete raw.settings.bootstrapRelaysRev
+    localStorage.setItem('brezn:v1', JSON.stringify(raw))
+    vi.resetModules()
+    const { createNostrClient: createFresh } = await import('./nostrClient')
+    expect(createFresh().getRelays()).toEqual(['wss://only-mine.example.com'])
+  })
+
+  it('persists followed pubkeys and drops them when blocked', async () => {
+    const client = createNostrClient()
+    const pk = 'c'.repeat(64)
+    client.setFollowedPubkeys([pk, pk, 'short'])
+    expect(client.getFollowedPubkeys()).toEqual([pk])
+    const client2 = createNostrClient()
+    expect(client2.getFollowedPubkeys()).toEqual([pk])
+    await client2.setBlockedPubkeys([pk])
+    expect(client2.getFollowedPubkeys()).toEqual([])
   })
 
   it('persists keyword filters', () => {
@@ -137,11 +196,11 @@ describe('nostrClient geohash length', () => {
     grantBreznIndexedDbWrites()
   })
 
-  it('defaults to 2', () => {
-    const client = createNostrClient()
-    const length = client.getGeohashLength()
-    expect(length).toBeGreaterThanOrEqual(1)
-    expect(length).toBeLessThanOrEqual(5)
+  it('defaults to 2', async () => {
+    vi.resetModules()
+    localStorage.clear()
+    const { createNostrClient: createFresh } = await import('./nostrClient')
+    expect(createFresh().getGeohashLength()).toBe(2)
   })
 
   it('clamps geohash length to valid range', () => {

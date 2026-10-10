@@ -38,7 +38,6 @@
     "searchRadius": "Радиус поиска",
     "lengthLabel": "Длина geohash:",
     "length0": "0",
-    "queries3": "все g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Уменьшить радиус",
@@ -46,7 +45,7 @@
     "length": "Длина {{n}}",
     "queriesCurrent": "все геопосты",
     "precisionFallback": "Больше = меньше ячейка (точнее), но меньше результатов.",
-    "cellSize": "{{w}} × {{h}} на ячейку"
+    "cellSize": "{{w}} × {{h}}, плюс 8 соседей"
   },
   "moderation": {
     "blocklist": "Чёрный список",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "Загрузка цитируемого поста…",
     "noText": "(нет текста)"
+  },
+  "search": {
+    "people": "Люди",
+    "posts": "Записи",
+    "noResults": "Нет результатов.",
+    "searching": "Поиск…"
+  },
+  "follow": {
+    "follow": "Подписаться",
+    "unfollow": "Отписаться",
+    "followingList": "Подписки",
+    "empty": "Вы пока ни на кого не подписаны."
   }
 }

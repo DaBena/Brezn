@@ -38,7 +38,6 @@
     "searchRadius": "搜索半径",
     "lengthLabel": "Geohash 长度：",
     "length0": "0",
-    "queries3": "全部 g",
     "geoHashLabel": "Geohash:",
     "geoHashEmpty": "Geohash: -",
     "decreaseRadius": "缩小半径",
@@ -46,7 +45,7 @@
     "length": "长度 {{n}}",
     "queriesCurrent": "全部定位帖",
     "precisionFallback": "数值越大格子越小（更精确），但结果更少。",
-    "cellSize": "每格约 {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}，加 8 邻格"
   },
   "moderation": {
     "blocklist": "屏蔽词",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "正在加载引用帖子…",
     "noText": "（无正文）"
+  },
+  "search": {
+    "people": "用户",
+    "posts": "帖子",
+    "noResults": "没有结果。",
+    "searching": "搜索中…"
+  },
+  "follow": {
+    "follow": "关注",
+    "unfollow": "取消关注",
+    "followingList": "正在关注",
+    "empty": "你还没有关注任何人。"
   }
 }

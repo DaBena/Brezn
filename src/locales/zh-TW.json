@@ -38,7 +38,6 @@
     "searchRadius": "搜尋半徑",
     "lengthLabel": "Geohash 長度：",
     "length0": "0",
-    "queries3": "全部 g",
     "geoHashLabel": "GeoHash：",
     "geoHashEmpty": "GeoHash：-",
     "decreaseRadius": "縮小半徑",
@@ -46,7 +45,7 @@
     "length": "長度 {{n}}",
     "queriesCurrent": "全部定位貼文",
     "precisionFallback": "數值越大格越小（更精確），但結果更少。",
-    "cellSize": "每格約 {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}，加 8 鄰格"
   },
   "moderation": {
     "blocklist": "封鎖清單",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "載入中…",
     "close": "關閉"
+  },
+  "search": {
+    "people": "使用者",
+    "posts": "貼文",
+    "noResults": "沒有結果。",
+    "searching": "搜尋中…"
+  },
+  "follow": {
+    "follow": "追蹤",
+    "unfollow": "取消追蹤",
+    "followingList": "追蹤中",
+    "empty": "你還沒有追蹤任何人。"
   }
 }

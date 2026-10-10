@@ -38,7 +38,6 @@
     "searchRadius": "Radius pencarian",
     "lengthLabel": "Panjang geohash:",
     "length0": "0",
-    "queries3": "semua g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Perkecil radius",
@@ -46,7 +45,7 @@
     "length": "Panjang {{n}}",
     "queriesCurrent": "semua post geo",
     "precisionFallback": "Lebih tinggi = lebih kecil (lebih presisi) — hasil lebih sedikit.",
-    "cellSize": "{{w}} × {{h}} per sel"
+    "cellSize": "{{w}} × {{h}}, plus 8 tetangga"
   },
   "moderation": {
     "blocklist": "Daftar blokir",
@@ -182,7 +181,7 @@
     "uploadFailed": "Unggah gagal.",
     "publishFailed": "Publikasi gagal.",
     "invalidGeohash": "Geohash tidak valid.",
-    "editGeohashAria": "Edit geohash"
+    "editGeohashAria": "Sunting geohash"
   },
   "feedArticle": {
     "deleted": "Dihapus — disebar ke relay",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "Memuat…",
     "close": "Tutup"
+  },
+  "search": {
+    "people": "Orang",
+    "posts": "Kiriman",
+    "noResults": "Tidak ada hasil.",
+    "searching": "Mencari…"
+  },
+  "follow": {
+    "follow": "Ikuti",
+    "unfollow": "Berhenti mengikuti",
+    "followingList": "Mengikuti",
+    "empty": "Anda belum mengikuti siapa pun."
   }
 }

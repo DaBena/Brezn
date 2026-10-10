@@ -38,7 +38,6 @@
     "searchRadius": "Promień wyszukiwania",
     "lengthLabel": "Długość geohash:",
     "length0": "0",
-    "queries3": "wszystkie g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Zmniejsz promień",
@@ -46,7 +45,7 @@
     "length": "Długość {{n}}",
     "queriesCurrent": "wszystkie posty geo",
     "precisionFallback": "Wyższa = mniejsza (dokładniejsza) — ale mniej wyników.",
-    "cellSize": "{{w}} × {{h}} na komórkę"
+    "cellSize": "{{w}} × {{h}}, plus 8 sąsiadów"
   },
   "moderation": {
     "blocklist": "Blokady",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "Wczytywanie cytowanego posta…",
     "noText": "(brak tekstu)"
+  },
+  "search": {
+    "people": "Osoby",
+    "posts": "Wpisy",
+    "noResults": "Brak wyników.",
+    "searching": "Szukanie…"
+  },
+  "follow": {
+    "follow": "Obserwuj",
+    "unfollow": "Przestań obserwować",
+    "followingList": "Obserwowani",
+    "empty": "Nie obserwujesz jeszcze nikogo."
   }
 }

@@ -38,7 +38,6 @@
     "searchRadius": "Zoekradius",
     "lengthLabel": "Geohash-lengte:",
     "length0": "0",
-    "queries3": "alle g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Radius verkleinen",
@@ -46,7 +45,7 @@
     "length": "Lengte {{n}}",
     "queriesCurrent": "alle geo-posts",
     "precisionFallback": "Hoger = kleiner (preciezer) – maar minder resultaten.",
-    "cellSize": "{{w}} × {{h}} per cel"
+    "cellSize": "{{w}} × {{h}}, plus 8 buren"
   },
   "moderation": {
     "blocklist": "Blokkeerlijst",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "Laden…",
     "close": "Sluiten"
+  },
+  "search": {
+    "people": "Personen",
+    "posts": "Berichten",
+    "noResults": "Geen resultaten.",
+    "searching": "Zoeken…"
+  },
+  "follow": {
+    "follow": "Volgen",
+    "unfollow": "Ontvolgen",
+    "followingList": "Volgend",
+    "empty": "Je volgt nog niemand."
   }
 }

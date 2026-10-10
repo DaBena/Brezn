@@ -38,7 +38,6 @@
     "searchRadius": "רדיוס חיפוש",
     "lengthLabel": "אורך GeoHash:",
     "length0": "0",
-    "queries3": "כל g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "הקטנת רדיוס",
@@ -46,7 +45,7 @@
     "length": "אורך {{n}}",
     "queriesCurrent": "כל הפוסטים עם מיקום",
     "precisionFallback": "גבוה יותר = קטן יותר (מדויק) — פחות תוצאות.",
-    "cellSize": "{{w}} × {{h}} לתא"
+    "cellSize": "{{w}} × {{h}}, ועוד 8 שכנים"
   },
   "moderation": {
     "blocklist": "רשימת חסימה",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "טוען…",
     "close": "סגירה"
+  },
+  "search": {
+    "people": "אנשים",
+    "posts": "פוסטים",
+    "noResults": "אין תוצאות.",
+    "searching": "מחפש…"
+  },
+  "follow": {
+    "follow": "עקוב",
+    "unfollow": "בטל מעקב",
+    "followingList": "במעקב",
+    "empty": "עדיין אינך עוקב אחרי אף אחד."
   }
 }

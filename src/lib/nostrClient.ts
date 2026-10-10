@@ -32,6 +32,7 @@ import {
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
   DM_PEER_MODERATION_TEXT_MAX,
+  FOLLOWED_PUBKEYS_MAX,
   GET_DM_PARTIAL_PER_RELAY_TIMEOUT_MS,
   GET_DM_HISTORY_TIMEOUT_MS,
   GET_MY_PROFILE_FETCH_TIMEOUT_MS,
@@ -53,7 +54,13 @@ export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
   'wss://offchain.pub',
+  'wss://bitcoiner.social',
+  'wss://search.nos.today',
+  'wss://relay.ditto.pub',
 ] as const
+
+/** Bump when DEFAULT_RELAYS gains URLs so older saved bootstrap lists pick them up once. */
+const BOOTSTRAP_RELAYS_REV = 1
 
 const LS_KEY = 'brezn:v1'
 
@@ -65,12 +72,15 @@ type StoredStateV1 = {
   npub?: string
   mutedTerms: string[]
   blockedPubkeys: string[]
+  followedPubkeys?: string[]
   settings?: {
-    geohashLength?: number // 1-5, default: 1
+    geohashLength?: number // 0-5, default: 2
     mediaUploadEndpoint?: string
     theme?: 'light' | 'dark' // 'light' or 'dark', default: 'dark'
     /** If set (including `[]`), Brezn pins this list on NDK. If omitted, the bootstrap relay list above applies—still user-visible defaults only, no outbox / auto relay discovery. */
     relays?: string[]
+    /** Last applied DEFAULT_RELAYS growth merge; custom lists are stamped and left alone. */
+    bootstrapRelaysRev?: number
   }
 }
 
@@ -192,6 +202,8 @@ export type BreznNostrClient = {
       onevent: (evt: Event) => void
       oneose?: () => void
       onclose?: (reasons: string[]) => void
+      /** If set, pin this relay set (e.g. NIP-50-capable relays). Default: `getRelays()`. */
+      relayUrls?: string[]
     },
     traceLabel?: string,
   ): () => void
@@ -237,6 +249,16 @@ export type BreznNostrClient = {
   setBlockedPubkeys(pubkeys: string[]): Promise<void>
 
   /**
+   * Pubkeys whose posts are mixed into the chronological feed (local list, not kind 3).
+   */
+  getFollowedPubkeys(): string[]
+
+  /**
+   * Replace the follow list. Invalid entries are dropped; blocked pubkeys are omitted.
+   */
+  setFollowedPubkeys(pubkeys: string[]): void
+
+  /**
    * Get geohash length for feed queries (0-5).
    * - 0: Global geotagged feed (`#g` = 32 one-char prefixes, plus a second local filter for length≥2 prefixes)
    * - 1: ~5000km × ~2500km per cell (largest)
@@ -245,7 +267,7 @@ export type BreznNostrClient = {
    * - 4: ~39km × ~19km per cell
    * - 5: ~4.9km × ~4.9km per cell (smallest, most precise)
    *
-   * @returns Geohash length (0-5), default: 1
+   * @returns Geohash length (0-5), default: 2
    */
   getGeohashLength(): number
 
@@ -518,6 +540,30 @@ function normalizeRelays(relays: string[]): string[] {
   return out.slice(0, 30)
 }
 
+function relayListKey(url: string): string {
+  return url.replace(/\/+$/, '').toLowerCase()
+}
+
+/** Older saved bootstrap lists (subset of DEFAULT_RELAYS) gain new default URLs once. */
+function mergeMissingBootstrapRelays(stored: string[]): string[] {
+  const current = normalizeRelays(stored)
+  if (current.length === 0) return current
+  const defaultKeys = new Set(DEFAULT_RELAYS.map((u) => relayListKey(u)))
+  if (!current.every((u) => defaultKeys.has(relayListKey(u)))) return current
+  const seen = new Set(current.map((u) => relayListKey(u)))
+  const out = [...current]
+  for (const d of DEFAULT_RELAYS) {
+    const k = relayListKey(d)
+    if (seen.has(k)) continue
+    if (out.length >= 30) break
+    const norm = normalizeRelayUrl(d)
+    if (!norm) continue
+    seen.add(k)
+    out.push(norm)
+  }
+  return out
+}
+
 /**
  * Creates a new Nostr client instance.
  *
@@ -599,7 +645,15 @@ export function createNostrClient(): BreznNostrClient {
     const stored = s.settings?.relays
     if (Array.isArray(stored)) {
       if (stored.length === 0) return []
-      return normalizeRelays(stored)
+      const prev = normalizeRelays(stored)
+      const rev = s.settings?.bootstrapRelaysRev ?? 0
+      if (rev >= BOOTSTRAP_RELAYS_REV) return prev
+      const merged = mergeMissingBootstrapRelays(prev)
+      saveState({
+        settings: { ...s.settings, relays: merged, bootstrapRelaysRev: BOOTSTRAP_RELAYS_REV },
+      })
+      ndk.explicitRelayUrls = [...merged]
+      return merged
     }
     try {
       const poolUrls = ndk.pool.urls()
@@ -615,7 +669,9 @@ export function createNostrClient(): BreznNostrClient {
   function setRelays(relays: string[]) {
     const norm = normalizeRelays(relays)
     const s = loadState()
-    saveState({ settings: { ...s.settings, relays: norm } })
+    saveState({
+      settings: { ...s.settings, relays: norm, bootstrapRelaysRev: BOOTSTRAP_RELAYS_REV },
+    })
     ndk.explicitRelayUrls = [...norm]
     connectNdkRelays(ndk)
     resubscribeAll('relays-changed')
@@ -829,10 +885,11 @@ export function createNostrClient(): BreznNostrClient {
       onevent: (evt: Event) => void
       oneose?: () => void
       onclose?: (reasons: string[]) => void
+      relayUrls?: string[]
     },
     traceLabel = 'grouped',
   ): () => void {
-    const relays = getRelays()
+    const relays = opts.relayUrls ? normalizeRelays(opts.relayUrls) : getRelays()
     if (relays.length === 0 || filters.length === 0) {
       opts.onclose?.(['No relays configured'])
       return () => {}
@@ -878,7 +935,44 @@ export function createNostrClient(): BreznNostrClient {
 
     // Save locally (blocklist is private, not shared with relays)
     // Blocklist is only shared with relays via NIP-56 report events when a report reason is provided
-    saveState({ blockedPubkeys: normalized })
+    const blocked = new Set(normalized.map((p) => p.toLowerCase()))
+    const followed = (loadState().followedPubkeys ?? []).filter(
+      (p) => !blocked.has(p.toLowerCase()),
+    )
+    saveState({ blockedPubkeys: normalized, followedPubkeys: followed })
+  }
+
+  function normalizeFollowedPubkeys(pubkeys: string[]): string[] {
+    const blocked = new Set((loadState().blockedPubkeys ?? []).map((p) => p.toLowerCase()))
+    const self = (() => {
+      try {
+        return ensureIdentity().pubkey.toLowerCase()
+      } catch {
+        return ''
+      }
+    })()
+    const seen = new Set<string>()
+    const normalized: string[] = []
+    for (const p of pubkeys) {
+      const pk = p?.trim().toLowerCase() ?? ''
+      if (pk.length !== 64) continue
+      if (!/^[0-9a-f]{64}$/.test(pk)) continue
+      if (pk === self) continue
+      if (blocked.has(pk)) continue
+      if (seen.has(pk)) continue
+      seen.add(pk)
+      normalized.push(pk)
+      if (normalized.length >= FOLLOWED_PUBKEYS_MAX) break
+    }
+    return normalized
+  }
+
+  function getFollowedPubkeys(): string[] {
+    return loadState().followedPubkeys ?? []
+  }
+
+  function setFollowedPubkeys(pubkeys: string[]): void {
+    saveState({ followedPubkeys: normalizeFollowedPubkeys(pubkeys) })
   }
 
   function getGeohashLength(): number {
@@ -891,7 +985,7 @@ export function createNostrClient(): BreznNostrClient {
       if (len >= 1 && len <= 5) return len
     }
 
-    return 1
+    return 2
   }
 
   function setGeohashLength(length: number) {
@@ -1492,6 +1586,7 @@ export function createNostrClient(): BreznNostrClient {
   // Ensure identity exists immediately (no "accounts"/login flow).
   const initialIdentity = ensureIdentity()
   ndk.signer = new NDKPrivateKeySigner(initialIdentity.skHex, ndk)
+  ndk.explicitRelayUrls = [...getRelays()]
   connectNdkRelays(ndk)
 
   return {
@@ -1507,6 +1602,8 @@ export function createNostrClient(): BreznNostrClient {
     setMutedTerms,
     getBlockedPubkeys,
     setBlockedPubkeys,
+    getFollowedPubkeys,
+    setFollowedPubkeys,
     getGeohashLength,
     setGeohashLength,
     getMediaUploadEndpoint,

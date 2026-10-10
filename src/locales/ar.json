@@ -38,7 +38,6 @@
     "searchRadius": "نطاق البحث",
     "lengthLabel": "طول geohash:",
     "length0": "0",
-    "queries3": "كل g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "تصغير النطاق",
@@ -46,7 +45,7 @@
     "length": "الطول {{n}}",
     "queriesCurrent": "كل المنشورات المموّجة",
     "precisionFallback": "أعلى = أصغر (أدق) لكن نتائج أقل.",
-    "cellSize": "{{w}} × {{h}} لكل خلية"
+    "cellSize": "{{w}} × {{h}} و8 جيران"
   },
   "moderation": {
     "blocklist": "قائمة الحظر",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "جارٍ تحميل المنشور المقتبس…",
     "noText": "(لا نص)"
+  },
+  "search": {
+    "people": "أشخاص",
+    "posts": "منشورات",
+    "noResults": "لا نتائج.",
+    "searching": "جارٍ البحث…"
+  },
+  "follow": {
+    "follow": "متابعة",
+    "unfollow": "إلغاء المتابعة",
+    "followingList": "المتابَعون",
+    "empty": "لست تتابع أحداً بعد."
   }
 }

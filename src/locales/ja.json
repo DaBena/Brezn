@@ -38,7 +38,6 @@
     "searchRadius": "検索半径",
     "lengthLabel": "ジオハッシュ長:",
     "length0": "0",
-    "queries3": "すべての g",
     "geoHashLabel": "Geohash:",
     "geoHashEmpty": "Geohash: -",
     "decreaseRadius": "半径を縮小",
@@ -46,7 +45,7 @@
     "length": "長さ {{n}}",
     "queriesCurrent": "位置付き投稿",
     "precisionFallback": "大きいほど細かい（精密）ですが、件数は減ります。",
-    "cellSize": "セルあたり ~{{w}} × ~{{h}}"
+    "cellSize": "{{w}} × {{h}}、隣接 8"
   },
   "moderation": {
     "blocklist": "ブロックリスト",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "引用元を読み込み中…",
     "noText": "（テキストなし）"
+  },
+  "search": {
+    "people": "ユーザー",
+    "posts": "投稿",
+    "noResults": "該当なし。",
+    "searching": "検索中…"
+  },
+  "follow": {
+    "follow": "フォロー",
+    "unfollow": "フォロー解除",
+    "followingList": "フォロー中",
+    "empty": "まだ誰もフォローしていません。"
   }
 }

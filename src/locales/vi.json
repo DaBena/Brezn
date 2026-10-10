@@ -38,7 +38,6 @@
     "searchRadius": "Bán kính tìm kiếm",
     "lengthLabel": "Độ dài geohash:",
     "length0": "0",
-    "queries3": "mọi g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Giảm bán kính",
@@ -46,7 +45,7 @@
     "length": "Độ dài {{n}}",
     "queriesCurrent": "mọi bài có vị trí",
     "precisionFallback": "Cao hơn = nhỏ hơn (chính xác hơn) — nhưng ít kết quả hơn.",
-    "cellSize": "{{w}} × {{h}} mỗi ô"
+    "cellSize": "{{w}} × {{h}}, thêm 8 ô kề"
   },
   "moderation": {
     "blocklist": "Danh sách chặn",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "Đang tải bài được trích dẫn…",
     "noText": "(trống)"
+  },
+  "search": {
+    "people": "Người",
+    "posts": "Bài viết",
+    "noResults": "Không có kết quả.",
+    "searching": "Đang tìm…"
+  },
+  "follow": {
+    "follow": "Theo dõi",
+    "unfollow": "Bỏ theo dõi",
+    "followingList": "Đang theo dõi",
+    "empty": "Bạn chưa theo dõi ai."
   }
 }

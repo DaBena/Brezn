@@ -50,7 +50,7 @@ jobs:
         run: |
           cd android
           keytool -list -v -keystore android.keystore -alias android -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep "SHA256:" || true
-          echo "Copy the fingerprint above into assetlinks.json and twa-manifest.json (run: node scripts/update-twa-fingerprint.mjs \"FINGERPRINT\")"
+          echo "Copy the fingerprint above into assetlinks.json and twa-manifest.json"
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
 

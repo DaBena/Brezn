@@ -38,7 +38,6 @@
     "searchRadius": "অনুসন্ধান ব্যাসার্ধ",
     "lengthLabel": "Geohash দৈর্ঘ্য:",
     "length0": "0",
-    "queries3": "সব g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "ব্যাসার্ধ কমান",
@@ -46,7 +45,7 @@
     "length": "দৈর্ঘ্য {{n}}",
     "queriesCurrent": "সব জিও পোস্ট",
     "precisionFallback": "বেশি = ছোট (সুনির্দিষ্ট) — কিন্তু কম ফলাফল।",
-    "cellSize": "প্রতি সেল {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}, আর ৮ প্রতিবেশী"
   },
   "moderation": {
     "blocklist": "ব্লকলিস্ট",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "লোড…",
     "close": "বন্ধ"
+  },
+  "search": {
+    "people": "ব্যক্তি",
+    "posts": "পোস্ট",
+    "noResults": "কোনো ফলাফল নেই।",
+    "searching": "খোঁজা হচ্ছে…"
+  },
+  "follow": {
+    "follow": "অনুসরণ",
+    "unfollow": "অনুসরণ বাতিল",
+    "followingList": "অনুসরণ করছি",
+    "empty": "আপনি এখনও কাউকে অনুসরণ করছেন না।"
   }
 }

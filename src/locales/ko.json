@@ -38,7 +38,6 @@
     "searchRadius": "검색 반경",
     "lengthLabel": "Geohash 길이:",
     "length0": "0",
-    "queries3": "모든 g",
     "geoHashLabel": "Geohash:",
     "geoHashEmpty": "Geohash: -",
     "decreaseRadius": "반경 줄이기",
@@ -46,7 +45,7 @@
     "length": "길이 {{n}}",
     "queriesCurrent": "위치 게시물 전체",
     "precisionFallback": "높을수록 더 작고 정확 — 결과는 더 적습니다.",
-    "cellSize": "셀당 {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}, 이웃 8"
   },
   "moderation": {
     "blocklist": "차단 목록",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "인용 게시물 로드 중…",
     "noText": "(텍스트 없음)"
+  },
+  "search": {
+    "people": "사람",
+    "posts": "게시물",
+    "noResults": "결과 없음.",
+    "searching": "검색 중…"
+  },
+  "follow": {
+    "follow": "팔로우",
+    "unfollow": "언팔로우",
+    "followingList": "팔로잉",
+    "empty": "아직 아무도 팔로우하지 않았습니다."
   }
 }

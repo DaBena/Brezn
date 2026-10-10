@@ -77,6 +77,21 @@ describe('nostrClient NDK call shape (spies)', () => {
     expect(opts?.relayUrls).toEqual(expected)
   })
 
+  it('subscribeGrouped can pin a subset of relays', () => {
+    const client = createNostrClient()
+    client.setRelays(['wss://grouped-only.example', 'wss://other.example'])
+    const pinned = client.getRelays()[0]!
+    subscribeSpy.mockClear()
+    client.subscribeGrouped(
+      [{ kinds: [1], limit: 5, search: 'brezn' }],
+      { onevent: vi.fn(), relayUrls: [pinned] },
+      'search',
+    )
+
+    const [, opts] = subscribeSpy.mock.calls[0]!
+    expect(opts?.relayUrls).toEqual([pinned])
+  })
+
   it('publish passes an NDKRelaySet whose URLs match getRelays() only', async () => {
     const client = createNostrClient()
     client.setRelays(['wss://publish-target.example'])

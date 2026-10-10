@@ -20,6 +20,7 @@ import { useProfiles } from './hooks/useProfiles'
 import { useReactions } from './hooks/useReactions'
 import { useAppState } from './hooks/useAppState'
 import { useSearch } from './hooks/useSearch'
+import { useFollows } from './hooks/useFollows'
 import { postGeo5FromFeed } from './lib/feedMapGeo5'
 import { useModeration } from './hooks/useModeration'
 import { useOptimisticReactions } from './hooks/useOptimisticReactions'
@@ -39,6 +40,7 @@ export default function App() {
 
   const appState = useAppState()
   const moderation = useModeration(client)
+  const follows = useFollows(client)
   useTheme(client)
 
   const navigation = useNavigation()
@@ -74,40 +76,42 @@ export default function App() {
     lastCloseReasons,
     isLoadingMore,
     loadMore,
-    loadMorePage,
     isOffline,
     applyGeohashLength,
   } = useLocalFeed({
     client,
     mutedTerms: moderation.mutedTerms,
     blockedPubkeys: moderation.blockedPubkeys,
+    followedPubkeys: follows.followedPubkeys,
     deletedNoteIds,
     identityPubkey: identity.pubkey,
   })
 
+  const search = useSearch({
+    client,
+    sortedEvents,
+    isOffline,
+    mutedTerms: moderation.mutedTerms,
+    blockedPubkeys: moderation.blockedPubkeys,
+  })
+
   const profileSheetPubkey = appState.sheets.profile.pubkey
   const threadRootPubkey = appState.sheets.thread.root?.pubkey ?? null
-  // Profile sheet + thread root: same profile sub as feed.
   const pubkeysForProfiles = useMemo(() => {
-    const fromFeed = sortedEvents.map((e) => e.pubkey)
-    const extra: string[] = []
+    const fromFeed = search.filteredEvents.map((e) => e.pubkey)
+    const extra: string[] = [...follows.followedPubkeys, ...search.people.map((p) => p.pubkey)]
     if (profileSheetPubkey) extra.push(profileSheetPubkey)
     if (threadRootPubkey) extra.push(threadRootPubkey)
     return [...fromFeed, ...extra]
-  }, [sortedEvents, profileSheetPubkey, threadRootPubkey])
+  }, [
+    search.filteredEvents,
+    search.people,
+    follows.followedPubkeys,
+    profileSheetPubkey,
+    threadRootPubkey,
+  ])
 
   const { profilesByPubkey } = useProfiles({ client, pubkeys: pubkeysForProfiles, isOffline })
-
-  const searchFeedPrefetch = useMemo(
-    () => ({
-      isOffline,
-      canPrefetchFeed: feedState.kind === 'live' && Boolean(geoCell),
-      loadMorePage,
-    }),
-    [isOffline, feedState.kind, geoCell, loadMorePage],
-  )
-
-  const search = useSearch(sortedEvents, profilesByPubkey, searchFeedPrefetch)
   const postGeo5 = useMemo(
     () => postGeo5FromFeed(search.filteredEvents, viewerGeo5 ?? ''),
     [search.filteredEvents, viewerGeo5],
@@ -160,6 +164,13 @@ export default function App() {
   const handleOpenProfile = (pubkey: string) => {
     if (moderation.blockedPubkeys.includes(pubkey)) return
     appState.openSheet('profile', { profilePubkey: pubkey })
+  }
+
+  const handleBlockUser = async (pubkey: string) => {
+    const next = [...moderation.blockedPubkeys, pubkey]
+    await client.setBlockedPubkeys(next)
+    moderation.refreshFromClient()
+    follows.refreshFromClient()
   }
 
   // Handlers using services
@@ -263,6 +274,13 @@ export default function App() {
             appState.openSheet('thread', { threadRoot: evt })
           }
         }}
+        searchPeople={search.people}
+        isSearching={search.isSearching}
+        hasQuery={search.hasQuery}
+        viewerPubkey={identity.pubkey}
+        followedPubkeys={follows.followedPubkeys}
+        onFollow={follows.follow}
+        onUnfollow={follows.unfollow}
       />
 
       <ComposeButton onClick={() => appState.openSheet('composer')} />
@@ -310,6 +328,18 @@ export default function App() {
             if (!pk || !canOpenChat(pk)) return undefined
             return () => handleOpenChat(pk, () => appState.closeSheet('profile'))
           })()}
+          isFollowed={follows.isFollowed(appState.sheets.profile.pubkey)}
+          onToggleFollow={
+            appState.sheets.profile.pubkey !== identity.pubkey &&
+            !moderation.blockedPubkeys.includes(appState.sheets.profile.pubkey)
+              ? () => {
+                  const pk = appState.sheets.profile.pubkey
+                  if (!pk) return
+                  if (follows.isFollowed(pk)) follows.unfollow(pk)
+                  else follows.follow(pk)
+                }
+              : undefined
+          }
         />
       ) : null}
 
@@ -328,11 +358,7 @@ export default function App() {
             void handlePublishReply(appState.sheets.thread.root!, content)
           }
           onDelete={(evt) => void handleDeletePost(evt)}
-          onBlockUser={async (pubkey) => {
-            const next = [...moderation.blockedPubkeys, pubkey]
-            await client.setBlockedPubkeys(next)
-            moderation.refreshFromClient()
-          }}
+          onBlockUser={handleBlockUser}
           reactionsByNoteId={optimisticReactions.mergedReactionsByNoteId}
           canReact={!isOffline}
           onReact={(evt) => void handleReactToPost(evt)}
@@ -352,7 +378,9 @@ export default function App() {
           client={client}
           onModerationChanged={() => {
             moderation.refreshFromClient()
+            follows.refreshFromClient()
           }}
+          onFollowsChanged={() => follows.refreshFromClient()}
           geohashLength={geohashLength}
           geoCell={geoCell}
           onGeohashLengthChange={applyGeohashLength}
@@ -369,11 +397,7 @@ export default function App() {
           blockedPubkeys={moderation.blockedPubkeys}
           isOffline={isOffline}
           onOpenProfile={handleOpenProfile}
-          onBlockUser={async (pubkey) => {
-            const next = [...moderation.blockedPubkeys, pubkey]
-            await client.setBlockedPubkeys(next)
-            moderation.refreshFromClient()
-          }}
+          onBlockUser={handleBlockUser}
         />
       ) : appState.sheets.dm.open ? (
         <ConversationsSheet
@@ -384,11 +408,7 @@ export default function App() {
           blockedPubkeys={moderation.blockedPubkeys}
           isOffline={isOffline}
           onOpenProfile={handleOpenProfile}
-          onBlockUser={async (pubkey) => {
-            const next = [...moderation.blockedPubkeys, pubkey]
-            await client.setBlockedPubkeys(next)
-            moderation.refreshFromClient()
-          }}
+          onBlockUser={handleBlockUser}
         />
       ) : null}
     </div>

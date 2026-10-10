@@ -7,7 +7,7 @@ import {
   GEOHASH_LEN_MAX_UI,
   getBrowserLocation,
 } from '../lib/geo'
-import { contentMatchesMutedTerms } from '../lib/moderation'
+import { contentLooksLikeUnspacedBlob, contentMatchesMutedTerms } from '../lib/moderation'
 import { getSavedGeo5, setSavedGeo5 } from '../lib/lastLocation'
 import { deletePost } from '../lib/postService'
 import {
@@ -20,6 +20,7 @@ import {
 import { mergeFeedIncoming } from '../lib/feedBatchMerge'
 import {
   buildFeedGeoFilters,
+  buildFollowedAuthorsFilters,
   filterFeedEventsByQuery,
   getQueryCellsForFeed,
 } from '../lib/feedGeoMatch'
@@ -51,10 +52,12 @@ export function useLocalFeed(params: {
   client: BreznNostrClient
   mutedTerms: string[]
   blockedPubkeys: string[]
+  followedPubkeys: string[]
   deletedNoteIds: Set<string>
   identityPubkey: string | null
 }) {
-  const { client, mutedTerms, blockedPubkeys, deletedNoteIds, identityPubkey } = params
+  const { client, mutedTerms, blockedPubkeys, followedPubkeys, deletedNoteIds, identityPubkey } =
+    params
 
   const deletedNoteIdsRef = useRef(deletedNoteIds)
   deletedNoteIdsRef.current = deletedNoteIds
@@ -67,7 +70,7 @@ export function useLocalFeed(params: {
   const initialSavedGeo5 = getSavedGeo5()
   const initialGeohashLength = client.getGeohashLength()
   // geohashLength 0 → keep full geo5 for distance/UI; REQ uses global 1-char `#g` plus home cell tags.
-  // Else slice geo5 to the precision selector.
+  // Else slice geo5 to the precision selector. The REQ then adds that cell's eight neighbors.
   const initialQueryGeohash =
     !isOffline && initialSavedGeo5 && initialGeohashLength !== 0
       ? initialSavedGeo5.slice(0, initialGeohashLength)
@@ -104,9 +107,17 @@ export function useLocalFeed(params: {
   identityPubkeyRef.current = identityPubkey
 
   const blockedSet = useMemo(() => new Set(blockedPubkeys), [blockedPubkeys])
+  const followedSet = useMemo(
+    () => new Set(followedPubkeys.map((p) => p.toLowerCase())),
+    [followedPubkeys],
+  )
+  const followedKey = [...followedSet].sort().join(',')
+  const followedSetRef = useRef(followedSet)
+  followedSetRef.current = followedSet
   const sortedEvents = useMemo(() => {
     const filtered = events.filter((e) => {
       if (blockedSet.has(e.pubkey)) return false
+      if (e.kind === NOSTR_KINDS.note && contentLooksLikeUnspacedBlob(e.content ?? '')) return false
       if (!mutedTerms.length) return true
       if (isNip52CalendarKind(e.kind)) {
         return !contentMatchesMutedTerms(nip52SearchBlob(e), mutedTerms)
@@ -298,7 +309,12 @@ export function useLocalFeed(params: {
       if (prevCount === 0 && counted > 0) setFeedState({ kind: 'live' })
 
       setEvents((prev) =>
-        filterFeedEventsByQuery(mergeFeedIncoming(prev, batch), queryGeohash, geohashLength),
+        filterFeedEventsByQuery(
+          mergeFeedIncoming(prev, batch),
+          queryGeohash,
+          geohashLength,
+          followedSetRef.current,
+        ),
       )
     }
 
@@ -327,6 +343,7 @@ export function useLocalFeed(params: {
 
       if (evt.kind === NOSTR_KINDS.note) {
         if (isReplyNote(evt)) return
+        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return
         pendingBatch.push(evt)
         scheduleFlush()
         return
@@ -334,7 +351,8 @@ export function useLocalFeed(params: {
 
       if (isNip52CalendarKind(evt.kind)) {
         if (!isValidNip52CalendarEvent(evt)) return
-        if (!nip52CalendarMatchesQueryCells(evt, queryCellsForCalendar)) return
+        const fromFollow = followedSetRef.current.has(evt.pubkey.toLowerCase())
+        if (!fromFollow && !nip52CalendarMatchesQueryCells(evt, queryCellsForCalendar)) return
         pendingBatch.push(evt)
         scheduleFlush()
       }
@@ -350,15 +368,33 @@ export function useLocalFeed(params: {
       if (!didEose) setInitialTimedOut(true)
     }
 
-    const unsub = client.subscribeGrouped(
-      buildFeedGeoFilters(viewerGeo5 ?? queryGeohash, geohashLength, {
-        kinds: feedKinds,
-        limit: FEED_QUERY_LIMIT,
-      }),
+    const feedFilterBase = {
+      kinds: feedKinds,
+      limit: FEED_QUERY_LIMIT,
+    }
+    const geoFilters = buildFeedGeoFilters(
+      viewerGeo5 ?? queryGeohash,
+      geohashLength,
+      feedFilterBase,
+    )
+    const followFilters = buildFollowedAuthorsFilters([...followedSetRef.current], feedFilterBase)
+    const unsubGeo = client.subscribeGrouped(
+      geoFilters,
       { onevent: onEvent, oneose: onEose, onclose: onClose },
       'feed',
     )
-    unsubRef.current = unsub
+    const unsubFollow =
+      followFilters.length > 0
+        ? client.subscribeGrouped(
+            followFilters,
+            { onevent: onEvent, oneose: onEose, onclose: onClose },
+            'feed-follow',
+          )
+        : () => {}
+    unsubRef.current = () => {
+      unsubGeo()
+      unsubFollow()
+    }
     return () => {
       cancelled = true
       if (rafFlushId != null) cancelAnimationFrame(rafFlushId)
@@ -367,7 +403,16 @@ export function useLocalFeed(params: {
       for (const id of timerIds) window.clearTimeout(id)
       unsubRef.current?.()
     }
-  }, [client, queryGeohash, viewerGeo5, isOffline, relaysKey, geohashLength, currentRelays.length])
+  }, [
+    client,
+    queryGeohash,
+    viewerGeo5,
+    isOffline,
+    relaysKey,
+    geohashLength,
+    currentRelays.length,
+    followedKey,
+  ])
 
   const runLoadMorePage = useRef<() => Promise<LoadMorePageResult>>(() =>
     Promise.resolve({ added: 0, canLoadOlder: false }),
@@ -448,12 +493,14 @@ export function useLocalFeed(params: {
       const onEventLoadMore = (evt: Event) => {
         if (evt.kind === NOSTR_KINDS.note) {
           if (isReplyNote(evt)) return
+          if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return
           if (relayRootIdsThisBatch.has(evt.id)) return
           if (eventsRef.current.some((e) => e.id === evt.id)) return
           relayRootIdsThisBatch.add(evt.id)
         } else if (isNip52CalendarKind(evt.kind)) {
           if (!isValidNip52CalendarEvent(evt)) return
-          if (!nip52CalendarMatchesQueryCells(evt, queryCellsCalendar)) return
+          const fromFollow = followedSetRef.current.has(evt.pubkey.toLowerCase())
+          if (!fromFollow && !nip52CalendarMatchesQueryCells(evt, queryCellsCalendar)) return
         } else {
           return
         }
@@ -470,7 +517,12 @@ export function useLocalFeed(params: {
                 ? prev
                 : [evt, ...prev]
               : upsertFeedEvents(prev, evt)
-          return filterFeedEventsByQuery(merged, queryGeohash, geohashLength)
+          return filterFeedEventsByQuery(
+            merged,
+            queryGeohash,
+            geohashLength,
+            followedSetRef.current,
+          )
         })
       }
 
@@ -479,20 +531,36 @@ export function useLocalFeed(params: {
         finish(newEventCount)
       }
 
-      const unsub = client.subscribeGrouped(
-        buildFeedGeoFilters(viewerGeo5 ?? queryGeohash, geohashLength, {
-          kinds: kindsLoadMore,
-          limit: FEED_QUERY_LIMIT,
-          until,
-        }),
-        {
-          onevent: onEventLoadMore,
-          oneose: markDone,
-          onclose: markDone,
-        },
-        'feed',
+      const loadMoreBase = {
+        kinds: kindsLoadMore,
+        limit: FEED_QUERY_LIMIT,
+        until,
+      }
+      unsubs.push(
+        client.subscribeGrouped(
+          buildFeedGeoFilters(viewerGeo5 ?? queryGeohash, geohashLength, loadMoreBase),
+          {
+            onevent: onEventLoadMore,
+            oneose: markDone,
+            onclose: markDone,
+          },
+          'feed',
+        ),
       )
-      unsubs.push(unsub)
+      const followLoadMore = buildFollowedAuthorsFilters([...followedSetRef.current], loadMoreBase)
+      if (followLoadMore.length > 0) {
+        unsubs.push(
+          client.subscribeGrouped(
+            followLoadMore,
+            {
+              onevent: onEventLoadMore,
+              oneose: markDone,
+              onclose: markDone,
+            },
+            'feed-follow',
+          ),
+        )
+      }
 
       timeoutId = window.setTimeout(() => {
         for (const u of unsubs) u()

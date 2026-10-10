@@ -25,3 +25,6 @@ export const ROOT_FEED_EVENT_KINDS = [
   NOSTR_KINDS.nip52DateEvent,
   NOSTR_KINDS.nip52TimeEvent,
 ] as const
+
+/** Kinds included in a NIP-50 search REQ. */
+export const SEARCH_EVENT_KINDS = [NOSTR_KINDS.metadata, ...ROOT_FEED_EVENT_KINDS] as const

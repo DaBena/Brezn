@@ -9,9 +9,18 @@ import { calculateApproxDistance } from '../lib/geo'
 import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
-import { FEED_RENDER_CHUNK, REPO_URL } from '../lib/constants'
-import { feedEventCardPlainText, truncateFeedCardContent } from '../lib/feedContentPreview'
+import { FEED_RENDER_CHUNK, REPO_URL, SEARCH_PEOPLE_DISPLAY_MAX } from '../lib/constants'
+import {
+  feedEventCardPlainText,
+  truncateFeedCardContent,
+  truncateFeedCardContentAroundQuery,
+} from '../lib/feedContentPreview'
 import { GeohashMap } from './GeohashMap'
+import { FollowButton } from './FollowButton'
+import { nip19 } from '../lib/nostrPrimitives'
+import { shortNpub } from '../lib/nostrUtils'
+import { feedListPostCardClass } from '../lib/uiClasses'
+import type { SearchPerson } from '../hooks/useSearch'
 
 export function Feed(props: {
   client: BreznNostrClient
@@ -36,6 +45,13 @@ export function Feed(props: {
   onReact: (evt: Event) => void
   onOpenThread: (evt: Event) => void
   onOpenProfile?: (pubkey: string) => void
+  searchPeople?: SearchPerson[]
+  isSearching?: boolean
+  hasQuery?: boolean
+  viewerPubkey?: string | null
+  followedPubkeys?: string[]
+  onFollow?: (pubkey: string) => void
+  onUnfollow?: (pubkey: string) => void
 }) {
   const {
     feedState,
@@ -55,7 +71,18 @@ export function Feed(props: {
     onLoadMore,
     onOpenThread,
     onOpenProfile,
+    searchPeople = [],
+    isSearching = false,
+    hasQuery = false,
+    viewerPubkey = null,
+    followedPubkeys = [],
+    onFollow,
+    onUnfollow,
   } = props
+  const followedSet = useMemo(
+    () => new Set(followedPubkeys.map((p) => p.toLowerCase())),
+    [followedPubkeys],
+  )
 
   const { t } = useTranslation()
 
@@ -89,11 +116,68 @@ export function Feed(props: {
     }
   }
 
+  const followedLower = viewerPubkey?.toLowerCase() ?? ''
+
   return (
     <main className="mx-auto max-w-xl px-3 pb-24 pt-12">
       {isOffline ? (
         <div className="mb-2 rounded-lg border border-brezn-border bg-brezn-panel p-2 text-xs text-brezn-muted">
           {t('feed.offlineBanner')}
+        </div>
+      ) : null}
+
+      {hasQuery ? (
+        <div className="mb-3 space-y-2">
+          {searchPeople.length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-brezn-muted">{t('search.people')}</div>
+              {searchPeople.slice(0, SEARCH_PEOPLE_DISPLAY_MAX).map((person) => {
+                const pk = person.pubkey.toLowerCase()
+                const isSelf = Boolean(followedLower) && pk === followedLower
+                const isFollowed = followedSet.has(pk)
+                const cached = profilesByPubkey.get(pk)
+                const label =
+                  person.displayName?.trim() ||
+                  person.name?.trim() ||
+                  cached?.name?.trim() ||
+                  shortNpub(nip19.npubEncode(pk), 8, 4)
+                return (
+                  <div key={pk} className={`${feedListPostCardClass} flex items-center gap-2`}>
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => onOpenProfile?.(pk)}
+                    >
+                      <div className="text-sm font-semibold text-brezn-text">{label}</div>
+                      <div className="truncate font-mono text-[11px] text-brezn-muted">
+                        {nip19.npubEncode(pk)}
+                      </div>
+                    </button>
+                    {onFollow && onUnfollow && !isSelf ? (
+                      <FollowButton
+                        isFollowed={isFollowed}
+                        disabled={isOffline}
+                        onClick={() => (isFollowed ? onUnfollow(pk) : onFollow(pk))}
+                      />
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+          {isSearching && displayedEvents.length === 0 && searchPeople.length === 0 ? (
+            <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted">
+              {t('search.searching')}
+            </div>
+          ) : null}
+          {!isSearching && displayedEvents.length === 0 && searchPeople.length === 0 ? (
+            <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted">
+              {t('search.noResults')}
+            </div>
+          ) : null}
+          {displayedEvents.length > 0 ? (
+            <div className="text-xs font-semibold text-brezn-muted">{t('search.posts')}</div>
+          ) : null}
         </div>
       ) : null}
 
@@ -136,8 +220,8 @@ export function Feed(props: {
               className="h-full w-full"
               onCellSelect={onManualCellSelect}
               onRequestLocation={onRequestLocation}
-              gpsAriaLabel={t('composer.gpsAria')}
-              gpsTitle={t('composer.gpsTitle')}
+              gpsAriaLabel={t('geohashMap.gpsAria')}
+              gpsTitle={t('geohashMap.gpsTitle')}
             />
           </div>
         </div>
@@ -160,7 +244,8 @@ export function Feed(props: {
         </div>
       )}
 
-      {(feedState.kind === 'loading' || feedState.kind === 'live') && Boolean(geoCell) && (
+      {(((feedState.kind === 'loading' || feedState.kind === 'live') && Boolean(geoCell)) ||
+        (hasQuery && displayedEvents.length > 0)) && (
         <>
           {displayedEvents.length === 0 ? (
             <div className="rounded-lg border border-brezn-border bg-brezn-panel p-3 text-sm text-brezn-muted">
@@ -191,7 +276,15 @@ export function Feed(props: {
                     variant="feed"
                     evt={evt}
                     isDeleted={false}
-                    contentPreview={truncateFeedCardContent(feedEventCardPlainText(evt), evt.tags)}
+                    contentPreview={
+                      hasQuery
+                        ? truncateFeedCardContentAroundQuery(
+                            feedEventCardPlainText(evt),
+                            searchQuery,
+                            evt.tags,
+                          )
+                        : truncateFeedCardContent(feedEventCardPlainText(evt), evt.tags)
+                    }
                     profilesByPubkey={profilesByPubkey}
                     distance={approxDistanceById[evt.id]}
                     client={client}

@@ -3,7 +3,7 @@
     "loading": "Loading…"
   },
   "nav": {
-    "searchPlaceholder": "Search posts…",
+    "searchPlaceholder": "Search…",
     "openChat": "Open chat",
     "openMenu": "Open menu"
   },
@@ -38,7 +38,6 @@
     "searchRadius": "Search radius",
     "lengthLabel": "Geohash length:",
     "length0": "0",
-    "queries3": "all g tags",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Decrease radius",
@@ -46,7 +45,7 @@
     "length": "Length {{n}}",
     "queriesCurrent": "all geotagged posts",
     "precisionFallback": "Higher = smaller (more precise) - but fewer results.",
-    "cellSize": "{{w}} × {{h}} per cell"
+    "cellSize": "{{w}} × {{h}}, plus 8 neighbors"
   },
   "moderation": {
     "blocklist": "Blocklist",
@@ -246,6 +245,18 @@
     "offlineBlock": "Offline - Cannot block user.",
     "deleteFailed": "Deletion event failed.",
     "publishFailedFallback": "Publish failed."
+  },
+  "search": {
+    "people": "People",
+    "posts": "Posts",
+    "noResults": "No results.",
+    "searching": "Searching…"
+  },
+  "follow": {
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followingList": "Following",
+    "empty": "You are not following anyone yet."
   },
   "profileSheet": {
     "openPictureAria": "Open profile picture",

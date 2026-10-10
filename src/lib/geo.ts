@@ -2,7 +2,6 @@ import geohash from 'ngeohash'
 import type { Event } from './nostrPrimitives'
 import { getLongestGeohashTag } from './nostrUtils'
 
-export const GEOHASH_LEN_MIN_UI = 1
 export const GEOHASH_LEN_MAX_UI = 5
 /** Max length emitted as `g` tags when publishing (ngeohash supports up to ~12). */
 export const GEOHASH_TAG_LEN_MAX = 12
@@ -170,14 +169,6 @@ export type ApproxDistanceInfo = {
   mapUrl: string
 }
 
-export function geohashPrecisionHint(len: number): string {
-  const t = getCellSizeKm(len)
-  if (!t) return 'Higher = smaller (more precise) - but fewer results.'
-  const w = t.wKm >= 1 ? `~${Math.round(t.wKm)} km` : `~${(t.wKm * 1000).toFixed(0)} m`
-  const h = t.hKm >= 1 ? `~${Math.round(t.hKm)} km` : `~${(t.hKm * 1000).toFixed(0)} m`
-  return `${w} × ${h} per cell`
-}
-
 export function geohashApproxCellSizeKm(len: number): { wKm: number; hKm: number } | null {
   return getCellSizeKm(len)
 }
@@ -214,27 +205,6 @@ export function generateGeohashTags(geohash: string): string[] {
   }
 
   return tags
-}
-
-/**
- * Gets the east and west neighboring geohash cells.
- * @param hash - Geohash string
- * @returns Object with east and west neighbor hashes, or null if invalid
- */
-export function getEastWestNeighbors(hash: string): { east: string; west: string } | null {
-  const h = (hash ?? '').trim()
-  if (!h) return null
-  try {
-    const allNeighbors = geohash.neighbors(h)
-    // neighbors() returns [n, ne, e, se, s, sw, w, nw]
-    // We need east (index 2) and west (index 6)
-    if (allNeighbors.length >= 7) {
-      return { east: allNeighbors[2], west: allNeighbors[6] }
-    }
-    return null
-  } catch {
-    return null
-  }
 }
 
 /** Mirrors `GeolocationPositionError` codes (1=denied, 2=unavailable, 3=timeout). */
@@ -351,7 +321,7 @@ export function getGeohashBounds(
  * @param hash - Geohash string
  * @returns Zoom level (typically 1-18)
  */
-export function getGeohashZoomLevel(hash: string): number {
+function getGeohashZoomLevel(hash: string): number {
   const len = hash.length
   // Longer geohashes = smaller cells = higher zoom
   if (len <= 2) return 3

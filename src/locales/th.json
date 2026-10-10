@@ -38,7 +38,6 @@
     "searchRadius": "รัศมีค้นหา",
     "lengthLabel": "ความยาว Geohash:",
     "length0": "0",
-    "queries3": "g ทั้งหมด",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "ลดรัศมี",
@@ -46,7 +45,7 @@
     "length": "ความยาว {{n}}",
     "queriesCurrent": "โพสต์ที่มีตำแหน่ง",
     "precisionFallback": "สูงขึ้น = เล็กลง (แม่นยำ) แต่ผลลัพธ์น้อยลง",
-    "cellSize": "{{w}} × {{h}} ต่อเซลล์"
+    "cellSize": "{{w}} × {{h}}, เพื่อนบ้าน 8"
   },
   "moderation": {
     "blocklist": "รายการบล็อก",
@@ -277,5 +276,17 @@
   "common": {
     "loading": "กำลังโหลด…",
     "close": "ปิด"
+  },
+  "search": {
+    "people": "ผู้คน",
+    "posts": "โพสต์",
+    "noResults": "ไม่พบผลลัพธ์",
+    "searching": "กำลังค้นหา…"
+  },
+  "follow": {
+    "follow": "ติดตาม",
+    "unfollow": "เลิกติดตาม",
+    "followingList": "กำลังติดตาม",
+    "empty": "คุณยังไม่ได้ติดตามใคร"
   }
 }

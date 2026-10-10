@@ -38,7 +38,6 @@
     "searchRadius": "Raio de pesquisa",
     "lengthLabel": "Comprimento geohash:",
     "length0": "0",
-    "queries3": "todos os g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "Diminuir raio",
@@ -46,7 +45,7 @@
     "length": "Comprimento {{n}}",
     "queriesCurrent": "posts georreferenciados",
     "precisionFallback": "Maior = mais pequeno (mais preciso), mas menos resultados.",
-    "cellSize": "{{w}} × {{h}} por célula"
+    "cellSize": "{{w}} × {{h}}, mais 8 vizinhas"
   },
   "moderation": {
     "blocklist": "Bloqueios",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "A carregar publicação referenciada…",
     "noText": "(sem texto)"
+  },
+  "search": {
+    "people": "Pessoas",
+    "posts": "Publicações",
+    "noResults": "Sem resultados.",
+    "searching": "A procurar…"
+  },
+  "follow": {
+    "follow": "Seguir",
+    "unfollow": "Deixar de seguir",
+    "followingList": "A seguir",
+    "empty": "Ainda não segue ninguém."
   }
 }

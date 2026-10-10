@@ -3,7 +3,7 @@ import type { Event, Filter } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { FEED_QUERY_LIMIT } from '../lib/constants'
 import { computeNextUntilCursor } from '../lib/loadMoreCursor'
-import { contentMatchesMutedTerms } from '../lib/moderation'
+import { contentLooksLikeUnspacedBlob, contentMatchesMutedTerms } from '../lib/moderation'
 import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from '../lib/breznNostr'
 import {
   isNip52CalendarKind,
@@ -93,6 +93,7 @@ export function useAuthorNotes(params: {
       if (evt.pubkey !== authorPubkey) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
       if (evt.kind === NOSTR_KINDS.note) {
+        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return false
         if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
         return true
       }
@@ -146,6 +147,7 @@ export function useAuthorNotes(params: {
       if (evt.pubkey !== authorPubkey) return false
       if (blockedRef.current.includes(evt.pubkey)) return false
       if (evt.kind === NOSTR_KINDS.note) {
+        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return false
         if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
         return true
       }

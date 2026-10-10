@@ -4,7 +4,7 @@
 
 Brezn is a Nostr client that shows posts from your **local** area.
 Your position is reduced to a five-character geohash (roughly 5 × 5 km cells, depending on latitude). Only the cell is shared, never your exact coordinates.  
-Set your feed radius by adjusting geohash query length.  
+Set your feed radius by adjusting geohash query length. Each length loads that cell and its eight neighbors in one query.  
 Like CB radio for the internet: free, equal, and decentralized.
 
 ## Installation

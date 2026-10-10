@@ -38,7 +38,6 @@
     "searchRadius": "شعاع جستجو",
     "lengthLabel": "طول ژئوهش:",
     "length0": "0",
-    "queries3": "همه g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "کاهش شعاع",
@@ -46,7 +45,7 @@
     "length": "طول {{n}}",
     "queriesCurrent": "همه پست‌های مکان‌دار",
     "precisionFallback": "بیشتر = کوچک‌تر (دقیق‌تر) — اما نتایج کمتر.",
-    "cellSize": "{{w}} × {{h}} در هر سلول"
+    "cellSize": "{{w}} × {{h}}، به‌علاوه ۸ همسایه"
   },
   "moderation": {
     "blocklist": "فهرست مسدود",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "در حال بارگذاری پست ارجاع‌شده…",
     "noText": "(بدون متن)"
+  },
+  "search": {
+    "people": "افراد",
+    "posts": "پست‌ها",
+    "noResults": "نتیجه‌ای نیست.",
+    "searching": "در حال جستجو…"
+  },
+  "follow": {
+    "follow": "دنبال کردن",
+    "unfollow": "لغو دنبال",
+    "followingList": "دنبال‌شده‌ها",
+    "empty": "هنوز کسی را دنبال نمی‌کنید."
   }
 }

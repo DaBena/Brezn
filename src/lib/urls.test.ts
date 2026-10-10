@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { extractLinks, extractUrls, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from './urls'
+import {
+  blueskyVideoPosterUrl,
+  extractLinks,
+  extractUrls,
+  isHlsPlaylistUrl,
+  isLikelyImageUrl,
+  isLikelyVideoUrl,
+  uniqueUrls,
+} from './urls'
 
 describe('extractUrls', () => {
   test('extracts http/https urls and trims trailing punctuation', () => {
@@ -78,10 +86,31 @@ describe('isLikelyVideoUrl', () => {
     expect(isLikelyVideoUrl('https://example.com/a.WEBM')).toBe(true)
     expect(isLikelyVideoUrl('https://example.com/a.mov?x=1')).toBe(true)
     expect(isLikelyVideoUrl('https://example.com/a.m4v#frag')).toBe(true)
+    expect(isLikelyVideoUrl('https://video.bsky.app/watch/did:plc:abc/bafy/playlist.m3u8')).toBe(
+      true,
+    )
   })
 
   test('rejects non-video urls', () => {
     expect(isLikelyVideoUrl('https://example.com/a.png')).toBe(false)
+    expect(isLikelyVideoUrl('https://bsky.app/profile/someone/post/abc')).toBe(false)
     expect(isLikelyVideoUrl('not-a-url')).toBe(false)
+  })
+})
+
+describe('bluesky HLS helpers', () => {
+  const playlist = 'https://video.bsky.app/watch/did%3Aplc%3Aexample/bafy/playlist.m3u8'
+
+  test('detects m3u8 playlists', () => {
+    expect(isHlsPlaylistUrl(playlist)).toBe(true)
+    expect(isHlsPlaylistUrl('https://example.com/a.mp4')).toBe(false)
+  })
+
+  test('maps a Bluesky playlist to its thumbnail', () => {
+    expect(blueskyVideoPosterUrl(playlist)).toBe(
+      'https://video.bsky.app/watch/did%3Aplc%3Aexample/bafy/thumbnail.jpg',
+    )
+    expect(blueskyVideoPosterUrl('https://example.com/a.m3u8')).toBeNull()
+    expect(blueskyVideoPosterUrl('https://video.bsky.app/watch/x/thumbnail.jpg')).toBeNull()
   })
 })

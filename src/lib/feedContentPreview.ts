@@ -1,6 +1,7 @@
 import type { Event } from './nostrPrimitives'
-import { FEED_PREVIEW_MAX_FLOWTEXT } from './constants'
+import { FEED_PREVIEW_MAX_FLOWTEXT, SEARCH_SNIPPET_LEAD } from './constants'
 import { isNip52CalendarKind, nip52FeedCardPostContent } from './nip52'
+import { indexOfQueryWord } from './nip50Search'
 import type { ExtractedLink } from './urls'
 import {
   collectImetaMediaUrls,
@@ -34,8 +35,10 @@ function isPostReferenceLink(link: ExtractedLink): boolean {
   return false
 }
 
-/** Feed list: truncate “flow” text, list image/video URLs after a marker (matches in-feed cards). */
-export function truncateFeedCardContent(content: string, tags?: string[][]): string {
+function feedCardFlowAndMedia(
+  content: string,
+  tags?: string[][],
+): { flowText: string; mediaSuffix: string } {
   const links = extractLinks(content)
   let flowText = ''
   let cursor = 0
@@ -49,12 +52,7 @@ export function truncateFeedCardContent(content: string, tags?: string[][]): str
     cursor = link.end
   }
   flowText += content.slice(cursor)
-
   flowText = flowText.replace(/^\n+/, '')
-
-  const max = FEED_PREVIEW_MAX_FLOWTEXT
-  const needsTruncation = flowText.length > max
-  const truncatedText = needsTruncation ? `${flowText.slice(0, max).trimEnd()}\n...` : flowText
 
   const imeta = collectImetaMediaUrls(tags)
   const mediaUrls = uniqueUrls([
@@ -62,9 +60,37 @@ export function truncateFeedCardContent(content: string, tags?: string[][]): str
     ...imeta.imageUrls,
     ...imeta.videoUrls,
   ])
-  if (!mediaUrls.length) return truncatedText
+  return {
+    flowText,
+    mediaSuffix: mediaUrls.length ? `\n\n${mediaUrls.join('\n')}` : '',
+  }
+}
 
-  return `${truncatedText}\n\n${mediaUrls.join('\n')}`
+function clipFlowText(flowText: string, max: number): string {
+  if (flowText.length <= max) return flowText
+  return `${flowText.slice(0, max).trimEnd()}\n...`
+}
+
+/** Feed list: truncate “flow” text, list image/video URLs after a marker (matches in-feed cards). */
+export function truncateFeedCardContent(content: string, tags?: string[][]): string {
+  const { flowText, mediaSuffix } = feedCardFlowAndMedia(content, tags)
+  return `${clipFlowText(flowText, FEED_PREVIEW_MAX_FLOWTEXT)}${mediaSuffix}`
+}
+
+/** Search list: start the preview near the first query hit so the match is visible. */
+export function truncateFeedCardContentAroundQuery(
+  content: string,
+  query: string,
+  tags?: string[][],
+): string {
+  const { flowText, mediaSuffix } = feedCardFlowAndMedia(content, tags)
+  const q = query.trim().toLowerCase()
+  const idx = q ? indexOfQueryWord(flowText, q) : -1
+  let window = flowText
+  if (idx > SEARCH_SNIPPET_LEAD) {
+    window = `...\n${flowText.slice(idx - SEARCH_SNIPPET_LEAD)}`
+  }
+  return `${clipFlowText(window, FEED_PREVIEW_MAX_FLOWTEXT)}${mediaSuffix}`
 }
 
 /** Profile list: truncate by flow-text length but keep links inline (legacy profile card behavior). */

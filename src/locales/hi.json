@@ -38,7 +38,6 @@
     "searchRadius": "खोज त्रिज्या",
     "lengthLabel": "Geohash लंबाई:",
     "length0": "0",
-    "queries3": "सभी g",
     "geoHashLabel": "GeoHash:",
     "geoHashEmpty": "GeoHash: -",
     "decreaseRadius": "त्रिज्या घटाएँ",
@@ -46,7 +45,7 @@
     "length": "लंबाई {{n}}",
     "queriesCurrent": "सभी जियो पोस्ट",
     "precisionFallback": "अधिक = छोटा (सटीक) — लेकिन कम परिणाम।",
-    "cellSize": "प्रति सेल {{w}} × {{h}}"
+    "cellSize": "{{w}} × {{h}}, साथ 8 पड़ोसी"
   },
   "moderation": {
     "blocklist": "ब्लॉक सूची",
@@ -277,5 +276,17 @@
   "quotedPost": {
     "loadingReferenced": "संदर्भित पोस्ट लोड हो रही है…",
     "noText": "(कोई पाठ नहीं)"
+  },
+  "search": {
+    "people": "लोग",
+    "posts": "पोस्ट",
+    "noResults": "कोई परिणाम नहीं।",
+    "searching": "खोज रहा है…"
+  },
+  "follow": {
+    "follow": "फ़ॉलो",
+    "unfollow": "अनफ़ॉलो",
+    "followingList": "फ़ॉलो कर रहे हैं",
+    "empty": "आप अभी किसी को फ़ॉलो नहीं कर रहे।"
   }
 }

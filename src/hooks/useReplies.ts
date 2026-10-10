@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Event, Filter } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
-import { contentMatchesMutedTerms } from '../lib/moderation'
+import { contentLooksLikeUnspacedBlob, contentMatchesMutedTerms } from '../lib/moderation'
 
 export function useReplies(params: {
   client: BreznNostrClient
@@ -35,6 +35,7 @@ export function useReplies(params: {
         if (evt.kind !== 1) return
         if (evt.id === rootId) return
         if (blockedSet.has(evt.pubkey)) return
+        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return
         if (mutedTerms.length && contentMatchesMutedTerms(evt.content ?? '', mutedTerms)) return
         if (seenRef.current.has(evt.id)) return
         seenRef.current.add(evt.id)
