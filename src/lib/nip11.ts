@@ -76,13 +76,13 @@ async function fetchNip11Entry(relayUrl: string): Promise<Nip11CacheEntry> {
   }
 }
 
-export async function getRelaySupportedNips(relayUrl: string): Promise<Set<number>> {
+export async function getRelayNip11(relayUrl: string): Promise<Nip11CacheEntry> {
   const key = cacheKey(relayUrl)
   const cached = cache.get(key)
-  if (cached && Date.now() - cached.fetchedAt < ttlMs(cached)) return cached.nips
+  if (cached && Date.now() - cached.fetchedAt < ttlMs(cached)) return cached
 
   const pending = inflight.get(key)
-  if (pending) return (await pending).nips
+  if (pending) return pending
 
   const task = fetchNip11Entry(relayUrl).then((entry) => {
     cache.set(key, entry)
@@ -90,7 +90,11 @@ export async function getRelaySupportedNips(relayUrl: string): Promise<Set<numbe
     return entry
   })
   inflight.set(key, task)
-  return (await task).nips
+  return task
+}
+
+export async function getRelaySupportedNips(relayUrl: string): Promise<Set<number>> {
+  return (await getRelayNip11(relayUrl)).nips
 }
 
 /** Relays whose NIP-11 document lists `nip`. Failed/missing docs are skipped. */

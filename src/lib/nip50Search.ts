@@ -3,7 +3,12 @@ import { nip19, type Event, type Filter } from './nostrPrimitives'
 import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS, SEARCH_EVENT_KINDS } from './breznNostr'
 import { isNip52CalendarKind, nip52LocationsLine, nip52Summary, nip52Title } from './nip52'
 import { isReplyNote } from './nostrUtils'
-import { SEARCH_PEOPLE_PROBE_MAX, SEARCH_QUERY_LIMIT } from './constants'
+import {
+  NIP11_CACHE_TTL_MS,
+  NIP11_NEGATIVE_CACHE_TTL_MS,
+  SEARCH_PEOPLE_PROBE_MAX,
+  SEARCH_QUERY_LIMIT,
+} from './constants'
 
 function isHex64(input: string): boolean {
   if (input.length !== 64) return false
@@ -38,7 +43,100 @@ export function parseSearchTargetPubkey(query: string): string | null {
   return null
 }
 
-/** NIP-50 `search` filter. Sent only to relays that advertise NIP-50. */
+export type Nip11SearchHint = 'supports' | 'rejects' | 'unknown'
+
+/**
+ * `supports` when NIP-11 lists 50. `rejects` when the document lists other NIPs but not 50.
+ * `unknown` when the fetch failed or the document lists no NIPs (some relays still honor `search`).
+ */
+export function nip11SearchHint(nips: ReadonlySet<number>, documentOk: boolean): Nip11SearchHint {
+  if (nips.has(50)) return 'supports'
+  if (documentOk && nips.size > 0) return 'rejects'
+  return 'unknown'
+}
+
+export function normalizeSearchRelayUrl(url: string): string {
+  return url.trim().replace(/\/+$/, '')
+}
+
+export function uniqueSearchRelayUrls(urls: string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const url of urls) {
+    const norm = normalizeSearchRelayUrl(url)
+    if (!/^wss?:\/\//i.test(norm)) continue
+    const key = norm.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(norm)
+  }
+  return out
+}
+
+/** Nonsense query. A relay that ignores `search` still returns recent notes for it. */
+export const SEARCH_SUPPORT_PROBE = 'zxqvwontfindthisword'
+
+export function buildSearchSupportProbeFilter(): Filter {
+  return { kinds: [NOSTR_KINDS.note], search: SEARCH_SUPPORT_PROBE, limit: 1 }
+}
+
+type SearchSupportCacheEntry = { honors: boolean; fetchedAt: number }
+
+const searchSupportCache = new Map<string, SearchSupportCacheEntry>()
+const searchSupportInflight = new Map<string, Promise<boolean>>()
+
+export function resetSearchSupportCache(): void {
+  searchSupportCache.clear()
+  searchSupportInflight.clear()
+}
+
+function searchSupportTtl(honors: boolean): number {
+  return honors ? NIP11_CACHE_TTL_MS : NIP11_NEGATIVE_CACHE_TTL_MS
+}
+
+async function cachedSearchSupport(
+  url: string,
+  probe: (url: string) => Promise<boolean>,
+): Promise<boolean> {
+  const key = normalizeSearchRelayUrl(url).toLowerCase()
+  const cached = searchSupportCache.get(key)
+  if (cached && Date.now() - cached.fetchedAt < searchSupportTtl(cached.honors))
+    return cached.honors
+
+  const pending = searchSupportInflight.get(key)
+  if (pending) return pending
+
+  const task = probe(url).then(
+    (honors) => {
+      searchSupportCache.set(key, { honors, fetchedAt: Date.now() })
+      searchSupportInflight.delete(key)
+      return honors
+    },
+    () => {
+      searchSupportInflight.delete(key)
+      return false
+    },
+  )
+  searchSupportInflight.set(key, task)
+  return task
+}
+
+/** User relays that advertise NIP-50, plus relays whose NIP-11 was inconclusive but a probe shows they honor `search`. */
+export async function searchRelaysFromHints(
+  hints: Array<{ url: string; hint: Nip11SearchHint }>,
+  probe: (url: string) => Promise<boolean>,
+): Promise<string[]> {
+  const picked = await Promise.all(
+    hints.map(async ({ url, hint }) => {
+      if (hint === 'supports') return url
+      if (hint === 'rejects') return null
+      return (await cachedSearchSupport(url, probe)) ? url : null
+    }),
+  )
+  return uniqueSearchRelayUrls(picked.filter((url): url is string => url != null))
+}
+
+/** NIP-50 `search` filter. Sent to relays that advertise NIP-50 or pass the support probe. */
 export function buildNip50SearchFilters(query: string): Filter[] {
   const q = query.trim()
   if (!q) return []
@@ -95,6 +193,25 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/**
+ * True when the code point immediately before `index` is a letter, number, or `_`.
+ * Lookbehind (`(?<!…)`) throws "invalid group specifier name" on Safari before 16.4.
+ */
+let trailingWordChar: RegExp | undefined
+
+function endsWithWordChar(text: string, index: number): boolean {
+  if (index <= 0) return false
+  if (!trailingWordChar) {
+    try {
+      trailingWordChar = new RegExp('[\\p{L}\\p{N}_]$', 'u')
+    } catch {
+      trailingWordChar = /[0-9A-Za-z_]$/
+    }
+  }
+  const start = Math.max(0, index - 2)
+  return trailingWordChar.test(text.slice(start, index))
+}
+
 function stripSearchNoise(text: string): string {
   return text
     .replace(/https?:\/\/[^\s<>()]+/gi, ' ')
@@ -105,9 +222,18 @@ function stripSearchNoise(text: string): string {
 export function indexOfQueryWord(haystack: string, queryLower: string): number {
   const q = queryLower.trim().toLowerCase()
   if (!q) return 0
-  const re = new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(q)}`, 'iu')
-  const m = re.exec(haystack)
-  return m ? m.index : -1
+  let re: RegExp
+  try {
+    re = new RegExp(escapeRegExp(q), 'giu')
+  } catch {
+    re = new RegExp(escapeRegExp(q), 'gi')
+  }
+  let match: RegExpExecArray | null
+  while ((match = re.exec(haystack)) !== null) {
+    if (!endsWithWordChar(haystack, match.index)) return match.index
+    re.lastIndex = match.index + 1
+  }
+  return -1
 }
 
 function textHasQueryWord(haystack: string, queryLower: string): boolean {

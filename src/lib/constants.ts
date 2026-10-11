@@ -12,8 +12,11 @@ export const FEED_AUTO_BACKFILL_MAX_ATTEMPTS = 3
 /** Relay page size (kind 1). */
 export const FEED_QUERY_LIMIT = 200
 
-/** NIP-50 `search` page size (all configured relays). */
+/** NIP-50 `search` page size per search relay. */
 export const SEARCH_QUERY_LIMIT = 80
+
+/** How long a nonsense `search` probe waits for EOSE before treating the relay as non-search. */
+export const SEARCH_SUPPORT_PROBE_TIMEOUT_MS = 4_000
 
 /** Characters kept before the first query match in a search card snippet. */
 export const SEARCH_SNIPPET_LEAD = 80

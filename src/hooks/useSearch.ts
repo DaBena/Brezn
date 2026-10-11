@@ -1,22 +1,60 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Event, Filter } from '../lib/nostrPrimitives'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import { NOSTR_KINDS } from '../lib/breznNostr'
-import { SEARCH_PEOPLE_DISPLAY_MAX, SEARCH_PEOPLE_PROBE_MAX } from '../lib/constants'
+import {
+  SEARCH_PEOPLE_DISPLAY_MAX,
+  SEARCH_PEOPLE_PROBE_MAX,
+  SEARCH_SUPPORT_PROBE_TIMEOUT_MS,
+} from '../lib/constants'
 import {
   buildNip50SearchFilters,
   buildPosterProbeFilters,
   buildPubkeyLookupFilters,
+  buildSearchSupportProbeFilter,
   isSearchPostEvent,
   keepSearchPerson,
+  nip11SearchHint,
   parseKind0Profile,
   parseSearchTargetPubkey,
   scoreSearchPerson,
+  searchRelaysFromHints,
   searchResultMatchesQuery,
 } from '../lib/nip50Search'
-import { relaysSupportingNip } from '../lib/nip11'
+import { getRelayNip11, relaysSupportingNip } from '../lib/nip11'
 import { contentLooksLikeUnspacedBlob, contentMatchesMutedTerms } from '../lib/moderation'
 import { isNip52CalendarKind, nip52SearchBlob } from '../lib/nip52'
+
+/** EOSE with no events means the relay applied `search`. Any event means it ignored the field. */
+function probeRelayHonorsSearch(client: BreznNostrClient, url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false
+    let unsub: (() => void) | null = null
+    const finish = (honors: boolean) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      unsub?.()
+      resolve(honors)
+    }
+    const timer = window.setTimeout(() => finish(false), SEARCH_SUPPORT_PROBE_TIMEOUT_MS)
+    try {
+      unsub = client.subscribeGrouped(
+        [buildSearchSupportProbeFilter()],
+        {
+          relayUrls: [url],
+          onevent: () => finish(false),
+          oneose: () => finish(true),
+          onclose: () => finish(false),
+        },
+        'search-probe',
+      )
+      if (settled) unsub()
+    } catch {
+      finish(false)
+    }
+  })
+}
 
 export type SearchPerson = {
   pubkey: string
@@ -42,6 +80,9 @@ export function useSearch(params: {
   const [probedPosters, setProbedPosters] = useState<Set<string>>(() => new Set())
   const [probePending, setProbePending] = useState(false)
   const probeGenRef = useRef(0)
+  const searchGenRef = useRef(0)
+  const pageUnsubsRef = useRef<Array<() => void>>([])
+  const pageTimeoutRef = useRef(0)
 
   const blockedSet = useMemo(
     () => new Set(blockedPubkeys.map((p) => p.toLowerCase())),
@@ -58,32 +99,46 @@ export function useSearch(params: {
   const relaysKey = [...client.getRelays()].sort().join(',')
   const seenRef = useRef<Set<string>>(new Set())
 
+  const clearSearchSubs = useCallback(() => {
+    window.clearTimeout(pageTimeoutRef.current)
+    pageTimeoutRef.current = 0
+    for (const unsub of pageUnsubsRef.current) unsub()
+    pageUnsubsRef.current = []
+  }, [])
+
   useEffect(() => {
     if (isOffline) return
     void relaysSupportingNip(client.getRelays(), 50)
   }, [client, relaysKey, isOffline])
 
   useEffect(() => {
-    const q = debouncedSearchQuery.trim()
+    const gen = ++searchGenRef.current
+    clearSearchSubs()
     seenRef.current = new Set()
+    const q = debouncedSearchQuery.trim()
     if (!q || isOffline) {
       const t = window.setTimeout(() => {
+        if (searchGenRef.current !== gen) return
         setNetworkEvents([])
         setIsSearching(false)
       }, 0)
-      return () => window.clearTimeout(t)
+      return () => {
+        searchGenRef.current += 1
+        window.clearTimeout(t)
+        clearSearchSubs()
+      }
     }
 
-    let cancelled = false
-    const unsubs: (() => void)[] = []
-    let timeoutId = 0
+    let started = false
     const start = window.setTimeout(() => {
+      if (started || searchGenRef.current !== gen) return
       setNetworkEvents([])
       setIsSearching(true)
     }, 0)
 
     const pk = parseSearchTargetPubkey(q)
     const applyEvent = (evt: Event) => {
+      if (searchGenRef.current !== gen) return
       if (blockedSet.has(evt.pubkey.toLowerCase())) return
       if (seenRef.current.has(evt.id)) return
       if (evt.kind === NOSTR_KINDS.note && contentLooksLikeUnspacedBlob(evt.content ?? '')) return
@@ -92,57 +147,63 @@ export function useSearch(params: {
       setNetworkEvents((prev) => (prev.some((e) => e.id === evt.id) ? prev : [...prev, evt]))
     }
 
-    const filters = buildNip50SearchFilters(q)
-    const lookup = pk ? buildPubkeyLookupFilters(pk) : []
-    let pending = 0
-    const markDoneOnce = () => {
-      let done = false
-      return () => {
-        if (done) return
-        done = true
-        pending -= 1
-        if (pending <= 0) setIsSearching(false)
-      }
-    }
-
-    const attach = (nextFilters: Filter[], label: string, relayUrls?: string[]) => {
-      if (cancelled || nextFilters.length === 0) return
-      if (relayUrls && relayUrls.length === 0) return
-      pending += 1
-      const done = markDoneOnce()
-      const unsub = client.subscribeGrouped(
-        nextFilters,
-        { onevent: applyEvent, oneose: done, onclose: done, relayUrls },
-        label,
-      )
-      if (cancelled) {
-        unsub()
-        return
-      }
-      unsubs.push(unsub)
-    }
-
     void (async () => {
-      const searchRelays = filters.length ? await relaysSupportingNip(client.getRelays(), 50) : []
-      if (cancelled) return
+      const hints = await Promise.all(
+        client.getRelays().map(async (url) => {
+          const doc = await getRelayNip11(url)
+          return { url, hint: nip11SearchHint(doc.nips, doc.ok) }
+        }),
+      )
+      if (searchGenRef.current !== gen) return
+      const searchRelays = await searchRelaysFromHints(hints, (url) =>
+        probeRelayHonorsSearch(client, url),
+      )
+      if (searchGenRef.current !== gen) return
+      started = true
+      setNetworkEvents([])
+      setIsSearching(true)
+
+      const filters = buildNip50SearchFilters(q)
+      const lookup = pk ? buildPubkeyLookupFilters(pk) : []
+      let pending = 0
+      const markDoneOnce = () => {
+        let done = false
+        return () => {
+          if (done || searchGenRef.current !== gen) return
+          done = true
+          pending -= 1
+          if (pending <= 0) setIsSearching(false)
+        }
+      }
+      const attach = (nextFilters: typeof filters, label: string, relayUrls?: string[]) => {
+        if (searchGenRef.current !== gen || nextFilters.length === 0) return
+        if (relayUrls && relayUrls.length === 0) return
+        pending += 1
+        const done = markDoneOnce()
+        const unsub = client.subscribeGrouped(
+          nextFilters,
+          { onevent: applyEvent, oneose: done, onclose: done, relayUrls },
+          label,
+        )
+        pageUnsubsRef.current.push(unsub)
+      }
       attach(filters, 'search', searchRelays)
       attach(lookup, 'search-id')
       if (pending === 0) {
         setIsSearching(false)
         return
       }
-      timeoutId = window.setTimeout(() => {
-        if (!cancelled) setIsSearching(false)
+      pageTimeoutRef.current = window.setTimeout(() => {
+        if (searchGenRef.current === gen) setIsSearching(false)
       }, 12_000)
     })()
 
     return () => {
-      cancelled = true
+      searchGenRef.current += 1
       window.clearTimeout(start)
-      window.clearTimeout(timeoutId)
-      for (const u of unsubs) u()
+      clearSearchSubs()
     }
-  }, [client, debouncedSearchQuery, isOffline, relaysKey, blockedSet])
+  }, [client, debouncedSearchQuery, isOffline, relaysKey, blockedSet, clearSearchSubs])
 
   const queryLower = debouncedSearchQuery.trim().toLowerCase()
   const targetPubkey = useMemo(

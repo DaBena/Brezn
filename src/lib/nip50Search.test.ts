@@ -1,12 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { generateSecretKey, getPublicKey, nip19 } from './nostrPrimitives'
 import {
   buildNip50SearchFilters,
   buildPosterProbeFilters,
   buildPubkeyLookupFilters,
+  indexOfQueryWord,
   keepSearchPerson,
+  nip11SearchHint,
   parseSearchTargetPubkey,
+  resetSearchSupportCache,
   searchEventMatchesQuery,
+  searchRelaysFromHints,
   searchResultMatchesQuery,
 } from './nip50Search'
 import { NOSTR_KINDS } from './breznNostr'
@@ -46,6 +50,57 @@ describe('buildNip50SearchFilters', () => {
   })
 })
 
+describe('nip11SearchHint', () => {
+  it('trusts an explicit NIP-50 advertisement', () => {
+    expect(nip11SearchHint(new Set([1, 50]), true)).toBe('supports')
+  })
+
+  it('trusts a document that lists other NIPs and omits 50', () => {
+    expect(nip11SearchHint(new Set([1, 11]), true)).toBe('rejects')
+  })
+
+  it('stays unknown when the document is missing or lists no NIPs', () => {
+    expect(nip11SearchHint(new Set(), false)).toBe('unknown')
+    expect(nip11SearchHint(new Set(), true)).toBe('unknown')
+  })
+})
+
+describe('searchRelaysFromHints', () => {
+  afterEach(() => {
+    resetSearchSupportCache()
+  })
+
+  it('keeps advertised relays and probes only unknown ones', async () => {
+    const probed: string[] = []
+    const urls = await searchRelaysFromHints(
+      [
+        { url: 'wss://search.example', hint: 'supports' },
+        { url: 'wss://home.example', hint: 'rejects' },
+        { url: 'wss://quiet.example/', hint: 'unknown' },
+        { url: 'wss://loud.example', hint: 'unknown' },
+      ],
+      async (url) => {
+        probed.push(url)
+        return url.includes('quiet')
+      },
+    )
+    expect(probed.sort()).toEqual(['wss://loud.example', 'wss://quiet.example/'])
+    expect(urls).toEqual(['wss://search.example', 'wss://quiet.example'])
+  })
+
+  it('does not probe a relay again while the result is cached', async () => {
+    let calls = 0
+    const probe = async () => {
+      calls += 1
+      return true
+    }
+    const hints = [{ url: 'wss://quiet.example', hint: 'unknown' as const }]
+    await searchRelaysFromHints(hints, probe)
+    await searchRelaysFromHints(hints, probe)
+    expect(calls).toBe(1)
+  })
+})
+
 describe('buildPubkeyLookupFilters', () => {
   it('looks up metadata and posts for a hex pubkey', () => {
     const pk = 'b'.repeat(64)
@@ -76,6 +131,26 @@ describe('keepSearchPerson', () => {
   })
   it('keeps an identifier lookup even without posts', () => {
     expect(keepSearchPerson(pk, pk, new Set())).toBe(true)
+  })
+})
+
+describe('indexOfQueryWord', () => {
+  it('matches a word at the start and after a boundary, ignoring case', () => {
+    expect(indexOfQueryWord('Best Brezn in town', 'brezn')).toBe(5)
+    expect(indexOfQueryWord('Brezn', 'brezn')).toBe(0)
+    expect(indexOfQueryWord('…brezn', 'brezn')).toBe(1)
+  })
+
+  it('skips the query when a letter, number, or underscore precedes it', () => {
+    expect(indexOfQueryWord('xbrezn', 'brezn')).toBe(-1)
+    expect(indexOfQueryWord('1brezn', 'brezn')).toBe(-1)
+    expect(indexOfQueryWord('foo_brezn', 'brezn')).toBe(-1)
+    expect(indexOfQueryWord('Größe', 'öße')).toBe(-1)
+  })
+
+  it('finds a later hit when an earlier one sits inside a word', () => {
+    expect(indexOfQueryWord('xbrezn und Brezn', 'brezn')).toBe(11)
+    expect(indexOfQueryWord('xa.a.a', 'a.a')).toBe(3)
   })
 })
 
