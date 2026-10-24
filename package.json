@@ -36,7 +36,7 @@
     "ngeohash": "^0.6.4",
     "nostr-tools": "^2.25.2",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react-dom": "^19.3.1",
     "react-i18next": "^17.0.16"
   },
   "devDependencies": {
