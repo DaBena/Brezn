@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { nip19 } from '../lib/nostrPrimitives'
 import type { Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
+import { sanitizeProfilePictureUrl } from '../lib/urls'
 
 const avatarSizes = { default: 'h-6 w-6', large: 'h-12 w-12' } as const
 
@@ -29,7 +30,7 @@ export const PostIdentity = memo(function PostIdentity(props: {
   const iconSize = avatarSize === 'large' ? 28 : 14
 
   const displayName = displayNameOverride?.trim() || profile?.name?.trim() || null
-  const picture = profile?.picture?.trim() || null
+  const picture = sanitizeProfilePictureUrl(profile?.picture)
 
   const avatarClass = `${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel overflow-hidden`
 

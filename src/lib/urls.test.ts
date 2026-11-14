@@ -1,5 +1,27 @@
 import { describe, expect, test } from 'vitest'
-import { extractLinks, extractUrls, isLikelyImageUrl, isLikelyVideoUrl, uniqueUrls } from './urls'
+import {
+  extractLinks,
+  extractUrls,
+  isLikelyImageUrl,
+  isLikelyVideoUrl,
+  sanitizeProfilePictureUrl,
+  uniqueUrls,
+} from './urls'
+
+describe('sanitizeProfilePictureUrl', () => {
+  test('keeps http and https', () => {
+    expect(sanitizeProfilePictureUrl('https://cdn.example/a.png')).toBe('https://cdn.example/a.png')
+    expect(sanitizeProfilePictureUrl(' http://cdn.example/a.png ')).toBe('http://cdn.example/a.png')
+  })
+
+  test('drops javascript and data unless the settings preview allows data', () => {
+    expect(sanitizeProfilePictureUrl('javascript:alert(1)')).toBeNull()
+    expect(sanitizeProfilePictureUrl('data:image/gif;base64,R0lGODlh')).toBeNull()
+    expect(sanitizeProfilePictureUrl('data:image/gif;base64,R0lGODlh', { allowData: true })).toBe(
+      'data:image/gif;base64,R0lGODlh',
+    )
+  })
+})
 
 describe('extractUrls', () => {
   test('extracts http/https urls and trims trailing punctuation', () => {

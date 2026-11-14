@@ -8,13 +8,13 @@
     "openMenu": "Ouvrir le menu"
   },
   "feed": {
-    "offlineBanner": "Hors ligne — dernières publications vues (lecture seule).",
+    "offlineBanner": "Hors ligne - dernières publications vues (lecture seule).",
     "locationTitle": "Position pour le fil local",
-    "locationBody": "L’application a besoin de votre zone approximative pour afficher les publications locales. Vous pourrez la modifier. Votre position est réduite à une cellule geohash (~5 km).",
-    "privacyStorage": "Cette application utilise le stockage local sur votre appareil. Pas de suivi ni de données personnelles vers nous. Voir le",
-    "privacyLink": "code source, README et licence",
-    "privacyDisclaimer": "L’application charge du contenu externe (relays Nostr, serveurs). Aucune responsabilité sur le contenu externe.",
-    "privacyConfirm": "En continuant vous confirmez : je me suis informé(e) et j’accepte.",
+    "locationBody": "L’application a besoin de votre zone approximative pour les publications locales. Vous pourrez la modifier plus tard (clic sur la carte ou geohash plus court). Brezn utilise une cellule geohash publique (~5 km), pas de coordonnées GPS brutes. Cette cellule reste une donnée de localisation durable. Brezn ne s’adresse pas aux moins de 16 ans ; les publications publiques géotaguées ne sont pas pour les mineurs. La carte monde peut charger des tuiles grossières avant le consentement - sans révéler une position fine.",
+    "privacyStorage": "Choisir un lieu active aussi le stockage local sur cet appareil (réglages, clé privée). Les relais et l’hôte média intégrés ne servent qu’au démarrage, ce n’est pas une recommandation. Pas de traceur d’analyse côté éditeur. Votre navigateur se connecte quand même aux relays et, si vous ouvrez des cartes ou envoyez des fichiers, à d’autres hôtes. Détails:",
+    "privacyLink": "Confidentialité",
+    "privacyDisclaimer": "L’application charge du contenu tiers (relays Nostr, hôtes médias, tuiles cartographiques). Ces opérateurs peuvent recevoir et journaliser des données de connexion comme votre IP. L’éditeur ne contrôle ni leur contenu ni leur conservation.",
+    "privacyConfirm": "En continuant, vous confirmez avoir lu cet avis, avoir au moins 16 ans (ou l’âge de consentement numérique applicable là où vous vivez) et l’accepter.",
     "allowLocation": "Autoriser la position",
     "errorTitle": "Erreur",
     "tryAgain": "Réessayer",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Aucune réponse des relays. Vérifiez la liste ou réessayez plus tard.",
     "waitingEose": "Aucun événement pour l’instant (en attente d’EOSE)…",
     "noPostsYet": "Aucune publication pour l’instant. Réessayez plus tard ou changez de relays.",
-    "noRelays": "Aucun relay — vérifiez les réglages."
+    "noRelays": "Aucun relay - vérifiez les réglages."
   },
   "settings": {
     "title": "Réglages",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Chat",
     "loading": "Chargement des conversations…",
-    "offline": "Hors ligne — vérifiez la connexion.",
-    "timeout": "Délai dépassé — les relays ne répondent pas.",
+    "offline": "Hors ligne - vérifiez la connexion.",
+    "timeout": "Délai dépassé - les relays ne répondent pas.",
     "loadError": "Erreur de chargement des conversations",
     "empty": "Aucune conversation"
   },
   "dm": {
     "titlePrefix": "DM :",
-    "offlineSend": "Hors ligne — impossible d’envoyer le message.",
-    "offline": "Hors ligne — vérifiez la connexion.",
-    "timeout": "Délai dépassé — les relays ne répondent pas.",
+    "offlineSend": "Hors ligne - impossible d’envoyer le message.",
+    "offline": "Hors ligne - vérifiez la connexion.",
+    "timeout": "Délai dépassé - les relays ne répondent pas.",
     "loadError": "Erreur de chargement des messages",
     "loading": "Chargement des messages…",
     "empty": "Aucun message",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Modifier le geohash"
   },
   "feedArticle": {
-    "deleted": "Supprimé — propagation aux relays",
+    "deleted": "Supprimé - propagation aux relays",
     "deletedAria": "Supprimé",
     "openPost": "Ouvrir",
     "sendReaction": "Envoyer une réaction",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Échec de la publication.",
-    "offlineComments": "Hors ligne — commentaires en lecture seule.",
-    "offlineDelete": "Hors ligne — impossible d’envoyer l’événement de suppression."
+    "offlineComments": "Hors ligne - commentaires en lecture seule.",
+    "offlineDelete": "Hors ligne - impossible d’envoyer l’événement de suppression."
   },
   "thread": {
     "reportRoot": "Signaler le post",
@@ -242,7 +242,7 @@
     "replySending": "Envoi…",
     "userBlocked": "Utilisateur bloqué.",
     "blockingFailed": "Échec du blocage.",
-    "offlineBlock": "Hors ligne — blocage impossible.",
+    "offlineBlock": "Hors ligne - blocage impossible.",
     "deleteFailed": "Échec suppression.",
     "publishFailedFallback": "Échec de la publication."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Ouvrir la photo de profil",
     "dmAria": "Ouvrir le message direct",
     "message": "Message",
-    "offlineHint": "Hors ligne — publications du profil peut-être incomplètes.",
+    "offlineHint": "Hors ligne - publications du profil peut-être incomplètes.",
     "loadingPosts": "Chargement…",
     "noPosts": "Aucune publication",
     "noPostsFromRelays": "Aucune publication des relays.",

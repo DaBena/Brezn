@@ -10,11 +10,11 @@
   "feed": {
     "offlineBanner": "Sin conexión: mostrando últimas publicaciones (solo lectura).",
     "locationTitle": "Ubicación para el feed local",
-    "locationBody": "La app necesita tu zona aproximada para mostrar publicaciones locales. Puedes cambiarla después. Tu posición se reduce a una celda geohash (~5 km).",
-    "privacyStorage": "Esta app usa almacenamiento local en tu dispositivo. Sin seguimiento ni datos personales a nosotros. Ver",
-    "privacyLink": "código, README y licencia",
-    "privacyDisclaimer": "La app carga contenido de fuentes externas (relays Nostr, servidores). No nos hacemos responsables del contenido externo.",
-    "privacyConfirm": "Al continuar confirmas: me he informado y acepto.",
+    "locationBody": "La app necesita tu zona aproximada para mostrar publicaciones locales. Puedes cambiarla después (clic en el mapa o geohash más corto). Brezn usa una celda geohash pública (~5 km), no coordenadas GPS en bruto. Esa celda sigue siendo dato de ubicación duradero. Brezn no está dirigido a menores de 16 años; las publicaciones públicas con ubicación no son para menores. El mapa mundial puede cargar teselas gruesas antes del consentimiento - sin revelar una ubicación fina.",
+    "privacyStorage": "Elegir una ubicación también activa el almacenamiento local en este dispositivo (ajustes, clave privada). Los relays y el host de medios integrados son solo arranque, no una recomendación. No hay rastreador de analítica del editor. Tu navegador igual se conecta a relays y, si abres mapas o subes archivos, a otros hosts. Detalles:",
+    "privacyLink": "Privacidad",
+    "privacyDisclaimer": "La app carga contenido de terceros (relays Nostr, hosts de medios, teselas de mapa). Esos operadores pueden recibir y registrar datos de conexión como tu IP. El editor no controla su contenido ni su retención.",
+    "privacyConfirm": "Al continuar confirmas que has leído este aviso, que tienes al menos 16 años (o la edad de consentimiento digital aplicable donde vives) y que aceptas.",
     "allowLocation": "Permitir ubicación",
     "errorTitle": "Error",
     "tryAgain": "Reintentar",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Sin respuesta de los relays. Revisa la lista o inténtalo más tarde.",
     "waitingEose": "Aún no hay eventos (esperando EOSE)…",
     "noPostsYet": "Aún no hay publicaciones. Inténtalo más tarde u otros relays.",
-    "noRelays": "Sin relays — revisa Ajustes."
+    "noRelays": "Sin relays - revisa Ajustes."
   },
   "settings": {
     "title": "Ajustes",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Editar geohash"
   },
   "feedArticle": {
-    "deleted": "Eliminado – propagando a relays",
+    "deleted": "Eliminado - propagando a relays",
     "deletedAria": "Post eliminado",
     "openPost": "Abrir post",
     "sendReaction": "Enviar reacción",

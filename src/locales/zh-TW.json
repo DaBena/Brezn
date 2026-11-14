@@ -8,13 +8,13 @@
     "openMenu": "開啟選單"
   },
   "feed": {
-    "offlineBanner": "離線 — 顯示上次看到的貼文（唯讀）。",
+    "offlineBanner": "離線 - 顯示上次看到的貼文（唯讀）。",
     "locationTitle": "本地動態的位置",
-    "locationBody": "需要大致區域以顯示附近貼文，之後可更改。位置會模糊到 geohash 格（約 5 公里）以保護隱私。",
-    "privacyStorage": "本應用使用裝置本地儲存，不追蹤、不傳個人資料給我們。參見",
-    "privacyLink": "原始碼、README 與授權",
-    "privacyDisclaimer": "內容來自外部（Nostr 中繼、檔案伺服器），不對外部內容負責。",
-    "privacyConfirm": "繼續即表示您已了解並同意。",
+    "locationBody": "需要大致區域以顯示附近貼文，之後可更改（地圖點選或更短 geohash）。Brezn 使用公開的 geohash 格（約 5 公里），而非原始 GPS 座標。該格仍是持久的位置資料。Brezn 不面向未滿 16 歲者；帶位置標籤的公開貼文不適合未成年人。同意前世界地圖可能載入粗略圖磚 - 不會暴露精細位置。",
+    "privacyStorage": "選擇位置也會啟用此裝置的本機儲存（設定、私鑰）。內建中繼與媒體主機僅用於引導，並非推薦。沒有發布者分析追蹤器。瀏覽器仍會連線中繼；開啟地圖或上傳時還會連線其他主機。詳情:",
+    "privacyLink": "隱私",
+    "privacyDisclaimer": "應用程式從第三方載入內容（Nostr 中繼、媒體主機、地圖圖磚）。這些營運者可能接收並記錄 IP 等連線資料。發布者不控制其內容或保存。",
+    "privacyConfirm": "繼續即表示您已閱讀本說明、年滿 16 歲（或您所在地適用的數位同意年齡），並同意。",
     "allowLocation": "允許位置",
     "errorTitle": "錯誤",
     "tryAgain": "重試",
@@ -22,7 +22,7 @@
     "noRelayResponse": "中繼無回應，請檢查列表或稍後再試。",
     "waitingEose": "尚無事件（等待 EOSE）…",
     "noPostsYet": "尚無貼文，請稍後或更換中繼。",
-    "noRelays": "尚無中繼 — 請檢查設定。"
+    "noRelays": "尚無中繼 - 請檢查設定。"
   },
   "settings": {
     "title": "設定",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "聊天",
     "loading": "載入對話…",
-    "offline": "離線 — 請檢查網路。",
-    "timeout": "逾時 — 中繼無回應，請檢查設定。",
+    "offline": "離線 - 請檢查網路。",
+    "timeout": "逾時 - 中繼無回應，請檢查設定。",
     "loadError": "載入對話失敗",
     "empty": "尚無對話"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "離線 — 無法傳送訊息。",
-    "offline": "離線 — 請檢查網路。",
-    "timeout": "逾時 — 中繼無回應，請檢查設定。",
+    "offlineSend": "離線 - 無法傳送訊息。",
+    "offline": "離線 - 請檢查網路。",
+    "timeout": "逾時 - 中繼無回應，請檢查設定。",
     "loadError": "載入訊息失敗",
     "loading": "載入訊息…",
     "empty": "尚無訊息",
@@ -184,7 +184,7 @@
     "editGeohashAria": "編輯 geohash"
   },
   "feedArticle": {
-    "deleted": "已刪除 — 同步至中繼",
+    "deleted": "已刪除 - 同步至中繼",
     "deletedAria": "已刪除貼文",
     "openPost": "開啟貼文",
     "sendReaction": "傳送反應",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "發布失敗。",
-    "offlineComments": "離線 — 留言僅可閱讀。",
-    "offlineDelete": "離線 — 無法傳送刪除事件。"
+    "offlineComments": "離線 - 留言僅可閱讀。",
+    "offlineDelete": "離線 - 無法傳送刪除事件。"
   },
   "thread": {
     "reportRoot": "檢舉主貼文",
@@ -242,7 +242,7 @@
     "replySending": "傳送中…",
     "userBlocked": "已封鎖使用者。",
     "blockingFailed": "封鎖失敗。",
-    "offlineBlock": "離線 — 無法封鎖。",
+    "offlineBlock": "離線 - 無法封鎖。",
     "deleteFailed": "刪除事件失敗。",
     "publishFailedFallback": "發布失敗。"
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "開啟大頭貼",
     "dmAria": "開啟私訊",
     "message": "訊息",
-    "offlineHint": "離線 — 個人貼文可能不完整。",
+    "offlineHint": "離線 - 個人貼文可能不完整。",
     "loadingPosts": "載入貼文…",
     "noPosts": "尚無貼文",
     "noPostsFromRelays": "中繼尚無貼文。",

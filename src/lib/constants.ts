@@ -92,3 +92,9 @@ export const NIP11_NEGATIVE_CACHE_TTL_MS = 60_000
 
 /** Repo URL. */
 export const REPO_URL = 'https://github.com/dabena/Brezn'
+
+/** Privacy notice on GitHub (first-run / consent link). */
+export const PRIVACY_URL = `${REPO_URL}/blob/main/PRIVACY.md`
+
+/** German privacy notice on GitHub. */
+export const DATENSCHUTZ_URL = `${REPO_URL}/blob/main/DATENSCHUTZ.md`

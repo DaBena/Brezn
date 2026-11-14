@@ -44,7 +44,7 @@ export async function publishReply(
     ['p', root.pubkey],
   ]
 
-  // No `g` tags — replies are private to the thread (like DMs), not geo-discoverable.
+  // No `g` tags - replies stay public notes without location tags, so they are not geo-discoverable.
   await client.publish({ kind: 1, content: trimmedContent, tags })
 }
 

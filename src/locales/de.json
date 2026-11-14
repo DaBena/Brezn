@@ -8,13 +8,13 @@
     "openMenu": "Menü öffnen"
   },
   "feed": {
-    "offlineBanner": "Offline – zuletzt gesehene Beiträge (nur lesen).",
+    "offlineBanner": "Offline - zuletzt gesehene Beiträge (nur lesen).",
     "locationTitle": "Standort für lokalen Feed",
-    "locationBody": "Die App braucht deine ungefähre Gegend, um lokale Beiträge zu zeigen. Du kannst sie später ändern. Dein Standort wird auf eine Geohash-Zelle (~5 km) reduziert.",
-    "privacyStorage": "Diese App nutzt lokalen Speicher auf deinem Gerät. Kein Tracking, keine personenbezogenen Daten an uns. Siehe",
-    "privacyLink": "Quellcode, README & Lizenz",
-    "privacyDisclaimer": "Die App lädt Inhalte von externen Quellen (Nostr-Relays, Dateiserver). Keine Haftung für externe Inhalte.",
-    "privacyConfirm": "Mit Fortfahren bestätigst du: Ich habe mich informiert und stimme zu.",
+    "locationBody": "Die App braucht deine ungefähre Gegend für lokale Beiträge. Du kannst sie später ändern (Karte oder kürzerer Geohash). Brezn nutzt eine öffentliche Geohash-Zelle (~5 km), keine Roh-GPS-Koordinaten. Die Zelle ist trotzdem dauerhafte Ortsangabe. Brezn richtet sich nicht an Kinder oder Jugendliche unter 16 Jahren; standortbezogene öffentliche Beiträge sind nichts für Minderjährige. Die Weltübersicht kann grobe Kartenkacheln laden, bevor du zustimmst - daraus folgt kein feinörtlicher Standort.",
+    "privacyStorage": "Mit der Standortwahl wird auch lokaler Speicher auf diesem Gerät freigeschaltet (Einstellungen, Privatschlüssel). Eingebaute Relays und Media-Host sind nur Bootstrapping, keine Empfehlung. Es gibt keinen Publisher-Tracker. Dein Browser verbindet sich trotzdem mit Relays und ggf. anderen Hosts. Details:",
+    "privacyLink": "Datenschutz",
+    "privacyDisclaimer": "Die App lädt Inhalte von Dritten (Nostr-Relays, Media-Hosts, Kartenkacheln). Diese Betreiber können Verbindungsdaten wie deine IP erhalten und protokollieren. Der Anbieter steuert deren Inhalte und Speicherung nicht.",
+    "privacyConfirm": "Mit Fortfahren bestätigst du, dass du diesen Hinweis gelesen hast, mindestens 16 Jahre alt bist bzw. das für dich geltende Alter der digitalen Einwilligung erreichst, und zustimmst.",
     "allowLocation": "Standort erlauben",
     "errorTitle": "Fehler",
     "tryAgain": "Nochmal",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Keine Antwort von den Relays. Relay-Liste prüfen oder später erneut versuchen.",
     "waitingEose": "Noch keine Events (warte auf EOSE)…",
     "noPostsYet": "Noch keine Beiträge. Später erneut versuchen oder andere Relays.",
-    "noRelays": "Noch keine Relays — Einstellungen prüfen."
+    "noRelays": "Noch keine Relays - Einstellungen prüfen."
   },
   "settings": {
     "title": "Einstellungen",
@@ -44,7 +44,7 @@
     "increaseRadius": "Radius vergrößern",
     "length": "Länge {{n}}",
     "queriesCurrent": "alle geotaggten Posts",
-    "precisionFallback": "Höher = kleiner (genauer) – aber weniger Treffer.",
+    "precisionFallback": "Höher = kleiner (genauer) - aber weniger Treffer.",
     "cellSize": "{{w}} × {{h}}, plus 8 Nachbarn"
   },
   "moderation": {
@@ -82,7 +82,7 @@
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays für Feed, DMs und Veröffentlichung. Es werden nur die hier eingetragenen URLs bzw. die wenigen Standard-Relays genutzt—keine automatische Outbox- oder Hintergrund-Relay-Auswahl.",
+    "hint": "Relays für Feed, DMs und Veröffentlichung. Es werden nur die hier eingetragenen URLs bzw. die wenigen Standard-Relays genutzt - keine automatische Outbox- oder Hintergrund-Relay-Auswahl.",
     "empty": "Keine Relays konfiguriert. Ohne Relay können keine Beiträge geladen oder veröffentlicht werden. Unten ein Relay hinzufügen oder „Standard“.",
     "removeAria": "Relay entfernen",
     "placeholder": "wss://relay.example",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Chat",
     "loading": "Unterhaltungen werden geladen…",
-    "offline": "Offline – bitte Internetverbindung prüfen.",
-    "timeout": "Zeitüberschreitung – Relays antworten nicht. Relay-Einstellungen prüfen.",
+    "offline": "Offline - bitte Internetverbindung prüfen.",
+    "timeout": "Zeitüberschreitung - Relays antworten nicht. Relay-Einstellungen prüfen.",
     "loadError": "Fehler beim Laden der Chats",
     "empty": "Noch keine Chats"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Offline – Nachricht kann nicht gesendet werden.",
-    "offline": "Offline – bitte Internetverbindung prüfen.",
-    "timeout": "Zeitüberschreitung – Relays antworten nicht. Relay-Einstellungen prüfen.",
+    "offlineSend": "Offline - Nachricht kann nicht gesendet werden.",
+    "offline": "Offline - bitte Internetverbindung prüfen.",
+    "timeout": "Zeitüberschreitung - Relays antworten nicht. Relay-Einstellungen prüfen.",
     "loadError": "Fehler beim Laden der Nachrichten",
     "loading": "Nachrichten werden geladen…",
     "empty": "Noch keine Nachrichten",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Geohash bearbeiten"
   },
   "feedArticle": {
-    "deleted": "Gelöscht – wird an Relays verteilt",
+    "deleted": "Gelöscht - wird an Relays verteilt",
     "deletedAria": "Gelöschter Beitrag",
     "openPost": "Beitrag öffnen",
     "sendReaction": "Reaktion senden",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Posten fehlgeschlagen.",
-    "offlineComments": "Offline – Kommentare nur lesbar.",
-    "offlineDelete": "Offline – Lösch-Ereignis kann nicht gesendet werden."
+    "offlineComments": "Offline - Kommentare nur lesbar.",
+    "offlineDelete": "Offline - Lösch-Ereignis kann nicht gesendet werden."
   },
   "thread": {
     "reportRoot": "Hauptbeitrag melden",
@@ -242,7 +242,7 @@
     "replySending": "Sende…",
     "userBlocked": "Nutzer blockiert.",
     "blockingFailed": "Block fehlgeschlagen.",
-    "offlineBlock": "Offline – Blockieren nicht möglich.",
+    "offlineBlock": "Offline - Blockieren nicht möglich.",
     "deleteFailed": "Löschen fehlgeschlagen.",
     "publishFailedFallback": "Posten fehlgeschlagen."
   },
@@ -262,7 +262,7 @@
     "openPictureAria": "Profilbild öffnen",
     "dmAria": "Direktnachricht öffnen",
     "message": "Nachricht",
-    "offlineHint": "Offline – Profilbeiträge ggf. unvollständig.",
+    "offlineHint": "Offline - Profilbeiträge ggf. unvollständig.",
     "loadingPosts": "Lade Posts…",
     "noPosts": "Noch keine Beiträge",
     "noPostsFromRelays": "Noch keine Beiträge von den Relays.",

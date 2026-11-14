@@ -8,13 +8,13 @@
     "openMenu": "Otwórz menu"
   },
   "feed": {
-    "offlineBanner": "Offline — wyświetlane ostatnio widziane posty (tylko do odczytu).",
+    "offlineBanner": "Offline - wyświetlane ostatnio widziane posty (tylko do odczytu).",
     "locationTitle": "Lokalizacja dla lokalnego kanału",
-    "locationBody": "Aplikacja potrzebuje przybliżonego obszaru, by pokazać lokalne posty. Możesz to później zmienić. Twoja pozycja jest redukowana do komórki geohash (~5 km) dla prywatności.",
-    "privacyStorage": "Ta aplikacja używa pamięci lokalnej na urządzeniu. Brak śledzenia, brak przesyłania danych osobowych do nas. Zobacz",
-    "privacyLink": "źródło, README i licencję",
-    "privacyDisclaimer": "Aplikacja ładuje treści z zewnętrznych źródeł (relay’e nostr, serwery plików). Nie ponosimy odpowiedzialności za treści zewnętrzne.",
-    "privacyConfirm": "Kontynuując potwierdzasz: zapoznałem/am się i akceptuję.",
+    "locationBody": "Aplikacja potrzebuje przybliżonego obszaru, by pokazać lokalne posty. Możesz to później zmienić (kliknięcie mapy lub krótszy geohash). Brezn używa publicznej komórki geohash (~5 km), nie surowych współrzędnych GPS. Ta komórka to nadal trwałe dane lokalizacji. Brezn nie jest przeznaczony dla osób poniżej 16 lat; publiczne posty z lokalizacją nie są dla nieletnich. Mapa świata może wczytać grube kafelki przed zgodą - bez ujawniania dokładnej lokalizacji.",
+    "privacyStorage": "Wybór lokalizacji włącza też lokalną pamięć na tym urządzeniu (ustawienia, klucz prywatny). Wbudowane przekaźniki i host mediów to tylko bootstrap, nie rekomendacja. Brak trackera analitycznego wydawcy. Przeglądarka i tak łączy się z relayami oraz - przy mapach lub uploadzie - z innymi hostami. Szczegóły:",
+    "privacyLink": "Prywatność",
+    "privacyDisclaimer": "Aplikacja ładuje treści od stron trzecich (relay’e Nostr, hosty mediów, kafelki map). Operatorzy mogą otrzymywać i rejestrować dane połączenia, np. IP. Wydawca nie kontroluje ich treści ani retencji.",
+    "privacyConfirm": "Kontynuując potwierdzasz, że przeczytałeś/aś ten komunikat, masz co najmniej 16 lat (lub obowiązujący wiek zgody cyfrowej w miejscu zamieszkania) i akceptujesz.",
     "allowLocation": "Zezwól na lokalizację",
     "errorTitle": "Błąd",
     "tryAgain": "Spróbuj ponownie",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Brak odpowiedzi z relay’ów. Sprawdź listę relay’ów lub spróbuj później.",
     "waitingEose": "Brak zdarzeń (oczekiwanie na EOSE)…",
     "noPostsYet": "Brak postów. Spróbuj później lub użyj innych relay’ów.",
-    "noRelays": "Brak relay’ów — sprawdź Ustawienia."
+    "noRelays": "Brak relay’ów - sprawdź Ustawienia."
   },
   "settings": {
     "title": "Ustawienia",
@@ -44,7 +44,7 @@
     "increaseRadius": "Zwiększ promień",
     "length": "Długość {{n}}",
     "queriesCurrent": "wszystkie posty geo",
-    "precisionFallback": "Wyższa = mniejsza (dokładniejsza) — ale mniej wyników.",
+    "precisionFallback": "Wyższa = mniejsza (dokładniejsza) - ale mniej wyników.",
     "cellSize": "{{w}} × {{h}}, plus 8 sąsiadów"
   },
   "moderation": {
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Czat",
     "loading": "Ładowanie rozmów…",
-    "offline": "Offline — sprawdź połączenie z internetem.",
-    "timeout": "Timeout — relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "offline": "Offline - sprawdź połączenie z internetem.",
+    "timeout": "Timeout - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
     "loadError": "Nie udało się wczytać rozmów",
     "empty": "Brak rozmów"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Offline — nie można wysłać wiadomości.",
-    "offline": "Offline — sprawdź połączenie z internetem.",
-    "timeout": "Timeout — relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "offlineSend": "Offline - nie można wysłać wiadomości.",
+    "offline": "Offline - sprawdź połączenie z internetem.",
+    "timeout": "Timeout - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
     "loadError": "Nie udało się wczytać wiadomości",
     "loading": "Ładowanie wiadomości…",
     "empty": "Brak wiadomości",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Edytuj geohash"
   },
   "feedArticle": {
-    "deleted": "Usunięto — propagacja do relay’ów",
+    "deleted": "Usunięto - propagacja do relay’ów",
     "deletedAria": "Usunięty post",
     "openPost": "Otwórz post",
     "sendReaction": "Wyślij reakcję",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Publikacja nieudana.",
-    "offlineComments": "Offline — komentarze tylko do odczytu.",
-    "offlineDelete": "Offline — nie można wysłać zdarzenia usunięcia."
+    "offlineComments": "Offline - komentarze tylko do odczytu.",
+    "offlineDelete": "Offline - nie można wysłać zdarzenia usunięcia."
   },
   "thread": {
     "reportRoot": "Zgłoś post główny",
@@ -242,7 +242,7 @@
     "replySending": "Wysyłanie…",
     "userBlocked": "Zablokowano.",
     "blockingFailed": "Blokada nieudana.",
-    "offlineBlock": "Offline — nie można zablokować użytkownika.",
+    "offlineBlock": "Offline - nie można zablokować użytkownika.",
     "deleteFailed": "Usuwanie nieudane.",
     "publishFailedFallback": "Publikacja nieudana."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Otwórz zdjęcie profilowe",
     "dmAria": "Otwórz wiadomość bezpośrednią",
     "message": "Wiadomość",
-    "offlineHint": "Offline — posty na profilu mogą być niekompletne.",
+    "offlineHint": "Offline - posty na profilu mogą być niekompletne.",
     "loadingPosts": "Ładowanie postów…",
     "noPosts": "Brak postów",
     "noPostsFromRelays": "Brak postów z relay’ów.",

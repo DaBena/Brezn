@@ -10,11 +10,11 @@
   "feed": {
     "offlineBanner": "Offline - showing last seen posts (read-only).",
     "locationTitle": "Location for local feed",
-    "locationBody": "This app needs your approximate area to show local posts. You can manually change it later. Your position is reduced to a geohash cell (~5 km) to protect your privacy.",
-    "privacyStorage": "This app uses local storage on your device. No tracking and no personal data is sent to us. See the",
-    "privacyLink": "source, README & license",
-    "privacyDisclaimer": "This app loads user content from external sources (nostr relays, file servers). We accept no liability for any external content.",
-    "privacyConfirm": "By continuing you confirm: I informed myself and accept.",
+    "locationBody": "This app needs your approximate area to show local posts. You can change it later (map click or shorter geohash). Brezn uses a public geohash cell (~5 km), not raw GPS coordinates. That cell is still lasting location data. Brezn is not intended for children or teens under 16; public location-tagged posts are not for minors. The world map may load coarse tiles before you consent - that does not reveal a fine-grained location.",
+    "privacyStorage": "Choosing a location also enables local storage on this device (settings, private key). Built-in relays and the media host are bootstrapping only, not a recommendation. There is no publisher analytics tracker. Your browser still connects to relays and, if you open maps or upload, to other hosts. Details:",
+    "privacyLink": "Privacy",
+    "privacyDisclaimer": "The app loads content from third parties (Nostr relays, media hosts, map tiles). Those operators may receive and log connection data such as your IP. The publisher does not control their content or retention.",
+    "privacyConfirm": "By continuing you confirm that you have read this notice, that you are at least 16 (or the applicable digital-consent age where you live), and that you accept.",
     "allowLocation": "Allow location",
     "errorTitle": "Error",
     "tryAgain": "Try again",
@@ -22,7 +22,7 @@
     "noRelayResponse": "No response from relays. Check the relay list or try again later.",
     "waitingEose": "No events received yet (waiting for EOSE)…",
     "noPostsYet": "No posts found yet. Try again later or try different relays.",
-    "noRelays": "No relays yet — check Settings."
+    "noRelays": "No relays yet - check Settings."
   },
   "settings": {
     "title": "Settings",
@@ -82,7 +82,7 @@
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays used for the feed, DMs, and publishing. Only URLs you list here (or the few built-in defaults) are used—no automatic “outbox” relay discovery.",
+    "hint": "Relays used for the feed, DMs, and publishing. Only URLs you list here (or the few built-in defaults) are used - no automatic \"outbox\" relay discovery.",
     "empty": "No relays configured. Posts cannot be loaded or published without at least one relay. Add a relay below or use the \"Default\" button to restore default relays.",
     "removeAria": "Remove relay",
     "placeholder": "wss://relay.example",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Edit geohash"
   },
   "feedArticle": {
-    "deleted": "Deleted – propagating to relays",
+    "deleted": "Deleted - propagating to relays",
     "deletedAria": "Deleted post",
     "openPost": "Open post",
     "sendReaction": "Send reaction",
@@ -262,7 +262,7 @@
     "openPictureAria": "Open profile picture",
     "dmAria": "Open direct message",
     "message": "Message",
-    "offlineHint": "Offline — profile posts may be incomplete.",
+    "offlineHint": "Offline - profile posts may be incomplete.",
     "loadingPosts": "Loading posts…",
     "noPosts": "No posts yet",
     "noPostsFromRelays": "No posts found from relays yet.",

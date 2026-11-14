@@ -8,13 +8,13 @@
     "openMenu": "Buka menu"
   },
   "feed": {
-    "offlineBanner": "Offline — menampilkan posting terakhir (hanya baca).",
+    "offlineBanner": "Offline - menampilkan posting terakhir (hanya baca).",
     "locationTitle": "Lokasi untuk feed lokal",
-    "locationBody": "Aplikasi perlu area perkiraan untuk menampilkan posting lokal. Bisa diubah nanti. Posisi dikurangi ke sel geohash (~5 km) untuk privasi.",
-    "privacyStorage": "Aplikasi memakai penyimpanan lokal di perangkat. Tanpa pelacakan dan tanpa data pribadi ke kami. Lihat",
-    "privacyLink": "sumber, README & lisensi",
-    "privacyDisclaimer": "Aplikasi memuat konten dari sumber eksternal (relay nostr, server file). Kami tidak bertanggung jawab atas konten eksternal.",
-    "privacyConfirm": "Dengan melanjutkan: saya sudah membaca dan setuju.",
+    "locationBody": "Aplikasi perlu area perkiraan untuk posting lokal. Bisa diubah nanti (klik peta atau geohash lebih pendek). Brezn memakai sel geohash publik (~5 km), bukan koordinat GPS mentah. Sel itu tetap data lokasi yang bertahan. Brezn tidak ditujukan untuk di bawah 16 tahun; posting publik bertanda lokasi bukan untuk anak di bawah umur. Peta dunia dapat memuat ubin kasar sebelum persetujuan - tanpa mengungkapkan lokasi halus.",
+    "privacyStorage": "Memilih lokasi juga mengaktifkan penyimpanan lokal di perangkat ini (pengaturan, kunci pribadi). Relay dan host media bawaan hanya bootstrap, bukan rekomendasi. Tidak ada pelacak analitik penerbit. Browser tetap terhubung ke relay dan, jika peta/unggah, ke host lain. Detail:",
+    "privacyLink": "Privasi",
+    "privacyDisclaimer": "Aplikasi memuat konten pihak ketiga (relay Nostr, host media, ubin peta). Operator itu dapat menerima dan mencatat data koneksi seperti IP. Penerbit tidak mengontrol konten atau retensi mereka.",
+    "privacyConfirm": "Dengan melanjutkan Anda menegaskan telah membaca pemberitahuan ini, berusia minimal 16 tahun (atau usia persetujuan digital yang berlaku di tempat tinggal Anda), dan menerimanya.",
     "allowLocation": "Izinkan lokasi",
     "errorTitle": "Kesalahan",
     "tryAgain": "Coba lagi",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Tidak ada respons dari relay. Periksa daftar atau coba lagi nanti.",
     "waitingEose": "Belum ada event (menunggu EOSE)…",
     "noPostsYet": "Belum ada posting. Coba lagi nanti atau ganti relay.",
-    "noRelays": "Belum ada relay — periksa Pengaturan."
+    "noRelays": "Belum ada relay - periksa Pengaturan."
   },
   "settings": {
     "title": "Pengaturan",
@@ -44,7 +44,7 @@
     "increaseRadius": "Perbesar radius",
     "length": "Panjang {{n}}",
     "queriesCurrent": "semua post geo",
-    "precisionFallback": "Lebih tinggi = lebih kecil (lebih presisi) — hasil lebih sedikit.",
+    "precisionFallback": "Lebih tinggi = lebih kecil (lebih presisi) - hasil lebih sedikit.",
     "cellSize": "{{w}} × {{h}}, plus 8 tetangga"
   },
   "moderation": {
@@ -82,7 +82,7 @@
   },
   "relay": {
     "title": "Relay",
-    "hint": "Relay untuk feed, DM, dan publikasi. Hanya URL yang Anda daftar (atau default bawaan) — tanpa penemuan relay outbox otomatis.",
+    "hint": "Relay untuk feed, DM, dan publikasi. Hanya URL yang Anda daftar (atau default bawaan) - tanpa penemuan relay outbox otomatis.",
     "empty": "Belum ada relay. Posting tidak bisa dimuat atau dipublikasikan tanpa minimal satu relay. Tambah di bawah atau pakai tombol \"Default\".",
     "removeAria": "Hapus relay",
     "placeholder": "wss://relay.example",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Chat",
     "loading": "Memuat percakapan…",
-    "offline": "Offline — periksa koneksi internet.",
-    "timeout": "Timeout — relay tidak merespons. Periksa pengaturan relay.",
+    "offline": "Offline - periksa koneksi internet.",
+    "timeout": "Timeout - relay tidak merespons. Periksa pengaturan relay.",
     "loadError": "Gagal memuat percakapan",
     "empty": "Belum ada percakapan"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Offline — pesan tidak bisa dikirim.",
-    "offline": "Offline — periksa koneksi internet.",
-    "timeout": "Timeout — relay tidak merespons. Periksa pengaturan relay.",
+    "offlineSend": "Offline - pesan tidak bisa dikirim.",
+    "offline": "Offline - periksa koneksi internet.",
+    "timeout": "Timeout - relay tidak merespons. Periksa pengaturan relay.",
     "loadError": "Gagal memuat pesan",
     "loading": "Memuat pesan…",
     "empty": "Belum ada pesan",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Sunting geohash"
   },
   "feedArticle": {
-    "deleted": "Dihapus — disebar ke relay",
+    "deleted": "Dihapus - disebar ke relay",
     "deletedAria": "Posting dihapus",
     "openPost": "Buka posting",
     "sendReaction": "Kirim reaksi",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Publikasi gagal.",
-    "offlineComments": "Offline — komentar hanya baca.",
-    "offlineDelete": "Offline — event penghapusan tidak bisa dikirim."
+    "offlineComments": "Offline - komentar hanya baca.",
+    "offlineDelete": "Offline - event penghapusan tidak bisa dikirim."
   },
   "thread": {
     "reportRoot": "Laporkan posting utama",
@@ -242,7 +242,7 @@
     "replySending": "Mengirim…",
     "userBlocked": "Pengguna diblokir.",
     "blockingFailed": "Gagal memblokir.",
-    "offlineBlock": "Offline — tidak bisa blokir.",
+    "offlineBlock": "Offline - tidak bisa blokir.",
     "deleteFailed": "Event penghapusan gagal.",
     "publishFailedFallback": "Publikasi gagal."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Buka foto profil",
     "dmAria": "Buka pesan langsung",
     "message": "Pesan",
-    "offlineHint": "Offline — posting profil mungkin tidak lengkap.",
+    "offlineHint": "Offline - posting profil mungkin tidak lengkap.",
     "loadingPosts": "Memuat posting…",
     "noPosts": "Belum ada posting",
     "noPostsFromRelays": "Belum ada posting dari relay.",

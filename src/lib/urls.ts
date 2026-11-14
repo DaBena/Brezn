@@ -282,6 +282,23 @@ export function isSafeUrl(url: string): boolean {
   }
 }
 
+/** http(s) picture URL. `allowData` is only for a local settings preview. */
+export function sanitizeProfilePictureUrl(
+  url: string | null | undefined,
+  opts?: { allowData?: boolean },
+): string | null {
+  if (!url || !url.trim()) return null
+  try {
+    const parsed = new URL(url.trim())
+    const protocol = parsed.protocol.toLowerCase()
+    if (protocol === 'http:' || protocol === 'https:') return parsed.href
+    if (opts?.allowData && protocol === 'data:') return parsed.href
+  } catch {
+    // Ignore invalid URLs
+  }
+  return null
+}
+
 /** NIP-92 `imeta`: extensionless media URLs with mime type (e.g. Blossom). */
 export function collectImetaMediaUrls(tags: string[][] | undefined): {
   imageUrls: string[]

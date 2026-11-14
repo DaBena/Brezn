@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
-import { getConversationKey, nip44 } from './nip44'
+import { encryptToPubkey, getConversationKey, nip44 } from './nip44'
 import { generateSecretKey, getPublicKey } from './nostrPrimitives'
 import * as nostrToolsNip44 from 'nostr-tools/nip44'
-import { dmPeerFromRumor, rumorToLogicalEvent, unwrapGiftWrap, wrapDirectMessage } from './nip17'
+import {
+  dmPeerFromRumor,
+  finalizeEvent,
+  rumorToLogicalEvent,
+  unwrapGiftWrap,
+  wrapDirectMessage,
+} from './nip17'
 
 describe('nip44', () => {
   it('matches nostr-tools conversation key + encrypt/decrypt vector', () => {
@@ -60,5 +66,33 @@ describe('nip17', () => {
     expect(dmPeerFromRumor(rumorB, pkB)).toBe(pkA)
     expect(dmPeerFromRumor(rumorA, pkA)).toBe(pkB)
     expect(rumorToLogicalEvent(rumorB).kind).toBe(14)
+  })
+
+  it('rejects a rumor whose id does not match its content', () => {
+    const skA = generateSecretKey()
+    const skB = generateSecretKey()
+    const pkB = getPublicKey(skB)
+    const { rumor } = wrapDirectMessage(skA, pkB, 'hola')
+    const forged = { ...rumor, content: 'nope' }
+    const seal = finalizeEvent(
+      {
+        kind: 13,
+        content: encryptToPubkey(JSON.stringify(forged), skA, pkB),
+        created_at: rumor.created_at,
+        tags: [],
+      },
+      skA,
+    )
+    const randomKey = generateSecretKey()
+    const wrap = finalizeEvent(
+      {
+        kind: 1059,
+        content: encryptToPubkey(JSON.stringify(seal), randomKey, pkB),
+        created_at: rumor.created_at,
+        tags: [['p', pkB]],
+      },
+      randomKey,
+    )
+    expect(() => unwrapGiftWrap(wrap, skB)).toThrow(/rumor id does not match/)
   })
 })

@@ -9,7 +9,12 @@ import { calculateApproxDistance } from '../lib/geo'
 import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
-import { FEED_RENDER_CHUNK, REPO_URL, SEARCH_PEOPLE_DISPLAY_MAX } from '../lib/constants'
+import {
+  DATENSCHUTZ_URL,
+  FEED_RENDER_CHUNK,
+  PRIVACY_URL,
+  SEARCH_PEOPLE_DISPLAY_MAX,
+} from '../lib/constants'
 import {
   feedEventCardPlainText,
   truncateFeedCardContent,
@@ -84,7 +89,10 @@ export function Feed(props: {
     [followedPubkeys],
   )
 
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const privacyDocUrl = i18n.language?.toLowerCase().startsWith('de')
+    ? DATENSCHUTZ_URL
+    : PRIVACY_URL
 
   // Client row cap (media lazy in PostContent); relay older = onLoadMore.
   const [displayLimit, setDisplayLimit] = useState(FEED_RENDER_CHUNK)
@@ -190,7 +198,7 @@ export function Feed(props: {
               <p>
                 {t('feed.privacyStorage')}{' '}
                 <a
-                  href={REPO_URL}
+                  href={privacyDocUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brezn-link underline"

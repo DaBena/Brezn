@@ -8,13 +8,13 @@
     "openMenu": "Menüyü aç"
   },
   "feed": {
-    "offlineBanner": "Çevrimdışı — son görülen gönderiler (salt okunur).",
+    "offlineBanner": "Çevrimdışı - son görülen gönderiler (salt okunur).",
     "locationTitle": "Yerel akış için konum",
-    "locationBody": "Yerel gönderileri göstermek için yaklaşık konumunuz gerekir. Daha sonra değiştirebilirsiniz. Konumunuz gizlilik için bir geohash hücresine (~5 km) indirgenir.",
-    "privacyStorage": "Bu uygulama cihazınızda yerel depolama kullanır. İzleme yok, bize kişisel veri gönderilmez. Bkz.",
-    "privacyLink": "kaynak, README ve lisans",
-    "privacyDisclaimer": "Bu uygulama içeriği harici kaynaklardan yükler (nostr relay’leri, dosya sunucuları). Harici içerik için sorumluluk kabul edilmez.",
-    "privacyConfirm": "Devam ederek onaylıyorum: bilgilendim ve kabul ediyorum.",
+    "locationBody": "Yerel gönderiler için yaklaşık konumunuz gerekir. Sonra değiştirebilirsiniz (haritaya tıklama veya daha kısa geohash). Brezn ham GPS koordinatları değil, herkese açık bir geohash hücresi (~5 km) kullanır. Bu hücre yine de kalıcı konum verisidir. Brezn 16 yaş altı için değildir; konum etiketli herkese açık gönderiler reşit olmayanlar için değildir. Dünya haritası onaydan önce kaba döşemeler yükleyebilir - ince konum vermez.",
+    "privacyStorage": "Konum seçmek bu cihazda yerel depolamayı da açar (ayarlar, özel anahtar). Yerleşik röleler ve medya sunucusu yalnızca önyüklemedir, öneri değildir. Yayıncı analiz izleyicisi yoktur. Tarayıcınız yine relay’lere ve harita/yükleme varsa diğer sunuculara bağlanır. Ayrıntılar:",
+    "privacyLink": "Gizlilik",
+    "privacyDisclaimer": "Uygulama üçüncü taraflardan içerik yükler (Nostr relay’leri, medya sunucuları, harita döşemeleri). Bu işletmeciler IP gibi bağlantı verilerini alıp kaydedebilir. Yayıncı onların içeriğini veya saklamasını kontrol etmez.",
+    "privacyConfirm": "Devam ederek bu bildirimi okuduğunuzu, en az 16 yaşında olduğunuzu (veya yaşadığınız yerdeki geçerli dijital rıza yaşını) ve kabul ettiğinizi onaylarsınız.",
     "allowLocation": "Konuma izin ver",
     "errorTitle": "Hata",
     "tryAgain": "Yeniden dene",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Relay’lerden yanıt yok. Relay listesini kontrol edin veya sonra tekrar deneyin.",
     "waitingEose": "Henüz olay yok (EOSE bekleniyor)…",
     "noPostsYet": "Henüz gönderi yok. Sonra tekrar deneyin veya farklı relay’ler kullanın.",
-    "noRelays": "Relay yok — Ayarları kontrol edin."
+    "noRelays": "Relay yok - Ayarları kontrol edin."
   },
   "settings": {
     "title": "Ayarlar",
@@ -44,7 +44,7 @@
     "increaseRadius": "Yarıçapı artır",
     "length": "Uzunluk {{n}}",
     "queriesCurrent": "tüm konumlu gönderiler",
-    "precisionFallback": "Daha yüksek = daha küçük (daha kesin) — ancak daha az sonuç.",
+    "precisionFallback": "Daha yüksek = daha küçük (daha kesin) - ancak daha az sonuç.",
     "cellSize": "{{w}} × {{h}}, artı 8 komşu"
   },
   "moderation": {
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Sohbet",
     "loading": "Sohbetler yükleniyor…",
-    "offline": "Çevrimdışı — internet bağlantınızı kontrol edin.",
-    "timeout": "Zaman aşımı — relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
+    "offline": "Çevrimdışı - internet bağlantınızı kontrol edin.",
+    "timeout": "Zaman aşımı - relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
     "loadError": "Sohbetler yüklenemedi",
     "empty": "Henüz sohbet yok"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Çevrimdışı — mesaj gönderilemez.",
-    "offline": "Çevrimdışı — internet bağlantınızı kontrol edin.",
-    "timeout": "Zaman aşımı — relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
+    "offlineSend": "Çevrimdışı - mesaj gönderilemez.",
+    "offline": "Çevrimdışı - internet bağlantınızı kontrol edin.",
+    "timeout": "Zaman aşımı - relay’ler yanıt vermiyor. Relay ayarlarını kontrol edin.",
     "loadError": "Mesajlar yüklenemedi",
     "loading": "Mesajlar yükleniyor…",
     "empty": "Henüz mesaj yok",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Geohash düzenle"
   },
   "feedArticle": {
-    "deleted": "Silindi — relay’lere yayılıyor",
+    "deleted": "Silindi - relay’lere yayılıyor",
     "deletedAria": "Silinmiş gönderi",
     "openPost": "Gönderiyi aç",
     "sendReaction": "Tepki gönder",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Yayınlama başarısız.",
-    "offlineComments": "Çevrimdışı — yorumlar salt okunur.",
-    "offlineDelete": "Çevrimdışı — silme olayı gönderilemez."
+    "offlineComments": "Çevrimdışı - yorumlar salt okunur.",
+    "offlineDelete": "Çevrimdışı - silme olayı gönderilemez."
   },
   "thread": {
     "reportRoot": "Kök gönderiyi bildir",
@@ -242,7 +242,7 @@
     "replySending": "Gönderiliyor…",
     "userBlocked": "Kullanıcı engellendi.",
     "blockingFailed": "Engelleme başarısız.",
-    "offlineBlock": "Çevrimdışı — kullanıcı engellenemez.",
+    "offlineBlock": "Çevrimdışı - kullanıcı engellenemez.",
     "deleteFailed": "Silme olayı gönderilemedi.",
     "publishFailedFallback": "Yayınlama başarısız."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Profil fotoğrafını aç",
     "dmAria": "Doğrudan mesajı aç",
     "message": "Mesaj",
-    "offlineHint": "Çevrimdışı — profil gönderileri eksik olabilir.",
+    "offlineHint": "Çevrimdışı - profil gönderileri eksik olabilir.",
     "loadingPosts": "Gönderiler yükleniyor…",
     "noPosts": "Henüz gönderi yok",
     "noPostsFromRelays": "Relay’lerden henüz gönderi bulunamadı.",

@@ -9,6 +9,7 @@ import { buttonBase } from '../lib/buttonStyles'
 import { useAuthorNotes } from '../hooks/useAuthorNotes'
 import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
+import { sanitizeProfilePictureUrl } from '../lib/urls'
 import { feedEventCardPlainText, truncateProfileCardContent } from '../lib/feedContentPreview'
 import { Sheet } from './Sheet'
 import { FEED_RENDER_CHUNK } from '../lib/constants'
@@ -98,7 +99,7 @@ export function ProfileSheet(props: {
   }, [events, onNoteIdsChange])
 
   const displayName = profile?.name?.trim() || null
-  const picture = profile?.picture?.trim() || null
+  const picture = sanitizeProfilePictureUrl(profile?.picture)
   const about = profile?.about?.trim() || null
 
   const approxDistanceById = useMemo(() => {

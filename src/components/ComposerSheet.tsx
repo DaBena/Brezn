@@ -9,6 +9,16 @@ import { isLikelyImageUrl, isLikelyVideoUrl } from '../lib/urls'
 import { GeohashMap } from './GeohashMap'
 import { parsePublishGeohashInput } from '../lib/geo'
 
+function showMediaLoadFallback(parent: HTMLElement, url: string) {
+  const fallback = document.createElement('div')
+  fallback.className = 'flex h-full items-center justify-center p-2'
+  const label = document.createElement('span')
+  label.className = 'text-xs text-brezn-muted truncate'
+  label.textContent = url.length > 30 ? `${url.slice(0, 30)}...` : url
+  fallback.appendChild(label)
+  parent.appendChild(fallback)
+}
+
 export function ComposerSheet(props: {
   open: boolean
   onClose: () => void
@@ -343,10 +353,7 @@ export function ComposerSheet(props: {
                       target.style.display = 'none'
                       const parent = target.parentElement
                       if (parent) {
-                        const fallback = document.createElement('div')
-                        fallback.className = 'flex h-full items-center justify-center p-2'
-                        fallback.innerHTML = `<span class="text-xs text-brezn-muted truncate">${url.length > 30 ? `${url.slice(0, 30)}...` : url}</span>`
-                        parent.appendChild(fallback)
+                        showMediaLoadFallback(parent, url)
                       }
                     }}
                   />
@@ -362,10 +369,7 @@ export function ComposerSheet(props: {
                       target.style.display = 'none'
                       const parent = target.parentElement
                       if (parent) {
-                        const fallback = document.createElement('div')
-                        fallback.className = 'flex h-full items-center justify-center p-2'
-                        fallback.innerHTML = `<span class="text-xs text-brezn-muted truncate">${url.length > 30 ? `${url.slice(0, 30)}...` : url}</span>`
-                        parent.appendChild(fallback)
+                        showMediaLoadFallback(parent, url)
                       }
                     }}
                   />

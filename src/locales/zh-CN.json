@@ -8,13 +8,13 @@
     "openMenu": "打开菜单"
   },
   "feed": {
-    "offlineBanner": "离线 — 显示上次看到的帖子（只读）",
+    "offlineBanner": "离线 - 显示上次看到的帖子（只读）",
     "locationTitle": "本地信息流的位置",
-    "locationBody": "应用需要大致区域以显示附近帖子，之后可更改。位置会模糊到 geohash 单元（约 5 公里）。",
-    "privacyStorage": "本应用使用设备本地存储，不向服务器发送跟踪或个人数据。参见",
-    "privacyLink": "源码、README 与许可证",
-    "privacyDisclaimer": "内容来自外部（Nostr 中继、文件服务器），不对外部内容负责。",
-    "privacyConfirm": "继续即表示您已了解并同意。",
+    "locationBody": "应用需要大致区域以显示附近帖子，之后可更改（地图点击或更短 geohash）。Brezn 使用公开的 geohash 单元格（约 5 公里），而非原始 GPS 坐标。该单元格仍是持久的位置数据。Brezn 不面向未满 16 岁者；带位置标签的公开帖不适合未成年人。同意前世界地图可能加载粗略瓦片 - 不会暴露精细位置。",
+    "privacyStorage": "选择位置也会启用本机本地存储（设置、私钥）。内置中继与媒体主机仅用于引导，并非推荐。没有发布者分析追踪。浏览器仍会连接中继；打开地图或上传时还会连接其他主机。详情:",
+    "privacyLink": "隐私",
+    "privacyDisclaimer": "应用从第三方加载内容（Nostr 中继、媒体主机、地图瓦片）。这些运营方可能接收并记录 IP 等连接数据。发布者不控制其内容或留存。",
+    "privacyConfirm": "继续即表示您已阅读本说明、年满 16 岁（或您所在地适用的数字同意年龄），并同意。",
     "allowLocation": "允许位置",
     "errorTitle": "错误",
     "tryAgain": "重试",
@@ -22,7 +22,7 @@
     "noRelayResponse": "中继无响应，请检查列表或稍后再试。",
     "waitingEose": "尚无事件（等待 EOSE）…",
     "noPostsYet": "暂无帖子，请稍后再试或更换中继。",
-    "noRelays": "暂无中继 — 请检查设置。"
+    "noRelays": "暂无中继 - 请检查设置。"
   },
   "settings": {
     "title": "设置",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "聊天",
     "loading": "加载会话…",
-    "offline": "离线 — 请检查网络。",
-    "timeout": "超时 — 中继无响应。",
+    "offline": "离线 - 请检查网络。",
+    "timeout": "超时 - 中继无响应。",
     "loadError": "加载会话失败",
     "empty": "暂无会话"
   },
   "dm": {
     "titlePrefix": "私信：",
-    "offlineSend": "离线 — 无法发送消息。",
-    "offline": "离线 — 请检查网络。",
-    "timeout": "超时 — 中继无响应。",
+    "offlineSend": "离线 - 无法发送消息。",
+    "offline": "离线 - 请检查网络。",
+    "timeout": "超时 - 中继无响应。",
     "loadError": "加载消息失败",
     "loading": "加载消息…",
     "empty": "暂无消息",
@@ -184,7 +184,7 @@
     "editGeohashAria": "编辑 geohash"
   },
   "feedArticle": {
-    "deleted": "已删除 — 同步到中继",
+    "deleted": "已删除 - 同步到中继",
     "deletedAria": "已删除的帖子",
     "openPost": "打开帖子",
     "sendReaction": "点赞",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "发布失败。",
-    "offlineComments": "离线 — 评论只读。",
-    "offlineDelete": "离线 — 无法发送删除事件。"
+    "offlineComments": "离线 - 评论只读。",
+    "offlineDelete": "离线 - 无法发送删除事件。"
   },
   "thread": {
     "reportRoot": "举报根帖",
@@ -242,7 +242,7 @@
     "replySending": "发送中…",
     "userBlocked": "已屏蔽该用户。",
     "blockingFailed": "屏蔽失败。",
-    "offlineBlock": "离线 — 无法屏蔽用户。",
+    "offlineBlock": "离线 - 无法屏蔽用户。",
     "deleteFailed": "删除事件发送失败。",
     "publishFailedFallback": "发布失败。"
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "打开头像",
     "dmAria": "打开私信",
     "message": "私信",
-    "offlineHint": "离线 — 个人帖子可能不完整。",
+    "offlineHint": "离线 - 个人帖子可能不完整。",
     "loadingPosts": "加载帖子…",
     "noPosts": "暂无帖子",
     "noPostsFromRelays": "尚未从中继收到帖子。",

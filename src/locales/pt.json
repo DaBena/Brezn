@@ -8,13 +8,13 @@
     "openMenu": "Abrir menu"
   },
   "feed": {
-    "offlineBanner": "Offline — a mostrar últimas publicações (só leitura).",
+    "offlineBanner": "Offline - a mostrar últimas publicações (só leitura).",
     "locationTitle": "Localização para o feed local",
-    "locationBody": "A app precisa da sua área aproximada para mostrar publicações locais. Pode alterar depois. A posição é reduzida a uma célula geohash (~5 km).",
-    "privacyStorage": "Esta app usa armazenamento local no seu dispositivo. Sem rastreio nem dados pessoais para nós. Ver",
-    "privacyLink": "código, README e licença",
-    "privacyDisclaimer": "A app carrega conteúdo externo (relays Nostr, servidores). Sem responsabilidade por conteúdo externo.",
-    "privacyConfirm": "Ao continuar confirma: informei-me e aceito.",
+    "locationBody": "A app precisa da sua área aproximada para publicações locais. Pode alterar depois (clique no mapa ou geohash mais curto). A Brezn usa uma célula geohash pública (~5 km), não coordenadas GPS brutas. Essa célula continua a ser dado de localização duradouro. A Brezn não se destina a menores de 16 anos; publicações públicas com localização não são para menores. O mapa-múndi pode carregar mosaicos grosseiros antes do consentimento - sem revelar uma localização fina.",
+    "privacyStorage": "Escolher uma localização também ativa o armazenamento local neste dispositivo (definições, chave privada). Os relays e o anfitrião de média incluídos são só arranque, não uma recomendação. Sem rastreador de analítica do editor. O browser liga-se na mesma a relays e, se abrir mapas ou enviar ficheiros, a outros hosts. Detalhes:",
+    "privacyLink": "Privacidade",
+    "privacyDisclaimer": "A app carrega conteúdo de terceiros (relays Nostr, hosts de media, tiles de mapa). Esses operadores podem receber e registar dados de ligação como o IP. O editor não controla o conteúdo nem a retenção deles.",
+    "privacyConfirm": "Ao continuar confirma que leu este aviso, que tem pelo menos 16 anos (ou a idade de consentimento digital aplicável onde vive) e que aceita.",
     "allowLocation": "Permitir localização",
     "errorTitle": "Erro",
     "tryAgain": "Tentar",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Sem resposta dos relays. Verifique a lista ou tente mais tarde.",
     "waitingEose": "Ainda sem eventos (à espera de EOSE)…",
     "noPostsYet": "Ainda sem publicações. Tente mais tarde ou outros relays.",
-    "noRelays": "Sem relays — veja Definições."
+    "noRelays": "Sem relays - veja Definições."
   },
   "settings": {
     "title": "Definições",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Chat",
     "loading": "A carregar conversas…",
-    "offline": "Offline — verifique a ligação.",
-    "timeout": "Tempo esgotado — os relays não respondem.",
+    "offline": "Offline - verifique a ligação.",
+    "timeout": "Tempo esgotado - os relays não respondem.",
     "loadError": "Erro ao carregar conversas",
     "empty": "Ainda sem conversas"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Offline — não é possível enviar a mensagem.",
-    "offline": "Offline — verifique a ligação.",
-    "timeout": "Tempo esgotado — os relays não respondem.",
+    "offlineSend": "Offline - não é possível enviar a mensagem.",
+    "offline": "Offline - verifique a ligação.",
+    "timeout": "Tempo esgotado - os relays não respondem.",
     "loadError": "Erro ao carregar mensagens",
     "loading": "A carregar mensagens…",
     "empty": "Ainda sem mensagens",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Editar geohash"
   },
   "feedArticle": {
-    "deleted": "Eliminado — a propagar para relays",
+    "deleted": "Eliminado - a propagar para relays",
     "deletedAria": "Eliminado",
     "openPost": "Abrir publicação",
     "sendReaction": "Enviar reação",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Falha na publicação.",
-    "offlineComments": "Offline — comentários só leitura.",
-    "offlineDelete": "Offline — não é possível enviar o evento de eliminação."
+    "offlineComments": "Offline - comentários só leitura.",
+    "offlineDelete": "Offline - não é possível enviar o evento de eliminação."
   },
   "thread": {
     "reportRoot": "Denunciar publicação raiz",
@@ -242,7 +242,7 @@
     "replySending": "A enviar…",
     "userBlocked": "Bloqueado.",
     "blockingFailed": "Falha ao bloquear.",
-    "offlineBlock": "Offline — bloqueio impossível.",
+    "offlineBlock": "Offline - bloqueio impossível.",
     "deleteFailed": "Falha ao apagar.",
     "publishFailedFallback": "Falha ao publicar."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Abrir foto de perfil",
     "dmAria": "Abrir mensagem direta",
     "message": "Mensagem",
-    "offlineHint": "Offline — publicações do perfil podem estar incompletas.",
+    "offlineHint": "Offline - publicações do perfil podem estar incompletas.",
     "loadingPosts": "A carregar…",
     "noPosts": "Sem posts",
     "noPostsFromRelays": "Ainda não há publicações dos relays.",

@@ -8,13 +8,13 @@
     "openMenu": "Menu openen"
   },
   "feed": {
-    "offlineBanner": "Offline – laatste posts (alleen lezen).",
+    "offlineBanner": "Offline - laatste posts (alleen lezen).",
     "locationTitle": "Locatie voor lokale feed",
-    "locationBody": "De app heeft je globale omgeving nodig voor lokale posts. Je kunt dit later handmatig wijzigen. Je positie wordt gereduceerd tot een geohash-cel (~5 km) voor privacy.",
-    "privacyStorage": "Deze app gebruikt lokale opslag op je apparaat. Geen tracking en geen persoonlijke gegevens worden naar ons gestuurd. Zie de",
-    "privacyLink": "bron, README & licentie",
-    "privacyDisclaimer": "Deze app laadt gebruikersinhoud van externe bronnen (nostr relays, bestandsservers). Wij aanvaarden geen aansprakelijkheid voor externe inhoud.",
-    "privacyConfirm": "Door verder te gaan bevestig je: ik heb me geïnformeerd en accepteer.",
+    "locationBody": "De app heeft je globale omgeving nodig voor lokale posts. Je kunt dit later wijzigen (klik op de kaart of kortere geohash). Brezn gebruikt een openbare geohash-cel (~5 km), geen ruwe GPS-coördinaten. Die cel blijft duurzame locatiegegevens. Brezn is niet bedoeld voor jongeren onder 16; openbare locatieposts zijn niet voor minderjarigen. De wereldkaart kan vóór toestemming grove tegels laden - zonder fijne locatie prijs te geven.",
+    "privacyStorage": "Een locatie kiezen schakelt ook lokale opslag op dit apparaat in (instellingen, privésleutel). Ingebouwde relays en de mediahost zijn alleen bootstrap, geen aanbeveling. Er is geen analysetracker van de uitgever. Je browser verbindt toch met relays en, bij kaarten of uploads, met andere hosts. Details:",
+    "privacyLink": "Privacy",
+    "privacyDisclaimer": "De app laadt inhoud van derden (Nostr-relays, mediahosts, kaarttegels). Die operators kunnen verbindingsgegevens zoals je IP ontvangen en vastleggen. De uitgever beheert hun inhoud of bewaartermijn niet.",
+    "privacyConfirm": "Door verder te gaan bevestig je dat je deze kennisgeving hebt gelezen, dat je minstens 16 bent (of de geldende digitale toestemmingsleeftijd waar je woont) en dat je akkoord gaat.",
     "allowLocation": "Locatie toestaan",
     "errorTitle": "Fout",
     "tryAgain": "Opnieuw",
@@ -22,7 +22,7 @@
     "noRelayResponse": "Geen reactie van relays. Controleer de relaylijst of probeer later opnieuw.",
     "waitingEose": "Nog geen events (wachten op EOSE)…",
     "noPostsYet": "Nog geen posts. Probeer later opnieuw of andere relays.",
-    "noRelays": "Nog geen relays — ga naar Instellingen."
+    "noRelays": "Nog geen relays - ga naar Instellingen."
   },
   "settings": {
     "title": "Instellingen",
@@ -44,7 +44,7 @@
     "increaseRadius": "Radius vergroten",
     "length": "Lengte {{n}}",
     "queriesCurrent": "alle geo-posts",
-    "precisionFallback": "Hoger = kleiner (preciezer) – maar minder resultaten.",
+    "precisionFallback": "Hoger = kleiner (preciezer) - maar minder resultaten.",
     "cellSize": "{{w}} × {{h}}, plus 8 buren"
   },
   "moderation": {
@@ -82,7 +82,7 @@
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays voor feed, DM's en publiceren. Alleen URL's die je hier opgeeft (of enkele ingebouwde defaults) worden gebruikt — geen automatische outbox-relaydetectie.",
+    "hint": "Relays voor feed, DM's en publiceren. Alleen URL's die je hier opgeeft (of enkele ingebouwde defaults) worden gebruikt - geen automatische outbox-relaydetectie.",
     "empty": "Geen relays geconfigureerd. Posts kunnen niet geladen of gepubliceerd worden zonder minstens één relay. Voeg een relay toe of gebruik \"Standaard\" voor de defaults.",
     "removeAria": "Relay verwijderen",
     "placeholder": "wss://relay.example",
@@ -139,16 +139,16 @@
   "chat": {
     "title": "Chat",
     "loading": "Gesprekken laden…",
-    "offline": "Offline – controleer je internetverbinding.",
-    "timeout": "Time-out – relays reageren niet. Controleer je relay-instellingen.",
+    "offline": "Offline - controleer je internetverbinding.",
+    "timeout": "Time-out - relays reageren niet. Controleer je relay-instellingen.",
     "loadError": "Fout bij laden gesprekken",
     "empty": "Nog geen gesprekken"
   },
   "dm": {
     "titlePrefix": "DM:",
-    "offlineSend": "Offline – bericht kan niet worden verzonden.",
-    "offline": "Offline – controleer je internetverbinding.",
-    "timeout": "Time-out – relays reageren niet. Controleer je relay-instellingen.",
+    "offlineSend": "Offline - bericht kan niet worden verzonden.",
+    "offline": "Offline - controleer je internetverbinding.",
+    "timeout": "Time-out - relays reageren niet. Controleer je relay-instellingen.",
     "loadError": "Fout bij laden berichten",
     "loading": "Berichten laden…",
     "empty": "Nog geen berichten",
@@ -184,7 +184,7 @@
     "editGeohashAria": "Geohash bewerken"
   },
   "feedArticle": {
-    "deleted": "Verwijderd – verspreiden naar relays",
+    "deleted": "Verwijderd - verspreiden naar relays",
     "deletedAria": "Verwijderde post",
     "openPost": "Post openen",
     "sendReaction": "Reactie sturen",
@@ -218,8 +218,8 @@
   },
   "app": {
     "publishFailed": "Publiceren mislukt.",
-    "offlineComments": "Offline – reacties zijn alleen-lezen.",
-    "offlineDelete": "Offline – verwijdering kan niet worden verzonden."
+    "offlineComments": "Offline - reacties zijn alleen-lezen.",
+    "offlineDelete": "Offline - verwijdering kan niet worden verzonden."
   },
   "thread": {
     "reportRoot": "Hoofdpost rapporteren",
@@ -242,7 +242,7 @@
     "replySending": "Verzenden…",
     "userBlocked": "Geblokkeerd.",
     "blockingFailed": "Blokkeren mislukt.",
-    "offlineBlock": "Offline – blokkeren niet mogelijk.",
+    "offlineBlock": "Offline - blokkeren niet mogelijk.",
     "deleteFailed": "Verwijdering mislukt.",
     "publishFailedFallback": "Publiceren mislukt."
   },
@@ -250,7 +250,7 @@
     "openPictureAria": "Profielfoto openen",
     "dmAria": "Direct bericht openen",
     "message": "Bericht",
-    "offlineHint": "Offline — profielposts kunnen onvolledig zijn.",
+    "offlineHint": "Offline - profielposts kunnen onvolledig zijn.",
     "loadingPosts": "Posts laden…",
     "noPosts": "Nog geen posts",
     "noPostsFromRelays": "Nog geen posts van relays gevonden.",

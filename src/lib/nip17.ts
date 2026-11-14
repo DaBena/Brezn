@@ -34,7 +34,10 @@ function nowSec(): number {
 }
 
 function randomPastCreatedAt(): number {
-  return Math.round(nowSec() - Math.random() * TWO_DAYS_SEC)
+  const buf = new Uint32Array(1)
+  crypto.getRandomValues(buf)
+  const unit = buf[0]! / 0x1_0000_0000
+  return Math.round(nowSec() - unit * TWO_DAYS_SEC)
 }
 
 function isHex32(input: string): boolean {
@@ -190,6 +193,16 @@ export function unwrapGiftWrap(wrap: Event, recipientSecretKey: string | Uint8Ar
   }
   if (typeof rumor.id !== 'string' || !rumor.id) {
     throw new Error('rumor missing id')
+  }
+  const expectedId = getEventHash({
+    kind: rumor.kind,
+    tags: rumor.tags,
+    content: rumor.content,
+    created_at: rumor.created_at,
+    pubkey: rumor.pubkey,
+  })
+  if (rumor.id !== expectedId) {
+    throw new Error('rumor id does not match its content')
   }
   return rumor
 }

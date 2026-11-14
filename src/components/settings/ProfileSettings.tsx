@@ -4,6 +4,7 @@ import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { compressImage, uploadMediaFile } from '../../lib/mediaUpload'
+import { sanitizeProfilePictureUrl } from '../../lib/urls'
 
 const PROFILE_ABOUT_MAX_LENGTH = 5000
 
@@ -11,21 +12,6 @@ type ProfileSettingsProps = {
   client: BreznNostrClient
   mediaEndpoint: string
   onProfileChange?: (profile: { name: string; picture: string; about: string }) => void
-}
-
-/** Allow only http(s) and data: URLs for img src to avoid javascript: etc. */
-function sanitizeProfilePictureUrl(url: string | null): string | null {
-  if (!url || !url.trim()) return null
-  try {
-    const parsed = new URL(url, window.location.origin)
-    const protocol = parsed.protocol
-    if (protocol === 'http:' || protocol === 'https:' || protocol === 'data:') {
-      return parsed.toString()
-    }
-  } catch {
-    // Ignore invalid URLs
-  }
-  return null
 }
 
 export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: ProfileSettingsProps) {
@@ -42,7 +28,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   const [profileUploadError, setProfileUploadError] = useState<string | null>(null)
   const profileFileInputId = useId()
   const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
-  const safeProfilePictureSrc = sanitizeProfilePictureUrl(profilePicture)
+  const safeProfilePictureSrc = sanitizeProfilePictureUrl(profilePicture, { allowData: true })
 
   // Track last notified values to avoid duplicate notifications
   const lastNotifiedRef = useRef<{ name: string; picture: string; about: string } | null>(null)
