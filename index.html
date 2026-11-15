@@ -17,9 +17,14 @@
         form-action 'self';
       "
     />
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none" />
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
-    <meta http-equiv="Permissions-Policy" content="geolocation=(self)" />
+    <!--
+      COEP / COOP / Permissions-Policy only work as HTTP response headers, not via
+      http-equiv meta. GitHub Pages cannot set custom headers, so these stay commented
+      (would be ignored anyway). CSP above is the supported meta exception.
+      <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none" />
+      <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
+      <meta http-equiv="Permissions-Policy" content="geolocation=(self)" />
+    -->
 
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%icons/brezn.svg" />
