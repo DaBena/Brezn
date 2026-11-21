@@ -3,7 +3,7 @@
     "loading": "Yükleniyor…"
   },
   "nav": {
-    "searchPlaceholder": "Gönderilerde ara…",
+    "searchPlaceholder": "Ara…",
     "openChat": "Sohbeti aç",
     "openMenu": "Menüyü aç"
   },
@@ -11,7 +11,7 @@
     "offlineBanner": "Çevrimdışı - son görülen gönderiler (salt okunur).",
     "locationTitle": "Yerel akış için konum",
     "locationBody": "Yerel gönderiler için yaklaşık konumunuz gerekir. Sonra değiştirebilirsiniz (haritaya tıklama veya daha kısa geohash). Brezn ham GPS koordinatları değil, herkese açık bir geohash hücresi (~5 km) kullanır. Bu hücre yine de kalıcı konum verisidir. Brezn 16 yaş altı için değildir; konum etiketli herkese açık gönderiler reşit olmayanlar için değildir. Dünya haritası onaydan önce kaba döşemeler yükleyebilir - ince konum vermez.",
-    "privacyStorage": "Konum seçmek bu cihazda yerel depolamayı da açar (ayarlar, özel anahtar). Yerleşik röleler ve medya sunucusu yalnızca önyüklemedir, öneri değildir. Yayıncı analiz izleyicisi yoktur. Tarayıcınız yine relay’lere ve harita/yükleme varsa diğer sunuculara bağlanır. Ayrıntılar:",
+    "privacyStorage": "Konum seçmek bu cihazda yerel depolamayı da açar (ayarlar, özel anahtar). Yerleşik relay’ler ve medya sunucusu yalnızca önyüklemedir, öneri değildir. Yayıncı analiz izleyicisi yoktur. Tarayıcınız yine relay’lere ve harita/yükleme varsa diğer sunuculara bağlanır. Ayrıntılar:",
     "privacyLink": "Gizlilik",
     "privacyDisclaimer": "Uygulama üçüncü taraflardan içerik yükler (Nostr relay’leri, medya sunucuları, harita döşemeleri). Bu işletmeciler IP gibi bağlantı verilerini alıp kaydedebilir. Yayıncı onların içeriğini veya saklamasını kontrol etmez.",
     "privacyConfirm": "Devam ederek bu bildirimi okuduğunuzu, en az 16 yaşında olduğunuzu (veya yaşadığınız yerdeki geçerli dijital rıza yaşını) ve kabul ettiğinizi onaylarsınız.",
@@ -78,11 +78,40 @@
     "importing": "İçe aktarılıyor…",
     "import": "İçe aktar",
     "cancel": "İptal",
-    "importFailed": "nsec içe aktarılamadı"
+    "importFailed": "nsec içe aktarılamadı",
+    "importReplaceConfirm": "İçe aktarma bu cihazdaki kimliği değiştirir. Yalnızca geçerli nsec’i kaydettiyseniz devam edin.",
+    "passwordTitle": "Parola koruması",
+    "passwordHint": "İsteğe bağlı. Parolayla nsec'iniz IndexedDB'de AES-GCM şifreli metin olarak durur (PBKDF2-HMAC-SHA256, 600.000 tur). Parola ve kilit açıldıktan sonraki anahtar bellekte durur. Sekme 15 dakika arka planda kalınca Brezn kilitlenir. Parola olmadan nsec, IndexedDB'de AES-GCM şifreli metin olarak durur; çıkarılamaz sarmal anahtar da aynı IndexedDB'dedir. Bu sitedeki betik onun şifresini çözebilir.",
+    "passwordStatusOn": "Durum: parola koruması açık.",
+    "lockNow": "Şimdi kilitle",
+    "passwordStatusOff": "Durum: AES-GCM IndexedDB'de (varsayılan).",
+    "enablePassword": "Parolayı aç",
+    "changePassword": "Parolayı değiştir",
+    "disablePassword": "Parolayı kapat",
+    "currentPassword": "Geçerli parola",
+    "newPassword": "Yeni parola (en az 8 karakter)",
+    "confirmPassword": "Parolayı doğrula",
+    "passwordSave": "Kaydet",
+    "passwordWorking": "Çalışıyor…",
+    "passwordTooShort": "Parola en az 8 karakter olmalı.",
+    "passwordMismatch": "Parolalar eşleşmiyor.",
+    "passwordEnabled": "Parola koruması açıldı.",
+    "passwordChanged": "Parola güncellendi.",
+    "passwordDisabled": "Parola koruması kapatıldı.",
+    "passwordActionFailed": "İşlem olmadı. Parolayı kontrol edip yeniden deneyin.",
+    "passwordRequired": "Parola gerekli.",
+    "passwordToReveal": "nsec göstermek için parola",
+    "forgotPasswordHint": "Unutulan parola sıfırlanamaz. Bu kimliği yalnızca önceden kaydedilmiş bir nsec yedeği geri getirir.",
+    "unlockTitle": "Kimliği aç",
+    "unlockBody": "Bu kimliği bu aygıtta kullanmak için Brezn anahtar parolasını girin.",
+    "unlock": "Kilidi aç",
+    "unlocking": "Açılıyor…",
+    "unlockFailed": "Parola yanlış veya kilit açılamadı.",
+    "passwordPlaceholder": "Parola"
   },
   "relay": {
     "title": "Relay’ler",
-    "hint": "Akış, DM ve yayın için kullanılan relay’ler.",
+    "hint": "Akış, DM ve yayın için kullanılan relay’ler. Yalnızca burada listelediğiniz adresler (veya yerleşik birkaç varsayılan) kullanılır; otomatik outbox relay keşfi yoktur.",
     "empty": "Relay yapılandırılmamış. En az bir relay olmadan gönderi yüklenemez veya yayınlanamaz. Aşağıya ekleyin veya «Varsayılan» ile geri yükleyin.",
     "removeAria": "Relay’i kaldır",
     "placeholder": "wss://relay.example",
@@ -129,7 +158,7 @@
     "uploading": "Yükleniyor…",
     "changeImage": "Görseli değiştir",
     "uploadImage": "Görsel yükle",
-    "resetConfirm": "Profili sıfırlansın mı? Ad, hakkında ve fotoğraf kaldırılacak.",
+    "resetConfirm": "Profil sıfırlansın mı? Ad, hakkında ve fotoğraf kaldırılacak.",
     "reset": "Sıfırla",
     "removeImage": "Görseli kaldır",
     "urlPlaceholder": "Veya URL’yi doğrudan girin",
@@ -157,6 +186,7 @@
     "sendingContent": "[gönderiliyor...]",
     "sendError": "Mesaj gönderilemedi",
     "hiddenByBlocklist": "Mesaj gizlendi (anahtar kelime engel listenizle eşleşiyor).",
+    "legacyFormat": "Sağlama toplamı olmayan eski mesaj biçimi. Bir röle metni değiştirmiş olabilir.",
     "openPeerProfileAria": "Profili aç"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video çok büyük (en fazla 25 MB).",
     "imageTooLarge": "Görsel çok büyük (en fazla 12 MB).",
     "compressFailed": "Görsel sıkıştırılamadı.",
+    "videoMetadataUnsupported": "Bu video biçiminden konum verisi temizlenemez. MP4 veya MOV kullanın.",
+    "videoMetadataFailed": "Konum verisi kaldırılamadı. Video yüklenmedi.",
     "uploadFailed": "Yükleme başarısız.",
     "publishFailed": "Yayınlama başarısız.",
     "invalidGeohash": "Geçersiz geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Çevrimdışı - silme olayı gönderilemez."
   },
   "thread": {
-    "reportRoot": "Kök gönderiyi bildir",
-    "reportReply": "Yanıtı bildir",
-    "reportReason": "Bildirim nedeni (isteğe bağlı)",
-    "submitReport": "Bildirimi gönder",
+    "reportReason": "Şikayet nedeni (isteğe bağlı)",
     "replies": "Yanıtlar ({{count}})",
     "offline": "Çevrimdışı",
     "replyPlaceholder": "Yanıt yazın…",
@@ -237,7 +266,7 @@
     "block": "Engelle",
     "blocking": "Engelleniyor…",
     "blockHeading": "Engelle: {{label}}",
-    "reportHint": "İsteğe bağlı: bildirim nedeni. NIP-56 ile relay’lere gönderilir.",
+    "reportHint": "İsteğe bağlı: şikayet nedeni. NIP-56 ile relay’lere gönderilir.",
     "reply": "Yanıtla",
     "replySending": "Gönderiliyor…",
     "userBlocked": "Kullanıcı engellendi.",
@@ -251,10 +280,7 @@
     "dmAria": "Doğrudan mesajı aç",
     "message": "Mesaj",
     "offlineHint": "Çevrimdışı - profil gönderileri eksik olabilir.",
-    "loadingPosts": "Gönderiler yükleniyor…",
-    "noPosts": "Henüz gönderi yok",
-    "noPostsFromRelays": "Relay’lerden henüz gönderi bulunamadı.",
-    "loadError": "Gönderiler yüklenemedi."
+    "noPostsFromRelays": "Relay’lerden henüz gönderi bulunamadı."
   },
   "geohashMap": {
     "gpsAria": "GPS konumu",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}} gün önce"
   },
   "common": {
-    "loading": "Yükleniyor…",
     "close": "Kapat"
   },
   "quotedPost": {

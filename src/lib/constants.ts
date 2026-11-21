@@ -48,10 +48,10 @@ export const LAST_LOCATION_KEY = 'brezn:last-location:v1'
 /** User opted into Brezn IndexedDB writes (GPS success or manual cell grant). Never inferred from geo alone. */
 export const STORAGE_WRITE_CONSENT_KEY = 'brezn:storage-write-consent:v1'
 
-/** One-shot migration for profiles that had geo-based unlock before explicit consent existed. */
-export const STORAGE_WRITE_CONSENT_MIGRATION_KEY = 'brezn:migrated-storage-write-consent-v3'
+/** Re-lock a password vault after the tab stays in the background for 15 minutes. Device-only keys stay unlocked. */
+export const VAULT_IDLE_LOCK_MS = 15 * 60 * 1000
 
-/** Must match `nostrClient` LS_KEY — used for legacy migration checks only. */
+/** localStorage key for persisted app state (settings, pubkey mirror). */
 export const BREZN_APP_STATE_LS_KEY = 'brezn:v1'
 
 /** Per-relay DM fetch: close and continue if `oneose` never fires (parallel across relays). */

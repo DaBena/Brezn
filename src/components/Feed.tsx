@@ -6,7 +6,6 @@ import type { Profile } from '../hooks/useProfiles'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
-import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { FeedEventArticle, LoadOlderPostsButton } from './FeedEventArticle'
 import {
@@ -108,9 +107,7 @@ export function Feed(props: {
     if (!viewerPoint) return {} as Record<string, ReturnType<typeof calculateApproxDistance>>
     const out: Record<string, NonNullable<ReturnType<typeof calculateApproxDistance>>> = {}
     for (const evt of displayedEvents) {
-      const info = isNip52CalendarKind(evt.kind)
-        ? nip52DistanceLabel(evt, viewerPoint)
-        : calculateApproxDistance(evt, viewerPoint)
+      const info = calculateApproxDistance(evt, viewerPoint)
       if (info) out[evt.id] = info
     }
     return out

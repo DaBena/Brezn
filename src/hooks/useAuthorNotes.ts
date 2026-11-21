@@ -12,10 +12,29 @@ import {
   nip52SearchBlob,
 } from '../lib/nip52'
 
-const HISTORY_SECONDS = 60 * 60 * 24 * 365
-
 function authorFeedStableKey(e: Event): string {
   return nip52ReplaceableMergeKey(e) ?? `id:${e.id}`
+}
+
+function acceptAuthorFeedEvent(
+  evt: Event,
+  authorPubkey: string,
+  blockedPubkeys: readonly string[],
+  mutedTerms: string[],
+): boolean {
+  if (evt.pubkey !== authorPubkey) return false
+  if (blockedPubkeys.includes(evt.pubkey)) return false
+  if (evt.kind === NOSTR_KINDS.note) {
+    if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return false
+    if (contentMatchesMutedTerms(evt.content ?? '', mutedTerms)) return false
+    return true
+  }
+  if (isNip52CalendarKind(evt.kind)) {
+    if (!isValidNip52CalendarEvent(evt)) return false
+    if (contentMatchesMutedTerms(nip52SearchBlob(evt), mutedTerms)) return false
+    return true
+  }
+  return false
 }
 
 /** Merge by event id for notes; NIP-52 calendar events dedupe by replaceable `d` (newest wins). */
@@ -49,6 +68,8 @@ export function useAuthorNotes(params: {
   const seenIdsRef = useRef<Set<string>>(new Set())
   const eventsRef = useRef<Event[]>([])
   const loadMoreCursorRef = useRef<number | null>(null)
+  const authorEpochRef = useRef(0)
+  const loadMoreStopRef = useRef<(() => void) | null>(null)
 
   useLayoutEffect(() => {
     mutedRef.current = mutedTerms
@@ -61,6 +82,9 @@ export function useAuthorNotes(params: {
 
   useEffect(() => {
     if (!authorPubkey) return
+    authorEpochRef.current += 1
+    loadMoreStopRef.current?.()
+    loadMoreStopRef.current = null
     seenIdsRef.current = new Set()
     loadMoreCursorRef.current = null
     queueMicrotask(() => {
@@ -81,40 +105,27 @@ export function useAuthorNotes(params: {
       return
     }
 
-    const since = Math.floor(Date.now() / 1000) - HISTORY_SECONDS
     const filter: Filter = {
       kinds: [...ROOT_FEED_EVENT_KINDS],
       authors: [authorPubkey],
       limit: FEED_QUERY_LIMIT,
-      since,
     }
 
-    const accept = (evt: Event): boolean => {
-      if (evt.pubkey !== authorPubkey) return false
-      if (blockedRef.current.includes(evt.pubkey)) return false
-      if (evt.kind === NOSTR_KINDS.note) {
-        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return false
-        if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-        return true
-      }
-      if (isNip52CalendarKind(evt.kind)) {
-        if (!isValidNip52CalendarEvent(evt)) return false
-        if (contentMatchesMutedTerms(nip52SearchBlob(evt), mutedRef.current)) return false
-        return true
-      }
-      return false
-    }
-
+    let cancelled = false
     const unsub = client.subscribe(filter, {
       onevent: (evt) => {
-        if (!accept(evt)) return
+        if (cancelled) return
+        if (!acceptAuthorFeedEvent(evt, authorPubkey, blockedRef.current, mutedRef.current)) return
         if (seenIdsRef.current.has(evt.id)) return
         seenIdsRef.current.add(evt.id)
         setEvents((prev) => mergeAuthorFeedEvents(prev, [evt]))
       },
     })
 
-    return () => unsub()
+    return () => {
+      cancelled = true
+      unsub()
+    }
     // blockedPubkeys read via blockedRef (synced in layout) — do not list array in deps or every
     // parent render re-subscribes and spams relays with concurrent REQs.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- blockedPubkeys via blockedRef only
@@ -143,22 +154,7 @@ export function useAuthorNotes(params: {
       until,
     }
 
-    const accept = (evt: Event): boolean => {
-      if (evt.pubkey !== authorPubkey) return false
-      if (blockedRef.current.includes(evt.pubkey)) return false
-      if (evt.kind === NOSTR_KINDS.note) {
-        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return false
-        if (contentMatchesMutedTerms(evt.content ?? '', mutedRef.current)) return false
-        return true
-      }
-      if (isNip52CalendarKind(evt.kind)) {
-        if (!isValidNip52CalendarEvent(evt)) return false
-        if (contentMatchesMutedTerms(nip52SearchBlob(evt), mutedRef.current)) return false
-        return true
-      }
-      return false
-    }
-
+    const epoch = authorEpochRef.current
     const batchById = new Map<string, Event>()
     let batchRelayCount = 0
     let batchMinCreated: number | null = null
@@ -170,7 +166,9 @@ export function useAuthorNotes(params: {
       done = true
       window.clearTimeout(cleanup.timeoutId)
       cleanup.unsub()
+      if (loadMoreStopRef.current === finish) loadMoreStopRef.current = null
       setLoadingMore(false)
+      if (authorEpochRef.current !== epoch) return
       const merged = batchById.size
       for (const evt of batchById.values()) seenIdsRef.current.add(evt.id)
       if (merged) setEvents((prev) => mergeAuthorFeedEvents(prev, [...batchById.values()]))
@@ -193,9 +191,11 @@ export function useAuthorNotes(params: {
       setHasMore(merged > 0 || loadMoreCursorRef.current !== null)
     }
 
+    loadMoreStopRef.current = finish
     cleanup.unsub = client.subscribe(filter, {
       onevent: (evt) => {
-        if (!accept(evt)) return
+        if (authorEpochRef.current !== epoch) return
+        if (!acceptAuthorFeedEvent(evt, authorPubkey, blockedRef.current, mutedRef.current)) return
         batchRelayCount++
         batchMinCreated =
           batchMinCreated === null ? evt.created_at : Math.min(batchMinCreated, evt.created_at)

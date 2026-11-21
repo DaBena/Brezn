@@ -1,5 +1,6 @@
 import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { BREZN_APP_STATE_LS_KEY } from './constants'
 import { setSavedGeo5 } from './lastLocation'
 import { grantBreznIndexedDbWrites } from './storage'
 import { createNostrClient, DEFAULT_RELAYS, parseRelayUrlOrThrow } from './nostrClient'
@@ -78,7 +79,7 @@ describe('nostrClient identity (no accounts)', () => {
 
   it('merges new bootstrap relays into an older saved default subset', async () => {
     createNostrClient()
-    const raw = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}') as {
+    const raw = JSON.parse(localStorage.getItem(BREZN_APP_STATE_LS_KEY) ?? '{}') as {
       settings?: { relays?: string[]; bootstrapRelaysRev?: number }
     }
     raw.settings = {
@@ -91,7 +92,7 @@ describe('nostrClient identity (no accounts)', () => {
       ],
     }
     delete raw.settings.bootstrapRelaysRev
-    localStorage.setItem('brezn:v1', JSON.stringify(raw))
+    localStorage.setItem(BREZN_APP_STATE_LS_KEY, JSON.stringify(raw))
     vi.resetModules()
     const { createNostrClient: createFresh } = await import('./nostrClient')
     const relays = createFresh()
@@ -104,12 +105,12 @@ describe('nostrClient identity (no accounts)', () => {
 
   it('does not merge bootstrap relays into a custom saved list', async () => {
     createNostrClient()
-    const raw = JSON.parse(localStorage.getItem('brezn:v1') ?? '{}') as {
+    const raw = JSON.parse(localStorage.getItem(BREZN_APP_STATE_LS_KEY) ?? '{}') as {
       settings?: { relays?: string[]; bootstrapRelaysRev?: number }
     }
     raw.settings = { ...raw.settings, relays: ['wss://only-mine.example.com'] }
     delete raw.settings.bootstrapRelaysRev
-    localStorage.setItem('brezn:v1', JSON.stringify(raw))
+    localStorage.setItem(BREZN_APP_STATE_LS_KEY, JSON.stringify(raw))
     vi.resetModules()
     const { createNostrClient: createFresh } = await import('./nostrClient')
     expect(createFresh().getRelays()).toEqual(['wss://only-mine.example.com'])
@@ -226,8 +227,9 @@ describe('parseRelayUrlOrThrow', () => {
     expect(() => parseRelayUrlOrThrow('rtzrtz')).toThrow(/Failed to add relay:/)
   })
 
-  it('throws when scheme is not ws(s)', () => {
-    expect(() => parseRelayUrlOrThrow('https://relay.damus.io')).toThrow(/wss:\/\/ or ws:\/\//)
+  it('throws when scheme is not wss', () => {
+    expect(() => parseRelayUrlOrThrow('https://relay.damus.io')).toThrow(/wss:\/\//)
+    expect(() => parseRelayUrlOrThrow('ws://relay.example.com')).toThrow(/wss:\/\//)
   })
 
   it('throws on empty input', () => {
@@ -246,7 +248,7 @@ describe('nostrClient relays', () => {
     const client = createNostrClient()
     const relays = client.getRelays()
     expect(relays.length).toBeGreaterThan(0)
-    expect(relays.every((r) => r.startsWith('wss://') || r.startsWith('ws://'))).toBe(true)
+    expect(relays.every((r) => r.startsWith('wss://'))).toBe(true)
     expect(
       relays.some((r) => {
         try {
@@ -272,18 +274,8 @@ describe('nostrClient relays', () => {
     const relays = client.getRelays()
     expect(relays).toContain('wss://relay.example.com')
     expect(relays).not.toContain('wss://relay.example.com/')
-    expect(
-      relays.some((r) => {
-        try {
-          const u = new URL(r)
-          return (
-            u.hostname === 'relay.example.com' && (u.protocol === 'wss:' || u.protocol === 'ws:')
-          )
-        } catch {
-          return false
-        }
-      }),
-    ).toBe(true)
+    expect(relays).not.toContain('ws://relay.example.com')
+    expect(relays.every((r) => r.startsWith('wss://'))).toBe(true)
     expect(relays).not.toContain('invalid-url')
     expect(relays).not.toContain('https://not-ws.com')
   })

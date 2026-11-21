@@ -36,6 +36,24 @@ import {
 import { isReplyNote } from '../lib/nostrUtils'
 import { i18n } from '../i18n/i18n'
 
+/** Kind-1 root, or a calendar event in this geo/follow window. Null drops the event. */
+function feedIncomingKind(
+  evt: Event,
+  followed: ReadonlySet<string>,
+  calendarCells: readonly string[],
+): 'note' | 'calendar' | null {
+  if (evt.kind === NOSTR_KINDS.note) {
+    if (isReplyNote(evt)) return null
+    if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return null
+    return 'note'
+  }
+  if (!isNip52CalendarKind(evt.kind)) return null
+  if (!isValidNip52CalendarEvent(evt)) return null
+  const fromFollow = followed.has(evt.pubkey.toLowerCase())
+  if (!fromFollow && !nip52CalendarMatchesQueryCells(evt, calendarCells)) return null
+  return 'calendar'
+}
+
 export type LoadMorePageResult = {
   added: number
   /** More older roots may exist (or we can advance `until` after an empty duplicate page). */
@@ -340,22 +358,9 @@ export function useLocalFeed(params: {
 
     const onEvent = (evt: Event) => {
       if (cancelled) return
-
-      if (evt.kind === NOSTR_KINDS.note) {
-        if (isReplyNote(evt)) return
-        if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return
-        pendingBatch.push(evt)
-        scheduleFlush()
-        return
-      }
-
-      if (isNip52CalendarKind(evt.kind)) {
-        if (!isValidNip52CalendarEvent(evt)) return
-        const fromFollow = followedSetRef.current.has(evt.pubkey.toLowerCase())
-        if (!fromFollow && !nip52CalendarMatchesQueryCells(evt, queryCellsForCalendar)) return
-        pendingBatch.push(evt)
-        scheduleFlush()
-      }
+      if (!feedIncomingKind(evt, followedSetRef.current, queryCellsForCalendar)) return
+      pendingBatch.push(evt)
+      scheduleFlush()
     }
     const onEose = () => {
       if (cancelled) return
@@ -491,18 +496,12 @@ export function useLocalFeed(params: {
       const timeoutMs = 15_000
 
       const onEventLoadMore = (evt: Event) => {
-        if (evt.kind === NOSTR_KINDS.note) {
-          if (isReplyNote(evt)) return
-          if (contentLooksLikeUnspacedBlob(evt.content ?? '')) return
+        const incoming = feedIncomingKind(evt, followedSetRef.current, queryCellsCalendar)
+        if (!incoming) return
+        if (incoming === 'note') {
           if (relayRootIdsThisBatch.has(evt.id)) return
           if (eventsRef.current.some((e) => e.id === evt.id)) return
           relayRootIdsThisBatch.add(evt.id)
-        } else if (isNip52CalendarKind(evt.kind)) {
-          if (!isValidNip52CalendarEvent(evt)) return
-          const fromFollow = followedSetRef.current.has(evt.pubkey.toLowerCase())
-          if (!fromFollow && !nip52CalendarMatchesQueryCells(evt, queryCellsCalendar)) return
-        } else {
-          return
         }
 
         batchRelayCount++

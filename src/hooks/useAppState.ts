@@ -99,14 +99,16 @@ export function useAppState() {
     setProfilePubkey(null)
   }
 
+  const sheets: SheetState = {
+    composer: { open: isComposerOpen },
+    thread: { open: threadRoot !== null, root: threadRoot },
+    settings: { open: filterOpen },
+    dm: { open: dmOpen, targetPubkey: dmTargetPubkey },
+    profile: { open: profilePubkey !== null, pubkey: profilePubkey },
+  }
+
   return {
-    sheets: {
-      composer: { open: isComposerOpen },
-      thread: { open: threadRoot !== null, root: threadRoot },
-      settings: { open: filterOpen },
-      dm: { open: dmOpen, targetPubkey: dmTargetPubkey },
-      profile: { open: profilePubkey !== null, pubkey: profilePubkey },
-    },
+    sheets,
     openSheet,
     closeSheet,
     closeAllSheets,

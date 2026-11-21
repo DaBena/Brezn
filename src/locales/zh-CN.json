@@ -3,7 +3,7 @@
     "loading": "加载中…"
   },
   "nav": {
-    "searchPlaceholder": "搜索帖子…",
+    "searchPlaceholder": "搜索…",
     "openChat": "打开聊天",
     "openMenu": "打开菜单"
   },
@@ -78,11 +78,40 @@
     "importing": "导入中…",
     "import": "导入",
     "cancel": "取消",
-    "importFailed": "无法导入 nsec"
+    "importFailed": "无法导入 nsec",
+    "importReplaceConfirm": "导入会替换此设备上的身份。仅在已保存当前 nsec 后再继续。",
+    "passwordTitle": "密码保护",
+    "passwordHint": "可选。设有密码时，你的 nsec 以 AES-GCM 密文放在 IndexedDB 中（PBKDF2-HMAC-SHA256，60万轮）。密码以及解锁后的密钥位于内存。标签页在后台停留 15 分钟后，Brezn 会锁定。未设密码时，nsec 以 AES-GCM 密文放在 IndexedDB 中，不可导出的包装密钥也在同一个 IndexedDB。本站脚本可以解密它。",
+    "passwordStatusOn": "状态：已开启密码保护。",
+    "lockNow": "立即锁定",
+    "passwordStatusOff": "状态：IndexedDB 中的 AES-GCM（默认）。",
+    "enablePassword": "启用密码",
+    "changePassword": "更改密码",
+    "disablePassword": "关闭密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码（至少 8 个字符）",
+    "confirmPassword": "确认密码",
+    "passwordSave": "保存",
+    "passwordWorking": "处理中…",
+    "passwordTooShort": "密码至少需要 8 个字符。",
+    "passwordMismatch": "两次密码不一致。",
+    "passwordEnabled": "已开启密码保护。",
+    "passwordChanged": "密码已更新。",
+    "passwordDisabled": "已关闭密码保护。",
+    "passwordActionFailed": "操作失败。请检查密码后重试。",
+    "passwordRequired": "需要密码。",
+    "passwordToReveal": "显示 nsec 的密码",
+    "forgotPasswordHint": "忘记的密码无法重置。只有事先保存的 nsec 备份才能恢复此身份。",
+    "unlockTitle": "解锁身份",
+    "unlockBody": "输入 Brezn 密钥密码，以便在此设备上使用此身份。",
+    "unlock": "解锁",
+    "unlocking": "正在解锁…",
+    "unlockFailed": "密码错误，或解锁失败。",
+    "passwordPlaceholder": "密码"
   },
   "relay": {
     "title": "中继",
-    "hint": "用于信息流、私信与发布。",
+    "hint": "用于信息流、私信和发布。只用你在这里填写的 URL（或少数内置默认中继），不会自动发现 outbox 中继。",
     "empty": "未配置中继，无法加载或发布。请添加或使用「默认」。",
     "removeAria": "移除中继",
     "placeholder": "wss://relay.example",
@@ -97,7 +126,7 @@
     "unreachableWithErr": "不可达 • {{error}}",
     "statusAria": "中继状态：{{state}}",
     "duplicate": "该中继已在列表中。",
-    "removeAskTitle": "移除 relay {{url}}",
+    "removeAskTitle": "移除中继 {{url}}",
     "removeAskBody": "是否也要生成新身份？",
     "removeKeepKeys": "否",
     "removeChangeKeys": "是",
@@ -106,7 +135,7 @@
     "removeNsecNo": "否",
     "removeNsecYes": "是",
     "removeIdentityDone": "正在创建新身份…",
-    "removeAskLoss": "这将替换此设备上的 nsec。你将无法再读取私信，也不能再用此身份发帖或管理帖子。已在 relay 上的帖子仍属于旧身份。",
+    "removeAskLoss": "这将替换此设备上的 nsec。你将无法再读取私信，也不能再用此身份发帖或管理帖子。已在中继上的帖子仍属于旧身份。",
     "removeIdentityAborted": "未做任何更改。生成新身份前请先备份 nsec。"
   },
   "mediaUpload": {
@@ -157,6 +186,7 @@
     "sendingContent": "[发送中...]",
     "sendError": "发送失败",
     "hiddenByBlocklist": "消息已隐藏（与关键词屏蔽列表匹配）。",
+    "legacyFormat": "较旧的消息格式，没有校验。中继可能改过正文。",
     "openPeerProfileAria": "打开资料"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "视频过大（最大 25 MB）。",
     "imageTooLarge": "图片过大（最大 12 MB）。",
     "compressFailed": "压缩图片失败。",
+    "videoMetadataUnsupported": "无法从该视频格式中去除位置信息。请使用 MP4 或 MOV。",
+    "videoMetadataFailed": "未能去除位置信息。视频未上传。",
     "uploadFailed": "上传失败。",
     "publishFailed": "发布失败。",
     "invalidGeohash": "Geohash 无效。",
@@ -222,10 +254,7 @@
     "offlineDelete": "离线 - 无法发送删除事件。"
   },
   "thread": {
-    "reportRoot": "举报根帖",
-    "reportReply": "举报回复",
     "reportReason": "原因（可选）",
-    "submitReport": "提交举报",
     "replies": "回复 ({{count}})",
     "offline": "离线",
     "replyPlaceholder": "写回复…",
@@ -251,10 +280,7 @@
     "dmAria": "打开私信",
     "message": "私信",
     "offlineHint": "离线 - 个人帖子可能不完整。",
-    "loadingPosts": "加载帖子…",
-    "noPosts": "暂无帖子",
-    "noPostsFromRelays": "尚未从中继收到帖子。",
-    "loadError": "无法加载帖子。"
+    "noPostsFromRelays": "尚未从中继收到帖子。"
   },
   "geohashMap": {
     "gpsAria": "GPS 定位",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}} 天前"
   },
   "common": {
-    "loading": "加载中…",
     "close": "关闭"
   },
   "quotedPost": {

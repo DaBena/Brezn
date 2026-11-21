@@ -23,6 +23,15 @@ import zhTW from '../locales/zh-TW.json'
 import bn from '../locales/bn.json'
 import th from '../locales/th.json'
 import he from '../locales/he.json'
+import nb from '../locales/nb.json'
+import sv from '../locales/sv.json'
+import ro from '../locales/ro.json'
+import cs from '../locales/cs.json'
+import da from '../locales/da.json'
+import fi from '../locales/fi.json'
+import hu from '../locales/hu.json'
+import el from '../locales/el.json'
+import ur from '../locales/ur.json'
 import { resolveNavigatorLocale } from './localeStorage'
 
 const resources = {
@@ -49,6 +58,15 @@ const resources = {
   bn: { translation: bn },
   th: { translation: th },
   he: { translation: he },
+  nb: { translation: nb },
+  sv: { translation: sv },
+  ro: { translation: ro },
+  cs: { translation: cs },
+  da: { translation: da },
+  fi: { translation: fi },
+  hu: { translation: hu },
+  el: { translation: el },
+  ur: { translation: ur },
 } as const
 
 const initialLng = resolveNavigatorLocale()

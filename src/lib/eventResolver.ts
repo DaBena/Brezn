@@ -1,5 +1,6 @@
 import type { Event } from './nostrPrimitives'
 import type { BreznNostrClient } from './nostrClient'
+import { threadRootEventId } from './nip10Thread'
 
 const CACHE_TTL_MS = 10 * 60 * 1000
 const CACHE_MAX = 300
@@ -130,4 +131,12 @@ export async function resolveEventById(
   if (!/^[0-9a-f]{64}$/.test(eventId)) return null
   const r = await resolveEventsById(client, [eventId])
   return r[eventId] ?? null
+}
+
+/** Open the NIP-10 root when `evt` is a reply; otherwise return `evt`. */
+export async function resolveThreadRoot(client: BreznNostrClient, evt: Event): Promise<Event> {
+  const rootId = threadRootEventId(evt)
+  if (!rootId || rootId.toLowerCase() === evt.id.toLowerCase()) return evt
+  const resolved = await resolveEventById(client, rootId)
+  return resolved ?? evt
 }

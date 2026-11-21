@@ -3,7 +3,7 @@
     "loading": "بارگذاری…"
   },
   "nav": {
-    "searchPlaceholder": "جستجوی پست‌ها…",
+    "searchPlaceholder": "جستجو…",
     "openChat": "باز کردن گفتگو",
     "openMenu": "باز کردن منو"
   },
@@ -64,7 +64,7 @@
     "copy": "کپی",
     "nsec": "nsec",
     "show": "نمایش",
-    "hide": "پنهان",
+    "hide": "پنهان کردن",
     "neverShareNsec": "هرگز nsec خود را به اشتراک نگذارید.",
     "npubCopied": "npub کپی شد.",
     "copyNpubHint": "نمایش و کپی npub.",
@@ -78,11 +78,40 @@
     "importing": "در حال وارد کردن…",
     "import": "وارد کردن",
     "cancel": "لغو",
-    "importFailed": "وارد کردن nsec ناموفق بود"
+    "importFailed": "وارد کردن nsec ناموفق بود",
+    "importReplaceConfirm": "وارد کردن، هویت این دستگاه را جایگزین می‌کند. فقط اگر nsec فعلی را ذخیره کرده‌اید ادامه دهید.",
+    "passwordTitle": "محافظت با گذرواژه",
+    "passwordHint": "اختیاری. با گذرواژه، nsec شما در IndexedDB به‌صورت متن رمزی AES-GCM قرار دارد (PBKDF2-HMAC-SHA256، ۶۰۰٬۰۰۰ دور). گذرواژه، و کلید پس از باز کردن قفل، در حافظه قرار دارند. اگر زبانه ۱۵ دقیقه در پس‌زمینه بماند، Brezn قفل می‌شود. بدون گذرواژه، nsec در IndexedDB به‌صورت متن رمزی AES-GCM قرار دارد، با کلید پوشش غیرقابل استخراج در همان IndexedDB. اسکریپت این سایت می‌تواند آن را رمزگشایی کند.",
+    "passwordStatusOn": "وضعیت: محافظت با گذرواژه روشن است.",
+    "lockNow": "اکنون قفل شود",
+    "passwordStatusOff": "وضعیت: AES-GCM در IndexedDB (پیش‌فرض).",
+    "enablePassword": "روشن کردن گذرواژه",
+    "changePassword": "تغییر گذرواژه",
+    "disablePassword": "خاموش کردن گذرواژه",
+    "currentPassword": "گذرواژهٔ فعلی",
+    "newPassword": "گذرواژهٔ جدید (حداقل ۸ نویسه)",
+    "confirmPassword": "تأیید گذرواژه",
+    "passwordSave": "ذخیره",
+    "passwordWorking": "در حال انجام…",
+    "passwordTooShort": "گذرواژه باید حداقل ۸ نویسه باشد.",
+    "passwordMismatch": "گذرواژه‌ها یکسان نیستند.",
+    "passwordEnabled": "محافظت با گذرواژه روشن شد.",
+    "passwordChanged": "گذرواژه به‌روز شد.",
+    "passwordDisabled": "محافظت با گذرواژه خاموش شد.",
+    "passwordActionFailed": "انجام نشد. گذرواژه را بررسی کنید و دوباره تلاش کنید.",
+    "passwordRequired": "گذرواژه لازم است.",
+    "passwordToReveal": "گذرواژه برای نمایش nsec",
+    "forgotPasswordHint": "گذرواژهٔ فراموش‌شده بازنشانی نمی‌شود. فقط نسخهٔ nsec که قبلاً ذخیره شده این هویت را برمی‌گرداند.",
+    "unlockTitle": "باز کردن هویت",
+    "unlockBody": "برای استفاده از این هویت روی این دستگاه، گذرواژهٔ کلید Brezn را وارد کنید.",
+    "unlock": "باز کردن",
+    "unlocking": "در حال باز کردن…",
+    "unlockFailed": "گذرواژه نادرست است یا باز کردن انجام نشد.",
+    "passwordPlaceholder": "گذرواژه"
   },
   "relay": {
     "title": "رله‌ها",
-    "hint": "رله‌های استفاده‌شده برای فید، پیام خصوصی و انتشار.",
+    "hint": "رله‌های استفاده‌شده برای فید، پیام خصوصی و انتشار. فقط نشانی‌هایی که اینجا فهرست می‌کنید (یا چند پیش‌فرض داخلی) استفاده می‌شوند؛ کشف خودکار رلهٔ outbox انجام نمی‌شود.",
     "empty": "رله‌ای پیکربندی نشده. بدون حداقل یک رله نمی‌توان پست بارگذاری یا منتشر کرد. در پایین اضافه کنید یا از «پیش‌فرض» استفاده کنید.",
     "removeAria": "حذف رله",
     "placeholder": "wss://relay.example",
@@ -96,7 +125,7 @@
     "reachableWithRtt": "در دسترس • {{rtt}} ms",
     "unreachableWithErr": "غیرقابل دسترس • {{error}}",
     "statusAria": "وضعیت رله: {{state}}",
-    "duplicate": "این relay از قبل در فهرست است.",
+    "duplicate": "این رله از قبل در فهرست است.",
     "removeAskTitle": "حذف رله {{url}}",
     "removeAskBody": "می‌خواهید هویت جدیدی هم بسازید؟",
     "removeKeepKeys": "خیر",
@@ -157,6 +186,7 @@
     "sendingContent": "[در حال ارسال...]",
     "sendError": "ارسال پیام ناموفق بود",
     "hiddenByBlocklist": "پیام پنهان شد (با فهرست مسدودسازی کلمات کلیدی شما مطابقت دارد).",
+    "legacyFormat": "قالب قدیمی پیام بدون جمع کنترلی. یک رله ممکن است متن را تغییر داده باشد.",
     "openPeerProfileAria": "باز کردن نمایه"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "ویدیو بسیار بزرگ است (حداکثر ۲۵ مگابایت).",
     "imageTooLarge": "تصویر بسیار بزرگ است (حداکثر ۱۲ مگابایت).",
     "compressFailed": "فشرده‌سازی تصویر ناموفق بود.",
+    "videoMetadataUnsupported": "از این قالب ویدیو نمی‌توان داده‌های مکان را پاک کرد. از MP4 یا MOV استفاده کنید.",
+    "videoMetadataFailed": "داده‌های مکان حذف نشد. ویدیو بارگذاری نشد.",
     "uploadFailed": "بارگذاری ناموفق بود.",
     "publishFailed": "انتشار ناموفق بود.",
     "invalidGeohash": "Geohash نامعتبر.",
@@ -222,10 +254,7 @@
     "offlineDelete": "آفلاین - رویداد حذف ارسال نمی‌شود."
   },
   "thread": {
-    "reportRoot": "گزارش پست ریشه",
-    "reportReply": "گزارش پاسخ",
     "reportReason": "دلیل گزارش (اختیاری)",
-    "submitReport": "ارسال گزارش",
     "replies": "پاسخ‌ها ({{count}})",
     "offline": "آفلاین",
     "replyPlaceholder": "پاسخ بنویسید…",
@@ -234,8 +263,8 @@
     "blockUserTitle": "مسدود کردن کاربر",
     "delete": "حذف",
     "deleteSending": "در حال ارسال…",
-    "block": "مسدود",
-    "blocking": "مسدود…",
+    "block": "مسدود کردن",
+    "blocking": "در حال مسدودسازی…",
     "blockHeading": "مسدود کردن {{label}}",
     "reportHint": "اختیاری: دلیل گزارش. از طریق NIP-56 به رله‌ها ارسال می‌شود.",
     "reply": "پاسخ",
@@ -251,10 +280,7 @@
     "dmAria": "باز کردن پیام مستقیم",
     "message": "پیام",
     "offlineHint": "آفلاین - پست‌های پروفایل ممکن است ناقص باشند.",
-    "loadingPosts": "در حال بارگذاری پست‌ها…",
-    "noPosts": "هنوز پستی نیست",
-    "noPostsFromRelays": "هنوز پستی از رله‌ها یافت نشد.",
-    "loadError": "بارگذاری پست‌ها ناموفق بود."
+    "noPostsFromRelays": "هنوز پستی از رله‌ها یافت نشد."
   },
   "geohashMap": {
     "gpsAria": "موقعیت GPS",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}} روز پیش"
   },
   "common": {
-    "loading": "بارگذاری…",
     "close": "بستن"
   },
   "quotedPost": {
@@ -285,7 +310,7 @@
   },
   "follow": {
     "follow": "دنبال کردن",
-    "unfollow": "لغو دنبال",
+    "unfollow": "لغو دنبال‌کردن",
     "followingList": "دنبال‌شده‌ها",
     "empty": "هنوز کسی را دنبال نمی‌کنید."
   }

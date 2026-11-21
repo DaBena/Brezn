@@ -163,9 +163,12 @@ describe('stripMp4ContainerMetadata', () => {
     expect(new TextDecoder().decode(buf).includes('+1.0000')).toBe(false)
   })
 
-  test('leaves non-mp4 video untouched', async () => {
+  test('refuses containers that cannot be cleaned', async () => {
     const webm = new File([new Uint8Array([1, 2, 3, 4])], 'clip.webm', { type: 'video/webm' })
-    const out = await stripMp4ContainerMetadata(webm)
-    expect(out).toBe(webm)
+    await expect(stripMp4ContainerMetadata(webm)).rejects.toThrow(/unsupported video container/i)
+    const fakeMp4 = new File([new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])], 'clip.mp4', {
+      type: 'video/mp4',
+    })
+    await expect(stripMp4ContainerMetadata(fakeMp4)).rejects.toThrow(/not an mp4\/mov container/i)
   })
 })

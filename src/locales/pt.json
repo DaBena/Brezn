@@ -8,7 +8,7 @@
     "openMenu": "Abrir menu"
   },
   "feed": {
-    "offlineBanner": "Offline - a mostrar últimas publicações (só leitura).",
+    "offlineBanner": "Offline - a mostrar as últimas publicações vistas (só leitura).",
     "locationTitle": "Localização para o feed local",
     "locationBody": "A app precisa da sua área aproximada para publicações locais. Pode alterar depois (clique no mapa ou geohash mais curto). A Brezn usa uma célula geohash pública (~5 km), não coordenadas GPS brutas. Essa célula continua a ser dado de localização duradouro. A Brezn não se destina a menores de 16 anos; publicações públicas com localização não são para menores. O mapa-múndi pode carregar mosaicos grosseiros antes do consentimento - sem revelar uma localização fina.",
     "privacyStorage": "Escolher uma localização também ativa o armazenamento local neste dispositivo (definições, chave privada). Os relays e o anfitrião de média incluídos são só arranque, não uma recomendação. Sem rastreador de analítica do editor. O browser liga-se na mesma a relays e, se abrir mapas ou enviar ficheiros, a outros hosts. Detalhes:",
@@ -78,11 +78,40 @@
     "importing": "A importar…",
     "import": "Importar",
     "cancel": "Cancelar",
-    "importFailed": "Falha ao importar o nsec"
+    "importFailed": "Falha ao importar o nsec",
+    "importReplaceConfirm": "A importação substitui a identidade neste dispositivo. Continue só se guardou o nsec atual.",
+    "passwordTitle": "Proteção por palavra-passe",
+    "passwordHint": "Opcional. Com palavra-passe, o seu nsec está no IndexedDB como texto cifrado AES-GCM (PBKDF2-HMAC-SHA256, 600 000 iterações). A palavra-passe e a chave após o desbloqueio estão na memória. O Brezn bloqueia quando o separador permanece em segundo plano durante 15 minutos. Sem palavra-passe, o nsec está no IndexedDB como texto cifrado AES-GCM, com uma chave de embrulho não extraível no mesmo IndexedDB. Um script neste sítio pode decifrá-lo.",
+    "passwordStatusOn": "Estado: proteção por palavra-passe ativa.",
+    "lockNow": "Bloquear agora",
+    "passwordStatusOff": "Estado: AES-GCM no IndexedDB (predefinição).",
+    "enablePassword": "Ativar palavra-passe",
+    "changePassword": "Alterar palavra-passe",
+    "disablePassword": "Desativar palavra-passe",
+    "currentPassword": "Palavra-passe atual",
+    "newPassword": "Nova palavra-passe (mín. 8 caracteres)",
+    "confirmPassword": "Confirmar palavra-passe",
+    "passwordSave": "Guardar",
+    "passwordWorking": "A processar…",
+    "passwordTooShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
+    "passwordMismatch": "As palavras-passe não coincidem.",
+    "passwordEnabled": "Proteção por palavra-passe ativada.",
+    "passwordChanged": "Palavra-passe atualizada.",
+    "passwordDisabled": "Proteção por palavra-passe desativada.",
+    "passwordActionFailed": "A ação falhou. Verifique a palavra-passe e tente de novo.",
+    "passwordRequired": "Palavra-passe obrigatória.",
+    "passwordToReveal": "Palavra-passe para mostrar o nsec",
+    "forgotPasswordHint": "Uma palavra-passe esquecida não pode ser redefinida. Só uma cópia nsec já guardada recupera esta identidade.",
+    "unlockTitle": "Desbloquear identidade",
+    "unlockBody": "Introduza a palavra-passe da chave Brezn para usar esta identidade neste dispositivo.",
+    "unlock": "Desbloquear",
+    "unlocking": "A desbloquear…",
+    "unlockFailed": "Palavra-passe incorreta ou falha ao desbloquear.",
+    "passwordPlaceholder": "Palavra-passe"
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays para feed, DMs e publicação.",
+    "hint": "Relays usados no feed, nas DM e na publicação. Só se usam os URL indicados aqui (ou os poucos relays incluídos) — sem descoberta automática de relays «outbox».",
     "empty": "Sem relays. Não é possível carregar ou publicar sem pelo menos um relay. Adicione abaixo ou use «Predefinição».",
     "removeAria": "Remover relay",
     "placeholder": "wss://relay.example",
@@ -98,16 +127,16 @@
     "statusAria": "Estado do relay: {{state}}",
     "duplicate": "Este relay já está na lista.",
     "removeAskTitle": "Remover relay {{url}}",
-    "removeAskBody": "Queres também gerar uma nova identidade?",
+    "removeAskBody": "Quer também gerar uma nova identidade?",
     "removeKeepKeys": "Não",
     "removeChangeKeys": "Sim",
-    "removeNsecTitle": "Fizeste uma cópia de segurança do teu nsec?",
-    "removeNsecBody": "Um novo par de chaves substitui esta identidade neste dispositivo. Sem cópia não a podes restaurar.",
+    "removeNsecTitle": "Fez uma cópia de segurança do seu nsec?",
+    "removeNsecBody": "Um novo par de chaves substitui esta identidade neste dispositivo. Sem cópia não a pode restaurar.",
     "removeNsecNo": "Não",
     "removeNsecYes": "Sim",
     "removeIdentityDone": "A criar nova identidade…",
-    "removeAskLoss": "Isto substitui o nsec neste dispositivo. Perdes o acesso às DMs e já não podes publicar nem gerir posts com esta identidade. Os posts já nos relays ficam sob a identidade antiga.",
-    "removeIdentityAborted": "Nada mudou. Faz uma cópia do nsec antes de gerar uma nova identidade."
+    "removeAskLoss": "Isto substitui o nsec neste dispositivo. Perde o acesso às DMs e já não pode publicar nem gerir posts com esta identidade. Os posts já nos relays ficam sob a identidade antiga.",
+    "removeIdentityAborted": "Nada mudou. Faça uma cópia do nsec antes de gerar uma nova identidade."
   },
   "mediaUpload": {
     "title": "Envio de média",
@@ -157,6 +186,7 @@
     "sendingContent": "[a enviar...]",
     "sendError": "Erro ao enviar",
     "hiddenByBlocklist": "Mensagem oculta (corresponde à sua lista de palavras bloqueadas).",
+    "legacyFormat": "Formato de mensagem antigo sem soma de verificação. Um relay pode ter alterado o texto.",
     "openPeerProfileAria": "Abrir perfil"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Vídeo demasiado grande (máx. 25 MB).",
     "imageTooLarge": "Imagem demasiado grande (máx. 12 MB).",
     "compressFailed": "Falha ao comprimir imagem.",
+    "videoMetadataUnsupported": "Este formato de vídeo não pode ser limpo de dados de localização. Use MP4 ou MOV.",
+    "videoMetadataFailed": "Não foi possível remover os dados de localização. O vídeo não foi enviado.",
     "uploadFailed": "Falha no envio.",
     "publishFailed": "Falha na publicação.",
     "invalidGeohash": "Geohash inválido.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - não é possível enviar o evento de eliminação."
   },
   "thread": {
-    "reportRoot": "Denunciar publicação raiz",
-    "reportReply": "Denunciar resposta",
     "reportReason": "Motivo da denúncia (opcional)",
-    "submitReport": "Enviar denúncia",
     "replies": "Respostas ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Responder…",
@@ -251,10 +280,7 @@
     "dmAria": "Abrir mensagem direta",
     "message": "Mensagem",
     "offlineHint": "Offline - publicações do perfil podem estar incompletas.",
-    "loadingPosts": "A carregar…",
-    "noPosts": "Sem posts",
-    "noPostsFromRelays": "Ainda não há publicações dos relays.",
-    "loadError": "Posts não carregados."
+    "noPostsFromRelays": "Ainda não há publicações dos relays."
   },
   "geohashMap": {
     "gpsAria": "Localização GPS",
@@ -270,7 +296,6 @@
     "daysAgo": "há {{count}} d"
   },
   "common": {
-    "loading": "A carregar…",
     "close": "Fechar"
   },
   "quotedPost": {

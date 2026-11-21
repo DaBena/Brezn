@@ -124,23 +124,9 @@ export default defineConfig({
           navigateFallback: `${base}offline.html`,
           navigateFallbackDenylist: [/^\/api\//],
         }),
-        // Runtime caching for images from external media servers
-        runtimeCaching: [
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg|avif)$/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 42, // Max 42 images
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
+        // No runtime cache for remote images or map tiles. Those URLs can outlive
+        // the session and are finer-grained than the geohash Brezn publishes.
+        // App icons stay in the precache via globPatterns.
       },
       devOptions: {
         enabled: false, // Disable Workbox in dev mode to avoid warnings about Vite dev resources

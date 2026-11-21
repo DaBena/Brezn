@@ -3,7 +3,7 @@
     "loading": "로드 중…"
   },
   "nav": {
-    "searchPlaceholder": "게시물 검색…",
+    "searchPlaceholder": "검색…",
     "openChat": "채팅 열기",
     "openMenu": "메뉴 열기"
   },
@@ -11,9 +11,9 @@
     "offlineBanner": "오프라인 - 마지막으로 본 게시물 표시(읽기 전용).",
     "locationTitle": "로컬 피드용 위치",
     "locationBody": "로컬 게시물을 보려면 대략적인 지역이 필요합니다. 나중에 변경할 수 있습니다(지도 클릭 또는 더 짧은 geohash). Brezn은 원시 GPS 좌표가 아니라 공개 geohash 셀(~5km)을 씁니다. 그 셀도 지속되는 위치 데이터입니다. Brezn은 16세 미만을 대상으로 하지 않습니다. 위치 태그가 달린 공개 게시물은 미성년자용이 아닙니다. 동의 전에 세계 지도가 거친 타일을 불러올 수 있습니다 - 세밀한 위치는 드러나지 않습니다.",
-    "privacyStorage": "위치를 선택하면 이 기기의 로컬 저장도 켜집니다(설정, 개인 키). 내장 릴레이와 미디어 호스트는 부트스트랩용일 뿐 추천이 아닙니다. 게시자 분석 추적기는 없습니다. 브라우저는 그래도 릴레이에 연결되고, 지도/업로드 시 다른 호스트에도 연결됩니다. 자세한 내용:",
+    "privacyStorage": "위치를 선택하면 이 기기의 로컬 저장도 켜집니다(설정, 개인 키). 내장 릴레이와 미디어 호스트는 부트스트랩용일 뿐 추천이 아닙니다. 발행자 분석 추적기는 없습니다. 브라우저는 그래도 릴레이에 연결되고, 지도/업로드 시 다른 호스트에도 연결됩니다. 자세한 내용:",
     "privacyLink": "개인정보",
-    "privacyDisclaimer": "앱은 제3자(Nostr 릴레이, 미디어 호스트, 지도 타일)에서 콘텐츠를 불러옵니다. 해당 운영자는 IP 같은 연결 데이터를 수신하고 기록할 수 있습니다. 게시자는 그 콘텐츠나 보관 기간을 통제하지 않습니다.",
+    "privacyDisclaimer": "앱은 제3자(Nostr 릴레이, 미디어 호스트, 지도 타일)에서 콘텐츠를 불러옵니다. 해당 운영자는 IP 같은 연결 데이터를 수신하고 기록할 수 있습니다. 발행자는 그 콘텐츠나 보관 기간을 통제하지 않습니다.",
     "privacyConfirm": "계속하면 이 안내를 읽었고, 만 16세 이상(또는 거주 지역의 적용 디지털 동의 연령)이며, 수락함을 확인합니다.",
     "allowLocation": "위치 허용",
     "errorTitle": "오류",
@@ -78,11 +78,40 @@
     "importing": "가져오는 중…",
     "import": "가져오기",
     "cancel": "취소",
-    "importFailed": "nsec 가져오기 실패"
+    "importFailed": "nsec 가져오기 실패",
+    "importReplaceConfirm": "가져오기는 이 기기의 신원을 바꿉니다. 현재 nsec를 저장한 뒤에만 계속하세요.",
+    "passwordTitle": "비밀번호 보호",
+    "passwordHint": "선택 사항입니다. 비밀번호가 있으면 nsec는 IndexedDB에 AES-GCM 암호문으로 있습니다(PBKDF2-HMAC-SHA256, 60만 회). 비밀번호와 잠금 해제 후의 키는 메모리에 있습니다. 탭이 백그라운드에 15분 머물면 Brezn이 잠급니다. 비밀번호가 없으면 nsec는 IndexedDB에 AES-GCM 암호문으로 있고, 추출 불가 랩 키도 같은 IndexedDB에 있습니다. 이 사이트의 스크립트가 그것을 복호화할 수 있습니다.",
+    "passwordStatusOn": "상태: 비밀번호 보호 켜짐.",
+    "lockNow": "지금 잠그기",
+    "passwordStatusOff": "상태: IndexedDB의 AES-GCM (기본값).",
+    "enablePassword": "비밀번호 켜기",
+    "changePassword": "비밀번호 변경",
+    "disablePassword": "비밀번호 끄기",
+    "currentPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호 (최소 8자)",
+    "confirmPassword": "비밀번호 확인",
+    "passwordSave": "저장",
+    "passwordWorking": "처리 중…",
+    "passwordTooShort": "비밀번호는 8자 이상이어야 합니다.",
+    "passwordMismatch": "비밀번호가 일치하지 않습니다.",
+    "passwordEnabled": "비밀번호 보호를 켰습니다.",
+    "passwordChanged": "비밀번호를 업데이트했습니다.",
+    "passwordDisabled": "비밀번호 보호를 껐습니다.",
+    "passwordActionFailed": "실패했습니다. 비밀번호를 확인하고 다시 시도하세요.",
+    "passwordRequired": "비밀번호가 필요합니다.",
+    "passwordToReveal": "nsec를 표시할 비밀번호",
+    "forgotPasswordHint": "잊은 비밀번호는 재설정할 수 없습니다. 미리 저장한 nsec 백업만 이 신원을 복구합니다.",
+    "unlockTitle": "신원 잠금 해제",
+    "unlockBody": "이 기기에서 이 신원을 쓰려면 Brezn 키 비밀번호를 입력하세요.",
+    "unlock": "잠금 해제",
+    "unlocking": "잠금 해제 중…",
+    "unlockFailed": "비밀번호가 틀리거나 잠금 해제에 실패했습니다.",
+    "passwordPlaceholder": "비밀번호"
   },
   "relay": {
     "title": "릴레이",
-    "hint": "피드, DM, 게시에 사용되는 릴레이입니다.",
+    "hint": "피드, DM, 게시에 사용하는 릴레이입니다. 여기에 적은 URL(또는 내장 기본 릴레이 몇 개)만 쓰며, outbox 릴레이를 자동으로 찾지 않습니다.",
     "empty": "릴레이가 구성되지 않았습니다. 최소 하나의 릴레이 없이는 게시물을 불러오거나 게시할 수 없습니다. 아래에 추가하거나 «기본값»으로 복원하세요.",
     "removeAria": "릴레이 제거",
     "placeholder": "wss://relay.example",
@@ -96,7 +125,7 @@
     "reachableWithRtt": "연결됨 • {{rtt}}ms",
     "unreachableWithErr": "연결 안 됨 • {{error}}",
     "statusAria": "릴레이 상태: {{state}}",
-    "duplicate": "이 relay는 이미 목록에 있습니다.",
+    "duplicate": "이 릴레이는 이미 목록에 있습니다.",
     "removeAskTitle": "릴레이 {{url}} 삭제",
     "removeAskBody": "새 신원도 생성할까요?",
     "removeKeepKeys": "아니요",
@@ -157,6 +186,7 @@
     "sendingContent": "[보내는 중...]",
     "sendError": "메시지 전송 실패",
     "hiddenByBlocklist": "메시지가 숨겨졌습니다(키워드 차단 목록과 일치).",
+    "legacyFormat": "검사값이 없는 이전 메시지 형식입니다. 릴레이가 내용을 바꿨을 수 있습니다.",
     "openPeerProfileAria": "프로필 열기"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "동영상이 너무 큽니다(최대 25MB).",
     "imageTooLarge": "이미지가 너무 큽니다(최대 12MB).",
     "compressFailed": "이미지 압축 실패.",
+    "videoMetadataUnsupported": "이 동영상 형식에서는 위치 정보를 지울 수 없습니다. MP4 또는 MOV를 사용하세요.",
+    "videoMetadataFailed": "위치 정보를 지우지 못했습니다. 동영상은 올리지 않았습니다.",
     "uploadFailed": "업로드 실패.",
     "publishFailed": "게시 실패.",
     "invalidGeohash": "잘못된 geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "오프라인 - 삭제 이벤트를 보낼 수 없습니다."
   },
   "thread": {
-    "reportRoot": "루트 게시물 신고",
-    "reportReply": "답글 신고",
     "reportReason": "신고 사유(선택)",
-    "submitReport": "신고 제출",
     "replies": "답글 ({{count}})",
     "offline": "오프라인",
     "replyPlaceholder": "답글 작성…",
@@ -251,10 +280,7 @@
     "dmAria": "다이렉트 메시지 열기",
     "message": "메시지",
     "offlineHint": "오프라인 - 프로필 게시물이 불완전할 수 있습니다.",
-    "loadingPosts": "게시물 로드 중…",
-    "noPosts": "아직 게시물 없음",
-    "noPostsFromRelays": "릴레이에서 아직 게시물을 찾지 못했습니다.",
-    "loadError": "게시물을 불러올 수 없습니다."
+    "noPostsFromRelays": "릴레이에서 아직 게시물을 찾지 못했습니다."
   },
   "geohashMap": {
     "gpsAria": "GPS 위치",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}}일 전"
   },
   "common": {
-    "loading": "로드 중…",
     "close": "닫기"
   },
   "quotedPost": {

@@ -3,15 +3,15 @@
     "loading": "Caricamento…"
   },
   "nav": {
-    "searchPlaceholder": "Cerca post…",
+    "searchPlaceholder": "Cerca…",
     "openChat": "Apri chat",
     "openMenu": "Apri menu"
   },
   "feed": {
     "offlineBanner": "Offline - ultimi post visti (solo lettura).",
     "locationTitle": "Posizione per il feed locale",
-    "locationBody": "L’app ha bisogno della tua zona approssimativa per i post locali. Puoi modificarla dopo (clic sulla mappa o geohash più corto). Brezn usa una cella geohash pubblica (~5 km), non coordinate GPS grezze. Quella cella resta un dato di posizione duraturo. Brezn non è rivolto ai minori di 16 anni; i post pubblici geolocalizzati non sono per minori. La mappa mondiale può caricare tile grossolane prima del consenso - senza rivelare una posizione fine.",
-    "privacyStorage": "Scegliere una posizione abilita anche lo storage locale su questo dispositivo (impostazioni, chiave privata). I relay e l’host media integrati sono solo bootstrap, non una raccomandazione. Nessun tracker analitico dell’editore. Il browser si collega comunque ai relay e, se apri mappe o carichi file, ad altri host. Dettagli:",
+    "locationBody": "L’app ha bisogno della tua zona approssimativa per i post locali. Puoi modificarla dopo (clic sulla mappa o geohash più corto). Brezn usa una cella geohash pubblica (~5 km), non coordinate GPS grezze. Quella cella resta un dato di posizione duraturo. Brezn non è rivolto ai minori di 16 anni; i post pubblici geolocalizzati non sono per minori. La mappa mondiale può caricare tasselli grossolani prima del consenso - senza rivelare una posizione fine.",
+    "privacyStorage": "Scegliere una posizione abilita anche l’archiviazione locale su questo dispositivo (impostazioni, chiave privata). I relay e l’host media integrati servono solo all’avvio iniziale, non sono una raccomandazione. Nessun tracker analitico dell’editore. Il browser si collega comunque ai relay e, se apri mappe o carichi file, ad altri host. Dettagli:",
     "privacyLink": "Privacy",
     "privacyDisclaimer": "L’app carica contenuti di terzi (relay Nostr, host media, tile mappe). Quegli operatori possono ricevere e registrare dati di connessione come il tuo IP. L’editore non controlla i loro contenuti né la conservazione.",
     "privacyConfirm": "Continuando confermi di aver letto questo avviso, di avere almeno 16 anni (o l’età di consenso digitale applicabile dove vivi) e di accettare.",
@@ -43,7 +43,7 @@
     "decreaseRadius": "Riduci raggio",
     "increaseRadius": "Aumenta raggio",
     "length": "Lunghezza {{n}}",
-    "queriesCurrent": "post geotaggati",
+    "queriesCurrent": "tutti i post geotaggati",
     "precisionFallback": "Più alto = più piccolo (più preciso), ma meno risultati.",
     "cellSize": "{{w}} × {{h}}, più 8 vicine"
   },
@@ -78,11 +78,40 @@
     "importing": "Importazione…",
     "import": "Importa",
     "cancel": "Annulla",
-    "importFailed": "Impossibile importare l’nsec"
+    "importFailed": "Impossibile importare l’nsec",
+    "importReplaceConfirm": "L’importazione sostituisce l’identità su questo dispositivo. Continua solo se hai salvato l’nsec attuale.",
+    "passwordTitle": "Protezione con password",
+    "passwordHint": "Facoltativa. Con una password, il tuo nsec si trova in IndexedDB come testo cifrato AES-GCM (PBKDF2-HMAC-SHA256, 600.000 iterazioni). La password e la chiave dopo lo sblocco sono in memoria. Brezn si blocca quando la scheda resta in secondo piano per 15 minuti. Senza password, l’nsec si trova in IndexedDB come testo cifrato AES-GCM, con una chiave di avvolgimento non estraibile nello stesso IndexedDB. Uno script su questo sito può decifrarlo.",
+    "passwordStatusOn": "Stato: protezione con password attiva.",
+    "lockNow": "Blocca ora",
+    "passwordStatusOff": "Stato: AES-GCM in IndexedDB (predefinito).",
+    "enablePassword": "Attiva password",
+    "changePassword": "Cambia password",
+    "disablePassword": "Disattiva password",
+    "currentPassword": "Password attuale",
+    "newPassword": "Nuova password (min. 8 caratteri)",
+    "confirmPassword": "Conferma password",
+    "passwordSave": "Salva",
+    "passwordWorking": "Attendere…",
+    "passwordTooShort": "La password deve avere almeno 8 caratteri.",
+    "passwordMismatch": "Le password non coincidono.",
+    "passwordEnabled": "Protezione con password attivata.",
+    "passwordChanged": "Password aggiornata.",
+    "passwordDisabled": "Protezione con password disattivata.",
+    "passwordActionFailed": "Operazione non riuscita. Controlla la password e riprova.",
+    "passwordRequired": "Password obbligatoria.",
+    "passwordToReveal": "Password per mostrare l’nsec",
+    "forgotPasswordHint": "Una password dimenticata non si può reimpostare. Solo un backup nsec già salvato può ripristinare questa identità.",
+    "unlockTitle": "Sblocca identità",
+    "unlockBody": "Inserisci la password della chiave Brezn per usare questa identità su questo dispositivo.",
+    "unlock": "Sblocca",
+    "unlocking": "Sblocco…",
+    "unlockFailed": "Password errata o sblocco non riuscito.",
+    "passwordPlaceholder": "Password"
   },
   "relay": {
     "title": "Relay",
-    "hint": "Relay per feed, DM e pubblicazione.",
+    "hint": "Relay usati per il feed, i DM e la pubblicazione. Si usano solo gli URL elencati qui (o i pochi relay integrati): niente scoperta automatica dei relay «outbox».",
     "empty": "Nessun relay. Non puoi caricare o pubblicare senza almeno un relay. Aggiungine uno o usa «Predefiniti».",
     "removeAria": "Rimuovi relay",
     "placeholder": "wss://relay.example",
@@ -157,6 +186,7 @@
     "sendingContent": "[invio…]",
     "sendError": "Errore invio",
     "hiddenByBlocklist": "Messaggio nascosto (coincide con la tua lista di parole bloccate).",
+    "legacyFormat": "Formato di messaggio precedente senza checksum. Un relay potrebbe aver modificato il testo.",
     "openPeerProfileAria": "Apri profilo"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video troppo grande (max 25 MB).",
     "imageTooLarge": "Immagine troppo grande (max 12 MB).",
     "compressFailed": "Compressione immagine fallita.",
+    "videoMetadataUnsupported": "Questo formato video non può essere ripulito dai dati di posizione. Usa MP4 o MOV.",
+    "videoMetadataFailed": "Impossibile rimuovere i dati di posizione. Il video non è stato caricato.",
     "uploadFailed": "Upload fallito.",
     "publishFailed": "Pubblicazione fallita.",
     "invalidGeohash": "Geohash non valido.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - impossibile inviare l’evento di eliminazione."
   },
   "thread": {
-    "reportRoot": "Segnala post radice",
-    "reportReply": "Segnala risposta",
     "reportReason": "Motivo segnalazione (opzionale)",
-    "submitReport": "Invia segnalazione",
     "replies": "Risposte ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Rispondi…",
@@ -251,10 +280,7 @@
     "dmAria": "Apri messaggio diretto",
     "message": "Messaggio",
     "offlineHint": "Offline - i post del profilo potrebbero essere incompleti.",
-    "loadingPosts": "Caricamento post…",
-    "noPosts": "Nessun post",
-    "noPostsFromRelays": "Nessun post dai relay ancora.",
-    "loadError": "Impossibile caricare i post."
+    "noPostsFromRelays": "Nessun post dai relay ancora."
   },
   "geohashMap": {
     "gpsAria": "Posizione GPS",
@@ -270,12 +296,11 @@
     "daysAgo": "{{count}} g fa"
   },
   "common": {
-    "loading": "Caricamento…",
     "close": "Chiudi"
   },
   "quotedPost": {
     "loadingReferenced": "Caricamento post citato…",
-    "noText": "(vuoto)"
+    "noText": "(senza testo)"
   },
   "search": {
     "people": "Persone",

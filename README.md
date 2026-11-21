@@ -39,7 +39,7 @@ With the same keys and relays you can see the same content on other Nostr client
 
 Before media upload, Brezn tries **best effort** to strip identifying metadata from images and videos. Images are re-encoded in [`compressImage`](src/lib/mediaUpload.ts); MP4/MOV containers are cleaned in [`stripMp4Metadata.ts`](src/lib/stripMp4Metadata.ts). Composer uploads run that path from [`ComposerSheet.tsx`](src/components/ComposerSheet.tsx). Until you change it in Settings, uploads go to a built-in default NIP-96 host.
 
-Relays and media hosts you connect to receive an IP address. Built-in default relays and the default media host are bootstrapping only (easier first run), not a recommendation - change them in Settings. If you want relays not to receive your home IP, open Brezn in [Tor Browser](https://www.torproject.org/download/) and read on in section 8: **[PRIVACY.md §8](PRIVACY.md#8-tor-browser)** (English) / **[DATENSCHUTZ.md §8](DATENSCHUTZ.md#8-tor-browser)** (Deutsch).
+Relays and media hosts you connect to receive an IP address. Built-in default relays and the default media host are bootstrapping only (easier first run), not a recommendation - change them in Settings. If you want relays not to receive your home IP, open Brezn in [Tor Browser](https://www.torproject.org/download/) and read on in section 8: **[PRIVACY.md](PRIVACY.md#8-tor-browser)** (English) / **[DATENSCHUTZ.md](DATENSCHUTZ.md#8-tor-browser)** (Deutsch).
 
 ## Tech Stack
 
@@ -74,7 +74,7 @@ Brezn is a client for the Nostr network. The publisher does not host your posts,
 
 **Bootstrapping:** Default relays and the default media host ship with the client only until you change them - not as an endorsement.
 
-**Third parties:** When you use the app, your browser talks to relays, media hosts and (if you open the map) map tile providers. Those operators receive connection data such as IP and store content under their own policies. Your keys and app settings stay in browser storage on your device. Web builds are hosted on GitHub Pages; access data there is handled under GitHub's [Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
+**Third parties:** When you use the app, your browser talks to relays, media hosts and (if you open the map) map tile providers. Those operators receive connection data such as IP and store content under their own policies. Your secret key stays in IndexedDB on this device (AES-GCM with a non-extractable wrap key, or an optional password). Other app settings stay in browser storage on your device. Web builds are hosted on GitHub Pages; access data there is handled under GitHub's [Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
 
 **No warranties:** Brezn is free software without a promise of anonymity or uptime.
 

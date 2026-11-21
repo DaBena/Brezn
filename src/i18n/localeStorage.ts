@@ -23,6 +23,15 @@ export const SUPPORTED_LOCALES = [
   'bn',
   'th',
   'he',
+  'nb',
+  'sv',
+  'ro',
+  'cs',
+  'da',
+  'fi',
+  'hu',
+  'el',
+  'ur',
 ] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
@@ -63,6 +72,11 @@ export function resolveNavigatorLocale(): SupportedLocale {
     }
 
     const primary = norm.split('-')[0]
+    // `no` is the macrolanguage browsers often send for Bokmål. Nynorsk (`nn`) stays unsupported.
+    if (primary === 'no') return 'nb'
+    // Country tags some systems send instead of the language code.
+    if (primary === 'cz') return 'cs'
+    if (primary === 'gr') return 'el'
     if (isSupportedLocale(primary)) {
       return primary
     }

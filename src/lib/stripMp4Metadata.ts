@@ -185,27 +185,28 @@ export function stripMp4MetadataInPlace(bytes: Uint8Array): number {
 }
 
 /**
- * Returns a new File with container metadata / timestamps removed when the file is MP4/MOV.
- * Always uses a neutral filename. On parse failure or non-ISO-BMFF input, returns the original.
+ * Returns a new File with container metadata / timestamps removed.
+ * Always uses a neutral filename.
+ * Throws when the file is not MP4/MOV or the container cannot be parsed — callers must not upload the original.
  */
 export async function stripMp4ContainerMetadata(file: File): Promise<File> {
-  if (!isMp4OrMovFile(file)) return file
-
-  try {
-    const buffer = await file.arrayBuffer()
-    const bytes = new Uint8Array(buffer.slice(0))
-    if (!looksLikeIsoBmff(bytes)) return file
-
-    stripMp4MetadataInPlace(bytes)
-
-    const name = (file.name ?? '').toLowerCase()
-    const mime = (file.type ?? '').toLowerCase()
-    const isMov = name.endsWith('.mov') || mime === 'video/quicktime' || mime.includes('quicktime')
-    const outName = isMov ? 'video.mov' : 'video.mp4'
-    const outType = file.type || (isMov ? 'video/quicktime' : 'video/mp4')
-
-    return new File([bytes], outName, { type: outType, lastModified: Date.now() })
-  } catch {
-    return file
+  if (!isMp4OrMovFile(file)) {
+    throw new Error('Unsupported video container')
   }
+
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer.slice(0))
+  if (!looksLikeIsoBmff(bytes)) {
+    throw new Error('Not an MP4/MOV container')
+  }
+
+  stripMp4MetadataInPlace(bytes)
+
+  const name = (file.name ?? '').toLowerCase()
+  const mime = (file.type ?? '').toLowerCase()
+  const isMov = name.endsWith('.mov') || mime === 'video/quicktime' || mime.includes('quicktime')
+  const outName = isMov ? 'video.mov' : 'video.mp4'
+  const outType = file.type || (isMov ? 'video/quicktime' : 'video/mp4')
+
+  return new File([bytes], outName, { type: outType, lastModified: Date.now() })
 }

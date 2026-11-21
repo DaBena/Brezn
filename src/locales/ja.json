@@ -3,14 +3,14 @@
     "loading": "読み込み中…"
   },
   "nav": {
-    "searchPlaceholder": "投稿を検索…",
+    "searchPlaceholder": "検索…",
     "openChat": "チャットを開く",
     "openMenu": "メニューを開く"
   },
   "feed": {
     "offlineBanner": "オフライン - 最後に見た投稿を表示（閲覧のみ）",
     "locationTitle": "ローカルフィード用の位置",
-    "locationBody": "近くの投稿を表示するにはおおよその地域が必要です。後から変更できます（地図のクリックまたは短い geohash）。Brezn は生の GPS 座標ではなく公開 geohash セル（約5km）を使います。そのセルも持続する位置データです。Breznは16歳未満向けではありません。位置タグ付きの公開投稿は未成年向けではありません。同意前に世界地図が粗いタイルを読み込むことがあります - 精密な位置は分かりません。",
+    "locationBody": "近くの投稿を表示するにはおおよその地域が必要です。後から変更できます（地図のクリックまたは短いジオハッシュ）。Brezn は生の GPS 座標ではなく公開ジオハッシュセル（約5km）を使います。そのセルも持続する位置データです。Breznは16歳未満向けではありません。位置タグ付きの公開投稿は未成年向けではありません。同意前に世界地図が粗いタイルを読み込むことがあります - 精密な位置は分かりません。",
     "privacyStorage": "位置を選ぶと、この端末のローカル保存も有効になります（設定、秘密鍵）。内蔵リレーとメディアホストは起動用のみで、推奨ではありません。発行者の分析トラッカーはありません。ブラウザはリレーに接続し、地図やアップロード時は他ホストにも接続します。詳細:",
     "privacyLink": "プライバシー",
     "privacyDisclaimer": "アプリは第三者（Nostr リレー、メディアホスト、地図タイル）から内容を読み込みます。それらの事業者は IP などの接続データを受信して記録することがあります。発行者は内容や保存期間を制御しません。",
@@ -38,12 +38,12 @@
     "searchRadius": "検索半径",
     "lengthLabel": "ジオハッシュ長:",
     "length0": "0",
-    "geoHashLabel": "Geohash:",
-    "geoHashEmpty": "Geohash: -",
+    "geoHashLabel": "ジオハッシュ:",
+    "geoHashEmpty": "ジオハッシュ: -",
     "decreaseRadius": "半径を縮小",
     "increaseRadius": "半径を拡大",
     "length": "長さ {{n}}",
-    "queriesCurrent": "位置付き投稿",
+    "queriesCurrent": "すべての位置付き投稿",
     "precisionFallback": "大きいほど細かい（精密）ですが、件数は減ります。",
     "cellSize": "{{w}} × {{h}}、隣接 8"
   },
@@ -59,7 +59,7 @@
     "unblockedMsg": "ブロックを解除しました。"
   },
   "keyMgmt": {
-    "title": "本人確認",
+    "title": "身元",
     "npub": "npub",
     "copy": "コピー",
     "nsec": "nsec",
@@ -78,11 +78,40 @@
     "importing": "インポート中…",
     "import": "インポート",
     "cancel": "キャンセル",
-    "importFailed": "nsec をインポートできませんでした"
+    "importFailed": "nsec をインポートできませんでした",
+    "importReplaceConfirm": "読み込むと、この端末の身元が置き換わります。今の nsec を保存してから続けてください。",
+    "passwordTitle": "パスワード保護",
+    "passwordHint": "任意です。パスワードがあると、nsec は IndexedDB に AES-GCM 暗号文としてあります（PBKDF2-HMAC-SHA256、60万回）。パスワードと、解除後の鍵はメモリにあります。タブがバックグラウンドのまま15分たつと、Brezn はロックします。パスワードなしでは、nsec は IndexedDB に AES-GCM 暗号文としてあり、抽出不可のラップ鍵も同じ IndexedDB にあります。このサイトのスクリプトはそれを復号できます。",
+    "passwordStatusOn": "状態: パスワード保護はオンです。",
+    "lockNow": "今すぐロック",
+    "passwordStatusOff": "状態: IndexedDB の AES-GCM（既定）。",
+    "enablePassword": "パスワードを有効にする",
+    "changePassword": "パスワードを変更",
+    "disablePassword": "パスワードを無効にする",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード（8文字以上）",
+    "confirmPassword": "パスワードの確認",
+    "passwordSave": "保存",
+    "passwordWorking": "処理中…",
+    "passwordTooShort": "パスワードは8文字以上にしてください。",
+    "passwordMismatch": "パスワードが一致しません。",
+    "passwordEnabled": "パスワード保護を有効にしました。",
+    "passwordChanged": "パスワードを更新しました。",
+    "passwordDisabled": "パスワード保護を無効にしました。",
+    "passwordActionFailed": "失敗しました。パスワードを確認して、もう一度試してください。",
+    "passwordRequired": "パスワードが必要です。",
+    "passwordToReveal": "nsec を表示するパスワード",
+    "forgotPasswordHint": "忘れたパスワードはリセットできません。事前に保存した nsec の控えだけがこの身元を復元できます。",
+    "unlockTitle": "身元のロック解除",
+    "unlockBody": "この端末でこの身元を使うには、Brezn 鍵のパスワードを入力してください。",
+    "unlock": "ロック解除",
+    "unlocking": "解除しています…",
+    "unlockFailed": "パスワードが違うか、解除に失敗しました。",
+    "passwordPlaceholder": "パスワード"
   },
   "relay": {
     "title": "リレー",
-    "hint": "フィード、DM、投稿に使うリレー。",
+    "hint": "フィード、DM、投稿に使うリレーです。ここに書いた URL（または少数の内蔵デフォルト）だけを使い、outbox リレーは自動では探しません。",
     "empty": "リレーがありません。リレーがないと読み込み・投稿できません。追加するか「デフォルト」を使ってください。",
     "removeAria": "リレーを削除",
     "placeholder": "wss://relay.example",
@@ -96,22 +125,22 @@
     "reachableWithRtt": "接続可 • {{rtt}}ms",
     "unreachableWithErr": "接続不可 • {{error}}",
     "statusAria": "リレー状態: {{state}}",
-    "duplicate": "この relay はすでにリストにあります。",
+    "duplicate": "このリレーはすでにリストにあります。",
     "removeAskTitle": "リレー {{url}} を削除",
-    "removeAskBody": "新しい ID も生成しますか?",
+    "removeAskBody": "新しい身元も生成しますか?",
     "removeKeepKeys": "いいえ",
     "removeChangeKeys": "はい",
     "removeNsecTitle": "nsec をバックアップしましたか?",
-    "removeNsecBody": "新しい鍵ペアがこの端末の ID を置き換えます。バックアップがないと復元できません。",
+    "removeNsecBody": "新しい鍵ペアがこの端末の身元を置き換えます。バックアップがないと復元できません。",
     "removeNsecNo": "いいえ",
     "removeNsecYes": "はい",
-    "removeIdentityDone": "新しい ID を作成しています…",
-    "removeAskLoss": "この端末の nsec が置き換わります。DM にアクセスできなくなり、この ID として投稿・管理できなくなります。リレー上の既存の投稿は古い ID のまま残ります。",
+    "removeIdentityDone": "新しい身元を作成しています…",
+    "removeAskLoss": "この端末の nsec が置き換わります。DM にアクセスできなくなり、この身元として投稿・管理できなくなります。リレー上の既存の投稿は古い身元のまま残ります。",
     "removeIdentityAborted": "変更はありません。新しい ID を生成する前に nsec をバックアップしてください。"
   },
   "mediaUpload": {
     "title": "メディアアップロード",
-    "hint": "直接 URL または NIP-96。既定: {{default}}。空でオフ。",
+    "hint": "直接 URL または NIP-96。デフォルト: {{default}}。空でオフ。",
     "defaultBtn": "デフォルト"
   },
   "profileSettings": {
@@ -157,6 +186,7 @@
     "sendingContent": "[送信中...]",
     "sendError": "送信に失敗しました",
     "hiddenByBlocklist": "メッセージを非表示にしました（キーワードブロックリストに一致）。",
+    "legacyFormat": "チェックサムのない古いメッセージ形式です。リレーが本文を改変した可能性があります。",
     "openPeerProfileAria": "プロフィールを開く"
   },
   "composer": {
@@ -173,15 +203,17 @@
     "showMapTitle": "地図でセルを表示",
     "placeholder": "近くで何がありましたか？",
     "removeMediaAria": "メディアを削除",
-    "noUploadEndpoint": "アップロード先が未設定（設定 → メディア）。",
+    "noUploadEndpoint": "アップロード先が未設定（設定 → メディアアップロード）。",
     "onlyImagesVideos": "画像または動画のみです。",
     "videoTooLarge": "動画が大きすぎます（最大 25 MB）。",
     "imageTooLarge": "画像が大きすぎます（最大 12 MB）。",
     "compressFailed": "画像の圧縮に失敗しました。",
+    "videoMetadataUnsupported": "この動画形式からは位置情報を除去できません。MP4 または MOV を使ってください。",
+    "videoMetadataFailed": "位置情報を除去できなかったため、動画はアップロードしていません。",
     "uploadFailed": "アップロードに失敗しました。",
     "publishFailed": "投稿に失敗しました。",
-    "invalidGeohash": "無効な geohash。",
-    "editGeohashAria": "geohash を編集"
+    "invalidGeohash": "無効なジオハッシュ。",
+    "editGeohashAria": "ジオハッシュを編集"
   },
   "feedArticle": {
     "deleted": "削除済み - リレーに反映中",
@@ -222,10 +254,7 @@
     "offlineDelete": "オフライン - 削除イベントを送信できません。"
   },
   "thread": {
-    "reportRoot": "ルート投稿を報告",
-    "reportReply": "返信を報告",
     "reportReason": "理由（任意）",
-    "submitReport": "送信",
     "replies": "返信 ({{count}})",
     "offline": "オフライン",
     "replyPlaceholder": "返信を入力…",
@@ -251,10 +280,7 @@
     "dmAria": "DM を開く",
     "message": "メッセージ",
     "offlineHint": "オフライン - プロフィールの投稿が不完全な場合があります。",
-    "loadingPosts": "投稿を読み込み中…",
-    "noPosts": "まだ投稿がありません",
-    "noPostsFromRelays": "リレーからまだ投稿が見つかりません。",
-    "loadError": "投稿を読み込めませんでした。"
+    "noPostsFromRelays": "リレーからまだ投稿が見つかりません。"
   },
   "geohashMap": {
     "gpsAria": "GPS 位置",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}} 日前"
   },
   "common": {
-    "loading": "読み込み中…",
     "close": "閉じる"
   },
   "quotedPost": {

@@ -27,6 +27,8 @@ export function ComposerSheet(props: {
   onSelectCell?: (geohash5: string) => void
   onPublish: (content: string, publishGeohash?: string | null) => Promise<void>
   mediaUploadEndpoint?: string
+  /** Read at upload time. Not stored in composer state. */
+  nip98SkHex?: () => string
   postGeo5?: string[]
 }) {
   const { t } = useTranslation()
@@ -38,8 +40,11 @@ export function ComposerSheet(props: {
     onSelectCell,
     onPublish,
     mediaUploadEndpoint,
+    nip98SkHex,
     postGeo5,
   } = props
+  const publishLockRef = useRef(false)
+  const publishEpochRef = useRef(0)
 
   const [composerText, setComposerText] = useState('')
   const [manualGeohashMode, setManualGeohashMode] = useState(false)
@@ -63,6 +68,7 @@ export function ComposerSheet(props: {
   }, [showGeoMap, manualGeohashMode])
 
   const handleClose = () => {
+    publishEpochRef.current += 1
     if (manualGeohashMode) {
       setComposerText('')
       setMediaUrls([])
@@ -134,7 +140,8 @@ export function ComposerSheet(props: {
     setUploadError(null)
 
     let fileToUpload = file
-    if (isImage && !name.endsWith('.svg')) {
+    if (isImage) {
+      // SVG included: redrawing to JPEG drops scripts and embedded metadata.
       try {
         fileToUpload = await compressImage(file, 1920, 1920, 0.85)
       } catch (err) {
@@ -142,11 +149,18 @@ export function ComposerSheet(props: {
         setUploadError(err instanceof Error ? err.message : t('composer.compressFailed'))
         return
       }
-    } else if (isVideo && isMp4OrMovFile(file)) {
+    } else if (isVideo) {
+      if (!isMp4OrMovFile(file)) {
+        setUploadState('error')
+        setUploadError(t('composer.videoMetadataUnsupported'))
+        return
+      }
       try {
         fileToUpload = await stripMp4ContainerMetadata(file)
       } catch {
-        fileToUpload = file
+        setUploadState('error')
+        setUploadError(t('composer.videoMetadataFailed'))
+        return
       }
     }
 
@@ -158,7 +172,11 @@ export function ComposerSheet(props: {
     }
 
     try {
-      const { url } = await uploadMediaFile({ endpoint: mediaUploadEndpoint, file: fileToUpload })
+      const { url } = await uploadMediaFile({
+        endpoint: mediaUploadEndpoint,
+        file: fileToUpload,
+        nip98: { skHex: nip98SkHex?.() },
+      })
       setMediaUrls((prev) => [...prev, url])
       setUploadState('idle')
     } catch (err) {
@@ -168,6 +186,7 @@ export function ComposerSheet(props: {
   }
 
   async function publishPost() {
+    if (publishLockRef.current) return
     const text = composerText.trim()
     if (!text && mediaUrls.length === 0) return
 
@@ -190,10 +209,17 @@ export function ComposerSheet(props: {
     }
     const content = parts.join('\n')
 
+    const epoch = publishEpochRef.current
+    publishLockRef.current = true
     setPublishState('publishing')
     setPublishError(null)
     try {
       await onPublish(content, publishOverride)
+      if (publishEpochRef.current !== epoch) {
+        setPublishState('idle')
+        setPublishError(null)
+        return
+      }
       setComposerText('')
       setPublishGeohashDraft('')
       setMediaUrls([])
@@ -202,8 +228,14 @@ export function ComposerSheet(props: {
       setPublishState('idle')
       handleClose()
     } catch (e) {
+      if (publishEpochRef.current !== epoch) {
+        setPublishState('idle')
+        return
+      }
       setPublishState('error')
       setPublishError(e instanceof Error ? e.message : t('composer.publishFailed'))
+    } finally {
+      publishLockRef.current = false
     }
   }
 

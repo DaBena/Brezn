@@ -3,7 +3,7 @@
     "loading": "載入中…"
   },
   "nav": {
-    "searchPlaceholder": "搜尋貼文…",
+    "searchPlaceholder": "搜尋…",
     "openChat": "開啟聊天",
     "openMenu": "開啟選單"
   },
@@ -50,7 +50,7 @@
   "moderation": {
     "blocklist": "封鎖清單",
     "oneLineOneTerm": "1 行 = 1 詞（{{count}}/200）",
-    "placeholder": "例如\nbuy\nsats\nevil.example",
+    "placeholder": "例如\n購買\nsats\nevil.example",
     "saved": "封鎖清單已儲存。",
     "blockedUsers": "已封鎖使用者",
     "blockedCount": "已封鎖 {{count}} 人",
@@ -78,16 +78,45 @@
     "importing": "匯入中…",
     "import": "匯入",
     "cancel": "取消",
-    "importFailed": "匯入 nsec 失敗"
+    "importFailed": "匯入 nsec 失敗",
+    "importReplaceConfirm": "匯入會取代此裝置上的身分。請先保存目前的 nsec 再繼續。",
+    "passwordTitle": "密碼保護",
+    "passwordHint": "可選。若加上密碼，nsec 會以 AES-GCM 密文存放在 IndexedDB（PBKDF2-HMAC-SHA256，600,000 次）。密碼，以及解鎖之後的金鑰，位於記憶體。分頁待在背景滿 15 分鐘，Brezn 便會上鎖。若未加密碼，nsec 會以 AES-GCM 密文存放在 IndexedDB，不可擷取的包裝金鑰也在同一個 IndexedDB。這個網站上的腳本可以解密它。",
+    "passwordStatusOn": "狀態：已開啟密碼保護。",
+    "lockNow": "立即鎖定",
+    "passwordStatusOff": "狀態：AES-GCM 位於 IndexedDB（預設）。",
+    "enablePassword": "啟用密碼",
+    "changePassword": "變更密碼",
+    "disablePassword": "關閉密碼",
+    "currentPassword": "目前密碼",
+    "newPassword": "新密碼（至少 8 個字元）",
+    "confirmPassword": "確認密碼",
+    "passwordSave": "儲存",
+    "passwordWorking": "處理中…",
+    "passwordTooShort": "密碼至少需要 8 個字元。",
+    "passwordMismatch": "兩次密碼不一致。",
+    "passwordEnabled": "已開啟密碼保護。",
+    "passwordChanged": "密碼已更新。",
+    "passwordDisabled": "已關閉密碼保護。",
+    "passwordActionFailed": "操作失敗。請檢查密碼後再試。",
+    "passwordRequired": "需要密碼。",
+    "passwordToReveal": "顯示 nsec 的密碼",
+    "forgotPasswordHint": "忘記的密碼無法重設。只有事先保存的 nsec 備份才能還原此身分。",
+    "unlockTitle": "解鎖身分",
+    "unlockBody": "輸入 Brezn 金鑰密碼，以便在此裝置上使用此身分。",
+    "unlock": "解鎖",
+    "unlocking": "正在解鎖…",
+    "unlockFailed": "密碼錯誤，或解鎖失敗。",
+    "passwordPlaceholder": "密碼"
   },
   "relay": {
     "title": "中繼",
-    "hint": "用於動態、DM 與發文的 relay。僅使用您列出的 URL（或內建預設），不自動探索 outbox。",
-    "empty": "尚未設定 relay。至少需一個才能載入或發文。請在下方新增或使用「Default」。",
-    "removeAria": "移除 relay",
+    "hint": "用於動態、私訊與發文的中繼。僅使用您列出的 URL（或少數內建預設），不會自動探索 outbox 中繼。",
+    "empty": "尚未設定中繼。至少需一個才能載入或發文。請在下方新增或使用「預設」。",
+    "removeAria": "移除中繼",
     "placeholder": "wss://relay.example",
     "add": "新增",
-    "default": "Default",
+    "default": "預設",
     "test": "測試",
     "testing": "測試中…",
     "unknown": "未知",
@@ -95,9 +124,9 @@
     "unreachable": "無法連線",
     "reachableWithRtt": "可連線 • {{rtt}}ms",
     "unreachableWithErr": "無法連線 • {{error}}",
-    "statusAria": "Relay 狀態：{{state}}",
-    "duplicate": "此 relay 已在列表中。",
-    "removeAskTitle": "移除 relay {{url}}",
+    "statusAria": "中繼狀態：{{state}}",
+    "duplicate": "此中繼已在列表中。",
+    "removeAskTitle": "移除中繼 {{url}}",
     "removeAskBody": "是否也要產生新身分？",
     "removeKeepKeys": "否",
     "removeChangeKeys": "是",
@@ -106,13 +135,13 @@
     "removeNsecNo": "否",
     "removeNsecYes": "是",
     "removeIdentityDone": "正在建立新身分…",
-    "removeAskLoss": "這會取代此裝置上的 nsec。你將無法再讀取私訊，也不能再用此身分發文或管理貼文。已在 relay 上的貼文仍屬於舊身分。",
+    "removeAskLoss": "這會取代此裝置上的 nsec。你將無法再讀取私訊，也不能再用此身分發文或管理貼文。已在中繼上的貼文仍屬於舊身分。",
     "removeIdentityAborted": "未做任何變更。產生新身分前請先備份 nsec。"
   },
   "mediaUpload": {
     "title": "媒體上傳",
     "hint": "直接 URL 或 NIP-96。預設：{{default}}。空白 = 關閉。",
-    "defaultBtn": "Default"
+    "defaultBtn": "預設"
   },
   "profileSettings": {
     "title": "個人檔案",
@@ -157,6 +186,7 @@
     "sendingContent": "[傳送中...]",
     "sendError": "傳送失敗",
     "hiddenByBlocklist": "訊息已隱藏（符合封鎖關鍵字）。",
+    "legacyFormat": "較舊的訊息格式，沒有校驗。中繼可能改過內文。",
     "openPeerProfileAria": "開啟個人檔案"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "影片過大（上限 25 MB）。",
     "imageTooLarge": "圖片過大（上限 12 MB）。",
     "compressFailed": "壓縮圖片失敗。",
+    "videoMetadataUnsupported": "無法從此影片格式移除位置資訊。請使用 MP4 或 MOV。",
+    "videoMetadataFailed": "未能移除位置資訊。影片未上傳。",
     "uploadFailed": "上傳失敗。",
     "publishFailed": "發布失敗。",
     "invalidGeohash": "Geohash 無效。",
@@ -211,7 +243,7 @@
     "body": "發生未預期錯誤，請重新整理頁面。",
     "details": "錯誤詳情",
     "errorLabel": "錯誤：",
-    "stack": "Stack trace：",
+    "stack": "堆疊追蹤：",
     "componentStack": "元件堆疊：",
     "tryAgain": "重試",
     "reload": "重新整理"
@@ -222,10 +254,7 @@
     "offlineDelete": "離線 - 無法傳送刪除事件。"
   },
   "thread": {
-    "reportRoot": "檢舉主貼文",
-    "reportReply": "檢舉回覆",
     "reportReason": "檢舉原因（選填）",
-    "submitReport": "提交檢舉",
     "replies": "回覆（{{count}}）",
     "offline": "離線",
     "replyPlaceholder": "撰寫回覆…",
@@ -251,10 +280,7 @@
     "dmAria": "開啟私訊",
     "message": "訊息",
     "offlineHint": "離線 - 個人貼文可能不完整。",
-    "loadingPosts": "載入貼文…",
-    "noPosts": "尚無貼文",
-    "noPostsFromRelays": "中繼尚無貼文。",
-    "loadError": "無法載入貼文。"
+    "noPostsFromRelays": "中繼上還沒有找到貼文。"
   },
   "geohashMap": {
     "gpsAria": "GPS 位置",
@@ -274,7 +300,6 @@
     "daysAgo": "{{count}} 天前"
   },
   "common": {
-    "loading": "載入中…",
     "close": "關閉"
   },
   "search": {

@@ -3,7 +3,7 @@
     "loading": "লোড হচ্ছে…"
   },
   "nav": {
-    "searchPlaceholder": "পোস্ট খুঁজুন…",
+    "searchPlaceholder": "খুঁজুন…",
     "openChat": "চ্যাট খুলুন",
     "openMenu": "মেনু খুলুন"
   },
@@ -43,7 +43,7 @@
     "decreaseRadius": "ব্যাসার্ধ কমান",
     "increaseRadius": "ব্যাসার্ধ বাড়ান",
     "length": "দৈর্ঘ্য {{n}}",
-    "queriesCurrent": "সব জিও পোস্ট",
+    "queriesCurrent": "সব জিওট্যাগ করা পোস্ট",
     "precisionFallback": "বেশি = ছোট (সুনির্দিষ্ট) - কিন্তু কম ফলাফল।",
     "cellSize": "{{w}} × {{h}}, আর ৮ প্রতিবেশী"
   },
@@ -78,16 +78,45 @@
     "importing": "আমদানি হচ্ছে…",
     "import": "আমদানি",
     "cancel": "বাতিল",
-    "importFailed": "nsec আমদানি ব্যর্থ"
+    "importFailed": "nsec আমদানি ব্যর্থ",
+    "importReplaceConfirm": "আমদানি এই ডিভাইসের পরিচয় বদলে দেয়। বর্তমান nsec সেভ করে থাকলে তবেই এগোবেন।",
+    "passwordTitle": "পাসওয়ার্ড সুরক্ষা",
+    "passwordHint": "ঐচ্ছিক। পাসওয়ার্ড থাকলে আপনার nsec IndexedDB-তে AES-GCM সাইফারটেক্সট হিসেবে থাকে (PBKDF2-HMAC-SHA256, ৬,০০,০০০ রাউন্ড)। পাসওয়ার্ড, এবং আনলকের পর কী, মেমরিতে থাকে। ট্যাব ১৫ মিনিট ব্যাকগ্রাউন্ডে থাকলে Brezn লক হয়। পাসওয়ার্ড না থাকলে nsec IndexedDB-তে AES-GCM সাইফারটেক্সট হিসেবে থাকে, একই IndexedDB-তে একটি নন-এক্সট্র্যাক্টেবল র‍্যাপ কী সহ। এই সাইটের স্ক্রিপ্ট সেটি ডিক্রিপ্ট করতে পারে।",
+    "passwordStatusOn": "অবস্থা: পাসওয়ার্ড সুরক্ষা চালু।",
+    "lockNow": "এখন লক করুন",
+    "passwordStatusOff": "অবস্থা: IndexedDB-তে AES-GCM (ডিফল্ট)।",
+    "enablePassword": "পাসওয়ার্ড চালু করুন",
+    "changePassword": "পাসওয়ার্ড বদলান",
+    "disablePassword": "পাসওয়ার্ড বন্ধ করুন",
+    "currentPassword": "বর্তমান পাসওয়ার্ড",
+    "newPassword": "নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)",
+    "confirmPassword": "পাসওয়ার্ড নিশ্চিত করুন",
+    "passwordSave": "সংরক্ষণ",
+    "passwordWorking": "কাজ চলছে…",
+    "passwordTooShort": "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।",
+    "passwordMismatch": "পাসওয়ার্ড দুটি মেলেনি।",
+    "passwordEnabled": "পাসওয়ার্ড সুরক্ষা চালু হয়েছে।",
+    "passwordChanged": "পাসওয়ার্ড আপডেট হয়েছে।",
+    "passwordDisabled": "পাসওয়ার্ড সুরক্ষা বন্ধ হয়েছে।",
+    "passwordActionFailed": "কাজ হয়নি। পাসওয়ার্ড দেখে আবার চেষ্টা করুন।",
+    "passwordRequired": "পাসওয়ার্ড দরকার।",
+    "passwordToReveal": "nsec দেখাতে পাসওয়ার্ড",
+    "forgotPasswordHint": "ভুলে যাওয়া পাসওয়ার্ড রিসেট হয় না। আগে রাখা nsec ব্যাকআপ ছাড়া এই পরিচয় ফেরে না।",
+    "unlockTitle": "পরিচয় আনলক",
+    "unlockBody": "এই ডিভাইসে এই পরিচয় ব্যবহার করতে Brezn কী-এর পাসওয়ার্ড দিন।",
+    "unlock": "আনলক",
+    "unlocking": "আনলক হচ্ছে…",
+    "unlockFailed": "ভুল পাসওয়ার্ড অথবা আনলক হয়নি।",
+    "passwordPlaceholder": "পাসওয়ার্ড"
   },
   "relay": {
     "title": "রিলে",
     "hint": "ফিড, DM ও প্রকাশনার রিলে। শুধু এখানে তালিকাভুক্ত URL (বা কয়েকটি ডিফল্ট) ব্যবহৃত - স্বয়ংক্রিয় outbox নেই।",
-    "empty": "কোনো রিলে নেই। অন্তত একটি রিলে ছাড়া পোস্ট লোড বা প্রকাশ করা যায় না। নিচে যোগ করুন বা \"Default\" দিয়ে ডিফল্ট ফিরিয়ে আনুন।",
+    "empty": "কোনো রিলে নেই। অন্তত একটি রিলে ছাড়া পোস্ট লোড বা প্রকাশ করা যায় না। নিচে যোগ করুন বা \"ডিফল্ট\" দিয়ে ডিফল্ট ফিরিয়ে আনুন।",
     "removeAria": "রিলে সরান",
     "placeholder": "wss://relay.example",
     "add": "যোগ",
-    "default": "Default",
+    "default": "ডিফল্ট",
     "test": "পরীক্ষা",
     "testing": "পরীক্ষা…",
     "unknown": "অজানা",
@@ -112,7 +141,7 @@
   "mediaUpload": {
     "title": "মিডিয়া আপলোড",
     "hint": "সরাসরি URL বা NIP-96। ডিফল্ট: {{default}}। খালি = বন্ধ।",
-    "defaultBtn": "Default"
+    "defaultBtn": "ডিফল্ট"
   },
   "profileSettings": {
     "title": "প্রোফাইল",
@@ -157,6 +186,7 @@
     "sendingContent": "[পাঠানো হচ্ছে...]",
     "sendError": "বার্তা পাঠাতে ত্রুটি",
     "hiddenByBlocklist": "বার্তা লুকানো (ব্লকলিস্ট মিল)।",
+    "legacyFormat": "পুরোনো বার্তার ফরম্যাট, যাচাইযোগ্য নয়। একটি রিলে লেখা বদলাতে পারত।",
     "openPeerProfileAria": "প্রোফাইল খুলুন"
   },
   "composer": {
@@ -169,8 +199,8 @@
     "mediaAria": "মিডিয়া যোগ",
     "createInCell": "সেলে নতুন পোস্ট",
     "createNew": "নতুন পোস্ট",
-    "showMapAria": "মানচিত্রে সেল {{cell}}",
-    "showMapTitle": "মানচিত্রে সেল",
+    "showMapAria": "মানচিত্রে সেল {{cell}} দেখান",
+    "showMapTitle": "মানচিত্রে সেল দেখান",
     "placeholder": "আপনার এলাকায় কী হচ্ছে?",
     "removeMediaAria": "মিডিয়া সরান",
     "noUploadEndpoint": "আপলোড এন্ডপয়েন্ট নেই (সেটিংস → মিডিয়া আপলোড)।",
@@ -178,6 +208,8 @@
     "videoTooLarge": "ভিডিও খুব বড় (সর্বো. ২৫ MB)।",
     "imageTooLarge": "ছবি খুব বড় (সর্বো. ১২ MB)।",
     "compressFailed": "ছবি সংকুচিত ব্যর্থ।",
+    "videoMetadataUnsupported": "এই ভিডিও ফরম্যাট থেকে অবস্থানের তথ্য সরানো যায় না। MP4 বা MOV ব্যবহার করুন।",
+    "videoMetadataFailed": "অবস্থানের তথ্য সরানো যায়নি। ভিডিও আপলোড হয়নি।",
     "uploadFailed": "আপলোড ব্যর্থ।",
     "publishFailed": "প্রকাশ ব্যর্থ।",
     "invalidGeohash": "অবৈধ geohash.",
@@ -200,7 +232,7 @@
   },
   "adblock": {
     "title": "Service Worker ব্লক",
-    "body": "অ্যাডব্লocker Service Worker ব্লক করতে পারে। এই সাইটের জন্য বন্ধ করুন বা ব্যতিক্রম দিন।",
+    "body": "কোনো অ্যাডব্লকার Service Worker আটকাতে পারে। এই সাইটের জন্য সেটি বন্ধ করুন বা ব্যতিক্রম দিন।",
     "close": "বন্ধ"
   },
   "composeBtn": {
@@ -211,8 +243,8 @@
     "body": "অপ্রত্যাশিত ত্রুটি। পৃষ্ঠা রিফ্রেশ করুন।",
     "details": "ত্রুটির বিবরণ",
     "errorLabel": "ত্রুটি:",
-    "stack": "Stack trace:",
-    "componentStack": "Component stack:",
+    "stack": "স্ট্যাক ট্রেস:",
+    "componentStack": "কম্পোনেন্ট স্ট্যাক:",
     "tryAgain": "আবার চেষ্টা",
     "reload": "পৃষ্ঠা রিলোড"
   },
@@ -222,10 +254,7 @@
     "offlineDelete": "অফলাইন - মুছে ফেলার ইভেন্ট পাঠানো যাবে না।"
   },
   "thread": {
-    "reportRoot": "মূল পোস্ট রিপোর্ট",
-    "reportReply": "উত্তর রিপোর্ট",
     "reportReason": "রিপোর্টের কারণ (ঐচ্ছিক)",
-    "submitReport": "রিপোর্ট পাঠান",
     "replies": "উত্তর ({{count}})",
     "offline": "অফলাইন",
     "replyPlaceholder": "উত্তর লিখুন…",
@@ -251,10 +280,7 @@
     "dmAria": "সরাসরি বার্তা খুলুন",
     "message": "বার্তা",
     "offlineHint": "অফলাইন - প্রোফাইল পোস্ট অসম্পূর্ণ হতে পারে।",
-    "loadingPosts": "পোস্ট লোড…",
-    "noPosts": "এখনো পোস্ট নেই",
-    "noPostsFromRelays": "রিলে থেকে এখনো পোস্ট নেই।",
-    "loadError": "পোস্ট লোড ব্যর্থ।"
+    "noPostsFromRelays": "রিলে থেকে এখনো পোস্ট নেই।"
   },
   "geohashMap": {
     "gpsAria": "GPS অবস্থান",
@@ -265,7 +291,7 @@
   },
   "quotedPost": {
     "loadingReferenced": "উল্লেখিত পোস্ট লোড…",
-    "noText": "(খালি)"
+    "noText": "(কোনো লেখা নেই)"
   },
   "time": {
     "justNow": "এইমাত্র",
@@ -274,7 +300,6 @@
     "daysAgo": "{{count}}দ আগে"
   },
   "common": {
-    "loading": "লোড…",
     "close": "বন্ধ"
   },
   "search": {

@@ -81,18 +81,41 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000)
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+}
+
 function normalizeHttpUrl(input: string): URL {
   const trimmed = input.trim()
   if (!trimmed) throw new Error('Media upload endpoint is not configured.')
-  if (!/^https?:\/\//i.test(trimmed))
-    throw new Error('Media upload endpoint must start with http(s)://')
-  return new URL(trimmed)
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    throw new Error('Media upload endpoint must use https://')
+  }
+  const protocol = parsed.protocol.toLowerCase()
+  if (protocol === 'https:') return parsed
+  if (protocol === 'http:' && isLoopbackHost(parsed.hostname)) return parsed
+  throw new Error('Media upload endpoint must use https://')
 }
 
 export function toNip96WellKnownUrl(serverBase: string): string {
   const u = normalizeHttpUrl(serverBase)
   // Ensure we ignore any path and always go to origin.
   return `${u.origin}/.well-known/nostr/nip96.json`
+}
+
+/** Discovery may only send the file to the server the user configured. */
+function sameOriginApiUrl(apiUrl: unknown, origin: string): string {
+  const raw = typeof apiUrl === 'string' ? apiUrl.trim() : ''
+  if (!raw || !/^https?:\/\//i.test(raw)) throw new Error('NIP-96 discovery returned no api_url.')
+  const api = normalizeHttpUrl(raw)
+  if (api.origin !== origin) {
+    throw new Error('NIP-96 api_url must use the same server as the configured upload host.')
+  }
+  return api.toString()
 }
 
 export async function discoverNip96(
@@ -103,6 +126,7 @@ export async function discoverNip96(
   requiresNip98: boolean
   raw: Nip96Discovery
 }> {
+  const origin = normalizeHttpUrl(serverBase).origin
   const wellKnown = toNip96WellKnownUrl(serverBase)
   const res = await fetch(wellKnown, { method: 'GET', signal: opts?.signal })
   const payload = (await res.json().catch(() => null)) as unknown
@@ -111,9 +135,7 @@ export async function discoverNip96(
   }
 
   const data = payload as Nip96Discovery
-  const apiUrl = typeof data.api_url === 'string' ? data.api_url.trim() : ''
-  if (!apiUrl || !/^https?:\/\//i.test(apiUrl))
-    throw new Error('NIP-96 discovery returned no api_url.')
+  const apiUrl = sameOriginApiUrl(data.api_url, origin)
 
   const plans = data.plans && typeof data.plans === 'object' ? Object.values(data.plans) : []
   const requiresNip98 = plans.some((p) => Boolean(p?.is_nip98_required))
@@ -134,8 +156,11 @@ export async function createNip98AuthHeader(opts: {
     enableOutboxModel: false,
     autoConnectUserRelays: false,
   }) // Sign-only instance; no relay discovery/outbox.
-  const trimmed = opts.skHex?.trim()
-  ndk.signer = trimmed ? new NDKPrivateKeySigner(trimmed, ndk) : NDKPrivateKeySigner.generate()
+  const trimmed = opts.skHex?.trim() ?? ''
+  if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+    throw new Error('NIP-98 auth requires the account secret key.')
+  }
+  ndk.signer = new NDKPrivateKeySigner(trimmed, ndk)
   const ev = new NDKEvent(ndk)
   ev.kind = 27235
   ev.created_at = nowSec()
@@ -164,9 +189,7 @@ async function resolveUploadEndpoint(
       throw new Error(`NIP-96 discovery failed (${res.status}).`)
     }
     const data = payload as Nip96Discovery
-    const apiUrl = typeof data.api_url === 'string' ? data.api_url.trim() : ''
-    if (!apiUrl || !/^https?:\/\//i.test(apiUrl))
-      throw new Error('NIP-96 discovery returned no api_url.')
+    const apiUrl = sameOriginApiUrl(data.api_url, u.origin)
     const plans = data.plans && typeof data.plans === 'object' ? Object.values(data.plans) : []
     const requiresNip98 = plans.some((p) => Boolean(p?.is_nip98_required))
     return { url: apiUrl, requiresNip98 }

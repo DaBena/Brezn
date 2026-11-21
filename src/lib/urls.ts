@@ -240,12 +240,21 @@ function hasExtension(url: string, extensions: string[]): boolean {
   }
 }
 
+/** Remote bytes are embedded only over https. http stays a plain link. */
+export function isHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol.toLowerCase() === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function isLikelyImageUrl(url: string): boolean {
-  return hasExtension(url, IMAGE_EXTENSIONS)
+  return isHttpsUrl(url) && hasExtension(url, IMAGE_EXTENSIONS)
 }
 
 export function isLikelyVideoUrl(url: string): boolean {
-  return hasExtension(url, VIDEO_EXTENSIONS)
+  return isHttpsUrl(url) && hasExtension(url, VIDEO_EXTENSIONS)
 }
 
 /** HLS playlists stay as links. Browsers do not play `.m3u8` in a plain video element. */
@@ -299,6 +308,23 @@ export function sanitizeProfilePictureUrl(
   return null
 }
 
+/** `img` src for a profile picture. https, or a data URL in the local settings preview. http is not loaded. */
+export function profilePictureImageSrc(
+  url: string | null | undefined,
+  opts?: { allowData?: boolean },
+): string | null {
+  const safe = sanitizeProfilePictureUrl(url, opts)
+  if (!safe) return null
+  try {
+    const protocol = new URL(safe).protocol.toLowerCase()
+    if (protocol === 'https:') return safe
+    if (opts?.allowData && protocol === 'data:') return safe
+  } catch {
+    return null
+  }
+  return null
+}
+
 /** NIP-92 `imeta`: extensionless media URLs with mime type (e.g. Blossom). */
 export function collectImetaMediaUrls(tags: string[][] | undefined): {
   imageUrls: string[]
@@ -316,7 +342,7 @@ export function collectImetaMediaUrls(tags: string[][] | undefined): {
       if (entry.startsWith('m ')) mimeType = entry.slice(2).trim().toLowerCase()
     }
     if (!taggedUrl) continue
-    if (!isSafeUrl(taggedUrl)) continue
+    if (!isSafeUrl(taggedUrl) || !isHttpsUrl(taggedUrl)) continue
     if (mimeType?.startsWith('image/')) images.add(taggedUrl)
     if (mimeType?.startsWith('video/') && !isHlsPlaylistUrl(taggedUrl)) videos.add(taggedUrl)
   }

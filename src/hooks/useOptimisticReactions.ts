@@ -12,10 +12,12 @@ export function useOptimisticReactions(reactionsByNoteId: Record<string, Reactio
   }, [optimisticReactedByNoteId])
 
   const addOptimisticReaction = (noteId: string) => {
+    reactedNoteIdsRef.current.add(noteId)
     setOptimisticReactedByNoteId((prev) => (prev[noteId] ? prev : { ...prev, [noteId]: true }))
   }
 
   const removeOptimisticReaction = (noteId: string) => {
+    reactedNoteIdsRef.current.delete(noteId)
     setOptimisticReactedByNoteId((prev) => {
       if (!prev[noteId]) return prev
       const next = { ...prev }

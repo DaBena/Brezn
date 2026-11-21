@@ -6,6 +6,7 @@ import {
   nip52Description,
   nip52EventUrl,
   nip52FeedCardPostContent,
+  nip52FormatSchedule,
   nip52ReplaceableMergeKey,
   nip52Title,
   upsertFeedEvents,
@@ -23,6 +24,21 @@ function baseEvt(over: Partial<Event>): Event {
     ...over,
   } as Event
 }
+
+describe('nip52FormatSchedule', () => {
+  it('keeps rendering when the time zone tag is not a real zone', () => {
+    const evt = baseEvt({
+      tags: [
+        ['d', 'abc'],
+        ['title', 'T'],
+        ['start', '1700000000'],
+        ['start_tzid', 'Not/AZone'],
+      ],
+    })
+    expect(() => nip52FormatSchedule(evt)).not.toThrow()
+    expect(nip52FormatSchedule(evt).length).toBeGreaterThan(0)
+  })
+})
 
 describe('nip52ReplaceableMergeKey', () => {
   it('returns stable key for calendar events', () => {

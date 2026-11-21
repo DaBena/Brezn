@@ -105,6 +105,7 @@ export function useProfiles(params: {
 
     const unsub = client.subscribe(filter, {
       onevent: (evt) => {
+        if (cancelled) return
         if (evt.kind !== 0) return
         if (!pubkeySet.has(evt.pubkey)) return
         if (seenMetadataIdsRef.current.has(evt.id)) return

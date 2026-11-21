@@ -8,7 +8,7 @@
     "openMenu": "Abrir menú"
   },
   "feed": {
-    "offlineBanner": "Sin conexión: mostrando últimas publicaciones (solo lectura).",
+    "offlineBanner": "Sin conexión: mostrando las últimas publicaciones vistas (solo lectura).",
     "locationTitle": "Ubicación para el feed local",
     "locationBody": "La app necesita tu zona aproximada para mostrar publicaciones locales. Puedes cambiarla después (clic en el mapa o geohash más corto). Brezn usa una celda geohash pública (~5 km), no coordenadas GPS en bruto. Esa celda sigue siendo dato de ubicación duradero. Brezn no está dirigido a menores de 16 años; las publicaciones públicas con ubicación no son para menores. El mapa mundial puede cargar teselas gruesas antes del consentimiento - sin revelar una ubicación fina.",
     "privacyStorage": "Elegir una ubicación también activa el almacenamiento local en este dispositivo (ajustes, clave privada). Los relays y el host de medios integrados son solo arranque, no una recomendación. No hay rastreador de analítica del editor. Tu navegador igual se conecta a relays y, si abres mapas o subes archivos, a otros hosts. Detalles:",
@@ -43,12 +43,12 @@
     "decreaseRadius": "Reducir radio",
     "increaseRadius": "Aumentar radio",
     "length": "Longitud {{n}}",
-    "queriesCurrent": "posts geolocalizados",
+    "queriesCurrent": "todas las publicaciones geolocalizadas",
     "precisionFallback": "Mayor = más pequeño (más preciso), pero menos resultados.",
     "cellSize": "{{w}} × {{h}}, más 8 vecinas"
   },
   "moderation": {
-    "blocklist": "Bloqueos",
+    "blocklist": "Lista de bloqueo",
     "oneLineOneTerm": "1 línea = 1 término ({{count}}/200)",
     "placeholder": "ej.\ncomprar\nsats\nevil.example",
     "saved": "Lista guardada.",
@@ -78,11 +78,40 @@
     "importing": "Importando...",
     "import": "Importar",
     "cancel": "Cancelar",
-    "importFailed": "No se pudo importar el nsec"
+    "importFailed": "No se pudo importar el nsec",
+    "importReplaceConfirm": "La importación sustituye la identidad en este dispositivo. Continúa solo si guardaste el nsec actual.",
+    "passwordTitle": "Protección con contraseña",
+    "passwordHint": "Opcional. Con contraseña, tu nsec está en IndexedDB como texto cifrado AES-GCM (PBKDF2-HMAC-SHA256, 600.000 rondas). La contraseña y la clave tras el desbloqueo están en la memoria. Brezn se bloquea cuando la pestaña permanece en segundo plano durante 15 minutos. Sin contraseña, el nsec está en IndexedDB como texto cifrado AES-GCM, con una clave de envoltura no extraíble en el mismo IndexedDB. Un script en este sitio puede descifrarlo.",
+    "passwordStatusOn": "Estado: protección con contraseña activada.",
+    "lockNow": "Bloquear ahora",
+    "passwordStatusOff": "Estado: AES-GCM en IndexedDB (predeterminado).",
+    "enablePassword": "Activar contraseña",
+    "changePassword": "Cambiar contraseña",
+    "disablePassword": "Desactivar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña (mín. 8 caracteres)",
+    "confirmPassword": "Confirmar contraseña",
+    "passwordSave": "Guardar",
+    "passwordWorking": "Trabajando…",
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres.",
+    "passwordMismatch": "Las contraseñas no coinciden.",
+    "passwordEnabled": "Protección con contraseña activada.",
+    "passwordChanged": "Contraseña actualizada.",
+    "passwordDisabled": "Protección con contraseña desactivada.",
+    "passwordActionFailed": "No se pudo completar. Revisa la contraseña e inténtalo de nuevo.",
+    "passwordRequired": "Contraseña obligatoria.",
+    "passwordToReveal": "Contraseña para mostrar el nsec",
+    "forgotPasswordHint": "Una contraseña olvidada no se puede restablecer. Solo una copia nsec guardada antes puede recuperar esta identidad.",
+    "unlockTitle": "Desbloquear identidad",
+    "unlockBody": "Introduce la contraseña de tu clave Brezn para usar esta identidad en este dispositivo.",
+    "unlock": "Desbloquear",
+    "unlocking": "Desbloqueando…",
+    "unlockFailed": "Contraseña incorrecta o no se pudo desbloquear.",
+    "passwordPlaceholder": "Contraseña"
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays para el feed, DMs y publicación.",
+    "hint": "Relays para el feed, los DM y la publicación. Solo se usan las URL que indiques aquí (o los pocos relays integrados); no hay descubrimiento automático de relays «outbox».",
     "empty": "Sin relays. No se pueden cargar ni publicar posts sin al menos un relay. Añade uno abajo o usa «Predeterminado».",
     "removeAria": "Quitar relay",
     "placeholder": "wss://relay.example",
@@ -157,6 +186,7 @@
     "sendingContent": "[enviando...]",
     "sendError": "Error al enviar",
     "hiddenByBlocklist": "Mensaje oculto (coincide con tu lista de palabras bloqueadas).",
+    "legacyFormat": "Formato de mensaje antiguo sin suma de comprobación. Un relay podría haber cambiado el texto.",
     "openPeerProfileAria": "Abrir perfil"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Vídeo demasiado grande (máx. 25 MB).",
     "imageTooLarge": "Imagen demasiado grande (máx. 12 MB).",
     "compressFailed": "Error al comprimir la imagen.",
+    "videoMetadataUnsupported": "Este formato de vídeo no se puede limpiar de datos de ubicación. Usa MP4 o MOV.",
+    "videoMetadataFailed": "No se pudieron quitar los datos de ubicación. El vídeo no se subió.",
     "uploadFailed": "Error en la subida.",
     "publishFailed": "Error al publicar.",
     "invalidGeohash": "Geohash no válido.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Sin conexión: no se puede enviar el evento de borrado."
   },
   "thread": {
-    "reportRoot": "Denunciar post",
-    "reportReply": "Denunciar respuesta",
     "reportReason": "Motivo (opcional)",
-    "submitReport": "Enviar denuncia",
     "replies": "Respuestas ({{count}})",
     "offline": "Sin conexión",
     "replyPlaceholder": "Responder…",
@@ -242,7 +271,7 @@
     "replySending": "Enviando…",
     "userBlocked": "Usuario bloqueado.",
     "blockingFailed": "Error al bloquear.",
-    "offlineBlock": "Sin conexión.",
+    "offlineBlock": "Sin conexión: no se puede bloquear al usuario.",
     "deleteFailed": "Fallo al borrar.",
     "publishFailedFallback": "Error al publicar."
   },
@@ -251,10 +280,7 @@
     "dmAria": "Abrir mensaje directo",
     "message": "Mensaje",
     "offlineHint": "Sin conexión: posts del perfil incompletos.",
-    "loadingPosts": "Cargando…",
-    "noPosts": "Sin posts",
-    "noPostsFromRelays": "Aún no hay publicaciones desde los relays.",
-    "loadError": "Posts no cargados."
+    "noPostsFromRelays": "Aún no hay publicaciones desde los relays."
   },
   "geohashMap": {
     "gpsAria": "Ubicación GPS",
@@ -270,7 +296,6 @@
     "daysAgo": "hace {{count}} d"
   },
   "common": {
-    "loading": "Cargando…",
     "close": "Cerrar"
   },
   "quotedPost": {

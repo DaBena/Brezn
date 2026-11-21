@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, test, vi } from 'vitest'
+import { bytesToHex } from '@noble/hashes/utils'
+import { generateSecretKey } from './nostrPrimitives'
 import {
   createNip98AuthHeader,
   extractUrlFromUploadResponse,
@@ -41,12 +43,29 @@ describe('toNip96WellKnownUrl', () => {
     expect(toNip96WellKnownUrl('https://example.org/anything/here')).toBe(
       'https://example.org/.well-known/nostr/nip96.json',
     )
+    expect(toNip96WellKnownUrl('http://localhost:8080/ignored')).toBe(
+      'http://localhost:8080/.well-known/nostr/nip96.json',
+    )
+    expect(toNip96WellKnownUrl('http://127.0.0.1:8080')).toBe(
+      'http://127.0.0.1:8080/.well-known/nostr/nip96.json',
+    )
+    expect(() => toNip96WellKnownUrl('http://example.org')).toThrow(/https:\/\//)
   })
 })
 
 describe('createNip98AuthHeader', () => {
+  test('refuses to sign with a throwaway key', async () => {
+    await expect(
+      createNip98AuthHeader({ url: 'https://example.com/upload', method: 'POST' }),
+    ).rejects.toThrow(/secret key/)
+  })
+
   test('creates a Nostr authorization header with kind 27235', async () => {
-    const h = await createNip98AuthHeader({ url: 'https://example.com/upload', method: 'POST' })
+    const h = await createNip98AuthHeader({
+      url: 'https://example.com/upload',
+      method: 'POST',
+      skHex: bytesToHex(generateSecretKey()),
+    })
     expect(h.startsWith('Nostr ')).toBe(true)
     const b64 = h.slice('Nostr '.length)
     const json = Buffer.from(b64, 'base64').toString('utf8')
@@ -99,6 +118,20 @@ describe('probeMediaUploadEndpoint', () => {
     const r = await probeMediaUploadEndpoint('https://upload.example/direct')
     expect(r.ok).toBe(true)
     expect(r.apiUrl).toBe('https://upload.example/direct')
+  })
+
+  test('rejects a NIP-96 api_url on another origin', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ api_url: 'https://evil.example/api' }),
+      })),
+    )
+    const r = await probeMediaUploadEndpoint('https://upload.example')
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/same server/)
   })
 
   test('fails when direct URL returns 404', async () => {

@@ -8,19 +8,26 @@
         default-src 'self';
         script-src 'self';
         style-src 'self' 'unsafe-inline';
-        img-src 'self' data: https: http:;
-        media-src 'self' https: http:;
+        img-src 'self' data: https:;
+        media-src 'self' https:;
         font-src 'self' data:;
-        connect-src 'self' wss: ws: https: http:;
+        connect-src 'self' wss: https:;
         worker-src 'self' blob:;
+        object-src 'none';
         base-uri 'self';
         form-action 'self';
       "
     />
     <!--
-      COEP / COOP / Permissions-Policy only work as HTTP response headers, not via
-      http-equiv meta. GitHub Pages cannot set custom headers, so these stay commented
-      (would be ignored anyway). CSP above is the supported meta exception.
+      Header-only policies (ignored in http-equiv meta): COEP, COOP, Permissions-Policy,
+      and CSP frame-ancestors (clickjacking). GitHub Pages cannot set custom response
+      headers, so these are not enforceable on the current host. If you deploy behind a
+      host that supports headers (e.g. Cloudflare/Netlify), set them there — e.g.
+      Content-Security-Policy: frame-ancestors 'none'
+      Also consider X-Frame-Options: DENY on that host.
+      CSP directives that *do* work via meta (including object-src and connect-src
+      without ws:/http: above) stay in the meta tag; do not put header-only directives
+      into the meta CSP. Root also best-effort refuses to run inside a foreign iframe.
       <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none" />
       <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
       <meta http-equiv="Permissions-Policy" content="geolocation=(self)" />

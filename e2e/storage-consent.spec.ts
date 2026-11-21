@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { BREZN_APP_STATE_LS_KEY, STORAGE_WRITE_CONSENT_KEY } from '../src/lib/constants'
 
 const BREZN_APP_IDB_PREFIX = 'brezn'
 
@@ -34,11 +35,12 @@ test.describe('storage consent / IndexedDB', () => {
     await expect(page.getByTestId('bootstrap-loading')).toBeHidden({ timeout: 60_000 })
     await expect(page.getByRole('main')).toBeVisible({ timeout: 30_000 })
 
-    const breznV1 = await page.evaluate(() => localStorage.getItem('brezn:v1'))
+    const breznV1 = await page.evaluate((key) => localStorage.getItem(key), BREZN_APP_STATE_LS_KEY)
     expect(breznV1).toBeNull()
 
-    const consentFlag = await page.evaluate(() =>
-      localStorage.getItem('brezn:storage-write-consent:v1'),
+    const consentFlag = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      STORAGE_WRITE_CONSENT_KEY,
     )
     expect(consentFlag).toBeNull()
   })

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { nip19 } from '../lib/nostrPrimitives'
 import type { Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
-import { sanitizeProfilePictureUrl } from '../lib/urls'
+import { profilePictureImageSrc, sanitizeProfilePictureUrl } from '../lib/urls'
 
 const avatarSizes = { default: 'h-6 w-6', large: 'h-12 w-12' } as const
 
@@ -30,13 +30,14 @@ export const PostIdentity = memo(function PostIdentity(props: {
   const iconSize = avatarSize === 'large' ? 28 : 14
 
   const displayName = displayNameOverride?.trim() || profile?.name?.trim() || null
-  const picture = sanitizeProfilePictureUrl(profile?.picture)
+  const pictureHref = sanitizeProfilePictureUrl(profile?.picture)
+  const pictureSrc = profilePictureImageSrc(profile?.picture)
 
   const avatarClass = `${sizeClass} shrink-0 rounded-full border border-brezn-border bg-brezn-panel overflow-hidden`
 
-  const avatarInner = picture ? (
+  const avatarInner = pictureSrc ? (
     <img
-      src={picture}
+      src={pictureSrc}
       alt=""
       referrerPolicy="no-referrer"
       className={`${sizeClass} w-full object-cover`}
@@ -87,9 +88,9 @@ export const PostIdentity = memo(function PostIdentity(props: {
     >
       {avatarInner}
     </button>
-  ) : picture ? (
+  ) : pictureHref ? (
     <a
-      href={picture}
+      href={pictureHref}
       target="_blank"
       rel="noopener noreferrer"
       className={`${avatarClass} block`}

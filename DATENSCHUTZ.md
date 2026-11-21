@@ -29,11 +29,11 @@ Der Web-Build läuft üblicherweise auf GitHub Pages, sodass GitHub Zugriffe pro
 
 ## 2. Lokaler Speicher
 
-Nachdem du durch Standortwahl (GPS-Freigabe oder Kartenklick) dem Erststarthinweis zugestimmt hast, wird damit auch der lokale Speicher freigeschaltet. Dann speichert der Browser den Privatschlüssel (zufällig erzeugt oder importiert; ohne Freischaltung nur im Arbeitsspeicher) sowie Einstellungen wie Relays und Theme, Einwilligungskennzeichen und Profil-Caches (IndexedDB / Dexie). Die Oberfläche folgt der Spracheinstellung des Browsers und wird nicht separat als Brezn-Einstellung gespeichert.
+Nachdem du dem Erststarthinweis durch eine Standortwahl (GPS-Freigabe oder Kartenklick) zugestimmt hast, wird damit auch der lokale Speicher freigeschaltet. Dann speichert der Browser den Privatschlüssel (zufällig erzeugt oder importiert; vor der Freischaltung nur im Arbeitsspeicher) sowie Einstellungen wie Relays und Theme, Einwilligungskennzeichen und Profil-Caches (IndexedDB / Dexie). Die Oberfläche folgt der Spracheinstellung des Browsers und wird nicht separat als Brezn-Einstellung gespeichert.
 
-Ist Web Crypto verfügbar, wird der Privatschlüssel mit AES-GCM umhüllt; der dafür genutzte Wrapping-Schlüssel liegt jedoch im selben Browserspeicher (IndexedDB) auf demselben Gerät. Das ist Verschleierung gegen beiläufiges Auslesen auf dem Gerät, kein Passworttresor und kein Schutz, wenn jemand schon deine Festplatte oder denselben Browserspeicher dieser Website hat. Fehlt Web Crypto, speichert der Client den Schlüssel unverschlüsselt (Klartext) im Browserspeicher. Die letzte Geohash-Zelle kann zusätzlich in localStorage für den Feed und den Composer liegen. Nach dieser Einwilligung darf ein Service Worker Cache Storage für die PWA unter dieser Website nutzen.
+Der Privatschlüssel (`nsec`) liegt in IndexedDB: standardmäßig als AES-GCM-Chiffrat, mit einem nicht extrahierbaren CryptoKey als Wrap-Key in derselben IndexedDB. Ein Skript derselben Website kann den Schlüssel entschlüsseln, und eine Kopie des Browserprofils kann das Schlüsselmaterial enthalten. Ohne IndexedDB oder Web Crypto bleibt der Schlüssel im Arbeitsspeicher. Optional setzt du in den Einstellungen ein Passwort (PBKDF2-HMAC-SHA256, 600.000 Iterationen, AES-GCM). Das Passwort selbst wird nicht gespeichert. In der entsperrten Sitzung liegen der geheime Schlüssel und der abgeleitete Wrap-Key im Arbeitsspeicher. Vergisst du das Passwort, stellt nur ein zuvor gesichertes Offline-`nsec` die Identität wieder her; das Passwort lässt sich nicht zurückholen. Mit Passwort sperrt Brezn automatisch, wenn der Tab 15 Minuten im Hintergrund bleibt, und manuell über „Jetzt sperren“. Die letzte Geohash-Zelle kann zusätzlich in localStorage für den Feed und den Composer liegen. Nach dieser Einwilligung darf ein Service Worker Cache Storage für die PWA unter dieser Website nutzen.
 
-Diese lokalen Daten gehen nicht an den Anbieter. Lokal lesbar sind sie für dich, für Software im selben Browserprofil und derselben Website, für Festplatten-Forensik, für mächtige Browsererweiterungen und für XSS unter derselben Website (Same-Origin). Sichere den geheimen Schlüssel (`nsec`, siehe Abschnitt 5) offline, wenn die Identität wichtig ist.
+Diese lokalen Daten gehen nicht an den Anbieter. Lokal lesbar sind sie für dich, für Software im selben Browserprofil auf derselben Website, für Festplatten-Forensik, für mächtige Browsererweiterungen und für XSS unter derselben Website (Same-Origin). Sichere den geheimen Schlüssel (`nsec`, siehe Abschnitt 5) offline, wenn die Identität wichtig ist.
 
 Zum Löschen der Websitedaten in Chromium: Seiteninformationen oder Entwicklertools unter Application, oder Websitedaten in den Einstellungen. In Firefox oder Tor Browser: Schloss-Symbol oder Storage in den Entwicklertools. Das entfernt nur den Speicher dieser Website (Schlüssel, Einstellungen, Caches) - nicht Tor-Circuits und nicht die Daten anderer Sites. Events auf Relays bleiben (Abschnitt 5). New Identity und Beenden von Tor Browser: Abschnitt 8.
 
@@ -41,7 +41,7 @@ Zum Löschen der Websitedaten in Chromium: Seiteninformationen oder Entwicklerto
 
 ## 3. Relays
 
-Brezn erreicht Relays über verschlüsselte WebSockets (`wss://`) über die Nostr-Bibliothek NDK. Die Standard-Relays und der übliche GitHub-Pages-Deploy nutzen `wss://`; unverschlüsseltes `ws://` blockiert der Browser auf HTTPS-Seiten oft als Mixed Content. In den Einstellungen kannst du Relays jederzeit ändern. Bis dahin öffnet Brezn Verbindungen zu den eingebauten Standard-Relays (nur Bootstrapping, keine Betreiber-Empfehlung), sobald der Client startet, nicht erst beim Veröffentlichen. Die Betreiber nehmen die Verbindung entgegen und erhalten dabei deine öffentliche IP (oder bei Tor eine Exit-IP; Abschnitt 8). Sie können diese Verbindungsdaten protokollieren.
+Brezn erreicht Relays nur über verschlüsselte WebSockets (`wss://`). Dafür nutzt der Client die Nostr-Bibliothek NDK. Unverschlüsselte `ws://`-Relays sind nicht erlaubt. In den Einstellungen kannst du Relays jederzeit ändern. Bis dahin öffnet Brezn Verbindungen zu den eingebauten Standard-Relays (nur Bootstrapping, keine Betreiber-Empfehlung), sobald der Client startet, nicht erst beim Veröffentlichen. Die Betreiber nehmen die Verbindung entgegen und erhalten dabei deine öffentliche IP (oder bei Tor eine Exit-IP; Abschnitt 8). Sie können diese Verbindungsdaten protokollieren.
 
 Was ein Relay mit Verbindungsdaten und Events macht, bestimmst du nicht. Es kann Logs führen, Events länger behalten als dir lieb ist, Löschbitten ignorieren oder Beiträge mit Verbindungszeiten korrelieren - absichtlich oder einfach nach eigener Praxis. Jedes zusätzliche Relay ist eine weitere Partei, die deinen öffentlichen Schlüssel (Pubkey), deine Events und Timing-Metadaten erhalten und speichern kann.
 
@@ -53,7 +53,7 @@ Verlässt du Relays, bei denen dein öffentlicher Schlüssel mit einer IP oder S
 
 Ein Geohash ist eine kurze Zeichenkette, die eine rechteckige Zelle auf der Erdoberfläche bezeichnet - nicht einen GPS-Punkt. Je mehr Stellen, desto kleiner die Zelle. Eine fünfstellige Zelle misst grob 5 x 5 km, abhängig vom Breitengrad.
 
-Brezn nutzt Geohash-Zellen für ortsbezogene Feeds und Beiträge. Stammbeiträge erhalten öffentliche `g`-Tags mit der vollen Zelle und ihren kürzeren Prefixen (zum Beispiel `u0m1x` zusammen mit `u`, `u0`, `u0m`, `u0m1`). So finden Relays und Clients die Note über Geo-Abfragen (`#g`) auf mehreren Präzisionen. Antworten (Replies) tragen keine `g`-Tags; sie bleiben öffentliche Nostr-Events vom Typ kind 1, nur ohne Ortstags. Brezn schreibt kein Roh-GPS in Tags oder Abfragen: GPS dient nur geräteseitig dazu, eine Zelle abzuleiten. Tipst du Koordinaten selbst in den Beitragstext, ist dieser Text trotzdem öffentlich. Zell-Tags bleiben lesbar, solange Relays das Event behalten.
+Brezn nutzt Geohash-Zellen für ortsbezogene Feeds und Beiträge. Stammbeiträge erhalten öffentliche `g`-Tags mit der vollen Zelle und ihren kürzeren Präfixen (zum Beispiel `u0m1x` zusammen mit `u`, `u0`, `u0m`, `u0m1`). So finden Relays und Clients den Beitrag über Geo-Abfragen (`#g`) auf mehreren Präzisionen. Antworten (Replies) tragen keine `g`-Tags; sie bleiben öffentliche Nostr-Events vom Typ kind 1, nur ohne Ortstags. Brezn schreibt kein Roh-GPS in Tags oder Abfragen: GPS dient nur geräteseitig dazu, eine Zelle abzuleiten. Tipst du Koordinaten selbst in den Beitragstext, ist dieser Text trotzdem öffentlich. Zell-Tags bleiben lesbar, solange Relays das Event behalten.
 
 Die In-App-Karte zeigt Geohash-Zellen. Du kannst eine Zelle frei wählen, indem du auf die Karte klickst (auch beim Erststart und später über Plus); alternativ GPS oder manuelle Geohash-Eingabe. Beim ersten Start zeigt die Karte eine Weltübersicht: Dabei können grobe OSM-Übersichtskacheln schon geladen werden, bevor du per Standortwahl dem Hinweis zugestimmt und den lokalen Speicher freigeschaltet hast. Das ist eine Netzwerkanfrage an den Kachelanbieter (nicht der IndexedDB-Schlüsselspeicher) und kann Verbindungsdaten wie deine IP übermitteln; der Kachelanbieter sieht dabei höchstens einen groben Kartenausschnitt, keinen fein aufgelösten Standort wie bei GPS oder einer gewählten Geohash-Zelle.
 
@@ -63,9 +63,9 @@ Die Karte lädt OSM-Kacheln von `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.
 
 ## 5. Schlüssel, Löschen, DMs
 
-Deine Nostr-Identität ist ein Schlüsselpaar, kein Konto beim Anbieter. Der öffentliche Schlüssel (`npub` / Pubkey) ist deine Adresse im Netz: Beiträge und Profile hängen daran, und jeder kann ihn lesen. Der geheime Schlüssel (`nsec`) beweist die Kontrolle über diese Identität: Nur wer ihn hat, kann als diese Identität posten, Löschungen anfragen, Direktnachrichten entschlüsseln oder die Identität weitergeben. Deshalb bleibt `nsec` privat - teile ihn nicht, poste ihn nicht und gib ihn nicht in fremde Websites oder Erweiterungen ein. Es gilt sinngemäß dasselbe wie bei Krypto-Wallets: Ohne deine Schlüssel hast du die Kontrolle über die Identität nicht - und wer dein `nsec` hat, hat sie.
+Deine Nostr-Identität ist ein Schlüsselpaar, kein Konto beim Anbieter. Der öffentliche Schlüssel (`npub` / Pubkey) ist deine Adresse im Netz: Beiträge und Profile hängen daran, und jeder kann ihn lesen. Der geheime Schlüssel (`nsec`) beweist die Kontrolle über diese Identität: Nur wer ihn hat, kann als diese Identität posten, Löschungen anfragen, Direktnachrichten entschlüsseln oder die Identität weitergeben. Deshalb bleibt `nsec` privat - teile ihn nicht, poste ihn nicht und gib ihn nicht in fremde Websites oder Erweiterungen ein. Es gilt sinngemäß dasselbe wie bei Krypto-Wallets: Ohne deine Schlüssel kontrollierst du die Identität nicht, und wer dein `nsec` hat, kontrolliert sie.
 
-Es gibt keine Cloud-Konten beim Anbieter und keinen serverseitigen Passwort-Reset. Sobald der Client eine Identität braucht, erzeugt Brezn lokal ein zufälliges Schlüsselpaar (oder du importierst eines). Dauerhaft im Browserspeicher dieses Geräts für diese Website landet es erst, nachdem der lokale Speicher durch die Standortwahl freigeschaltet ist (Details und Schutzgrenzen: Abschnitt 2); vorher bleibt es nur im Arbeitsspeicher der laufenden Sitzung. Der Anbieter erhält das Paar nicht und kann es weder einsehen noch wiederherstellen.
+Es gibt keine Cloud-Konten beim Anbieter und keinen serverseitigen Passwort-Reset. Sobald der Client eine Identität braucht, erzeugt Brezn lokal ein zufälliges Schlüsselpaar (oder du importierst eines). Dauerhaft in der IndexedDB dieses Geräts für diese Website landet es, nachdem der lokale Speicher durch die Standortwahl freigeschaltet ist (Details und Schutzgrenzen: Abschnitt 2); vorher liegt es im Arbeitsspeicher der laufenden Sitzung. Der Anbieter erhält das Paar nicht und kann es weder einsehen noch wiederherstellen.
 
 Die Identität bleibt typischerweise so lange erhalten, bis du die Websitedaten dieser Website löschst, in den Einstellungen bewusst ein neues Paar erzeugst oder - in Tor Browser - New Identity nutzt bzw. den Browser beendest (Details: Abschnitt 8). Ohne vorheriges Offline-Backup von `nsec` ist ein verlorener Schlüssel in der Regel unwiederbringlich: Beiträge auf Relays können unter dem alten öffentlichen Schlüssel weiter sichtbar sein, aber du kannst sie nicht mehr als diese Identität steuern.
 
@@ -77,13 +77,13 @@ Direktnachrichten nutzen clientseitige Verschlüsselung (NIP-17 Gift Wrap / NIP-
 
 ## 6. Medien
 
-Vor dem Hochladen entfernt Brezn Dateimetadaten so gut wie möglich (Bilder per Neukodierung, MP4/MOV per Containerbereinigung). Das ist keine Garantie auf Vollständigkeit und deckt weder den Bildinhalt selbst noch Host-Logs oder die IP beim Hochladen ab. Bis du es in den Einstellungen änderst, gehen Uploads an einen eingebauten Standard-NIP-96-Host. Dieser Host erhält mit dem Upload deine öffentliche IP (oder bei Tor eine Exit-IP) und kann sie nach eigener Richtlinie speichern.
+Vor dem Hochladen entfernt Brezn Dateimetadaten so gut wie möglich (Bilder per Neukodierung, MP4/MOV per Containerbereinigung). Das ist keine Garantie auf Vollständigkeit und deckt weder den Bildinhalt selbst noch Host-Logs oder die IP beim Hochladen ab. Bis du den Host in den Einstellungen änderst, gehen Uploads an einen eingebauten Standard-NIP-96-Host. Dieser Host erhält mit dem Upload deine öffentliche IP (oder bei Tor eine Exit-IP) und kann sie nach eigener Richtlinie speichern.
 
 ---
 
 ## 7. Gerätezugriff
 
-Auf gewöhnlichen Betriebssystemen sind Browserspeicher und Caches nach Beschlagnahme oft lesbar. Wer das Gerät oder das Browserprofil hat, kann lokale Schlüssel und Einstellungen auslesen (Abschnitt 2). Eine stärkere Einrichtung mit Tor und flüchtigem Speicher: Abschnitt 8 (Tails).
+Auf gewöhnlichen Betriebssystemen sind Browserspeicher und Caches nach Beschlagnahme oft lesbar. Wer das Gerät oder das Browserprofil hat, kann Einstellungen lesen. Ohne Passwort lässt sich der Privatschlüssel daraus entschlüsseln; mit Passwort liegt dort das Chiffrat (Abschnitt 2). Eine stärkere Einrichtung mit Tor und flüchtigem Speicher: Abschnitt 8 (Tails).
 
 ---
 
@@ -93,7 +93,7 @@ Ohne Tor erhalten Relays, Media-Hosts und ähnliche Dienste über die TCP-Verbin
 
 Ein aktueller [Tor Browser](https://support.torproject.org/tor-browser/getting-started/about-tor-browser/) leitet die Verbindungen dieses Browsers einschließlich Relay-WebSockets über Tor. Clearnet-Dienste erhalten dann eine Tor-Exit-IP statt deiner Heim-IP und können diese Exit-IP protokollieren. Relays und Media-Hosts sehen damit nicht deine Heim-IP - genau das ist der Zweck von Tor. Dein Internetanbieter oder der Tor-Entry-Guard kann weiterhin erkennen, dass du Tor nutzt. Am Exit ist erkennbar, welches Relay bzw. welchen Host du erreicht hast. Öffentlicher Schlüssel, Beitragstext und Geohash bleiben trotzdem öffentlich, wenn du sie veröffentlichst.
 
-Nutze Brezn in einem Tor-Browser-Tab, wenn du verhindern willst, dass Relays und Media-Hosts deine Heim-IP erhalten. Installiere es nicht als PWA aus Chrome, Edge, Safari oder gewöhnlichem Firefox und erwarte denselben Schutz: dieser eigenständige App-Pfad leitet den Verkehr außerhalb von Tor, sodass Relays und Media-Hosts deine echte IP erhalten. Der Desktop-Tor-Browser bietet keine gewöhnliche PWA-Installation wie Chrome oder Edge. Unter Android hilft eine Homescreen-Verknüpfung nur dann für denselben Tor-Schutz, wenn sie innerhalb von Tor Browser öffnet. Nur weil Tor Browser installiert ist, laufen andere Apps auf dem Gerät nicht über Tor.
+Nutze Brezn in einem Tor-Browser-Tab, wenn du verhindern willst, dass Relays und Media-Hosts deine Heim-IP erhalten. Installiere es nicht als PWA aus Chrome, Edge, Safari oder gewöhnlichem Firefox und erwarte denselben Schutz: Dieser eigenständige App-Pfad leitet den Verkehr außerhalb von Tor, sodass Relays und Media-Hosts deine echte IP erhalten. Der Desktop-Tor-Browser bietet keine gewöhnliche PWA-Installation wie Chrome oder Edge. Unter Android hilft eine Homescreen-Verknüpfung nur dann für denselben Tor-Schutz, wenn sie innerhalb von Tor Browser öffnet. Nur weil Tor Browser installiert ist, laufen andere Apps auf dem Gerät nicht über Tor.
 
 Schlüssel und Einstellungen liegen im Tor-Browser-Speicher für diese Website. New Identity, Beenden von Tor Browser oder Löschen der Websitedaten entfernen den lokalen `nsec` typischerweise; ohne Offline-Backup ist die Identität dann verloren. Tor anonymisiert weder Nickname noch Geohash, Schreibstil oder Inhalt. Vermeide wiederkehrende Muster, wenn dir der Schutz deiner Heim-IP allein nicht reicht. Mit Tor Browser halte die Relay-Liste kurz und nutze nur Betreiber, denen du wirklich vertraust; Tor macht den Betreiber nicht vertrauenswürdig. Die eingebauten Standard-Relays sind auch hier nur Bootstrapping, keine Empfehlung.
 
@@ -158,7 +158,7 @@ Der Anbieter **verkauft** keine personenbezogenen Daten und betreibt **keine** W
 | Nostr-Nutzung           | Öffentliche Events (Text, `g`-Tags, Media-URLs), öffentlicher Schlüssel, Verbindungs-IP bei Relays/Hosts |
 | Reports                 | NIP-56-Event: gemeldeter Pubkey/Event, dein Grundtext, dein Pubkey                                       |
 
-Eine Geohash-Zelle ist kein GPS-Fix, kann aber trotzdem **personenbezogene Daten** sein. Nutzerinhalte können zufällig besondere Kategorien (Art. 9 DSGVO) enthalten, wenn du sie in einen Beitrag schreibst; der Anbieter fordert solche Daten nicht an und hat kein serverseitiges Mittel, jede Relay-Kopie zu filtern.
+Eine Geohash-Zelle ist kein GPS-Fix, kann aber trotzdem **personenbezogene Daten** sein. Nutzerinhalte können nebenbei besondere Kategorien (Art. 9 DSGVO) enthalten, wenn du sie in einen Beitrag schreibst; der Anbieter fordert solche Daten nicht an und hat kein serverseitiges Mittel, jede Relay-Kopie zu filtern.
 
 ### Zwecke und Rechtsgrundlagen
 
@@ -216,7 +216,7 @@ Brezn richtet sich nicht an Kinder oder Jugendliche unter 16 Jahren. Standortbez
 
 ### Sicherheit (Kurz)
 
-Transport zu Relays nutzt TLS über `wss://` (siehe Abschnitt 3). Umgang mit Privatschlüsseln auf dem Gerät: Abschnitt 2 (kein Passworttresor). Keine Maßnahme macht öffentliche Nostr-Beiträge oder ein kompromittiertes Gerät privat. Siehe auch Tor und Tails in Abschnitt 8.
+Transport zu Relays nutzt TLS über `wss://` (siehe Abschnitt 3). Umgang mit Privatschlüsseln auf dem Gerät: Abschnitt 2 (standardmäßig AES-GCM, nicht extrahierbarer Wrap-Key in IndexedDB; optional Passwort). Keine Maßnahme macht öffentliche Nostr-Beiträge oder ein kompromittiertes Gerät privat. Siehe auch Tor und Tails in Abschnitt 8.
 
 ### Änderungen
 
@@ -224,6 +224,6 @@ Der Anbieter kann diesen Hinweis anpassen, wenn sich Client oder Rechtslage änd
 
 ### Sprache
 
-Deutsche Fassung: diese Datei (`DATENSCHUTZ.md`). Englische Fassung: [`PRIVACY.md`](PRIVACY.md). Für Nutzerinnen und Nutzer in Deutschland ist der deutsche Text als primäre DSGVO-Information gedacht. Bei Abweichungen gilt zwingendes Recht; ansonsten für DSGVO-Fragen diesen deutschen Text bevorzugen, für die praxisnahe Formulierung in den Abschnitten 1-9 ggf. auch die englische Fassung.
+Deutsche Fassung: diese Datei (`DATENSCHUTZ.md`). Englische Fassung: [`PRIVACY.md`](PRIVACY.md). Für Nutzerinnen und Nutzer in Deutschland ist der deutsche Text als primäre DSGVO-Information gedacht. Bei Abweichungen gilt zwingendes Recht; ansonsten für DSGVO-Fragen diesen deutschen Text bevorzugen und für die praxisnahe Formulierung in den Abschnitten 1-9 die englische Fassung.
 
-_Zuletzt aktualisiert: 2026-11-14._
+_Zuletzt aktualisiert: 2026-11-21._

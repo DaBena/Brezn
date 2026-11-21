@@ -3,7 +3,7 @@
     "loading": "लोड हो रहा है…"
   },
   "nav": {
-    "searchPlaceholder": "पोस्ट खोजें…",
+    "searchPlaceholder": "खोजें…",
     "openChat": "चैट खोलें",
     "openMenu": "मेनू खोलें"
   },
@@ -43,7 +43,7 @@
     "decreaseRadius": "त्रिज्या घटाएँ",
     "increaseRadius": "त्रिज्या बढ़ाएँ",
     "length": "लंबाई {{n}}",
-    "queriesCurrent": "सभी जियो पोस्ट",
+    "queriesCurrent": "सभी भू-टैग वाली पोस्ट",
     "precisionFallback": "अधिक = छोटा (सटीक) - लेकिन कम परिणाम।",
     "cellSize": "{{w}} × {{h}}, साथ 8 पड़ोसी"
   },
@@ -55,7 +55,7 @@
     "blockedUsers": "अवरुद्ध उपयोगकर्ता",
     "blockedCount": "{{count}} अवरुद्ध",
     "unblock": "अनब्लॉक",
-    "noBlocked": "कोई ब्लॉक नहीं",
+    "noBlocked": "कोई अवरुद्ध उपयोगकर्ता नहीं",
     "unblockedMsg": "अनब्लॉक किया."
   },
   "keyMgmt": {
@@ -78,11 +78,40 @@
     "importing": "आयात हो रहा है…",
     "import": "आयात",
     "cancel": "रद्द करें",
-    "importFailed": "nsec आयात विफल"
+    "importFailed": "nsec आयात विफल",
+    "importReplaceConfirm": "आयात इस डिवाइस की पहचान बदल देता है। तभी जारी रखें जब वर्तमान nsec सहेज लिया हो।",
+    "passwordTitle": "पासवर्ड सुरक्षा",
+    "passwordHint": "वैकल्पिक। पासवर्ड के साथ आपका nsec IndexedDB में AES-GCM सिफरटेक्स्ट के रूप में रहता है (PBKDF2-HMAC-SHA256, 6,00,000 राउंड)। पासवर्ड, और अनलॉक के बाद की कुंजी, मेमोरी में रहते हैं। जब टैब 15 मिनट तक बैकग्राउंड में रहे तो Brezn लॉक हो जाता है। पासवर्ड के बिना nsec IndexedDB में AES-GCM सिफरटेक्स्ट के रूप में रहता है, उसी IndexedDB में एक नॉन-एक्सट्रैक्टेबल रैप कुंजी के साथ। इस साइट की स्क्रिप्ट उसे डिक्रिप्ट कर सकती है।",
+    "passwordStatusOn": "स्थिति: पासवर्ड सुरक्षा चालू।",
+    "lockNow": "अभी लॉक करें",
+    "passwordStatusOff": "स्थिति: IndexedDB में AES-GCM (डिफ़ॉल्ट)।",
+    "enablePassword": "पासवर्ड चालू करें",
+    "changePassword": "पासवर्ड बदलें",
+    "disablePassword": "पासवर्ड बंद करें",
+    "currentPassword": "वर्तमान पासवर्ड",
+    "newPassword": "नया पासवर्ड (कम से कम 8 अक्षर)",
+    "confirmPassword": "पासवर्ड की पुष्टि",
+    "passwordSave": "सहेजें",
+    "passwordWorking": "काम हो रहा है…",
+    "passwordTooShort": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।",
+    "passwordMismatch": "पासवर्ड मेल नहीं खाते।",
+    "passwordEnabled": "पासवर्ड सुरक्षा चालू हो गई।",
+    "passwordChanged": "पासवर्ड अपडेट हो गया।",
+    "passwordDisabled": "पासवर्ड सुरक्षा बंद हो गई।",
+    "passwordActionFailed": "काम नहीं हुआ। पासवर्ड जाँचकर फिर कोशिश करें।",
+    "passwordRequired": "पासवर्ड ज़रूरी है।",
+    "passwordToReveal": "nsec दिखाने के लिए पासवर्ड",
+    "forgotPasswordHint": "भूला पासवर्ड रीसेट नहीं होता। पहले सहेजा nsec बैकअप ही इस पहचान को वापस लाता है।",
+    "unlockTitle": "पहचान अनलॉक",
+    "unlockBody": "इस डिवाइस पर यह पहचान इस्तेमाल करने के लिए Brezn कुंजी का पासवर्ड डालें।",
+    "unlock": "अनलॉक",
+    "unlocking": "अनलॉक हो रहा है…",
+    "unlockFailed": "गलत पासवर्ड या अनलॉक नहीं हुआ।",
+    "passwordPlaceholder": "पासवर्ड"
   },
   "relay": {
     "title": "रिले",
-    "hint": "फ़ीड, DM और प्रकाशन के लिए उपयोग किए जाने वाले रिले।",
+    "hint": "फ़ीड, DM और प्रकाशन के लिए इस्तेमाल होने वाले रिले। सिर्फ़ वे URL जो आप यहाँ लिखते हैं (या कुछ बिल्ट-इन डिफ़ॉल्ट) इस्तेमाल होते हैं — अपने आप \"outbox\" रिले नहीं खोजे जाते।",
     "empty": "कोई रिले कॉन्फ़िगर नहीं। कम से कम एक रिले के बिना पोस्ट लोड या प्रकाशित नहीं हो सकतीं। नीचे जोड़ें या «डिफ़ॉल्ट» से पुनर्स्थापित करें।",
     "removeAria": "रिले हटाएँ",
     "placeholder": "wss://relay.example",
@@ -92,11 +121,11 @@
     "testing": "टेस्ट…",
     "unknown": "अज्ञात",
     "reachable": "पहुँच योग्य",
-    "unreachable": "अपहुँच",
+    "unreachable": "पहुँच से बाहर",
     "reachableWithRtt": "पहुँच योग्य • {{rtt}} ms",
-    "unreachableWithErr": "अपहुँच • {{error}}",
+    "unreachableWithErr": "पहुँच से बाहर • {{error}}",
     "statusAria": "रिले स्थिति: {{state}}",
-    "duplicate": "यह relay पहले से सूची में है।",
+    "duplicate": "यह रिले पहले से सूची में है।",
     "removeAskTitle": "रिले {{url}} हटाएँ",
     "removeAskBody": "क्या आप भी एक नई पहचान बनाना चाहते हैं?",
     "removeKeepKeys": "नहीं",
@@ -157,6 +186,7 @@
     "sendingContent": "[भेजा जा रहा है...]",
     "sendError": "संदेश भेजना विफल",
     "hiddenByBlocklist": "संदेश छिपाया गया (आपकी कीवर्ड ब्लॉकलिस्ट से मेल खाता है)।",
+    "legacyFormat": "पुराना संदेश प्रारूप, बिना जाँच-योग के। कोई रिले पाठ बदल सकता था।",
     "openPeerProfileAria": "प्रोफ़ाइल खोलें"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "वीडियो बहुत बड़ा है (अधिकतम 25 MB)।",
     "imageTooLarge": "छवि बहुत बड़ी है (अधिकतम 12 MB)।",
     "compressFailed": "छवि संपीड़न विफल।",
+    "videoMetadataUnsupported": "इस वीडियो प्रारूप से स्थान डेटा नहीं हटाया जा सकता। MP4 या MOV इस्तेमाल करें।",
+    "videoMetadataFailed": "स्थान डेटा हटाया नहीं जा सका। वीडियो अपलोड नहीं हुआ।",
     "uploadFailed": "अपलोड विफल।",
     "publishFailed": "प्रकाशन विफल।",
     "invalidGeohash": "अमान्य geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "ऑफ़लाइन - हटाने का इवेंट नहीं भेजा जा सकता।"
   },
   "thread": {
-    "reportRoot": "रूट पोस्ट रिपोर्ट करें",
-    "reportReply": "उत्तर रिपोर्ट करें",
     "reportReason": "रिपोर्ट का कारण (वैकल्पिक)",
-    "submitReport": "रिपोर्ट सबमिट करें",
     "replies": "उत्तर ({{count}})",
     "offline": "ऑफ़लाइन",
     "replyPlaceholder": "उत्तर लिखें…",
@@ -236,7 +265,7 @@
     "deleteSending": "भेजा जा रहा है…",
     "block": "अवरुद्ध करें",
     "blocking": "ब्लॉक…",
-    "blockHeading": "{{label}} ब्लॉक",
+    "blockHeading": "{{label}} को अवरुद्ध करें",
     "reportHint": "वैकल्पिक: रिपोर्ट का कारण। NIP-56 के माध्यम से रिले को भेजा जाएगा।",
     "reply": "उत्तर",
     "replySending": "भेजा जा रहा है…",
@@ -251,10 +280,7 @@
     "dmAria": "प्रत्यक्ष संदेश खोलें",
     "message": "संदेश",
     "offlineHint": "ऑफ़लाइन - प्रोफ़ाइल पोस्ट अधूरी हो सकती हैं।",
-    "loadingPosts": "पोस्ट लोड हो रही हैं…",
-    "noPosts": "अभी कोई पोस्ट नहीं",
-    "noPostsFromRelays": "रिले से अभी कोई पोस्ट नहीं मिली।",
-    "loadError": "पोस्ट लोड नहीं हो सकीं।"
+    "noPostsFromRelays": "रिले से अभी कोई पोस्ट नहीं मिली।"
   },
   "geohashMap": {
     "gpsAria": "GPS स्थान",
@@ -270,7 +296,6 @@
     "daysAgo": "{{count}} दिन पहले"
   },
   "common": {
-    "loading": "लोड हो रहा है…",
     "close": "बंद करें"
   },
   "quotedPost": {

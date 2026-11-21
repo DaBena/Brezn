@@ -3,13 +3,13 @@
     "loading": "Ładowanie…"
   },
   "nav": {
-    "searchPlaceholder": "Szukaj postów…",
+    "searchPlaceholder": "Szukaj…",
     "openChat": "Otwórz czat",
     "openMenu": "Otwórz menu"
   },
   "feed": {
     "offlineBanner": "Offline - wyświetlane ostatnio widziane posty (tylko do odczytu).",
-    "locationTitle": "Lokalizacja dla lokalnego kanału",
+    "locationTitle": "Lokalizacja dla lokalnego feedu",
     "locationBody": "Aplikacja potrzebuje przybliżonego obszaru, by pokazać lokalne posty. Możesz to później zmienić (kliknięcie mapy lub krótszy geohash). Brezn używa publicznej komórki geohash (~5 km), nie surowych współrzędnych GPS. Ta komórka to nadal trwałe dane lokalizacji. Brezn nie jest przeznaczony dla osób poniżej 16 lat; publiczne posty z lokalizacją nie są dla nieletnich. Mapa świata może wczytać grube kafelki przed zgodą - bez ujawniania dokładnej lokalizacji.",
     "privacyStorage": "Wybór lokalizacji włącza też lokalną pamięć na tym urządzeniu (ustawienia, klucz prywatny). Wbudowane przekaźniki i host mediów to tylko bootstrap, nie rekomendacja. Brak trackera analitycznego wydawcy. Przeglądarka i tak łączy się z relayami oraz - przy mapach lub uploadzie - z innymi hostami. Szczegóły:",
     "privacyLink": "Prywatność",
@@ -43,17 +43,17 @@
     "decreaseRadius": "Zmniejsz promień",
     "increaseRadius": "Zwiększ promień",
     "length": "Długość {{n}}",
-    "queriesCurrent": "wszystkie posty geo",
+    "queriesCurrent": "wszystkie posty z geotagiem",
     "precisionFallback": "Wyższa = mniejsza (dokładniejsza) - ale mniej wyników.",
     "cellSize": "{{w}} × {{h}}, plus 8 sąsiadów"
   },
   "moderation": {
     "blocklist": "Blokady",
-    "oneLineOneTerm": "1 linia = 1 wyraz ({{count}}/200)",
+    "oneLineOneTerm": "1 linia = 1 termin ({{count}}/200)",
     "placeholder": "np.\nkup\nsats\nevil.example",
     "saved": "Lista zapisana.",
     "blockedUsers": "Zablokowani",
-    "blockedCount": "{{count}} zablokowanych",
+    "blockedCount": "Zablokowano: {{count}}",
     "unblock": "Odblokuj",
     "noBlocked": "Brak zablokowanych",
     "unblockedMsg": "Użytkownik odblokowany."
@@ -78,11 +78,40 @@
     "importing": "Importowanie…",
     "import": "Importuj",
     "cancel": "Anuluj",
-    "importFailed": "Nie udało się zaimportować nsec"
+    "importFailed": "Nie udało się zaimportować nsec",
+    "importReplaceConfirm": "Import zastępuje tożsamość na tym urządzeniu. Kontynuuj tylko, jeśli zapisano obecne nsec.",
+    "passwordTitle": "Ochrona hasłem",
+    "passwordHint": "Opcjonalnie. Z hasłem twój nsec leży w IndexedDB jako szyfrogram AES-GCM (PBKDF2-HMAC-SHA256, 600 000 rund). Hasło, a po odblokowaniu także klucz, leżą w pamięci. Brezn blokuje się, gdy karta pozostaje w tle przez 15 minut. Bez hasła nsec leży w IndexedDB jako szyfrogram AES-GCM, z nieekstrahowalnym kluczem opakowania w tym samym IndexedDB. Skrypt na tej stronie może go odszyfrować.",
+    "passwordStatusOn": "Stan: ochrona hasłem włączona.",
+    "lockNow": "Zablokuj teraz",
+    "passwordStatusOff": "Stan: AES-GCM w IndexedDB (domyślnie).",
+    "enablePassword": "Włącz hasło",
+    "changePassword": "Zmień hasło",
+    "disablePassword": "Wyłącz hasło",
+    "currentPassword": "Obecne hasło",
+    "newPassword": "Nowe hasło (min. 8 znaków)",
+    "confirmPassword": "Potwierdź hasło",
+    "passwordSave": "Zapisz",
+    "passwordWorking": "Pracuję…",
+    "passwordTooShort": "Hasło musi mieć co najmniej 8 znaków.",
+    "passwordMismatch": "Hasła nie są zgodne.",
+    "passwordEnabled": "Ochrona hasłem włączona.",
+    "passwordChanged": "Hasło zaktualizowane.",
+    "passwordDisabled": "Ochrona hasłem wyłączona.",
+    "passwordActionFailed": "Nie udało się. Sprawdź hasło i spróbuj ponownie.",
+    "passwordRequired": "Hasło jest wymagane.",
+    "passwordToReveal": "Hasło, aby pokazać nsec",
+    "forgotPasswordHint": "Zapomnianego hasła nie da się zresetować. Tylko wcześniej zapisany nsec przywraca tę tożsamość.",
+    "unlockTitle": "Odblokuj tożsamość",
+    "unlockBody": "Wpisz hasło klucza Brezn, aby użyć tej tożsamości na tym urządzeniu.",
+    "unlock": "Odblokuj",
+    "unlocking": "Odblokowuję…",
+    "unlockFailed": "Złe hasło albo odblokowanie nie powiodło się.",
+    "passwordPlaceholder": "Hasło"
   },
   "relay": {
     "title": "Relay’e",
-    "hint": "Relay’e używane do kanału, DM i publikacji.",
+    "hint": "Relay’e używane do kanału, DM i publikacji. Używane są tylko adresy z tej listy (albo kilka wbudowanych domyślnych) — bez automatycznego wykrywania relay’ów «outbox».",
     "empty": "Brak skonfigurowanych relay’ów. Bez co najmniej jednego relay’a nie można wczytać ani opublikować postów. Dodaj poniżej lub użyj «Domyślne», by przywrócić domyślne relay’e.",
     "removeAria": "Usuń relay",
     "placeholder": "wss://relay.example",
@@ -106,7 +135,7 @@
     "removeNsecNo": "Nie",
     "removeNsecYes": "Tak",
     "removeIdentityDone": "Tworzenie nowej tożsamości…",
-    "removeAskLoss": "To zastąpi nsec na tym urządzeniu. Stracisz dostęp do DM i nie będziesz już móc publikować ani zarządzać postami jako ta tożsamość. Posty już na relayach zostaną pod starą tożsamością.",
+    "removeAskLoss": "To zastąpi nsec na tym urządzeniu. Stracisz dostęp do DM i nie będziesz już w stanie publikować ani zarządzać postami jako ta tożsamość. Posty już na relayach zostaną pod starą tożsamością.",
     "removeIdentityAborted": "Nic się nie zmieniło. Zrób kopię nsec, zanim wygenerujesz nową tożsamość."
   },
   "mediaUpload": {
@@ -140,7 +169,7 @@
     "title": "Czat",
     "loading": "Ładowanie rozmów…",
     "offline": "Offline - sprawdź połączenie z internetem.",
-    "timeout": "Timeout - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "timeout": "Upłynął czas - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
     "loadError": "Nie udało się wczytać rozmów",
     "empty": "Brak rozmów"
   },
@@ -148,7 +177,7 @@
     "titlePrefix": "DM:",
     "offlineSend": "Offline - nie można wysłać wiadomości.",
     "offline": "Offline - sprawdź połączenie z internetem.",
-    "timeout": "Timeout - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
+    "timeout": "Upłynął czas - relay’e nie odpowiadają. Sprawdź ustawienia relay’ów.",
     "loadError": "Nie udało się wczytać wiadomości",
     "loading": "Ładowanie wiadomości…",
     "empty": "Brak wiadomości",
@@ -157,6 +186,7 @@
     "sendingContent": "[wysyłanie...]",
     "sendError": "Błąd wysyłania wiadomości",
     "hiddenByBlocklist": "Wiadomość ukryta (pasuje do listy zablokowanych słów).",
+    "legacyFormat": "Starszy format wiadomości bez sumy kontrolnej. Przekaźnik mógł zmienić treść.",
     "openPeerProfileAria": "Otwórz profil"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Film jest za duży (maks. 25 MB).",
     "imageTooLarge": "Obraz jest za duży (maks. 12 MB).",
     "compressFailed": "Nie udało się skompresować obrazu.",
+    "videoMetadataUnsupported": "Z tego formatu wideo nie da się usunąć danych lokalizacji. Użyj MP4 lub MOV.",
+    "videoMetadataFailed": "Nie udało się usunąć danych lokalizacji. Wideo nie zostało wysłane.",
     "uploadFailed": "Przesyłanie nie powiodło się.",
     "publishFailed": "Publikacja nie powiodła się.",
     "invalidGeohash": "Nieprawidłowy geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - nie można wysłać zdarzenia usunięcia."
   },
   "thread": {
-    "reportRoot": "Zgłoś post główny",
-    "reportReply": "Zgłoś odpowiedź",
     "reportReason": "Powód zgłoszenia (opcjonalnie)",
-    "submitReport": "Wyślij zgłoszenie",
     "replies": "Odpowiedzi ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Napisz odpowiedź…",
@@ -251,10 +280,7 @@
     "dmAria": "Otwórz wiadomość bezpośrednią",
     "message": "Wiadomość",
     "offlineHint": "Offline - posty na profilu mogą być niekompletne.",
-    "loadingPosts": "Ładowanie postów…",
-    "noPosts": "Brak postów",
-    "noPostsFromRelays": "Brak postów z relay’ów.",
-    "loadError": "Nie udało się wczytać postów."
+    "noPostsFromRelays": "Brak postów z relay’ów."
   },
   "geohashMap": {
     "gpsAria": "Lokalizacja GPS",
@@ -267,10 +293,9 @@
     "justNow": "przed chwilą",
     "minutesAgo": "{{count}} min temu",
     "hoursAgo": "{{count}} godz. temu",
-    "daysAgo": "{{count}} dni temu"
+    "daysAgo": "{{count}} dn. temu"
   },
   "common": {
-    "loading": "Ładowanie…",
     "close": "Zamknij"
   },
   "quotedPost": {

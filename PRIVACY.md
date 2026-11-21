@@ -29,9 +29,9 @@ The web build usually runs on GitHub Pages, so GitHub may log access when you lo
 
 ## 2. Local storage
 
-After you confirm the first-run notice by choosing a location (GPS permission or map click), local storage is unlocked as well. The browser then stores the private key (randomly generated or imported; before unlock it exists only in session memory) as well as settings such as relays and theme, consent flags and profile caches (IndexedDB / Dexie). The UI language follows the browser locale and is not stored separately as a Brezn setting.
+After you confirm the first-run notice by choosing a location (GPS permission or map click), local storage is unlocked as well. The browser then stores the private key (randomly generated or imported; before unlock it stays in session memory only) as well as settings such as relays and theme, consent flags and profile caches (IndexedDB / Dexie). The UI language follows the browser locale and is not stored separately as a Brezn setting.
 
-When Web Crypto is available, the secret key is wrapped with AES-GCM; the wrapping key, however, lives in the same browser storage (IndexedDB) on the same device. That is at-rest obfuscation against casual inspection, not a password vault, and not protection if someone already has your disk or this site's browser storage. Without Web Crypto the client stores the key in plaintext in browser storage. The last geohash cell may also sit in localStorage for the feed and the composer. After that consent, a service worker may use Cache Storage for the PWA under this site.
+The secret key (`nsec`) lives in IndexedDB: by default as AES-GCM ciphertext, with a non-extractable CryptoKey wrap key in the same IndexedDB. Same-origin script can decrypt it, and a copy of the browser profile can contain the key material. Without IndexedDB or Web Crypto the key stays in memory. Optionally set a password in settings (PBKDF2-HMAC-SHA256, 600,000 iterations, AES-GCM). The password itself is not stored. In an unlocked session the secret key and the derived wrap key stay in memory. If you forget the password, only a prior offline `nsec` backup restores the identity; the password cannot be recovered. With a password, Brezn locks automatically when the tab stays in the background for 15 minutes, and manually via “Lock now”. The last geohash cell may also be stored in localStorage for the feed and the composer. After that consent, a service worker may use Cache Storage for the PWA under this site.
 
 None of that on-device data is sent to the publisher. It is readable locally by you, by software in the same browser profile and site, by disk forensics, by powerful extensions and by same-origin XSS. Keep an offline backup of the secret key (`nsec`, see section 5) if the identity matters.
 
@@ -41,7 +41,7 @@ To clear site data in Chromium, use site info or Developer Tools under Applicati
 
 ## 3. Relays
 
-Brezn reaches relays over encrypted WebSockets (`wss://`) through the Nostr library NDK. Defaults and the usual GitHub Pages deploy use `wss://`; plain `ws://` is often blocked as mixed content on HTTPS pages. You can change relays anytime in settings. Until you do, Brezn opens connections to the built-in defaults (bootstrapping only, not an operator recommendation) as soon as the client starts, not only when you publish. Operators receive the connection and your public IP with it (or a Tor exit IP when using Tor; section 8). They can log that connection data.
+Brezn reaches relays only over encrypted WebSockets (`wss://`) through the Nostr library NDK. Unencrypted `ws://` relays are not allowed. You can change relays anytime in settings. Until you do, Brezn opens connections to the built-in defaults (bootstrapping only, not an operator recommendation) as soon as the client starts, not only when you publish. Operators receive the connection and your public IP with it (or a Tor exit IP when using Tor; section 8). They can log that connection data.
 
 You do not control what a relay does with connection data and events. It may keep logs, retain events longer than you like, ignore deletion requests or correlate posts with connect times - on purpose or simply as its own practice. Every extra relay is another party that can receive your public key (pubkey), your events and timing metadata.
 
@@ -63,9 +63,9 @@ The map loads OSM tiles from `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
 
 ## 5. Keys, deletion, DMs
 
-Your Nostr identity is a keypair, not an account with the publisher. The public key (`npub` / pubkey) is your address on the network: posts and profiles are tied to it, and anyone can read it. The secret key (`nsec`) proves control of that identity: only someone who has it can post as that identity, request deletions, decrypt DMs, or transfer the identity. Keep `nsec` private - do not share it, post it, or paste it into other sites or extensions. The crypto-wallet rule applies in spirit: not your keys, not your identity (and whoever has your `nsec` has it).
+Your Nostr identity is a keypair, not an account with the publisher. The public key (`npub` / pubkey) is your address on the network: posts and profiles are tied to it, and anyone can read it. The secret key (`nsec`) proves control of that identity: only someone who has it can post as that identity, request deletions, decrypt DMs, or transfer the identity. Keep `nsec` private - do not share it, post it, or paste it into other sites or extensions. The crypto-wallet rule applies in spirit: not your keys, not your identity, and whoever has your `nsec` controls that identity.
 
-There are no publisher cloud accounts and no server-side password reset. As soon as the client needs an identity, Brezn generates a random keypair locally (or you import one). It is written into this device's browser storage for this site only after local storage is unlocked by choosing a location (details and limits: section 2); before that it stays in the running session's memory only. The publisher never receives the pair and cannot view or recover it.
+There are no publisher cloud accounts and no server-side password reset. As soon as the client needs an identity, Brezn generates a random keypair locally (or you import one). It is written into IndexedDB on this device for this site after local storage is unlocked by choosing a location (details and limits: section 2); before that it lies in the running session's memory. The publisher never receives the pair and cannot view or recover it.
 
 The identity typically lasts until you clear this site's data, deliberately create a new pair in settings, or - in Tor Browser - use New Identity or quit the browser (details: section 8). Without an offline `nsec` backup first, a lost key is usually gone for good: posts on relays may still show under the old public key, but you can no longer control them as that identity.
 
@@ -77,13 +77,13 @@ Direct messages use client-side encryption (NIP-17 gift wrap / NIP-44): message 
 
 ## 6. Media
 
-Before upload, Brezn removes file metadata as best it can (images by re-encoding, MP4/MOV by container cleanup). That is not a guarantee of completeness and does not cover image content itself, host logs or the IP used at upload time. Until you change it in settings, uploads go to a built-in default NIP-96 host. That host receives your public IP with the upload (or a Tor exit IP when using Tor) and can log it under its own policy.
+Before upload, Brezn removes file metadata as best it can (images by re-encoding, MP4/MOV by container cleanup). That is not a guarantee of completeness and does not cover image content itself, host logs or the IP used at upload time. Until you change the host in settings, uploads go to a built-in default NIP-96 host. That host receives your public IP with the upload (or a Tor exit IP when using Tor) and can log it under its own policy.
 
 ---
 
 ## 7. Device access
 
-On ordinary operating systems, browser storage and caches are often readable after seizure. Anyone with the device or browser profile can read local keys and settings (section 2). For a stronger setup with Tor and volatile storage, see section 8 (Tails).
+On ordinary operating systems, browser storage and caches are often readable after seizure. Anyone with the device or browser profile can read settings. Without a password the secret key can be decrypted from that profile; with a password the ciphertext is there (section 2). For a stronger setup with Tor and volatile storage, see section 8 (Tails).
 
 ---
 
@@ -216,7 +216,7 @@ Brezn is not directed at children or teens under 16. Location-tagged public post
 
 ### Security (summary)
 
-Transport to relays uses TLS over `wss://` (see section 3). Private-key at-rest handling is described in section 2 (not a password vault). No measure makes public Nostr posts or a compromised device private. See also Tor and Tails notes in section 8.
+Transport to relays uses TLS over `wss://` (see section 3). Private-key at-rest handling is described in section 2 (AES-GCM with a non-extractable wrap key in IndexedDB by default; optional password). No measure makes public Nostr posts or a compromised device private. See also Tor and Tails notes in section 8.
 
 ### Changes
 
@@ -226,4 +226,4 @@ The publisher may update this notice when the client or legal requirements chang
 
 English version: this file (`PRIVACY.md`). German version: [`DATENSCHUTZ.md`](DATENSCHUTZ.md). For users in Germany, the German text is intended as the primary GDPR information. If translations diverge, mandatory law prevails; otherwise prefer the German text for GDPR questions and this English text for the practical wording in sections 1-9.
 
-_Last updated: 2026-11-14._
+_Last updated: 2026-11-21._

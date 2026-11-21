@@ -18,6 +18,7 @@ import { DistanceLabel } from './DistanceLabel'
 import { feedEventCardPlainText } from '../lib/feedContentPreview'
 import { formatEventCardTimestamp, shortNpub } from '../lib/nostrUtils'
 import { sheetPostCardClass } from '../lib/uiClasses'
+import { replyDepthById, replyIndentClass } from '../lib/nip10Thread'
 import { HeartIcon } from './HeartIcon'
 
 function PostCard(props: {
@@ -118,6 +119,8 @@ export function ThreadSheet(props: {
     isOffline,
   })
 
+  const replyDepths = useMemo(() => replyDepthById(root.id, replies), [root.id, replies])
+
   useEffect(() => {
     onThreadRepliesChange?.(replies.map((r) => r.id))
   }, [replies, onThreadRepliesChange])
@@ -159,8 +162,10 @@ export function ThreadSheet(props: {
   const [text, setText] = useState('')
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'error'>('idle')
   const [publishError, setPublishError] = useState<string | null>(null)
+  const publishLockRef = useRef(false)
 
   async function publish() {
+    if (publishLockRef.current) return
     const content = text.trim()
     if (!content) return
     if (isOffline) {
@@ -168,15 +173,18 @@ export function ThreadSheet(props: {
       setPublishError(t('app.offlineComments'))
       return
     }
+    publishLockRef.current = true
     setPublishState('publishing')
     setPublishError(null)
     try {
       await onPublishReply(content)
-      setText('')
+      setText((current) => (current.trim() === content ? '' : current))
       setPublishState('idle')
     } catch (e) {
       setPublishState('error')
       setPublishError(e instanceof Error ? e.message : t('thread.publishFailedFallback'))
+    } finally {
+      publishLockRef.current = false
     }
   }
 
@@ -454,8 +462,9 @@ export function ThreadSheet(props: {
                     const isReplyOwnPost = r.pubkey === identity.pubkey
                     const isReplyBlocked = blockedPubkeys.includes(r.pubkey)
                     const isReportingReply = reportingReplyId === r.id
+                    const indentClass = replyIndentClass(replyDepths.get(r.id) ?? 0)
                     return (
-                      <div key={r.id} className="space-y-2">
+                      <div key={r.id} className={`space-y-2 ${indentClass}`}>
                         {isReportingReply && !isReplyOwnPost && onBlockUser && !isReplyBlocked ? (
                           <div className="space-y-2 rounded-lg border border-brezn-border bg-brezn-panel p-3">
                             <div className="text-xs font-semibold text-brezn-muted">

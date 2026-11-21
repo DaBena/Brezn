@@ -3,15 +3,15 @@
     "loading": "Memuat…"
   },
   "nav": {
-    "searchPlaceholder": "Cari posting…",
+    "searchPlaceholder": "Cari…",
     "openChat": "Buka chat",
     "openMenu": "Buka menu"
   },
   "feed": {
-    "offlineBanner": "Offline - menampilkan posting terakhir (hanya baca).",
+    "offlineBanner": "Offline - menampilkan posting yang terakhir dilihat (hanya baca).",
     "locationTitle": "Lokasi untuk feed lokal",
     "locationBody": "Aplikasi perlu area perkiraan untuk posting lokal. Bisa diubah nanti (klik peta atau geohash lebih pendek). Brezn memakai sel geohash publik (~5 km), bukan koordinat GPS mentah. Sel itu tetap data lokasi yang bertahan. Brezn tidak ditujukan untuk di bawah 16 tahun; posting publik bertanda lokasi bukan untuk anak di bawah umur. Peta dunia dapat memuat ubin kasar sebelum persetujuan - tanpa mengungkapkan lokasi halus.",
-    "privacyStorage": "Memilih lokasi juga mengaktifkan penyimpanan lokal di perangkat ini (pengaturan, kunci pribadi). Relay dan host media bawaan hanya bootstrap, bukan rekomendasi. Tidak ada pelacak analitik penerbit. Browser tetap terhubung ke relay dan, jika peta/unggah, ke host lain. Detail:",
+    "privacyStorage": "Memilih lokasi juga mengaktifkan penyimpanan lokal di perangkat ini (pengaturan, kunci pribadi). Relay dan host media bawaan hanya untuk pengawal awal, bukan rekomendasi. Tidak ada pelacak analitik penerbit. Browser tetap terhubung ke relay dan, jika peta/unggah, ke host lain. Detail:",
     "privacyLink": "Privasi",
     "privacyDisclaimer": "Aplikasi memuat konten pihak ketiga (relay Nostr, host media, ubin peta). Operator itu dapat menerima dan mencatat data koneksi seperti IP. Penerbit tidak mengontrol konten atau retensi mereka.",
     "privacyConfirm": "Dengan melanjutkan Anda menegaskan telah membaca pemberitahuan ini, berusia minimal 16 tahun (atau usia persetujuan digital yang berlaku di tempat tinggal Anda), dan menerimanya.",
@@ -43,7 +43,7 @@
     "decreaseRadius": "Perkecil radius",
     "increaseRadius": "Perbesar radius",
     "length": "Panjang {{n}}",
-    "queriesCurrent": "semua post geo",
+    "queriesCurrent": "semua posting bergeotag",
     "precisionFallback": "Lebih tinggi = lebih kecil (lebih presisi) - hasil lebih sedikit.",
     "cellSize": "{{w}} × {{h}}, plus 8 tetangga"
   },
@@ -78,23 +78,52 @@
     "importing": "Mengimpor…",
     "import": "Impor",
     "cancel": "Batal",
-    "importFailed": "Gagal impor nsec"
+    "importFailed": "Gagal impor nsec",
+    "importReplaceConfirm": "Impor mengganti identitas di perangkat ini. Lanjutkan hanya jika nsec saat ini sudah disimpan.",
+    "passwordTitle": "Perlindungan kata sandi",
+    "passwordHint": "Opsional. Dengan kata sandi, nsec Anda berada di IndexedDB sebagai teks sandi AES-GCM (PBKDF2-HMAC-SHA256, 600.000 putaran). Kata sandi, dan kunci setelah membuka kunci, berada di memori. Brezn terkunci saat tab tetap di latar belakang selama 15 menit. Tanpa kata sandi, nsec berada di IndexedDB sebagai teks sandi AES-GCM, dengan kunci bungkus yang tidak dapat diekstrak di IndexedDB yang sama. Skrip di situs ini dapat mendekripsinya.",
+    "passwordStatusOn": "Status: perlindungan kata sandi aktif.",
+    "lockNow": "Kunci sekarang",
+    "passwordStatusOff": "Status: AES-GCM di IndexedDB (bawaan).",
+    "enablePassword": "Aktifkan kata sandi",
+    "changePassword": "Ubah kata sandi",
+    "disablePassword": "Nonaktifkan kata sandi",
+    "currentPassword": "Kata sandi saat ini",
+    "newPassword": "Kata sandi baru (min. 8 karakter)",
+    "confirmPassword": "Konfirmasi kata sandi",
+    "passwordSave": "Simpan",
+    "passwordWorking": "Memproses…",
+    "passwordTooShort": "Kata sandi harus minimal 8 karakter.",
+    "passwordMismatch": "Kata sandi tidak cocok.",
+    "passwordEnabled": "Perlindungan kata sandi diaktifkan.",
+    "passwordChanged": "Kata sandi diperbarui.",
+    "passwordDisabled": "Perlindungan kata sandi dinonaktifkan.",
+    "passwordActionFailed": "Gagal. Periksa kata sandi dan coba lagi.",
+    "passwordRequired": "Kata sandi wajib diisi.",
+    "passwordToReveal": "Kata sandi untuk menampilkan nsec",
+    "forgotPasswordHint": "Kata sandi yang lupa tidak bisa direset. Hanya cadangan nsec yang sudah disimpan yang memulihkan identitas ini.",
+    "unlockTitle": "Buka kunci identitas",
+    "unlockBody": "Masukkan kata sandi kunci Brezn untuk memakai identitas ini di perangkat ini.",
+    "unlock": "Buka kunci",
+    "unlocking": "Membuka kunci…",
+    "unlockFailed": "Kata sandi salah atau gagal membuka kunci.",
+    "passwordPlaceholder": "Kata sandi"
   },
   "relay": {
     "title": "Relay",
     "hint": "Relay untuk feed, DM, dan publikasi. Hanya URL yang Anda daftar (atau default bawaan) - tanpa penemuan relay outbox otomatis.",
-    "empty": "Belum ada relay. Posting tidak bisa dimuat atau dipublikasikan tanpa minimal satu relay. Tambah di bawah atau pakai tombol \"Default\".",
+    "empty": "Belum ada relay. Posting tidak bisa dimuat atau dipublikasikan tanpa minimal satu relay. Tambah di bawah atau pakai tombol \"Bawaan\".",
     "removeAria": "Hapus relay",
     "placeholder": "wss://relay.example",
     "add": "Tambah",
-    "default": "Default",
+    "default": "Bawaan",
     "test": "Uji",
     "testing": "Menguji…",
     "unknown": "tak dikenal",
-    "reachable": "terjangkau",
-    "unreachable": "tak terjangkau",
-    "reachableWithRtt": "terjangkau • {{rtt}}ms",
-    "unreachableWithErr": "tak terjangkau • {{error}}",
+    "reachable": "terhubung",
+    "unreachable": "tidak terhubung",
+    "reachableWithRtt": "terhubung • {{rtt}}ms",
+    "unreachableWithErr": "tidak terhubung • {{error}}",
     "statusAria": "Status relay: {{state}}",
     "duplicate": "Relay sudah ada di daftar.",
     "removeAskTitle": "Hapus relay {{url}}",
@@ -111,8 +140,8 @@
   },
   "mediaUpload": {
     "title": "Unggah media",
-    "hint": "URL langsung atau NIP-96. Default: {{default}}. Kosong = mati.",
-    "defaultBtn": "Default"
+    "hint": "URL langsung atau NIP-96. Bawaan: {{default}}. Kosong = mati.",
+    "defaultBtn": "Bawaan"
   },
   "profileSettings": {
     "title": "Profil",
@@ -130,7 +159,7 @@
     "changeImage": "Ganti gambar",
     "uploadImage": "Unggah gambar",
     "resetConfirm": "Reset profil? Nama, tentang, dan foto akan dihapus.",
-    "reset": "Reset",
+    "reset": "Atur ulang",
     "removeImage": "Hapus gambar",
     "urlPlaceholder": "Atau masukkan URL",
     "resetDone": "Profil direset.",
@@ -157,6 +186,7 @@
     "sendingContent": "[mengirim...]",
     "sendError": "Gagal kirim pesan",
     "hiddenByBlocklist": "Pesan disembunyikan (cocok daftar blokir).",
+    "legacyFormat": "Format pesan lama tanpa checksum. Relay bisa saja mengubah teksnya.",
     "openPeerProfileAria": "Buka profil"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video terlalu besar (maks. 25 MB).",
     "imageTooLarge": "Gambar terlalu besar (maks. 12 MB).",
     "compressFailed": "Gagal kompres gambar.",
+    "videoMetadataUnsupported": "Format video ini tidak bisa dibersihkan dari data lokasi. Gunakan MP4 atau MOV.",
+    "videoMetadataFailed": "Data lokasi tidak dapat dihapus. Video tidak diunggah.",
     "uploadFailed": "Unggah gagal.",
     "publishFailed": "Publikasi gagal.",
     "invalidGeohash": "Geohash tidak valid.",
@@ -211,7 +243,7 @@
     "body": "Kesalahan tak terduga. Coba muat ulang halaman.",
     "details": "Detail kesalahan",
     "errorLabel": "Kesalahan:",
-    "stack": "Stack trace:",
+    "stack": "Jejak tumpukan:",
     "componentStack": "Stack komponen:",
     "tryAgain": "Coba lagi",
     "reload": "Muat ulang halaman"
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - event penghapusan tidak bisa dikirim."
   },
   "thread": {
-    "reportRoot": "Laporkan posting utama",
-    "reportReply": "Laporkan balasan",
     "reportReason": "Alasan laporan (opsional)",
-    "submitReport": "Kirim laporan",
     "replies": "Balasan ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Tulis balasan…",
@@ -251,10 +280,7 @@
     "dmAria": "Buka pesan langsung",
     "message": "Pesan",
     "offlineHint": "Offline - posting profil mungkin tidak lengkap.",
-    "loadingPosts": "Memuat posting…",
-    "noPosts": "Belum ada posting",
-    "noPostsFromRelays": "Belum ada posting dari relay.",
-    "loadError": "Gagal memuat posting."
+    "noPostsFromRelays": "Belum ada posting dari relay."
   },
   "geohashMap": {
     "gpsAria": "Lokasi GPS",
@@ -274,7 +300,6 @@
     "daysAgo": "{{count}}h lalu"
   },
   "common": {
-    "loading": "Memuat…",
     "close": "Tutup"
   },
   "search": {

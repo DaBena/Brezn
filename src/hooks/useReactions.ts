@@ -79,8 +79,10 @@ export function useReactions(params: {
     const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 14 // last 14d
     const filter: Filter = { kinds: [7], '#e': debouncedLimitedIds, since, limit: 5000 }
 
+    let cancelled = false
     const unsub = client.subscribe(filter, {
       onevent: (evt) => {
+        if (cancelled) return
         if (evt.kind !== 7) return
         if (!isCountedReaction(evt)) return
         if (seenReactionIdsRef.current.has(evt.id)) return
@@ -115,7 +117,10 @@ export function useReactions(params: {
       },
     })
 
-    return () => unsub()
+    return () => {
+      cancelled = true
+      unsub()
+    }
   }, [client, isOffline, activeKey, debouncedLimitedIds, debouncedViewerPubkey])
 
   // Merge live subscription state into stable display map; prune ids no longer subscribed.

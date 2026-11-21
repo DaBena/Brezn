@@ -10,11 +10,11 @@
   "feed": {
     "offlineBanner": "Offline - zuletzt gesehene Beiträge (nur lesen).",
     "locationTitle": "Standort für lokalen Feed",
-    "locationBody": "Die App braucht deine ungefähre Gegend für lokale Beiträge. Du kannst sie später ändern (Karte oder kürzerer Geohash). Brezn nutzt eine öffentliche Geohash-Zelle (~5 km), keine Roh-GPS-Koordinaten. Die Zelle ist trotzdem dauerhafte Ortsangabe. Brezn richtet sich nicht an Kinder oder Jugendliche unter 16 Jahren; standortbezogene öffentliche Beiträge sind nichts für Minderjährige. Die Weltübersicht kann grobe Kartenkacheln laden, bevor du zustimmst - daraus folgt kein feinörtlicher Standort.",
-    "privacyStorage": "Mit der Standortwahl wird auch lokaler Speicher auf diesem Gerät freigeschaltet (Einstellungen, Privatschlüssel). Eingebaute Relays und Media-Host sind nur Bootstrapping, keine Empfehlung. Es gibt keinen Publisher-Tracker. Dein Browser verbindet sich trotzdem mit Relays und ggf. anderen Hosts. Details:",
+    "locationBody": "Die App braucht deine ungefähre Gegend für lokale Beiträge. Du kannst sie später ändern (Karte oder kürzerer Geohash). Brezn nutzt eine öffentliche Geohash-Zelle (~5 km), keine Roh-GPS-Koordinaten. Die Zelle ist trotzdem dauerhafte Standortdaten. Brezn richtet sich nicht an Kinder oder Jugendliche unter 16 Jahren; standortbezogene öffentliche Beiträge sind nichts für Minderjährige. Die Weltkarte kann grobe Kartenkacheln laden, bevor du zustimmst – das gibt keinen genauen Standort preis.",
+    "privacyStorage": "Mit der Standortwahl wird auch lokaler Speicher auf diesem Gerät freigeschaltet (Einstellungen, Privatschlüssel). Eingebaute Relays und Media-Host sind nur Bootstrapping, keine Empfehlung. Es gibt keinen Analyse-Tracker des Anbieters. Dein Browser verbindet sich trotzdem mit Relays und, wenn du Karten öffnest oder etwas hochlädst, mit anderen Hosts. Details:",
     "privacyLink": "Datenschutz",
-    "privacyDisclaimer": "Die App lädt Inhalte von Dritten (Nostr-Relays, Media-Hosts, Kartenkacheln). Diese Betreiber können Verbindungsdaten wie deine IP erhalten und protokollieren. Der Anbieter steuert deren Inhalte und Speicherung nicht.",
-    "privacyConfirm": "Mit Fortfahren bestätigst du, dass du diesen Hinweis gelesen hast, mindestens 16 Jahre alt bist bzw. das für dich geltende Alter der digitalen Einwilligung erreichst, und zustimmst.",
+    "privacyDisclaimer": "Die App lädt Inhalte von Dritten (Nostr-Relays, Media-Hosts, Kartenkacheln). Diese Betreiber können Verbindungsdaten wie deine IP erhalten und protokollieren. Der Anbieter steuert deren Inhalte und Speicherdauer nicht.",
+    "privacyConfirm": "Mit Fortfahren bestätigst du, dass du diesen Hinweis gelesen hast, mindestens 16 Jahre alt bist (oder das an deinem Wohnort geltende Alter für digitale Einwilligung erreicht hast), und zustimmst.",
     "allowLocation": "Standort erlauben",
     "errorTitle": "Fehler",
     "tryAgain": "Nochmal",
@@ -43,7 +43,7 @@
     "decreaseRadius": "Radius verkleinern",
     "increaseRadius": "Radius vergrößern",
     "length": "Länge {{n}}",
-    "queriesCurrent": "alle geotaggten Posts",
+    "queriesCurrent": "alle geotaggten Beiträge",
     "precisionFallback": "Höher = kleiner (genauer) - aber weniger Treffer.",
     "cellSize": "{{w}} × {{h}}, plus 8 Nachbarn"
   },
@@ -54,9 +54,9 @@
     "saved": "Blockliste gespeichert.",
     "blockedUsers": "Blockierte Nutzer",
     "blockedCount": "{{count}} blockiert",
-    "unblock": "Entsperren",
+    "unblock": "Entblocken",
     "noBlocked": "Keine blockierten Nutzer",
-    "unblockedMsg": "Nutzer entsperrt."
+    "unblockedMsg": "Nutzer entblockt."
   },
   "keyMgmt": {
     "title": "Identität",
@@ -78,12 +78,41 @@
     "importing": "Importiere...",
     "import": "Importieren",
     "cancel": "Abbrechen",
-    "importFailed": "Import fehlgeschlagen."
+    "importFailed": "Import fehlgeschlagen.",
+    "importReplaceConfirm": "Der Import ersetzt die Identität auf diesem Gerät. Nur fortfahren, wenn das bisherige nsec gesichert ist.",
+    "passwordTitle": "Passwortschutz",
+    "passwordHint": "Optional. Mit Passwort liegt dein nsec in IndexedDB als AES-GCM-Chiffrat (PBKDF2-HMAC-SHA256, 600.000 Runden). Das Passwort und nach dem Entsperren der Schlüssel liegen im Arbeitsspeicher. Brezn sperrt, wenn der Tab 15 Minuten im Hintergrund bleibt. Ohne Passwort liegt das nsec in IndexedDB als AES-GCM-Chiffrat, der Wrap-Key daneben als nicht extrahierbarer CryptoKey. Skript auf dieser Seite kann entschlüsseln.",
+    "passwordStatusOn": "Status: Passwortschutz aktiv.",
+    "lockNow": "Jetzt sperren",
+    "passwordStatusOff": "Status: AES-GCM in IndexedDB (Standard).",
+    "enablePassword": "Passwort aktivieren",
+    "changePassword": "Passwort ändern",
+    "disablePassword": "Passwort deaktivieren",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort (min. 8 Zeichen)",
+    "confirmPassword": "Passwort bestätigen",
+    "passwordSave": "Speichern",
+    "passwordWorking": "Arbeitet…",
+    "passwordTooShort": "Passwort muss mindestens 8 Zeichen haben.",
+    "passwordMismatch": "Passwörter stimmen nicht überein.",
+    "passwordEnabled": "Passwortschutz aktiviert.",
+    "passwordChanged": "Passwort aktualisiert.",
+    "passwordDisabled": "Passwortschutz deaktiviert.",
+    "passwordActionFailed": "Passwortaktion fehlgeschlagen. Passwort prüfen und erneut versuchen.",
+    "passwordRequired": "Passwort erforderlich.",
+    "passwordToReveal": "Passwort zum Anzeigen des nsec",
+    "forgotPasswordHint": "Vergessenes Passwort kann nicht zurückgesetzt werden. Nur ein zuvor gesichertes nsec stellt diese Identität wieder her.",
+    "unlockTitle": "Identität entsperren",
+    "unlockBody": "Gib dein Brezn-Schlüsselpasswort ein, um diese Identität auf diesem Gerät zu nutzen.",
+    "unlock": "Entsperren",
+    "unlocking": "Entsperre…",
+    "unlockFailed": "Falsches Passwort oder Entsperren fehlgeschlagen.",
+    "passwordPlaceholder": "Passwort"
   },
   "relay": {
     "title": "Relays",
-    "hint": "Relays für Feed, DMs und Veröffentlichung. Es werden nur die hier eingetragenen URLs bzw. die wenigen Standard-Relays genutzt - keine automatische Outbox- oder Hintergrund-Relay-Auswahl.",
-    "empty": "Keine Relays konfiguriert. Ohne Relay können keine Beiträge geladen oder veröffentlicht werden. Unten ein Relay hinzufügen oder „Standard“.",
+    "hint": "Relays für Feed, DMs und Veröffentlichung. Es werden nur die hier eingetragenen URLs bzw. die wenigen Standard-Relays genutzt - keine automatische Outbox-Relay-Erkennung.",
+    "empty": "Keine Relays konfiguriert. Ohne Relay können keine Beiträge geladen oder veröffentlicht werden. Unten ein Relay hinzufügen oder mit „Standard“ die Standard-Relays wiederherstellen.",
     "removeAria": "Relay entfernen",
     "placeholder": "wss://relay.example",
     "add": "Hinzufügen",
@@ -156,11 +185,12 @@
     "sendAria": "Nachricht senden",
     "sendingContent": "[wird gesendet...]",
     "sendError": "Fehler beim Senden",
-    "hiddenByBlocklist": "Nachricht ausgeblendet (Keyword-Blockliste).",
+    "hiddenByBlocklist": "Nachricht ausgeblendet (trifft auf deine Blockliste zu).",
+    "legacyFormat": "Älteres Nachrichtenformat ohne Prüfsumme. Ein Relay könnte den Text verändert haben.",
     "openPeerProfileAria": "Profil öffnen"
   },
   "composer": {
-    "srTitle": "Neuer Post",
+    "srTitle": "Neuer Beitrag",
     "publish": "Posten",
     "publishing": "Poste…",
     "publishAria": "Posten",
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video zu groß (max. 25 MB).",
     "imageTooLarge": "Bild zu groß (max. 12 MB).",
     "compressFailed": "Bild konnte nicht komprimiert werden.",
+    "videoMetadataUnsupported": "Dieses Videoformat lässt sich nicht von Standortdaten bereinigen. Bitte MP4 oder MOV verwenden.",
+    "videoMetadataFailed": "Standortdaten konnten nicht entfernt werden. Das Video wurde nicht hochgeladen.",
     "uploadFailed": "Upload fehlgeschlagen.",
     "publishFailed": "Posten fehlgeschlagen.",
     "invalidGeohash": "Ungültiger Geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - Lösch-Ereignis kann nicht gesendet werden."
   },
   "thread": {
-    "reportRoot": "Hauptbeitrag melden",
-    "reportReply": "Antwort melden",
     "reportReason": "Grund für Meldung (optional)",
-    "submitReport": "Meldung senden",
     "replies": "Antworten ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Antwort schreiben…",
@@ -263,10 +292,7 @@
     "dmAria": "Direktnachricht öffnen",
     "message": "Nachricht",
     "offlineHint": "Offline - Profilbeiträge ggf. unvollständig.",
-    "loadingPosts": "Lade Posts…",
-    "noPosts": "Noch keine Beiträge",
-    "noPostsFromRelays": "Noch keine Beiträge von den Relays.",
-    "loadError": "Posts nicht geladen."
+    "noPostsFromRelays": "Noch keine Beiträge von den Relays."
   },
   "geohashMap": {
     "gpsAria": "GPS-Standort",
@@ -279,10 +305,9 @@
     "justNow": "gerade eben",
     "minutesAgo": "vor {{count}} Min.",
     "hoursAgo": "vor {{count}} Std.",
-    "daysAgo": "vor {{count}} Tagen"
+    "daysAgo": "vor {{count}} Tg."
   },
   "common": {
-    "loading": "Laden…",
     "close": "Schließen"
   },
   "quotedPost": {

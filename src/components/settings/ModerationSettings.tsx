@@ -50,9 +50,6 @@ export function ModerationSettings({ client, onModerationChanged }: ModerationSe
     onModerationChanged?.()
   }
 
-  // Reset state when component mounts or client changes
-  // This is handled by parent component's useEffect
-
   return (
     <>
       <div className="p-3">

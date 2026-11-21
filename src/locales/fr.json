@@ -11,9 +11,9 @@
     "offlineBanner": "Hors ligne - dernières publications vues (lecture seule).",
     "locationTitle": "Position pour le fil local",
     "locationBody": "L’application a besoin de votre zone approximative pour les publications locales. Vous pourrez la modifier plus tard (clic sur la carte ou geohash plus court). Brezn utilise une cellule geohash publique (~5 km), pas de coordonnées GPS brutes. Cette cellule reste une donnée de localisation durable. Brezn ne s’adresse pas aux moins de 16 ans ; les publications publiques géotaguées ne sont pas pour les mineurs. La carte monde peut charger des tuiles grossières avant le consentement - sans révéler une position fine.",
-    "privacyStorage": "Choisir un lieu active aussi le stockage local sur cet appareil (réglages, clé privée). Les relais et l’hôte média intégrés ne servent qu’au démarrage, ce n’est pas une recommandation. Pas de traceur d’analyse côté éditeur. Votre navigateur se connecte quand même aux relays et, si vous ouvrez des cartes ou envoyez des fichiers, à d’autres hôtes. Détails:",
+    "privacyStorage": "Choisir un lieu active aussi le stockage local sur cet appareil (réglages, clé privée). Les relais et l’hôte média intégrés ne servent qu’au démarrage, ce n’est pas une recommandation. Pas de traceur d’analyse côté éditeur. Votre navigateur se connecte quand même aux relais et, si vous ouvrez des cartes ou envoyez des fichiers, à d’autres hôtes. Détails:",
     "privacyLink": "Confidentialité",
-    "privacyDisclaimer": "L’application charge du contenu tiers (relays Nostr, hôtes médias, tuiles cartographiques). Ces opérateurs peuvent recevoir et journaliser des données de connexion comme votre IP. L’éditeur ne contrôle ni leur contenu ni leur conservation.",
+    "privacyDisclaimer": "L’application charge du contenu tiers (relais Nostr, hôtes médias, tuiles cartographiques). Ces opérateurs peuvent recevoir et journaliser des données de connexion comme votre IP. L’éditeur ne contrôle ni leur contenu ni leur conservation.",
     "privacyConfirm": "En continuant, vous confirmez avoir lu cet avis, avoir au moins 16 ans (ou l’âge de consentement numérique applicable là où vous vivez) et l’accepter.",
     "allowLocation": "Autoriser la position",
     "errorTitle": "Erreur",
@@ -43,7 +43,7 @@
     "decreaseRadius": "Réduire le rayon",
     "increaseRadius": "Augmenter le rayon",
     "length": "Longueur {{n}}",
-    "queriesCurrent": "posts géolocalisés",
+    "queriesCurrent": "toutes les publications géotaguées",
     "precisionFallback": "Plus élevé = plus petit (plus précis), mais moins de résultats.",
     "cellSize": "{{w}} × {{h}}, plus 8 voisines"
   },
@@ -78,11 +78,40 @@
     "importing": "Import…",
     "import": "Importer",
     "cancel": "Annuler",
-    "importFailed": "Échec de l’import du nsec"
+    "importFailed": "Échec de l’import du nsec",
+    "importReplaceConfirm": "L’import remplace l’identité sur cet appareil. Continuez seulement si vous avez sauvegardé le nsec actuel.",
+    "passwordTitle": "Protection par mot de passe",
+    "passwordHint": "Facultatif. Avec un mot de passe, votre nsec est dans IndexedDB sous forme de texte chiffré AES-GCM (PBKDF2-HMAC-SHA256, 600 000 itérations). Le mot de passe et la clé après déverrouillage sont en mémoire. Brezn se verrouille lorsque l’onglet reste en arrière-plan pendant 15 minutes. Sans mot de passe, le nsec est dans IndexedDB sous forme de texte chiffré AES-GCM, avec une clé d’enveloppe non extractible dans le même IndexedDB. Un script sur ce site peut le déchiffrer.",
+    "passwordStatusOn": "Statut : protection par mot de passe activée.",
+    "lockNow": "Verrouiller",
+    "passwordStatusOff": "Statut : AES-GCM dans IndexedDB (par défaut).",
+    "enablePassword": "Activer le mot de passe",
+    "changePassword": "Changer le mot de passe",
+    "disablePassword": "Désactiver le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe (min. 8 caractères)",
+    "confirmPassword": "Confirmer le mot de passe",
+    "passwordSave": "Enregistrer",
+    "passwordWorking": "Patientez…",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "passwordEnabled": "Protection par mot de passe activée.",
+    "passwordChanged": "Mot de passe mis à jour.",
+    "passwordDisabled": "Protection par mot de passe désactivée.",
+    "passwordActionFailed": "Échec. Vérifiez le mot de passe et réessayez.",
+    "passwordRequired": "Mot de passe requis.",
+    "passwordToReveal": "Mot de passe pour afficher le nsec",
+    "forgotPasswordHint": "Un mot de passe oublié ne peut pas être réinitialisé. Seule une sauvegarde nsec déjà faite peut restaurer cette identité.",
+    "unlockTitle": "Déverrouiller l’identité",
+    "unlockBody": "Saisissez le mot de passe de votre clé Brezn pour utiliser cette identité sur cet appareil.",
+    "unlock": "Déverrouiller",
+    "unlocking": "Déverrouillage…",
+    "unlockFailed": "Mot de passe incorrect ou déverrouillage impossible.",
+    "passwordPlaceholder": "Mot de passe"
   },
   "relay": {
-    "title": "Relays",
-    "hint": "Relays pour le fil, les DM et la publication.",
+    "title": "Relais",
+    "hint": "Relais utilisés pour le fil, les DM et la publication. Seules les URL indiquées ici (ou les quelques relais intégrés) sont utilisées — pas de découverte automatique de relais « outbox ».",
     "empty": "Aucun relay. Impossible de charger ou publier sans relay. Ajoutez-en un ou utilisez « Par défaut ».",
     "removeAria": "Retirer le relay",
     "placeholder": "wss://relay.example",
@@ -157,6 +186,7 @@
     "sendingContent": "[envoi…]",
     "sendError": "Erreur d’envoi",
     "hiddenByBlocklist": "Message masqué (correspond à votre liste de mots bloqués).",
+    "legacyFormat": "Ancien format de message sans somme de contrôle. Un relais a pu modifier le texte.",
     "openPeerProfileAria": "Ouvrir le profil"
   },
   "composer": {
@@ -169,8 +199,8 @@
     "mediaAria": "Ajouter média",
     "createInCell": "Nouveau post (cellule)",
     "createNew": "Nouveau post",
-    "showMapAria": "Carte {{cell}}",
-    "showMapTitle": "Voir sur la carte",
+    "showMapAria": "Afficher la cellule {{cell}} sur la carte",
+    "showMapTitle": "Afficher la cellule sur la carte",
     "placeholder": "Que se passe-t-il près de chez vous ?",
     "removeMediaAria": "Retirer le média",
     "noUploadEndpoint": "Aucun point d’envoi (Réglages → Envoi médias).",
@@ -178,6 +208,8 @@
     "videoTooLarge": "Vidéo trop volumineuse (max. 25 Mo).",
     "imageTooLarge": "Image trop volumineuse (max. 12 Mo).",
     "compressFailed": "Échec de compression de l’image.",
+    "videoMetadataUnsupported": "Ce format vidéo ne peut pas être nettoyé des données de localisation. Utilisez MP4 ou MOV.",
+    "videoMetadataFailed": "Les données de localisation n’ont pas pu être retirées. La vidéo n’a pas été envoyée.",
     "uploadFailed": "Échec de l’envoi.",
     "publishFailed": "Échec publication.",
     "invalidGeohash": "Geohash invalide.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Hors ligne - impossible d’envoyer l’événement de suppression."
   },
   "thread": {
-    "reportRoot": "Signaler le post",
-    "reportReply": "Signaler la réponse",
     "reportReason": "Motif du signalement (facultatif)",
-    "submitReport": "Signaler",
     "replies": "Réponses ({{count}})",
     "offline": "Hors ligne",
     "replyPlaceholder": "Écrire une réponse…",
@@ -251,10 +280,7 @@
     "dmAria": "Ouvrir le message direct",
     "message": "Message",
     "offlineHint": "Hors ligne - publications du profil peut-être incomplètes.",
-    "loadingPosts": "Chargement…",
-    "noPosts": "Aucune publication",
-    "noPostsFromRelays": "Aucune publication des relays.",
-    "loadError": "Publications non chargées."
+    "noPostsFromRelays": "Aucune publication des relays."
   },
   "geohashMap": {
     "gpsAria": "Position GPS",
@@ -270,7 +296,6 @@
     "daysAgo": "il y a {{count}} j"
   },
   "common": {
-    "loading": "Chargement…",
     "close": "Fermer"
   },
   "quotedPost": {

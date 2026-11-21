@@ -4,7 +4,7 @@ import { buttonBase } from '../../lib/buttonStyles'
 import { cn } from '../../lib/cn'
 import type { BreznNostrClient } from '../../lib/nostrClient'
 import { compressImage, uploadMediaFile } from '../../lib/mediaUpload'
-import { sanitizeProfilePictureUrl } from '../../lib/urls'
+import { profilePictureImageSrc } from '../../lib/urls'
 
 const PROFILE_ABOUT_MAX_LENGTH = 5000
 
@@ -28,7 +28,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
   const [profileUploadError, setProfileUploadError] = useState<string | null>(null)
   const profileFileInputId = useId()
   const initialProfileRef = useRef<{ name: string; picture: string; about: string } | null>(null)
-  const safeProfilePictureSrc = sanitizeProfilePictureUrl(profilePicture, { allowData: true })
+  const safeProfilePictureSrc = profilePictureImageSrc(profilePicture, { allowData: true })
 
   // Track last notified values to avoid duplicate notifications
   const lastNotifiedRef = useRef<{ name: string; picture: string; about: string } | null>(null)
@@ -214,6 +214,7 @@ export function ProfileSettings({ client, mediaEndpoint, onProfileChange }: Prof
                       const { url } = await uploadMediaFile({
                         endpoint: mediaEndpoint,
                         file: fileToUpload,
+                        nip98: { skHex: client.getPrivateIdentity().skHex },
                       })
                       setProfilePicture(url)
                       setProfileUploadState('idle')

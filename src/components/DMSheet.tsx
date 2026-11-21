@@ -149,6 +149,7 @@ export function DMSheet(props: {
             event: parsed.event,
             decryptedContent: parsed.decryptedContent,
             isFromMe: parsed.isFromMe,
+            legacy: parsed.legacy,
           },
           parsed.isFromMe,
         ),
@@ -398,6 +399,11 @@ export function DMSheet(props: {
                           />
                         )}
                       </div>
+                      {msg.legacy ? (
+                        <div className="mt-1 text-[10px] text-brezn-muted">
+                          {t('dm.legacyFormat')}
+                        </div>
+                      ) : null}
                       <div className="mt-1 text-[10px] text-brezn-text">
                         {formatRelativeChatTime(t, msg.event.created_at)}
                       </div>

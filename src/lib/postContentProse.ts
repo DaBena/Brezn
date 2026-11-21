@@ -64,7 +64,3 @@ export function preparePostContentSource(
   const proseContent = trimOuterNewlines(stripLinesThatAreOnlyMediaUrls(content, mediaUrlSet))
   return { imageUrls, videoUrls, proseContent }
 }
-
-export function proseForPostBodyParts(content: string, tags?: string[][]): string {
-  return preparePostContentSource(content, tags).proseContent
-}

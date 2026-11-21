@@ -1,21 +1,12 @@
 import type { Event } from './nostrPrimitives'
-import {
-  bearingDegrees,
-  decodeGeohashCenter,
-  formatApproxDistance,
-  geohashCellMapUrl,
-  haversineDistanceKm,
-  type ApproxDistanceInfo,
-  type GeoPoint,
-} from './geo'
-import { firstNonEmptyTagValue, getLongestGeohashTag } from './nostrUtils'
+import { NOSTR_KINDS } from './breznNostr'
+import { geohashValuesMatchQueryCells } from './geo'
+import { firstNonEmptyTagValue } from './nostrUtils'
 
 /** NIP-52: date-based calendar event (all-day / multi-day). */
-export const NIP52_KIND_DATE_EVENT = 31922
+export const NIP52_KIND_DATE_EVENT = NOSTR_KINDS.nip52DateEvent
 /** NIP-52: time-based calendar event (start/end timestamps). */
-export const NIP52_KIND_TIME_EVENT = 31923
-
-export const NIP52_CALENDAR_EVENT_KINDS = [NIP52_KIND_DATE_EVENT, NIP52_KIND_TIME_EVENT] as const
+export const NIP52_KIND_TIME_EVENT = NOSTR_KINDS.nip52TimeEvent
 
 export function isNip52CalendarKind(kind: number): boolean {
   return kind === NIP52_KIND_DATE_EVENT || kind === NIP52_KIND_TIME_EVENT
@@ -40,53 +31,13 @@ function nip52LocationStrings(evt: Event): string[] {
     .map((t) => t[1] as string)
 }
 
-/** Map point for distance display from `g` tags only (NIP-52 `location` is free text, not coordinates). */
-export function nip52ApproxPoint(evt: Event): GeoPoint | null {
-  if (!isNip52CalendarKind(evt.kind)) return null
-  const longestG = getLongestGeohashTag(evt)
-  if (!longestG) return null
-  return decodeGeohashCenter(longestG)
-}
-
-export function nip52DistanceLabel(
-  evt: Event,
-  viewerPoint: GeoPoint | null,
-): ApproxDistanceInfo | null {
-  if (!viewerPoint || !isNip52CalendarKind(evt.kind)) return null
-  const p = nip52ApproxPoint(evt)
-  if (!p) return null
-  const km = haversineDistanceKm(viewerPoint, p)
-  const g = getLongestGeohashTag(evt)
-  const text = formatApproxDistance(km, g?.length)
-  const mapUrl = g ? geohashCellMapUrl(g) : null
-  if (!text || !mapUrl) return null
-  return {
-    text,
-    bearingDeg: bearingDegrees(viewerPoint, p),
-    mapUrl,
-  }
-}
-
 /**
  * True if this calendar event belongs to the same coarse query cells as the local note feed.
  * Uses only `g` (geohash) tags; `location` / `#l` are not interpreted as coordinates.
  */
-export function nip52CalendarMatchesQueryCells(evt: Event, cells: string[]): boolean {
+export function nip52CalendarMatchesQueryCells(evt: Event, cells: readonly string[]): boolean {
   if (!isValidNip52CalendarEvent(evt)) return false
-  const cellsL = cells.map((c) => c.trim().toLowerCase()).filter(Boolean)
-  if (!cellsL.length) return false
-
-  const hashes: string[] = nip52GeohashValues(evt)
-    .map((g) => g.trim().toLowerCase())
-    .filter(Boolean)
-  if (!hashes.length) return false
-
-  for (const cell of cellsL) {
-    for (const h of hashes) {
-      if (h.startsWith(cell) || cell.startsWith(h)) return true
-    }
-  }
-  return false
+  return geohashValuesMatchQueryCells(nip52GeohashValues(evt), cells)
 }
 
 export function nip52Title(evt: Event): string {
@@ -173,28 +124,30 @@ export function nip52FormatSchedule(evt: Event): string {
 
   const startSec = Number(start)
   if (!Number.isFinite(startSec)) return start
-  const startDt = new Date(startSec * 1000)
   const tz = firstNonEmptyTagValue(evt, 'start_tzid')
-  const opts: Intl.DateTimeFormatOptions = {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    ...(tz ? { timeZone: tz } : {}),
-  }
-  let line = startDt.toLocaleString(undefined, opts)
+  let line = formatCalendarInstant(startSec, tz)
   if (end) {
     const endSec = Number(end)
     if (Number.isFinite(endSec)) {
-      const endDt = new Date(endSec * 1000)
       const endTz = firstNonEmptyTagValue(evt, 'end_tzid') ?? tz
-      const endOpts: Intl.DateTimeFormatOptions = {
-        dateStyle: 'short',
-        timeStyle: 'short',
-        ...(endTz ? { timeZone: endTz } : {}),
-      }
-      line += ` → ${endDt.toLocaleString(undefined, endOpts)}`
+      line += ` → ${formatCalendarInstant(endSec, endTz)}`
     }
   }
   return line
+}
+
+/** Remote `start_tzid` is untrusted. An unknown zone throws and would blank the app. */
+function formatCalendarInstant(sec: number, timeZone?: string): string {
+  const dt = new Date(sec * 1000)
+  const base: Intl.DateTimeFormatOptions = { dateStyle: 'short', timeStyle: 'short' }
+  if (timeZone) {
+    try {
+      return dt.toLocaleString(undefined, { ...base, timeZone })
+    } catch {
+      // Fall back to the runtime zone.
+    }
+  }
+  return dt.toLocaleString(undefined, base)
 }
 
 /** Lowercase blob for search (content + tags). */

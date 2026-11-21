@@ -4,12 +4,11 @@ import { nip19, type Event } from '../lib/nostrPrimitives'
 import type { BreznNostrClient } from '../lib/nostrClient'
 import type { GeoPoint } from '../lib/geo'
 import { calculateApproxDistance } from '../lib/geo'
-import { isNip52CalendarKind, nip52DistanceLabel } from '../lib/nip52'
 import { buttonBase } from '../lib/buttonStyles'
 import { useAuthorNotes } from '../hooks/useAuthorNotes'
 import { useProfiles, type Profile } from '../hooks/useProfiles'
 import { shortNpub } from '../lib/nostrUtils'
-import { sanitizeProfilePictureUrl } from '../lib/urls'
+import { profilePictureImageSrc, sanitizeProfilePictureUrl } from '../lib/urls'
 import { feedEventCardPlainText, truncateProfileCardContent } from '../lib/feedContentPreview'
 import { Sheet } from './Sheet'
 import { FEED_RENDER_CHUNK } from '../lib/constants'
@@ -99,15 +98,14 @@ export function ProfileSheet(props: {
   }, [events, onNoteIdsChange])
 
   const displayName = profile?.name?.trim() || null
-  const picture = sanitizeProfilePictureUrl(profile?.picture)
+  const pictureHref = sanitizeProfilePictureUrl(profile?.picture)
+  const pictureSrc = profilePictureImageSrc(profile?.picture)
   const about = profile?.about?.trim() || null
 
   const approxDistanceById = useMemo(() => {
     const map: Record<string, ReturnType<typeof calculateApproxDistance>> = {}
     for (const evt of displayedEvents) {
-      map[evt.id] = isNip52CalendarKind(evt.kind)
-        ? nip52DistanceLabel(evt, viewerPoint)
-        : calculateApproxDistance(evt, viewerPoint)
+      map[evt.id] = calculateApproxDistance(evt, viewerPoint)
     }
     return map
   }, [displayedEvents, viewerPoint])
@@ -127,21 +125,41 @@ export function ProfileSheet(props: {
       <div className="space-y-4">
         <header className="rounded-lg border border-brezn-border bg-brezn-panel p-4">
           <div className="flex flex-col items-stretch gap-3 text-center sm:flex-row sm:items-start sm:text-left">
-            {picture ? (
+            {pictureHref ? (
               <a
-                href={picture}
+                href={pictureHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block h-20 w-20 shrink-0 overflow-hidden rounded-full border border-brezn-border outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brezn-border"
                 aria-label={t('profileSheet.openPictureAria')}
                 onClick={(e) => e.stopPropagation()}
               >
-                <img
-                  src={picture}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover"
-                />
+                {pictureSrc ? (
+                  <img
+                    src={pictureSrc}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="flex h-full w-full items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="40"
+                      height="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-brezn-text"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </span>
+                )}
               </a>
             ) : (
               <div
@@ -189,7 +207,7 @@ export function ProfileSheet(props: {
                     type="button"
                     onClick={() => onOpenDM()}
                     disabled={isOffline}
-                    aria-label="Open direct message"
+                    aria-label={t('profileSheet.dmAria')}
                     className={`flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${buttonBase}`}
                   >
                     <svg

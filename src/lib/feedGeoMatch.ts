@@ -1,6 +1,6 @@
 import geohash from 'ngeohash'
 import type { Event, Filter } from './nostrPrimitives'
-import { GEOHASH_BASE32_PREFIXES, generateGeohashTags } from './geo'
+import { GEOHASH_BASE32_PREFIXES, generateGeohashTags, geohashValuesMatchQueryCells } from './geo'
 import { NOSTR_KINDS, ROOT_FEED_EVENT_KINDS } from './breznNostr'
 import {
   isNip52CalendarKind,
@@ -68,27 +68,13 @@ export function getQueryCellsForFeed(queryGeohash: string, geohashLength: number
   return cellAndNeighbors(prefix)
 }
 
-/** Same prefix semantics as `nip52CalendarMatchesQueryCells` for raw `#g` values. */
-function geohashTagsMatchQueryCells(geohashValues: string[], cells: string[]): boolean {
-  const cellsL = cells.map((c) => c.trim().toLowerCase()).filter(Boolean)
-  if (!cellsL.length) return false
-  const hashes = geohashValues.map((g) => g.trim().toLowerCase()).filter(Boolean)
-  if (!hashes.length) return false
-  for (const cell of cellsL) {
-    for (const h of hashes) {
-      if (h.startsWith(cell) || cell.startsWith(h)) return true
-    }
-  }
-  return false
-}
-
 export function feedRootEventMatchesQueryCells(evt: Event, cells: string[]): boolean {
   if (evt.kind === NOSTR_KINDS.note) {
     if (isReplyNote(evt)) return false
     const hashes = evt.tags
       .filter((t) => t[0] === 'g' && typeof t[1] === 'string')
       .map((t) => t[1]!)
-    return geohashTagsMatchQueryCells(hashes, cells)
+    return geohashValuesMatchQueryCells(hashes, cells)
   }
   if (isNip52CalendarKind(evt.kind)) {
     if (!isValidNip52CalendarEvent(evt)) return false

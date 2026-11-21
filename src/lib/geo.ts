@@ -6,8 +6,6 @@ export const GEOHASH_LEN_MAX_UI = 5
 /** Max length emitted as `g` tags when publishing (ngeohash supports up to ~12). */
 export const GEOHASH_TAG_LEN_MAX = 12
 
-export type GeohashLength = 1 | 2 | 3 | 4 | 5
-
 /** Geohash base32 alphabet (no a, i, l, o). */
 export const GEOHASH_BASE32_CHARS = '0123456789bcdefghjkmnpqrstuvwxyz' as const
 
@@ -205,6 +203,26 @@ export function generateGeohashTags(geohash: string): string[] {
   }
 
   return tags
+}
+
+/**
+ * Hierarchical `#g` match: a tag hits a query cell when either string is a prefix of the other.
+ * Relay filters are exact, so client-side keep/drop uses this instead.
+ */
+export function geohashValuesMatchQueryCells(
+  geohashValues: readonly string[],
+  cells: readonly string[],
+): boolean {
+  const cellsL = cells.map((c) => c.trim().toLowerCase()).filter(Boolean)
+  if (!cellsL.length) return false
+  const hashes = geohashValues.map((g) => g.trim().toLowerCase()).filter(Boolean)
+  if (!hashes.length) return false
+  for (const cell of cellsL) {
+    for (const h of hashes) {
+      if (h.startsWith(cell) || cell.startsWith(h)) return true
+    }
+  }
+  return false
 }
 
 /** Mirrors `GeolocationPositionError` codes (1=denied, 2=unavailable, 3=timeout). */

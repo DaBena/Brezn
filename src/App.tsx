@@ -31,6 +31,7 @@ import { reactToPost } from './lib/reactionService'
 import { loadDeletedNoteIds, addDeletedNoteId } from './lib/deletedNotes'
 import { getSavedGeo5 } from './lib/lastLocation'
 import { isBreznStorageConsentGranted } from './lib/storage'
+import { resolveThreadRoot } from './lib/eventResolver'
 
 export default function App() {
   const { t } = useTranslation()
@@ -166,6 +167,19 @@ export default function App() {
     appState.openSheet('profile', { profilePubkey: pubkey })
   }
 
+  const handleOpenThread = async (
+    evt: Event,
+    options?: { retainProfileWhenOpeningThread?: boolean },
+  ) => {
+    if (moderation.blockedPubkeys.includes(evt.pubkey)) return
+    const root = await resolveThreadRoot(client, evt)
+    if (moderation.blockedPubkeys.includes(root.pubkey)) return
+    appState.openSheet('thread', {
+      threadRoot: root,
+      retainProfileWhenOpeningThread: options?.retainProfileWhenOpeningThread,
+    })
+  }
+
   const handleBlockUser = async (pubkey: string) => {
     const next = [...moderation.blockedPubkeys, pubkey]
     await client.setBlockedPubkeys(next)
@@ -269,11 +283,7 @@ export default function App() {
         onLoadMore={loadMore}
         onReact={(evt) => void handleReactToPost(evt)}
         onOpenProfile={handleOpenProfile}
-        onOpenThread={(evt) => {
-          if (!moderation.blockedPubkeys.includes(evt.pubkey)) {
-            appState.openSheet('thread', { threadRoot: evt })
-          }
-        }}
+        onOpenThread={(evt) => void handleOpenThread(evt)}
         searchPeople={search.people}
         isSearching={search.isSearching}
         hasQuery={search.hasQuery}
@@ -300,6 +310,7 @@ export default function App() {
         }
         onPublish={handlePublishPost}
         mediaUploadEndpoint={client.getMediaUploadEndpoint()}
+        nip98SkHex={() => client.getPrivateIdentity().skHex}
         postGeo5={postGeo5}
       />
 
@@ -318,10 +329,9 @@ export default function App() {
           onReact={(evt) => void handleReactToPost(evt)}
           onNoteIdsChange={setProfileNoteIds}
           onOpenProfile={handleOpenProfile}
-          onOpenThread={(evt) => {
-            if (moderation.blockedPubkeys.includes(evt.pubkey)) return
-            appState.openSheet('thread', { threadRoot: evt, retainProfileWhenOpeningThread: true })
-          }}
+          onOpenThread={(evt) =>
+            void handleOpenThread(evt, { retainProfileWhenOpeningThread: true })
+          }
           onClose={() => appState.closeSheet('profile')}
           onOpenDM={(() => {
             const pk = appState.sheets.profile.pubkey
@@ -364,10 +374,7 @@ export default function App() {
           onReact={(evt) => void handleReactToPost(evt)}
           onThreadRepliesChange={setThreadReplyNoteIds}
           onOpenProfile={handleOpenProfile}
-          onOpenThread={(evt) => {
-            if (moderation.blockedPubkeys.includes(evt.pubkey)) return
-            appState.openSheet('thread', { threadRoot: evt })
-          }}
+          onOpenThread={(evt) => void handleOpenThread(evt)}
         />
       ) : null}
 

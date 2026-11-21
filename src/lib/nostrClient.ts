@@ -28,6 +28,8 @@ import {
   syncBreznIndexedDbWriteConsentFromStorage,
   isBreznStorageConsentGranted,
   grantBreznIndexedDbWrites,
+  noteSkHexDurableInIndexedDb,
+  readIndexedDbValue,
 } from './storage'
 import { DEFAULT_NIP96_SERVER } from './mediaUpload'
 import {
@@ -37,7 +39,20 @@ import {
   GET_DM_HISTORY_TIMEOUT_MS,
   GET_MY_PROFILE_FETCH_TIMEOUT_MS,
   IDENTITY_INIT_TIMEOUT_MS,
+  BREZN_APP_STATE_LS_KEY,
 } from './constants'
+import {
+  SK_PROTECTION_DEVICE,
+  SK_PROTECTION_PASSWORD,
+  type SkProtection,
+  isPasswordWrappedSk,
+  isLegacyPlainSkHex,
+  isDeviceWrappedSk,
+  wrapSkWithPassword,
+  openPasswordSession,
+  rewrapSkWithSession,
+  type PasswordSession,
+} from './skVault'
 
 const shouldConnectNdkRelays = typeof process === 'undefined' || process.env.VITEST !== 'true'
 
@@ -62,12 +77,17 @@ export const DEFAULT_RELAYS = [
 /** Bump when DEFAULT_RELAYS gains URLs so older saved bootstrap lists pick them up once. */
 const BOOTSTRAP_RELAYS_REV = 1
 
-const LS_KEY = 'brezn:v1'
+const LS_KEY = BREZN_APP_STATE_LS_KEY
 
 type StoredStateV1 = {
-  // Private key is stored encrypted (AES-GCM) when Web Crypto API is available.
-  // Falls back to plaintext if encryption is not available.
+  /**
+   * Secret key: plaintext hex only in RAM after unlock/load.
+   * On disk: device AES-GCM ciphertext (non-extractable wrap key in IndexedDB),
+   * or `v2:pbkdf2:…` when password protection is on. Not written as plaintext.
+   */
   skHex?: string
+  /** Default `device` (obfuscation; non-extractable wrap key in IndexedDB). Optional `password` vault. */
+  skProtection?: SkProtection
   pubkey?: string
   npub?: string
   mutedTerms: string[]
@@ -81,6 +101,31 @@ type StoredStateV1 = {
     relays?: string[]
     /** Last applied DEFAULT_RELAYS growth merge; custom lists are stamped and left alone. */
     bootstrapRelaysRev?: number
+  }
+}
+
+export class IdentityLockedError extends Error {
+  constructor(message = 'Secret key is locked — enter your password to unlock') {
+    super(message)
+    this.name = 'IdentityLockedError'
+  }
+}
+
+/** Device-wrapped key present but not yet decrypted, or storage still initializing. */
+export class IdentityPendingError extends Error {
+  constructor(message = 'Secret key is still encrypted — wait for storage to finish loading') {
+    super(message)
+    this.name = 'IdentityPendingError'
+  }
+}
+
+/** Stored skHex is unreadable/corrupt; refuse to overwrite with a new random identity. */
+export class IdentityCorruptError extends Error {
+  constructor(
+    message = 'Stored secret key is unreadable. Import an nsec backup to recover — Brezn will not overwrite it.',
+  ) {
+    super(message)
+    this.name = 'IdentityCorruptError'
   }
 }
 
@@ -120,6 +165,8 @@ export type DecryptedDM = {
   decryptedContent: string
   /** Whether the message was sent by the current user */
   isFromMe: boolean
+  /** NIP-04 kind 4: ciphertext is not authenticated. */
+  legacy?: boolean
 }
 
 /** Options for `getDMsWith`. */
@@ -373,6 +420,33 @@ export type BreznNostrClient = {
    * Flush in-memory state to localStorage / IndexedDB (e.g. after location consent ensures storage is ready).
    */
   persistStateNow(): void
+
+  /** Whether the secret key requires a password unlock for this session. */
+  isSecretKeyLocked(): boolean
+
+  /** Current at-rest protection mode (`device` default, or optional `password`). */
+  getSkProtection(): SkProtection
+
+  /** Unlock password-protected secret key for this session. */
+  unlockSecretKey(password: string): Promise<void>
+
+  /**
+   * Enable optional password protection (default off). Re-wraps the current secret key.
+   * There is no password reset — only a prior nsec backup can recover a forgotten password.
+   */
+  enablePasswordProtection(password: string): Promise<void>
+
+  /** Change the vault password (requires current password). */
+  changePasswordProtection(currentPassword: string, newPassword: string): Promise<void>
+
+  /** Disable password protection and return to device-bound wrapping (requires current password). */
+  disablePasswordProtection(password: string): Promise<void>
+
+  /**
+   * Reveal nsec after verifying the vault password when password protection is enabled.
+   * When device-only protection is used, returns the nsec without a password.
+   */
+  revealNsec(password?: string): Promise<string>
 }
 
 /** Opt-in to Brezn disk persistence (consent flag + LS / encrypted IDB) and flush current in-memory state. */
@@ -403,54 +477,308 @@ function invokeSubscriptionOnevent(handler: (evt: Event) => void, raw: NDKEvent)
 
 // State cache for fast synchronous access
 let stateCache: StoredStateV1 | null = null
-let stateCacheInitialized = false
 
-/**
- * While `skHex` is still encrypted (IndexedDB decrypt pending), we must not mint a new random
- * key on every `ensureIdentity()` call — that breaks signing vs UI pubkey, DMs, and reaction subs.
- */
-let ephemeralIdentityWhileEncrypted: { skHex: string; pubkey: string; npub: string } | null = null
+/** Password-wrapped ciphertext waiting for unlock (module-level; survives before client exists). */
+let pendingPasswordWrappedSk: string | null = null
+/** Active password session after unlock (derived wrap key in RAM only). */
+let passwordSession: PasswordSession | null = null
+let identityVaultLocked = false
+const identityVaultLockListeners = new Set<() => void>()
 
-// Initialize state cache asynchronously from IndexedDB (best effort)
-async function initializeStateCache() {
-  if (stateCacheInitialized) return
-  stateCacheInitialized = true
-
-  try {
-    const loaded = await loadEncryptedJson<StoredStateV1>(
-      LS_KEY,
-      { mutedTerms: [], blockedPubkeys: [] },
-      ['skHex'],
-    )
-    stateCache = loaded
-  } catch {
-    const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
-    stateCache = loaded
+/** Fires after a password vault locks (idle timeout or explicit lock). */
+export function onIdentityVaultLocked(listener: () => void): () => void {
+  identityVaultLockListeners.add(listener)
+  return () => {
+    identityVaultLockListeners.delete(listener)
   }
 }
 
+function notifyIdentityVaultLocked(): void {
+  for (const listener of identityVaultLockListeners) listener()
+}
+
+export function isIdentityVaultLocked(): boolean {
+  return identityVaultLocked
+}
+
+/** Drops the in-memory signer of the latest client when the vault locks. */
+let clearUnlockedSigner: (() => void) | null = null
+
+/**
+ * Drop plaintext from memory and require the password again.
+ * No-op unless password protection is on and a wrapped blob is still available.
+ * Does not rewrite the blob at rest.
+ */
+export function lockIdentityVault(): boolean {
+  if (getStoredSkProtection() !== SK_PROTECTION_PASSWORD) return false
+  const wrapped = pendingPasswordWrappedSk
+  if (!wrapped || !isPasswordWrappedSk(wrapped)) return false
+  if (!passwordSession && identityVaultLocked) return false
+  passwordSession = null
+  identityVaultLocked = true
+  if (stateCache) {
+    stateCache = {
+      ...stateCache,
+      skHex: wrapped,
+      skProtection: SK_PROTECTION_PASSWORD,
+    }
+  }
+  clearUnlockedSigner?.()
+  notifyIdentityVaultLocked()
+  return true
+}
+
+export function getStoredSkProtection(): SkProtection {
+  const s =
+    stateCache ?? loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  if (
+    s.skProtection === SK_PROTECTION_PASSWORD ||
+    isPasswordWrappedSk(s.skHex) ||
+    pendingPasswordWrappedSk
+  ) {
+    return SK_PROTECTION_PASSWORD
+  }
+  return SK_PROTECTION_DEVICE
+}
+
+/**
+ * Unlock a password-protected identity before or after the client is created.
+ * Updates `stateCache` with plaintext `skHex` for the session.
+ */
+export async function unlockIdentityVault(password: string): Promise<void> {
+  const wrapped =
+    pendingPasswordWrappedSk ??
+    (stateCache?.skHex && isPasswordWrappedSk(stateCache.skHex) ? stateCache.skHex : null) ??
+    (() => {
+      const raw = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+      return isPasswordWrappedSk(raw.skHex) ? raw.skHex! : null
+    })()
+
+  if (!wrapped) throw new Error('No password-protected key to unlock')
+
+  const session = await openPasswordSession(wrapped, password)
+  passwordSession = session
+  pendingPasswordWrappedSk = await rewrapSkWithSession(session)
+  identityVaultLocked = false
+
+  const pubkey = getPublicKey(hexToBytes(session.skHex))
+  const npub = nip19.npubEncode(pubkey)
+  const prev = stateCache ?? { mutedTerms: [], blockedPubkeys: [] }
+  stateCache = {
+    ...prev,
+    skHex: session.skHex,
+    skProtection: SK_PROTECTION_PASSWORD,
+    pubkey: prev.pubkey ?? pubkey,
+    npub: prev.npub ?? npub,
+  }
+}
+
+function applyPasswordLockFromLoadedState(loaded: StoredStateV1): StoredStateV1 {
+  const sk = loaded.skHex
+  if (isPasswordWrappedSk(sk)) {
+    pendingPasswordWrappedSk = sk!
+    identityVaultLocked = true
+    return {
+      ...loaded,
+      skHex: sk,
+      skProtection: SK_PROTECTION_PASSWORD,
+    }
+  }
+  // Password flag without the blob yet (localStorage mirror). Stay locked until IndexedDB settles.
+  if (
+    loaded.skProtection === SK_PROTECTION_PASSWORD &&
+    !passwordSession &&
+    !identityStorageInitFinished
+  ) {
+    identityVaultLocked = true
+    return { ...loaded, skProtection: SK_PROTECTION_PASSWORD }
+  }
+  if (passwordSession && isLegacyPlainSkHex(sk)) {
+    identityVaultLocked = false
+  }
+  return loaded
+}
+
+function payloadHasSecret(next: StoredStateV1 | null | undefined): boolean {
+  if (!next?.skHex) return pendingPasswordWrappedSk != null
+  return (
+    isLegacyPlainSkHex(next.skHex) ||
+    isPasswordWrappedSk(next.skHex) ||
+    isDeviceWrappedSk(next.skHex) ||
+    pendingPasswordWrappedSk != null
+  )
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+}
+
+/** IndexedDB wins for the secret. In-memory edits win only when they differ from the LS snapshot. */
+function mergeIdentityState(
+  base: StoredStateV1,
+  ls: StoredStateV1,
+  memory: StoredStateV1 | null,
+): StoredStateV1 {
+  const memoryPlain = Boolean(memory?.skHex && isLegacyPlainSkHex(memory.skHex))
+  const skHex =
+    (memoryPlain ? memory?.skHex : undefined) ??
+    (typeof base.skHex === 'string' && base.skHex ? base.skHex : undefined) ??
+    (typeof ls.skHex === 'string' && ls.skHex ? ls.skHex : undefined) ??
+    (typeof memory?.skHex === 'string' && memory.skHex ? memory.skHex : undefined)
+
+  const pick = <T>(
+    memoryVal: T | undefined,
+    lsVal: T | undefined,
+    baseVal: T | undefined,
+  ): T | undefined => {
+    if (memory && memoryVal !== undefined && !sameJson(memoryVal, lsVal)) return memoryVal
+    return baseVal ?? memoryVal ?? lsVal
+  }
+
+  return {
+    mutedTerms: pick(memory?.mutedTerms, ls.mutedTerms, base.mutedTerms) ?? [],
+    blockedPubkeys: pick(memory?.blockedPubkeys, ls.blockedPubkeys, base.blockedPubkeys) ?? [],
+    followedPubkeys: pick(memory?.followedPubkeys, ls.followedPubkeys, base.followedPubkeys),
+    settings: pick(memory?.settings, ls.settings, base.settings),
+    pubkey: memoryPlain
+      ? (memory?.pubkey ?? base.pubkey ?? ls.pubkey)
+      : (base.pubkey ?? memory?.pubkey ?? ls.pubkey),
+    npub: memoryPlain
+      ? (memory?.npub ?? base.npub ?? ls.npub)
+      : (base.npub ?? memory?.npub ?? ls.npub),
+    skProtection: memoryPlain
+      ? (memory?.skProtection ?? base.skProtection ?? ls.skProtection)
+      : (base.skProtection ?? memory?.skProtection ?? ls.skProtection),
+    skHex,
+  }
+}
+
+/** True after IndexedDB (or a definitive read failure) has finished. */
+let identityStorageInitFinished = false
+/** A secret was seen in LS or IndexedDB. Keyless writes must not replace it. */
+let secretWasPresent = false
+let identityInitPromise: Promise<void> | null = null
+
+export function isIdentityStorageReady(): boolean {
+  return identityStorageInitFinished
+}
+
+/** Pubkey, password flag, or any skHex — IndexedDB may still hold the only secret. */
+export function identityMaterialMayExistOnDisk(): boolean {
+  const s =
+    stateCache ?? loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  if (s.pubkey || s.npub) return true
+  if (s.skProtection === SK_PROTECTION_PASSWORD) return true
+  if (typeof s.skHex === 'string' && s.skHex.length > 0) return true
+  return pendingPasswordWrappedSk != null
+}
+
+function initializeStateCache(): Promise<void> {
+  if (!identityInitPromise) {
+    identityInitPromise = runInitializeStateCache().catch((err) => {
+      console.warn('Identity storage init failed:', err)
+      identityStorageInitFinished = true
+    })
+  }
+  return identityInitPromise
+}
+
+async function runInitializeStateCache(): Promise<void> {
+  const ls = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  if (typeof ls.skHex === 'string' && ls.skHex) secretWasPresent = true
+
+  let idbReadable = false
+  let rawHadSk = false
+  let fromIdb: StoredStateV1 | null = null
+
+  if (isBreznStorageConsentGranted()) {
+    const rec = await readIndexedDbValue<StoredStateV1>(LS_KEY)
+    if (rec.ok) {
+      idbReadable = true
+      if (rec.value && typeof rec.value === 'object' && !Array.isArray(rec.value)) {
+        rawHadSk = typeof rec.value.skHex === 'string' && rec.value.skHex.length > 0
+        if (rawHadSk) secretWasPresent = true
+        fromIdb = await loadEncryptedJson<StoredStateV1>(
+          LS_KEY,
+          { mutedTerms: [], blockedPubkeys: [] },
+          ['skHex'],
+        )
+      }
+    }
+  }
+
+  // Read memory after the await so edits made while IndexedDB was in flight are kept.
+  const memoryAtMerge = stateCache
+  const merged = mergeIdentityState(fromIdb ?? ls, ls, memoryAtMerge)
+  if (payloadHasSecret(merged)) secretWasPresent = true
+  stateCache = applyPasswordLockFromLoadedState(merged)
+
+  const lsHadSk = typeof ls.skHex === 'string' && ls.skHex.length > 0
+  let migrated = false
+  if (isBreznStorageConsentGranted() && idbReadable && rawHadSk) {
+    noteSkHexDurableInIndexedDb()
+  } else if (isBreznStorageConsentGranted() && idbReadable && lsHadSk && stateCache) {
+    try {
+      await persistStateEncrypted(stateCache)
+      migrated = true
+    } catch (err) {
+      console.warn('Legacy secret key is still only in localStorage:', err)
+    }
+  } else if (isBreznStorageConsentGranted() && idbReadable && !lsHadSk) {
+    noteSkHexDurableInIndexedDb()
+  }
+
+  if (
+    stateCache &&
+    stateCache.skProtection === SK_PROTECTION_PASSWORD &&
+    !pendingPasswordWrappedSk &&
+    !isPasswordWrappedSk(stateCache.skHex)
+  ) {
+    identityVaultLocked = false
+  }
+
+  identityStorageInitFinished = true
+
+  if ((memoryAtMerge !== null || migrated) && isBreznStorageConsentGranted() && stateCache) {
+    try {
+      await persistStateEncrypted(stateCache)
+    } catch (err) {
+      console.warn('Failed to flush identity state after storage init:', err)
+    }
+  }
+}
+
+/**
+ * Timeout path: fill settings from LS so the UI can paint, but do NOT mark storage init finished.
+ * IndexedDB must still be allowed to complete and win. Do not scrub `skHex` here.
+ */
 function fallbackStateFromLocalStorage(): void {
   if (stateCache !== null) return
-  stateCacheInitialized = true
-  stateCache = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
+  stateCache = applyPasswordLockFromLoadedState(loaded)
 }
 
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   syncBreznIndexedDbWriteConsentFromStorage()
 }
 
-/** Resolves when identity/storage is ready (IndexedDB decrypted or fallback applied). Await before using client identity. */
+/**
+ * Resolves when IndexedDB identity init has settled (no timeout).
+ * Callers that must not mint or drop a key wait on this.
+ */
+export const whenIdentityStorageSettled: Promise<void> =
+  typeof window !== 'undefined' ? initializeStateCache().then(() => {}) : Promise.resolve()
+
+/**
+ * Resolves when identity/storage init finished, or after a timeout so the shell can paint.
+ * The timeout does not scrub secrets and does not mark storage ready.
+ */
 export const whenIdentityReady: Promise<void> =
   typeof window !== 'undefined'
     ? Promise.race([
-        initializeStateCache()
-          .catch(() => {
-            /* IndexedDB / decrypt race: fallback applied in initializeStateCache try/catch; swallow stray rejects */
-          })
-          .then(() => {}),
+        whenIdentityStorageSettled,
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            // On GitHub Pages / strict environments IndexedDB can hang; ensure app still loads
             fallbackStateFromLocalStorage()
             resolve()
           }, IDENTITY_INIT_TIMEOUT_MS)
@@ -463,19 +791,59 @@ function loadState(): StoredStateV1 {
     return stateCache
   }
   const loaded = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
-  stateCache = loaded
+  stateCache = applyPasswordLockFromLoadedState(loaded)
 
-  if (loaded.skHex && loaded.skHex.includes(':')) {
+  if (loaded.skHex && (isDeviceWrappedSk(loaded.skHex) || isPasswordWrappedSk(loaded.skHex))) {
     initializeStateCache().catch(() => {
       // Ignore errors
     })
   }
 
-  return loaded
+  return stateCache
 }
 
 function canPersistState(): boolean {
   return typeof localStorage !== 'undefined'
+}
+
+async function persistStateEncrypted(next: StoredStateV1): Promise<boolean> {
+  if (secretWasPresent && !payloadHasSecret(next)) {
+    throw new Error('Refusing to overwrite a stored secret key with keyless state')
+  }
+
+  const forDisk: StoredStateV1 = { ...next }
+
+  if (next.skProtection === SK_PROTECTION_PASSWORD || passwordSession || pendingPasswordWrappedSk) {
+    forDisk.skProtection = SK_PROTECTION_PASSWORD
+    if (passwordSession && isLegacyPlainSkHex(next.skHex)) {
+      passwordSession = { ...passwordSession, skHex: next.skHex! }
+      const wrapped = await rewrapSkWithSession(passwordSession)
+      pendingPasswordWrappedSk = wrapped
+      forDisk.skHex = wrapped
+    } else if (pendingPasswordWrappedSk) {
+      forDisk.skHex = pendingPasswordWrappedSk
+    } else if (next.skHex && isPasswordWrappedSk(next.skHex)) {
+      forDisk.skHex = next.skHex
+    } else {
+      throw new Error('Cannot persist password-protected key without an active session or blob')
+    }
+  } else {
+    forDisk.skProtection = SK_PROTECTION_DEVICE
+  }
+
+  const idbOk = await saveEncryptedJson(
+    LS_KEY,
+    forDisk,
+    forDisk.skProtection === SK_PROTECTION_PASSWORD ? [] : ['skHex'],
+  )
+  if (!idbOk) {
+    throw new Error('IndexedDB did not accept identity state')
+  }
+  if (payloadHasSecret(forDisk) || payloadHasSecret(next)) {
+    secretWasPresent = true
+    noteSkHexDurableInIndexedDb()
+  }
+  return true
 }
 
 function saveState(patch: Partial<StoredStateV1>) {
@@ -485,12 +853,34 @@ function saveState(patch: Partial<StoredStateV1>) {
   if (!canPersistState()) return
   if (!isBreznStorageConsentGranted()) return
 
-  // LS holds pubkey/settings only; skHex is persisted encrypted via IndexedDB below.
+  // Mirror settings immediately. Legacy skHex stays in localStorage until IndexedDB has a copy.
   const forLocal: Partial<StoredStateV1> = { ...next }
   delete forLocal.skHex
   saveJsonSync(LS_KEY, forLocal as StoredStateV1)
 
-  saveEncryptedJson(LS_KEY, next, ['skHex']).catch(() => {})
+  // A keyless snapshot during init would replace the IndexedDB secret. Wait until the read finishes.
+  if (!identityStorageInitFinished) return
+
+  void persistStateEncrypted(next).catch((err) => {
+    console.warn('Failed to persist encrypted identity state:', err)
+  })
+}
+
+/** Like saveState, but awaits durable encrypted persist (for vault lifecycle APIs). */
+async function saveStateDurable(patch: Partial<StoredStateV1>): Promise<void> {
+  if (!identityStorageInitFinished) await initializeStateCache()
+
+  const next = { ...loadState(), ...patch }
+  stateCache = next
+
+  if (!canPersistState()) return
+  if (!isBreznStorageConsentGranted()) return
+
+  const forLocal: Partial<StoredStateV1> = { ...next }
+  delete forLocal.skHex
+  saveJsonSync(LS_KEY, forLocal as StoredStateV1)
+
+  await persistStateEncrypted(next)
 }
 
 function normalizeRelayUrlStrict(input: string): string {
@@ -503,9 +893,9 @@ function normalizeRelayUrlStrict(input: string): string {
     const detail = e instanceof Error ? e.message : String(e)
     throw new Error(`Failed to add relay: ${detail}`, { cause: e })
   }
-  if (u.protocol !== 'wss:' && u.protocol !== 'ws:') {
+  if (u.protocol !== 'wss:') {
     const proto = u.protocol ? u.protocol.slice(0, -1) : 'missing'
-    throw new Error(`Failed to add relay: use WebSocket URL (wss:// or ws://), not ${proto}`)
+    throw new Error(`Failed to add relay: use encrypted WebSocket URL (wss://), not ${proto}`)
   }
   u.hash = ''
   u.search = ''
@@ -746,48 +1136,48 @@ export function createNostrClient(): BreznNostrClient {
     const s = loadState()
     let skHex = s.skHex
 
-    if (skHex && skHex.length === 64 && !skHex.includes(':') && /^[0-9a-f]{64}$/i.test(skHex)) {
-      ephemeralIdentityWhileEncrypted = null
+    if (identityVaultLocked || (skHex && isPasswordWrappedSk(skHex) && !passwordSession)) {
+      throw new IdentityLockedError()
     }
 
-    // Validate skHex: must be 64 hex characters (32 bytes)
-    if (skHex && (skHex.includes(':') || skHex.length !== 64)) {
-      // Encrypted value or invalid format - handle race condition on first load
-      if (skHex.includes(':')) {
-        // Encrypted key: retry after async decryption may have completed
-        const retry = loadJsonSync<StoredStateV1>(LS_KEY, { mutedTerms: [], blockedPubkeys: [] })
-        if (retry.skHex && !retry.skHex.includes(':') && retry.skHex.length === 64) {
-          skHex = retry.skHex
-          stateCache = retry
-          ephemeralIdentityWhileEncrypted = null
-        } else {
-          // Still encrypted on first load — reuse one temporary identity until decrypt finishes
-          if (ephemeralIdentityWhileEncrypted) return ephemeralIdentityWhileEncrypted
-          const sk = generateSecretKey()
-          skHex = bytesToHex(sk)
-          const pubkey = getPublicKey(sk)
-          const npub = nip19.npubEncode(pubkey)
-          ephemeralIdentityWhileEncrypted = { skHex, pubkey, npub }
-          return ephemeralIdentityWhileEncrypted
-        }
-      } else {
-        // Invalid format - generate new identity
-        const sk = generateSecretKey()
-        skHex = bytesToHex(sk)
-        const pubkey = getPublicKey(sk)
-        const npub = nip19.npubEncode(pubkey)
-        saveState({ skHex, pubkey, npub })
-        return { skHex, pubkey, npub }
+    if (skHex && isDeviceWrappedSk(skHex)) {
+      if (!identityStorageInitFinished) {
+        void initializeStateCache()
+        throw new IdentityPendingError()
       }
+      throw new IdentityCorruptError()
     }
 
-    if (!skHex || skHex.length !== 64 || !/^[0-9a-f]{64}$/i.test(skHex)) {
-      // Invalid or missing key - generate new one
+    if (skHex && isPasswordWrappedSk(skHex)) {
+      throw new IdentityLockedError()
+    }
+
+    if (skHex && !isLegacyPlainSkHex(skHex)) {
+      // Unrecognized encoding: refuse to overwrite with a new random key.
+      throw new IdentityCorruptError()
+    }
+
+    if (!skHex) {
+      if (identityVaultLocked || pendingPasswordWrappedSk) {
+        throw new IdentityLockedError()
+      }
+      // Never mint until IndexedDB init has finished — LS may be empty while IDB still holds skHex.
+      if (!identityStorageInitFinished) {
+        void initializeStateCache()
+        throw new IdentityPendingError()
+      }
+      // Init finished but metadata without secret: refuse to clobber; require nsec import.
+      if (s.pubkey || s.npub || s.skProtection === SK_PROTECTION_PASSWORD) {
+        throw new IdentityCorruptError(
+          'Identity metadata is present but the secret key is missing from storage. Import an nsec backup to recover.',
+        )
+      }
+      // First run / confirmed empty storage — generate once
       const sk = generateSecretKey()
       skHex = bytesToHex(sk)
       const pubkey = getPublicKey(sk)
       const npub = nip19.npubEncode(pubkey)
-      saveState({ skHex, pubkey, npub })
+      saveState({ skHex, pubkey, npub, skProtection: SK_PROTECTION_DEVICE })
       return { skHex, pubkey, npub }
     }
 
@@ -797,18 +1187,25 @@ export function createNostrClient(): BreznNostrClient {
       if (s.pubkey !== pubkey || s.npub !== npub) saveState({ pubkey, npub })
       return { skHex, pubkey, npub }
     } catch (error) {
-      // Invalid key format - generate new one
-      console.warn('Invalid secret key format, generating new identity:', error)
-      const sk = generateSecretKey()
-      skHex = bytesToHex(sk)
-      const pubkey = getPublicKey(sk)
-      const npub = nip19.npubEncode(pubkey)
-      saveState({ skHex, pubkey, npub })
-      return { skHex, pubkey, npub }
+      console.warn('Invalid secret key bytes; refusing to overwrite stored material:', error)
+      throw new IdentityCorruptError()
     }
   }
 
   function getPublicIdentity(): { pubkey: string; npub: string } {
+    const s = loadState()
+    if (identityVaultLocked) {
+      if (s.pubkey && s.npub) return { pubkey: s.pubkey, npub: s.npub }
+      if (pendingPasswordWrappedSk && passwordSession) {
+        const pubkey = getPublicKey(hexToBytes(passwordSession.skHex))
+        return { pubkey, npub: nip19.npubEncode(pubkey) }
+      }
+      throw new IdentityLockedError()
+    }
+    if (s.pubkey && s.npub && !isLegacyPlainSkHex(s.skHex)) {
+      // Public identity is known; signing waits until the secret is usable.
+      return { pubkey: s.pubkey, npub: s.npub }
+    }
     const { pubkey, npub } = ensureIdentity()
     return { pubkey, npub }
   }
@@ -817,6 +1214,93 @@ export function createNostrClient(): BreznNostrClient {
     const { skHex } = ensureIdentity()
     const nsec = nip19.nsecEncode(hexToBytes(skHex))
     return { skHex, nsec }
+  }
+
+  function isSecretKeyLocked(): boolean {
+    return identityVaultLocked
+  }
+
+  function getSkProtection(): SkProtection {
+    return getStoredSkProtection()
+  }
+
+  async function unlockSecretKey(password: string): Promise<void> {
+    await unlockIdentityVault(password)
+    const { skHex } = ensureIdentity()
+    ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
+    resubscribeAll('identity-unlocked')
+  }
+
+  async function enablePasswordProtection(password: string): Promise<void> {
+    const { skHex, pubkey, npub } = ensureIdentity()
+    const wrapped = await wrapSkWithPassword(skHex, password)
+    const session = await openPasswordSession(wrapped, password)
+    passwordSession = session
+    pendingPasswordWrappedSk = wrapped
+    identityVaultLocked = false
+    await saveStateDurable({
+      skHex,
+      pubkey,
+      npub,
+      skProtection: SK_PROTECTION_PASSWORD,
+    })
+  }
+
+  async function changePasswordProtection(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const wrapped = pendingPasswordWrappedSk
+    if (!wrapped || getStoredSkProtection() !== SK_PROTECTION_PASSWORD) {
+      throw new Error('Password protection is not enabled')
+    }
+    const skHex = (await openPasswordSession(wrapped, currentPassword)).skHex
+    const newWrapped = await wrapSkWithPassword(skHex, newPassword)
+    const session = await openPasswordSession(newWrapped, newPassword)
+    passwordSession = session
+    pendingPasswordWrappedSk = newWrapped
+    identityVaultLocked = false
+    const pubkey = getPublicKey(hexToBytes(skHex))
+    const npub = nip19.npubEncode(pubkey)
+    await saveStateDurable({
+      skHex,
+      pubkey,
+      npub,
+      skProtection: SK_PROTECTION_PASSWORD,
+    })
+  }
+
+  async function disablePasswordProtection(password: string): Promise<void> {
+    const wrapped = pendingPasswordWrappedSk
+    if (!wrapped && getStoredSkProtection() !== SK_PROTECTION_PASSWORD) {
+      throw new Error('Password protection is not enabled')
+    }
+    const blob = wrapped ?? (isPasswordWrappedSk(loadState().skHex) ? loadState().skHex! : null)
+    if (!blob) throw new Error('Password protection is not enabled')
+    const skHex = (await openPasswordSession(blob, password)).skHex
+    passwordSession = null
+    pendingPasswordWrappedSk = null
+    identityVaultLocked = false
+    const pubkey = getPublicKey(hexToBytes(skHex))
+    const npub = nip19.npubEncode(pubkey)
+    await saveStateDurable({
+      skHex,
+      pubkey,
+      npub,
+      skProtection: SK_PROTECTION_DEVICE,
+    })
+  }
+
+  async function revealNsec(password?: string): Promise<string> {
+    if (getStoredSkProtection() === SK_PROTECTION_PASSWORD) {
+      if (!password) throw new Error('Password required to reveal nsec')
+      const wrapped = pendingPasswordWrappedSk
+      if (!wrapped) throw new Error('Password-protected key missing')
+      const skHex = (await openPasswordSession(wrapped, password)).skHex
+      return nip19.nsecEncode(hexToBytes(skHex))
+    }
+    const { nsec } = getPrivateIdentity()
+    return nsec
   }
 
   async function publish(input: Pick<Event, 'kind' | 'content' | 'tags'>): Promise<string> {
@@ -1073,29 +1557,44 @@ export function createNostrClient(): BreznNostrClient {
 
     return await new Promise((resolve) => {
       let settled = false
-      const found: string[] = []
-      const finish = (urls: string[]) => {
+      let best: Event | null = null
+      const finish = () => {
         if (settled) return
         settled = true
         clearTimeout(tid)
         unsub()
+        const urls: string[] = []
+        const seen = new Set<string>()
+        for (const t of best?.tags ?? []) {
+          if (t[0] !== 'relay' || typeof t[1] !== 'string') continue
+          let norm: string
+          try {
+            const u = new URL(parseRelayUrlOrThrow(t[1]))
+            u.username = ''
+            u.password = ''
+            u.hash = ''
+            u.search = ''
+            norm = u.toString().replace(/\/+$/, '')
+          } catch {
+            continue
+          }
+          const key = norm.toLowerCase()
+          if (seen.has(key)) continue
+          seen.add(key)
+          urls.push(norm)
+        }
         resolve(urls.length > 0 ? urls : fallback)
       }
-      const tid = setTimeout(() => finish(found), 2500)
+      const tid = setTimeout(finish, 2500)
       const unsub = subscribe(
-        { kinds: [NOSTR_KINDS.dmRelays], authors: [peer], limit: 1 },
+        { kinds: [NOSTR_KINDS.dmRelays], authors: [peer], limit: 20 },
         {
           immediate: true,
           onevent: (evt) => {
-            for (const t of evt.tags) {
-              if (t[0] === 'relay' && typeof t[1] === 'string' && t[1].startsWith('wss://')) {
-                found.push(t[1])
-              }
-            }
-            finish(found)
+            if (!best || evt.created_at >= best.created_at) best = evt
           },
-          oneose: () => finish(found),
-          onclose: () => finish(found),
+          oneose: finish,
+          onclose: finish,
         },
       )
     })
@@ -1106,15 +1605,16 @@ export function createNostrClient(): BreznNostrClient {
     decryptedContent: string
     isFromMe: boolean
     otherPubkey: string
+    legacy: boolean
   }
 
   function parseDmEvent(event: Event): ParsedDm {
     const { skHex, pubkey } = ensureIdentity()
     const me = pubkey.toLowerCase()
 
-    if (event.kind === NIP17_KINDS.giftWrap || event.kind === NOSTR_KINDS.giftWrap) {
+    if (event.kind === NOSTR_KINDS.giftWrap) {
       const rumor = unwrapGiftWrap(event, hexToBytes(skHex))
-      if (rumor.kind !== NIP17_KINDS.chat && rumor.kind !== 15) {
+      if (rumor.kind !== NIP17_KINDS.chat && rumor.kind !== NIP17_KINDS.fileMessage) {
         throw new Error(`unsupported NIP-17 rumor kind ${rumor.kind}`)
       }
       const otherPubkey = dmPeerFromRumor(rumor, me)
@@ -1126,10 +1626,11 @@ export function createNostrClient(): BreznNostrClient {
         decryptedContent: rumor.content,
         isFromMe: rumor.pubkey.toLowerCase() === me,
         otherPubkey,
+        legacy: false,
       }
     }
 
-    if (event.kind === NOSTR_KINDS.encryptedDm || event.kind === 4) {
+    if (event.kind === NOSTR_KINDS.encryptedDm) {
       const senderPubkey = event.pubkey
       const isFromMe = senderPubkey.toLowerCase() === me
       let decryptedContent: string
@@ -1144,6 +1645,7 @@ export function createNostrClient(): BreznNostrClient {
           decryptedContent,
           isFromMe: true,
           otherPubkey: recipientPubkey,
+          legacy: true,
         }
       }
       decryptedContent = nip04.decrypt(hexToBytes(skHex), senderPubkey.toLowerCase(), event.content)
@@ -1152,6 +1654,7 @@ export function createNostrClient(): BreznNostrClient {
         decryptedContent,
         isFromMe: false,
         otherPubkey: senderPubkey.toLowerCase(),
+        legacy: true,
       }
     }
 
@@ -1212,6 +1715,7 @@ export function createNostrClient(): BreznNostrClient {
         decryptedContent: parsed.decryptedContent,
         isFromMe: parsed.isFromMe,
         otherPubkey: parsed.otherPubkey,
+        legacy: parsed.legacy,
       }
     } catch {
       return null
@@ -1404,6 +1908,7 @@ export function createNostrClient(): BreznNostrClient {
                 event: parsed.logicalEvent,
                 decryptedContent: parsed.decryptedContent,
                 isFromMe: parsed.isFromMe,
+                legacy: parsed.legacy,
               })
             } catch {
               // Skip undecryptable events
@@ -1539,10 +2044,22 @@ export function createNostrClient(): BreznNostrClient {
   function applyIdentityFromSkHex(skHex: string): { pubkey: string; npub: string } {
     const pubkey = getPublicKey(hexToBytes(skHex))
     const npub = nip19.npubEncode(pubkey)
-    stateCache = null
-    stateCacheInitialized = false
-    ephemeralIdentityWhileEncrypted = null
-    saveState({ skHex, pubkey, npub })
+    // Keep password protection mode if enabled; re-wrap on next persist via session.
+    const protection = getStoredSkProtection()
+    if (protection === SK_PROTECTION_PASSWORD && passwordSession) {
+      passwordSession = { ...passwordSession, skHex }
+    } else {
+      passwordSession = null
+      pendingPasswordWrappedSk = null
+      identityVaultLocked = false
+    }
+    saveState({
+      skHex,
+      pubkey,
+      npub,
+      skProtection:
+        protection === SK_PROTECTION_PASSWORD ? SK_PROTECTION_PASSWORD : SK_PROTECTION_DEVICE,
+    })
     ndk.signer = new NDKPrivateKeySigner(skHex, ndk)
     resubscribeAll('identity-changed')
     return { pubkey, npub }
@@ -1583,9 +2100,26 @@ export function createNostrClient(): BreznNostrClient {
     return applyIdentityFromSkHex(skHex)
   }
 
-  // Ensure identity exists immediately (no "accounts"/login flow).
-  const initialIdentity = ensureIdentity()
-  ndk.signer = new NDKPrivateKeySigner(initialIdentity.skHex, ndk)
+  clearUnlockedSigner = () => {
+    ndk.signer = undefined
+  }
+
+  // Ensure identity exists immediately unless vault-locked or decrypt still pending.
+  if (!identityVaultLocked) {
+    try {
+      const initialIdentity = ensureIdentity()
+      ndk.signer = new NDKPrivateKeySigner(initialIdentity.skHex, ndk)
+    } catch (e) {
+      if (
+        !(e instanceof IdentityPendingError) &&
+        !(e instanceof IdentityCorruptError) &&
+        !(e instanceof IdentityLockedError)
+      ) {
+        throw e
+      }
+      // No signer until storage decrypt finishes, unlock, or nsec import.
+    }
+  }
   ndk.explicitRelayUrls = [...getRelays()]
   connectNdkRelays(ndk)
 
@@ -1622,5 +2156,12 @@ export function createNostrClient(): BreznNostrClient {
     persistStateNow() {
       saveState(loadState())
     },
+    isSecretKeyLocked,
+    getSkProtection,
+    unlockSecretKey,
+    enablePasswordProtection,
+    changePasswordProtection,
+    disablePasswordProtection,
+    revealNsec,
   }
 }

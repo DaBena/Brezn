@@ -78,7 +78,36 @@
     "importing": "Importing...",
     "import": "Import",
     "cancel": "Cancel",
-    "importFailed": "Failed to import nsec"
+    "importFailed": "Failed to import nsec",
+    "importReplaceConfirm": "Import replaces the identity on this device. Continue only if you have saved the current nsec.",
+    "passwordTitle": "Password protection",
+    "passwordHint": "Optional. With a password, your nsec lies in IndexedDB as AES-GCM ciphertext (PBKDF2-HMAC-SHA256, 600,000 rounds). The password, and the key after unlock, lie in memory. Brezn locks when the tab stays in the background for 15 minutes. Without a password, the nsec lies in IndexedDB as AES-GCM ciphertext, with a non-extractable wrap key in the same IndexedDB. Script on this site can decrypt it.",
+    "passwordStatusOn": "Status: password protection on.",
+    "lockNow": "Lock now",
+    "passwordStatusOff": "Status: AES-GCM in IndexedDB (default).",
+    "enablePassword": "Enable password",
+    "changePassword": "Change password",
+    "disablePassword": "Disable password",
+    "currentPassword": "Current password",
+    "newPassword": "New password (min. 8 characters)",
+    "confirmPassword": "Confirm password",
+    "passwordSave": "Save",
+    "passwordWorking": "Working…",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordEnabled": "Password protection enabled.",
+    "passwordChanged": "Password updated.",
+    "passwordDisabled": "Password protection disabled.",
+    "passwordActionFailed": "Password action failed. Check the password and try again.",
+    "passwordRequired": "Password required.",
+    "passwordToReveal": "Password to show nsec",
+    "forgotPasswordHint": "Forgotten password cannot be reset. Only a previously saved nsec backup can restore this identity.",
+    "unlockTitle": "Unlock identity",
+    "unlockBody": "Enter your Brezn key password to use this identity on this device.",
+    "unlock": "Unlock",
+    "unlocking": "Unlocking…",
+    "unlockFailed": "Wrong password or unlock failed.",
+    "passwordPlaceholder": "Password"
   },
   "relay": {
     "title": "Relays",
@@ -157,6 +186,7 @@
     "sendingContent": "[sending...]",
     "sendError": "Error sending message",
     "hiddenByBlocklist": "Message hidden (matches your keyword blocklist).",
+    "legacyFormat": "Older message format without a checksum. A relay could have changed the text.",
     "openPeerProfileAria": "Open profile"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video is too large (max. 25 MB).",
     "imageTooLarge": "Image is too large (max. 12 MB).",
     "compressFailed": "Failed to compress image.",
+    "videoMetadataUnsupported": "This video format cannot be cleaned of location data. Use MP4 or MOV.",
+    "videoMetadataFailed": "Location data could not be removed. The video was not uploaded.",
     "uploadFailed": "Upload failed.",
     "publishFailed": "Publish failed.",
     "invalidGeohash": "Invalid geohash.",
@@ -222,10 +254,7 @@
     "offlineDelete": "Offline - Deletion event cannot be sent."
   },
   "thread": {
-    "reportRoot": "Report root post",
-    "reportReply": "Report reply",
     "reportReason": "Reason for reporting (optional)",
-    "submitReport": "Submit report",
     "replies": "Replies ({{count}})",
     "offline": "Offline",
     "replyPlaceholder": "Write reply…",
@@ -263,10 +292,7 @@
     "dmAria": "Open direct message",
     "message": "Message",
     "offlineHint": "Offline - profile posts may be incomplete.",
-    "loadingPosts": "Loading posts…",
-    "noPosts": "No posts yet",
-    "noPostsFromRelays": "No posts found from relays yet.",
-    "loadError": "Could not load posts."
+    "noPostsFromRelays": "No posts found from relays yet."
   },
   "geohashMap": {
     "gpsAria": "GPS location",
@@ -286,7 +312,6 @@
     "daysAgo": "{{count}}d ago"
   },
   "common": {
-    "loading": "Loading…",
     "close": "Close"
   }
 }

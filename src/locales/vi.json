@@ -3,14 +3,14 @@
     "loading": "Đang tải…"
   },
   "nav": {
-    "searchPlaceholder": "Tìm bài đăng…",
+    "searchPlaceholder": "Tìm kiếm…",
     "openChat": "Mở trò chuyện",
     "openMenu": "Mở menu"
   },
   "feed": {
     "offlineBanner": "Ngoại tuyến - hiển thị bài đăng đã xem lần cuối (chỉ đọc).",
     "locationTitle": "Vị trí cho bảng tin địa phương",
-    "locationBody": "Ứng dụng cần khu vực xấp xỉ để hiển thị bài địa phương. Bạn có thể đổi sau (nhấp bản đồ hoặc geohash ngắn hơn). Brezn dùng ô geohash công khai (~5 km), không phải tọa độ GPS thô. Ô đó vẫn là dữ liệu vị trí lâu dài. Brezn không dành cho người dưới 16 tuổi; bài đăng công khai gắn vị trí không dành cho trẻ vị thành niên. Bản đồ thế giới có thể tải ô thô trước khi đồng ý - không lộ vị trí chi tiết.",
+    "locationBody": "Ứng dụng cần khu vực xấp xỉ để hiển thị bài địa phương. Bạn có thể đổi sau (nhấp bản đồ hoặc geohash ngắn hơn). Brezn dùng ô geohash công khai (~5 km), không phải tọa độ GPS thô. Ô đó vẫn là dữ liệu vị trí lâu dài. Brezn không dành cho người dưới 16 tuổi; bài đăng công khai gắn vị trí không dành cho trẻ vị thành niên. Bản đồ thế giới có thể tải ô bản đồ thô trước khi đồng ý - không lộ vị trí chi tiết.",
     "privacyStorage": "Chọn vị trí cũng bật lưu trữ cục bộ trên thiết bị này (cài đặt, khóa riêng). Relay và máy chủ media có sẵn chỉ để khởi động, không phải khuyến nghị. Không có trình theo dõi phân tích của nhà phát hành. Trình duyệt vẫn kết nối relay và khi mở bản đồ/tải lên thì tới máy chủ khác. Chi tiết:",
     "privacyLink": "Quyền riêng tư",
     "privacyDisclaimer": "Ứng dụng tải nội dung từ bên thứ ba (relay Nostr, máy chủ media, ô bản đồ). Họ có thể nhận và ghi nhật ký dữ liệu kết nối như IP. Nhà phát hành không kiểm soát nội dung hay thời gian lưu của họ.",
@@ -78,11 +78,40 @@
     "importing": "Đang nhập…",
     "import": "Nhập",
     "cancel": "Hủy",
-    "importFailed": "Không nhập được nsec"
+    "importFailed": "Không nhập được nsec",
+    "importReplaceConfirm": "Nhập khóa sẽ thay thế danh tính trên thiết bị này. Chỉ tiếp tục nếu bạn đã lưu nsec hiện tại.",
+    "passwordTitle": "Bảo vệ bằng mật khẩu",
+    "passwordHint": "Không bắt buộc. Có mật khẩu thì nsec của bạn nằm trong IndexedDB dưới dạng bản mã AES-GCM (PBKDF2-HMAC-SHA256, 600.000 vòng). Mật khẩu, và khóa sau khi mở khóa, nằm trong bộ nhớ. Brezn khóa khi tab ở nền trong 15 phút. Không có mật khẩu thì nsec nằm trong IndexedDB dưới dạng bản mã AES-GCM, với khóa bọc không trích xuất được trong cùng IndexedDB. Tập lệnh trên trang này có thể giải mã nó.",
+    "passwordStatusOn": "Trạng thái: đang bật bảo vệ bằng mật khẩu.",
+    "lockNow": "Khóa ngay",
+    "passwordStatusOff": "Trạng thái: AES-GCM trong IndexedDB (mặc định).",
+    "enablePassword": "Bật mật khẩu",
+    "changePassword": "Đổi mật khẩu",
+    "disablePassword": "Tắt mật khẩu",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới (tối thiểu 8 ký tự)",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "passwordSave": "Lưu",
+    "passwordWorking": "Đang xử lý…",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự.",
+    "passwordMismatch": "Mật khẩu không khớp.",
+    "passwordEnabled": "Đã bật bảo vệ bằng mật khẩu.",
+    "passwordChanged": "Đã cập nhật mật khẩu.",
+    "passwordDisabled": "Đã tắt bảo vệ bằng mật khẩu.",
+    "passwordActionFailed": "Không xong. Kiểm tra mật khẩu và thử lại.",
+    "passwordRequired": "Cần mật khẩu.",
+    "passwordToReveal": "Mật khẩu để hiện nsec",
+    "forgotPasswordHint": "Mật khẩu đã quên không đặt lại được. Chỉ bản nsec đã lưu từ trước mới khôi phục danh tính này.",
+    "unlockTitle": "Mở khóa danh tính",
+    "unlockBody": "Nhập mật khẩu khóa Brezn để dùng danh tính này trên thiết bị này.",
+    "unlock": "Mở khóa",
+    "unlocking": "Đang mở khóa…",
+    "unlockFailed": "Sai mật khẩu hoặc không mở khóa được.",
+    "passwordPlaceholder": "Mật khẩu"
   },
   "relay": {
     "title": "Relay",
-    "hint": "Relay dùng cho bảng tin, tin nhắn và đăng bài.",
+    "hint": "Relay dùng cho bảng tin, tin nhắn và đăng bài. Chỉ những URL bạn liệt kê ở đây (hoặc vài relay mặc định tích hợp) được dùng — không tự tìm relay \"outbox\".",
     "empty": "Chưa cấu hình relay. Không thể tải hoặc đăng bài nếu không có ít nhất một relay. Thêm bên dưới hoặc dùng «Mặc định».",
     "removeAria": "Xóa relay",
     "placeholder": "wss://relay.example",
@@ -145,7 +174,7 @@
     "empty": "Chưa có cuộc trò chuyện"
   },
   "dm": {
-    "titlePrefix": "TN:",
+    "titlePrefix": "DM:",
     "offlineSend": "Ngoại tuyến - không gửi được tin nhắn.",
     "offline": "Ngoại tuyến - kiểm tra kết nối internet.",
     "timeout": "Hết giờ - relay không phản hồi. Kiểm tra cài đặt relay.",
@@ -157,6 +186,7 @@
     "sendingContent": "[đang gửi...]",
     "sendError": "Gửi tin nhắn thất bại",
     "hiddenByBlocklist": "Tin nhắn đã ẩn (khớp với danh sách chặn từ khóa của bạn).",
+    "legacyFormat": "Định dạng tin nhắn cũ, không có mã kiểm tra. Một relay có thể đã sửa nội dung.",
     "openPeerProfileAria": "Mở hồ sơ"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "Video quá lớn (tối đa 25 MB).",
     "imageTooLarge": "Ảnh quá lớn (tối đa 12 MB).",
     "compressFailed": "Nén ảnh thất bại.",
+    "videoMetadataUnsupported": "Định dạng video này không xóa được dữ liệu vị trí. Hãy dùng MP4 hoặc MOV.",
+    "videoMetadataFailed": "Không xóa được dữ liệu vị trí. Video chưa được tải lên.",
     "uploadFailed": "Tải lên thất bại.",
     "publishFailed": "Đăng thất bại.",
     "invalidGeohash": "Geohash không hợp lệ.",
@@ -212,7 +244,7 @@
     "details": "Chi tiết lỗi",
     "errorLabel": "Lỗi:",
     "stack": "Stack:",
-    "componentStack": "Component stack:",
+    "componentStack": "Ngăn xếp thành phần:",
     "tryAgain": "Thử lại",
     "reload": "Tải lại trang"
   },
@@ -222,10 +254,7 @@
     "offlineDelete": "Ngoại tuyến - không gửi được sự kiện xóa."
   },
   "thread": {
-    "reportRoot": "Báo cáo bài gốc",
-    "reportReply": "Báo cáo trả lời",
     "reportReason": "Lý do báo cáo (tuỳ chọn)",
-    "submitReport": "Gửi báo cáo",
     "replies": "Trả lời ({{count}})",
     "offline": "Ngoại tuyến",
     "replyPlaceholder": "Viết trả lời…",
@@ -251,10 +280,7 @@
     "dmAria": "Mở tin nhắn trực tiếp",
     "message": "Tin nhắn",
     "offlineHint": "Ngoại tuyến - bài trên hồ sơ có thể chưa đầy đủ.",
-    "loadingPosts": "Đang tải bài đăng…",
-    "noPosts": "Chưa có bài",
-    "noPostsFromRelays": "Chưa thấy bài từ relay.",
-    "loadError": "Không tải được bài đăng."
+    "noPostsFromRelays": "Chưa thấy bài từ relay."
   },
   "geohashMap": {
     "gpsAria": "Vị trí GPS",
@@ -270,16 +296,15 @@
     "daysAgo": "{{count}} ngày trước"
   },
   "common": {
-    "loading": "Đang tải…",
     "close": "Đóng"
   },
   "quotedPost": {
     "loadingReferenced": "Đang tải bài được trích dẫn…",
-    "noText": "(trống)"
+    "noText": "(không có chữ)"
   },
   "search": {
     "people": "Người",
-    "posts": "Bài viết",
+    "posts": "Bài đăng",
     "noResults": "Không có kết quả.",
     "searching": "Đang tìm…"
   },

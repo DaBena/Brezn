@@ -4,12 +4,13 @@ import { I18nextProvider } from 'react-i18next'
 import './index.css'
 import { i18n } from './i18n/i18n'
 import { Root } from './Root'
+import { BREZN_APP_STATE_LS_KEY } from './lib/constants'
 import { applyBreznThemeToDocument } from './lib/themeDom'
 
 // Initialize theme from localStorage (before React renders to avoid flash)
 function initializeTheme() {
   try {
-    const stored = localStorage.getItem('brezn:v1')
+    const stored = localStorage.getItem(BREZN_APP_STATE_LS_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
       const theme = parsed?.settings?.theme

@@ -1,5 +1,13 @@
 import Dexie, { type Table } from 'dexie'
-import { STORAGE_WRITE_CONSENT_KEY } from './constants'
+import {
+  aesGcmDecryptText,
+  aesGcmDecryptTextWithCryptoKey,
+  aesGcmEncryptText,
+  aesGcmEncryptTextWithCryptoKey,
+  randomAesKeyBytes,
+} from './aesGcm'
+import { BREZN_APP_STATE_LS_KEY, STORAGE_WRITE_CONSENT_KEY } from './constants'
+import { isDeviceWrappedSk, isLegacyPlainSkHex, isPasswordWrappedSk } from './skVault'
 
 const DB_NAME = 'brezn-storage'
 const DB_VERSION = 1
@@ -8,6 +16,12 @@ const STORE_NAME = 'keyValueStore'
 
 // Encryption key storage key (separate from data)
 const ENCRYPTION_KEY_STORAGE_KEY = 'brezn:encryption-key'
+
+/**
+ * Set only after IndexedDB holds the secret (or there was nothing to migrate).
+ * Until then, app-state writes keep a legacy `skHex` already present in localStorage.
+ */
+const SK_HEX_IDB_DURABLE_LS_KEY = 'brezn:sk-hex-idb-durable'
 
 let storageConsentGiven = false
 
@@ -32,7 +46,7 @@ export function syncBreznIndexedDbWriteConsentFromStorage(): void {
     storageConsentGiven = false
   }
   if (!storageConsentGiven) {
-    encryptionKeyCache = null
+    deviceKeyCache = null
     storageDbSingleton?.close()
     storageDbSingleton = null
   }
@@ -49,15 +63,8 @@ export function grantBreznIndexedDbWrites(): void {
     /* ignore quota / private mode */
   }
   storageConsentGiven = true
-}
-
-export function setStorageConsentGiven(value: boolean): void {
-  storageConsentGiven = value
-  encryptionKeyCache = null
-  if (!value) {
-    storageDbSingleton?.close()
-    storageDbSingleton = null
-  }
+  // A key minted before consent exists only in memory. Don't reuse it for durable ciphertext.
+  deviceKeyCache = null
 }
 
 function getStorageDb(): BreznStorageDexie {
@@ -81,12 +88,106 @@ async function loadFromIndexedDB<T>(key: string): Promise<T | null> {
   }
 }
 
-async function saveToIndexedDB(key: string, value: unknown): Promise<void> {
+/** `ok: false` means the read failed — distinct from a missing record. */
+export async function readIndexedDbValue<T>(
+  key: string,
+): Promise<{ ok: true; value: T | null } | { ok: false }> {
+  try {
+    const db = getStorageDb()
+    const result = await db.keyValueStore.get(key)
+    if (result === undefined || result === null) return { ok: true, value: null }
+    return { ok: true, value: result as T }
+  } catch {
+    return { ok: false }
+  }
+}
+
+async function saveToIndexedDB(key: string, value: unknown): Promise<boolean> {
   try {
     const db = getStorageDb()
     await db.keyValueStore.put(value, key)
+    return true
   } catch {
-    // ignore IndexedDB errors, fallback to localStorage
+    return false
+  }
+}
+
+async function saveToIndexedDBOrThrow(key: string, value: unknown): Promise<void> {
+  const db = getStorageDb()
+  await db.keyValueStore.put(value, key)
+}
+
+/**
+ * App-state mirror in localStorage must never carry `skHex` (ciphertext or plain).
+ * Secret material lives in IndexedDB only (device wrap / password blob).
+ */
+function stripSkHexForLocalStorageMirror(key: string, value: unknown): unknown {
+  if (key !== BREZN_APP_STATE_LS_KEY) return value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+  const copy = { ...(value as Record<string, unknown>) }
+  delete copy.skHex
+  return copy
+}
+
+function legacySkHexMirrorRetentionArmed(): boolean {
+  try {
+    return localStorage.getItem(SK_HEX_IDB_DURABLE_LS_KEY) !== '1'
+  } catch {
+    return true
+  }
+}
+
+function readLegacySkHex(key: string): string | undefined {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return undefined
+    const parsed = JSON.parse(raw) as { skHex?: unknown }
+    return typeof parsed.skHex === 'string' && parsed.skHex ? parsed.skHex : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Remove any legacy `skHex` left in the localStorage app-state mirror. */
+export function scrubSkHexFromLocalStorageMirror(key: string = BREZN_APP_STATE_LS_KEY): void {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    if (!parsed || typeof parsed !== 'object' || !('skHex' in parsed)) return
+    delete parsed.skHex
+    localStorage.setItem(key, JSON.stringify(parsed))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** IndexedDB now has the secret (or there was no legacy secret to keep). */
+export function noteSkHexDurableInIndexedDb(): void {
+  try {
+    localStorage.setItem(SK_HEX_IDB_DURABLE_LS_KEY, '1')
+  } catch {
+    /* ignore quota / private mode */
+  }
+  scrubSkHexFromLocalStorageMirror()
+}
+
+function writeLocalStorageMirror(key: string, value: unknown): void {
+  try {
+    let out = stripSkHexForLocalStorageMirror(key, value)
+    if (
+      key === BREZN_APP_STATE_LS_KEY &&
+      legacySkHexMirrorRetentionArmed() &&
+      out &&
+      typeof out === 'object' &&
+      !Array.isArray(out)
+    ) {
+      const legacy = readLegacySkHex(key)
+      if (legacy) out = { ...(out as Record<string, unknown>), skHex: legacy }
+    }
+    localStorage.setItem(key, JSON.stringify(out))
+  } catch {
+    // ignore storage quota / private mode issues
   }
 }
 
@@ -96,12 +197,8 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
   try {
     const indexed = await loadFromIndexedDB<T>(key)
     if (indexed !== null) {
-      // Sync to localStorage as backup
-      try {
-        localStorage.setItem(key, JSON.stringify(indexed))
-      } catch {
-        // ignore localStorage sync errors
-      }
+      // Sync settings mirror to localStorage — never reintroduce skHex
+      writeLocalStorageMirror(key, indexed)
       return indexed
     }
   } catch {
@@ -120,6 +217,8 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
         // ignore IndexedDB sync errors
       }
     }
+    // Migrate: scrub skHex if a legacy LS copy still has it
+    writeLocalStorageMirror(key, parsed)
     return parsed
   } catch {
     return fallback
@@ -127,22 +226,16 @@ export async function loadJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function saveJson(key: string, value: unknown): Promise<void> {
-  const serialized = JSON.stringify(value)
-
   if (storageConsentGiven) {
     try {
+      // IndexedDB keeps full value including encrypted skHex
       await saveToIndexedDB(key, value)
     } catch {
-      // IndexedDB failed, continue with localStorage
+      // IndexedDB failed, continue with localStorage mirror
     }
   }
 
-  // Save to localStorage (fallback)
-  try {
-    localStorage.setItem(key, serialized)
-  } catch {
-    // ignore storage quota / private mode issues
-  }
+  writeLocalStorageMirror(key, value)
 }
 
 export function loadJsonSync<T>(key: string, fallback: T): T {
@@ -156,124 +249,118 @@ export function loadJsonSync<T>(key: string, fallback: T): T {
 }
 
 export function saveJsonSync(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    // ignore storage quota / private mode issues
-  }
+  writeLocalStorageMirror(key, value)
 }
 
-// Encryption utilities using Web Crypto API
-// Cache the encryption key in memory to avoid repeated IndexedDB lookups
-let encryptionKeyCache: CryptoKey | null = null
+// Device-bound AES-GCM wrapping. The wrap key is a non-extractable CryptoKey in IndexedDB.
+// Never falls back to plaintext. Without IndexedDB or Web Crypto the key stays in memory only.
+type DeviceKey = { kind: 'crypto'; key: CryptoKey } | { kind: 'raw'; bytes: Uint8Array }
 
-async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
-  // Return cached key if available
-  if (encryptionKeyCache) {
-    return encryptionKeyCache
+let deviceKeyCache: DeviceKey | null = null
+
+function hasSubtleAes(): boolean {
+  return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined'
+}
+
+function isAesGcmCryptoKey(value: unknown): value is CryptoKey {
+  if (typeof CryptoKey === 'undefined' || !(value instanceof CryptoKey)) return false
+  return value.type === 'secret' && value.algorithm.name === 'AES-GCM'
+}
+
+function coerceAesKeyBytes(stored: unknown): Uint8Array | null {
+  // IndexedDB can hand back binary from another realm, so instanceof is not enough.
+  if (ArrayBuffer.isView(stored) && stored.byteLength === 32) {
+    return new Uint8Array(stored.buffer, stored.byteOffset, stored.byteLength)
+  }
+  if (Object.prototype.toString.call(stored) === '[object ArrayBuffer]') {
+    const buf = stored as ArrayBuffer
+    if (buf.byteLength !== 32) return null
+    return new Uint8Array(buf)
+  }
+  return null
+}
+
+function rememberRawDeviceKey(): DeviceKey {
+  const key: DeviceKey = { kind: 'raw', bytes: randomAesKeyBytes() }
+  deviceKeyCache = key
+  return key
+}
+
+async function importNonExtractableAesKey(bytes: Uint8Array): Promise<CryptoKey> {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return crypto.subtle.importKey('raw', copy, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+}
+
+async function getOrCreateDeviceKey(): Promise<DeviceKey> {
+  if (deviceKeyCache) return deviceKeyCache
+
+  // No IndexedDB: session key in memory only. Never written to disk.
+  if (typeof indexedDB === 'undefined' || !storageConsentGiven) {
+    return rememberRawDeviceKey()
   }
 
-  // Try to load existing key from IndexedDB
-  try {
-    const keyData = await loadFromIndexedDB<ArrayBuffer>(ENCRYPTION_KEY_STORAGE_KEY)
-    if (keyData && keyData.byteLength > 0) {
-      const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, [
-        'encrypt',
-        'decrypt',
-      ])
-      encryptionKeyCache = key
+  const rec = await readIndexedDbValue<unknown>(ENCRYPTION_KEY_STORAGE_KEY)
+  if (!rec.ok) {
+    throw new Error('Encryption key storage is unavailable')
+  }
+
+  // Web Crypto missing: use a legacy raw key if one is already stored. Do not write a new raw key.
+  if (!hasSubtleAes()) {
+    if (rec.value == null) return rememberRawDeviceKey()
+    const existing = coerceAesKeyBytes(rec.value)
+    if (!existing) throw new Error('Stored encryption key is unreadable')
+    const key: DeviceKey = { kind: 'raw', bytes: existing }
+    deviceKeyCache = key
+    return key
+  }
+
+  if (rec.value != null) {
+    if (isAesGcmCryptoKey(rec.value)) {
+      const key: DeviceKey = { kind: 'crypto', key: rec.value }
+      deviceKeyCache = key
       return key
     }
-  } catch (error) {
-    // Key doesn't exist or failed to load, create new one
-    console.warn('Failed to load encryption key, generating new one:', error)
+    const existing = coerceAesKeyBytes(rec.value)
+    if (!existing) {
+      throw new Error('Stored encryption key is unreadable')
+    }
+    const cryptoKey = await importNonExtractableAesKey(existing)
+    await saveToIndexedDBOrThrow(ENCRYPTION_KEY_STORAGE_KEY, cryptoKey)
+    const key: DeviceKey = { kind: 'crypto', key: cryptoKey }
+    deviceKeyCache = key
+    return key
   }
 
-  // Generate new encryption key
-  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
+  const cryptoKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
     'encrypt',
     'decrypt',
   ])
-  encryptionKeyCache = key
-
-  // Export and save the key
-  try {
-    const exportedKey = await crypto.subtle.exportKey('raw', key)
-    await saveToIndexedDB(ENCRYPTION_KEY_STORAGE_KEY, exportedKey)
-  } catch (error) {
-    // If IndexedDB fails, we can't persist the key, but we can still use it in memory
-    // The key will be regenerated on next load, but that's acceptable for obfuscation
-    console.warn('Failed to save encryption key to IndexedDB:', error)
-  }
-
+  await saveToIndexedDBOrThrow(ENCRYPTION_KEY_STORAGE_KEY, cryptoKey)
+  const key: DeviceKey = { kind: 'crypto', key: cryptoKey }
+  deviceKeyCache = key
   return key
 }
 
 async function encryptText(plaintext: string): Promise<string> {
-  try {
-    if (typeof crypto === 'undefined' || !crypto.subtle) {
-      // Web Crypto API not available, return plaintext (fallback)
-      return plaintext
-    }
-
-    const key = await getOrCreateEncryptionKey()
-    const encoder = new TextEncoder()
-    const data = encoder.encode(plaintext)
-
-    // Generate random IV for each encryption
-    const iv = crypto.getRandomValues(new Uint8Array(12))
-
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data)
-
-    // Combine IV and encrypted data: base64(iv) + ':' + base64(encrypted)
-    const ivBase64 = btoa(String.fromCharCode(...iv))
-    const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encrypted)))
-
-    return `${ivBase64}:${encryptedBase64}`
-  } catch {
-    // Encryption failed, return plaintext (fallback)
-    return plaintext
-  }
+  const key = await getOrCreateDeviceKey()
+  if (key.kind === 'crypto') return aesGcmEncryptTextWithCryptoKey(key.key, plaintext)
+  return aesGcmEncryptText(key.bytes, plaintext)
 }
 
+/**
+ * Decrypt a device-wrapped field. Legacy plaintext (64-hex) is returned as-is for one-shot migration.
+ * Password-wrapped blobs are left untouched (caller handles unlock).
+ */
 async function decryptText(ciphertext: string): Promise<string> {
-  try {
-    if (typeof crypto === 'undefined' || !crypto.subtle) {
-      // Web Crypto API not available, assume plaintext (fallback)
-      return ciphertext
-    }
-
-    // Check if it's encrypted format (contains ':')
-    if (!ciphertext.includes(':')) {
-      // Old plaintext format, return as-is
-      return ciphertext
-    }
-
-    const [ivBase64, encryptedBase64] = ciphertext.split(':')
-    if (!ivBase64 || !encryptedBase64) {
-      // Invalid format, assume plaintext
-      return ciphertext
-    }
-
-    const key = await getOrCreateEncryptionKey()
-
-    // Decode IV and encrypted data
-    const iv = Uint8Array.from(atob(ivBase64), (c) => c.charCodeAt(0))
-    const encrypted = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0))
-
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted)
-
-    const decoder = new TextDecoder()
-    return decoder.decode(decrypted)
-  } catch (error) {
-    // Decryption failed - e.g. wrong key (IndexedDB cleared / consent flow), corrupted data, or old plaintext
-    // Return as-is; caller treats as plaintext. Avoid noisy warn for expected OperationError.
-    const isOperationError = error instanceof DOMException && error.name === 'OperationError'
-    if (!isOperationError) {
-      console.warn('Decryption failed, assuming plaintext:', error)
-    }
-    return ciphertext
+  if (isPasswordWrappedSk(ciphertext)) return ciphertext
+  if (isLegacyPlainSkHex(ciphertext)) return ciphertext
+  if (!isDeviceWrappedSk(ciphertext)) {
+    throw new Error('Unrecognized secret key encoding')
   }
+  const key = await getOrCreateDeviceKey()
+  if (key.kind === 'crypto') return aesGcmDecryptTextWithCryptoKey(key.key, ciphertext)
+  return aesGcmDecryptText(key.bytes, ciphertext)
 }
 
 // Encrypted storage functions for sensitive data
@@ -284,15 +371,18 @@ export async function loadEncryptedJson<T extends Record<string, unknown>>(
 ): Promise<T> {
   const data = await loadJson<T>(key, fallback)
 
-  // Decrypt specified fields
   for (const field of encryptedFields) {
     const value = data[field]
     if (typeof value === 'string' && value) {
+      if (isPasswordWrappedSk(value)) continue
       try {
-        const decrypted = await decryptText(value)
-        data[field] = decrypted as T[keyof T]
-      } catch {
-        // Decryption failed, keep original value (might be plaintext from old version)
+        data[field] = (await decryptText(value)) as T[keyof T]
+      } catch (error) {
+        const isOperationError = error instanceof DOMException && error.name === 'OperationError'
+        if (!isOperationError) {
+          console.warn('Decryption failed for field', String(field), error)
+        }
+        // Keep ciphertext so callers can detect wrapped/locked state — never invent plaintext.
       }
     }
   }
@@ -300,26 +390,34 @@ export async function loadEncryptedJson<T extends Record<string, unknown>>(
   return data
 }
 
+/** @returns whether IndexedDB accepted the write. localStorage mirror is still updated. */
 export async function saveEncryptedJson<T extends Record<string, unknown>>(
   key: string,
   value: T,
   encryptedFields: (keyof T)[],
-): Promise<void> {
-  // Create a copy to avoid mutating the original
+): Promise<boolean> {
   const data = { ...value }
 
-  // Encrypt specified fields
   for (const field of encryptedFields) {
     const fieldValue = data[field]
     if (typeof fieldValue === 'string' && fieldValue) {
-      try {
-        const encrypted = await encryptText(fieldValue)
-        data[field] = encrypted as T[keyof T]
-      } catch {
-        // Encryption failed, keep original value
+      if (isPasswordWrappedSk(fieldValue)) {
+        // Already password-wrapped — persist as-is (never device-wrap or plaintext).
+        continue
       }
+      if (isDeviceWrappedSk(fieldValue)) {
+        // Already device-wrapped (e.g. re-save without decrypt) — leave unchanged.
+        continue
+      }
+      // Fail closed: encryption errors propagate; do not write plaintext.
+      data[field] = (await encryptText(fieldValue)) as T[keyof T]
     }
   }
 
-  await saveJson(key, data)
+  let idbOk = false
+  if (storageConsentGiven) {
+    idbOk = await saveToIndexedDB(key, data)
+  }
+  writeLocalStorageMirror(key, data)
+  return idbOk
 }

@@ -7,7 +7,7 @@ export const NOSTR_KINDS = {
   reaction: 7,
   /** NIP-59 seal (inside gift wrap). */
   giftSeal: 13,
-  /** NIP-17 chat rumor (never published plaintext). */
+  /** NIP-17 chat rumor (kind 14, never published as plaintext). */
   privateDm: 14,
   report: 1984, // NIP-56: Reporting content
   /** NIP-17 preferred DM inbox relays. */

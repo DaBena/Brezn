@@ -3,15 +3,15 @@
     "loading": "טוען…"
   },
   "nav": {
-    "searchPlaceholder": "חיפוש פוסטים…",
+    "searchPlaceholder": "חיפוש…",
     "openChat": "פתיחת צ'אט",
     "openMenu": "פתיחת תפריט"
   },
   "feed": {
-    "offlineBanner": "לא מקוון - מציג פוסטים אחרונים (קריאה בלבד).",
+    "offlineBanner": "לא מקוון - מציג את הפוסטים שנראו לאחרונה (קריאה בלבד).",
     "locationTitle": "מיקום לפיד מקומי",
     "locationBody": "האפליקציה צריכה את האזור המשוער שלך לפוסטים מקומיים. אפשר לשנות אחר כך (לחיצה על המפה או geohash קצר יותר). Brezn משתמשת בתא geohash ציבורי (~5 ק\"מ), לא בקואורדינטות GPS גולמיות. התא עדיין נתוני מיקום מתמשכים. Brezn אינה מיועדת למי שמתחת לגיל 16; פוסטים ציבוריים עם מיקום אינם לקטינים. מפת העולם עשויה לטעון אריחים גסים לפני ההסכמה - בלי לחשוף מיקום מדויק.",
-    "privacyStorage": "בחירת מיקום מפעילה גם אחסון מקומי במכשיר (הגדרות, מפתח פרטי). הממסרים ומארח המדיה המובנים הם רק לאתחול, לא המלצה. אין עוקב אנליטיקה של המפרסם. הדפדפן עדיין מתחבר ל-relays ובעת מפות/העלאות גם למארחים אחרים. פרטים:",
+    "privacyStorage": "בחירת מיקום מפעילה גם אחסון מקומי במכשיר (הגדרות, מפתח פרטי). הממסרים ומארח המדיה המובנים הם רק לאתחול, לא המלצה. אין עוקב אנליטיקה של המפרסם. הדפדפן עדיין מתחבר לממסרים ובעת מפות/העלאות גם למארחים אחרים. פרטים:",
     "privacyLink": "פרטיות",
     "privacyDisclaimer": "האפליקציה טוענת תוכן מצדדים שלישיים (relays של Nostr, מארחי מדיה, אריחי מפה). המפעילים עשויים לקבל ולרשום נתוני חיבור כמו IP. המפרסם לא שולט בתוכן או בשמירה שלהם.",
     "privacyConfirm": "בהמשך את/ה מאשר/ת שקראת הודעה זו, שגילך לפחות 16 (או גיל ההסכמה הדיגיטלית החל במקום מגוריך), ושמסכים/ה.",
@@ -78,16 +78,45 @@
     "importing": "מייבא…",
     "import": "ייבוא",
     "cancel": "ביטול",
-    "importFailed": "ייבוא nsec נכשל"
+    "importFailed": "ייבוא nsec נכשל",
+    "importReplaceConfirm": "הייבוא מחליף את הזהות במכשיר הזה. המשיכו רק אם שמרתם את ה-nsec הנוכחי.",
+    "passwordTitle": "הגנה בסיסמה",
+    "passwordHint": "אופציונלי. עם סיסמה, ה-nsec שלך נמצא ב-IndexedDB כטקסט מוצפן AES-GCM (PBKDF2-HMAC-SHA256, 600,000 סבבים). הסיסמה, והמפתח לאחר הפתיחה, נמצאים בזיכרון. Brezn ננעלת כשהלשונית נשארת ברקע במשך 15 דקות. בלי סיסמה, ה-nsec נמצא ב-IndexedDB כטקסט מוצפן AES-GCM, עם מפתח עטיפה בלתי ניתן לחילוץ באותו IndexedDB. סקריפט באתר זה יכול לפענח אותו.",
+    "passwordStatusOn": "מצב: הגנה בסיסמה פעילה.",
+    "lockNow": "נעל עכשיו",
+    "passwordStatusOff": "מצב: AES-GCM ב-IndexedDB (ברירת מחדל).",
+    "enablePassword": "הפעלת סיסמה",
+    "changePassword": "שינוי סיסמה",
+    "disablePassword": "כיבוי סיסמה",
+    "currentPassword": "סיסמה נוכחית",
+    "newPassword": "סיסמה חדשה (לפחות 8 תווים)",
+    "confirmPassword": "אישור סיסמה",
+    "passwordSave": "שמירה",
+    "passwordWorking": "בעבודה…",
+    "passwordTooShort": "הסיסמה חייבת להכיל לפחות 8 תווים.",
+    "passwordMismatch": "הסיסמאות אינן תואמות.",
+    "passwordEnabled": "ההגנה בסיסמה הופעלה.",
+    "passwordChanged": "הסיסמה עודכנה.",
+    "passwordDisabled": "ההגנה בסיסמה כובתה.",
+    "passwordActionFailed": "הפעולה נכשלה. בדקו את הסיסמה ונסו שוב.",
+    "passwordRequired": "נדרשת סיסמה.",
+    "passwordToReveal": "סיסמה להצגת nsec",
+    "forgotPasswordHint": "סיסמה שנשכחה לא ניתנת לאיפוס. רק גיבוי nsec ששמרתם מראש משחזר את הזהות.",
+    "unlockTitle": "פתיחת הזהות",
+    "unlockBody": "הזינו את סיסמת מפתח Brezn כדי להשתמש בזהות הזו במכשיר הזה.",
+    "unlock": "פתיחה",
+    "unlocking": "פותח…",
+    "unlockFailed": "סיסמה שגויה או שהפתיחה נכשלה.",
+    "passwordPlaceholder": "סיסמה"
   },
   "relay": {
     "title": "Relay",
     "hint": "Relay לפיד, DM ופרסום. רק URL שברשימה (או ברירות מחדל) - ללא גילוי outbox אוטומטי.",
-    "empty": "אין relay. נדרש לפחות relay אחד לטעינה או פרסום. הוסף/י למטה או \"Default\" לברירת מחדל.",
+    "empty": "אין relay. נדרש לפחות relay אחד לטעינה או פרסום. הוסף/י למטה או «ברירת מחדל» לברירת מחדל.",
     "removeAria": "הסרת relay",
     "placeholder": "wss://relay.example",
     "add": "הוספה",
-    "default": "Default",
+    "default": "ברירת מחדל",
     "test": "בדיקה",
     "testing": "בודק…",
     "unknown": "לא ידוע",
@@ -97,7 +126,7 @@
     "unreachableWithErr": "לא נגיש • {{error}}",
     "statusAria": "מצב relay: {{state}}",
     "duplicate": "relay זה כבר ברשימה.",
-    "removeAskTitle": "הסר ריליי {{url}}",
+    "removeAskTitle": "הסר ממסר {{url}}",
     "removeAskBody": "ליצור גם זהות חדשה?",
     "removeKeepKeys": "לא",
     "removeChangeKeys": "כן",
@@ -106,13 +135,13 @@
     "removeNsecNo": "לא",
     "removeNsecYes": "כן",
     "removeIdentityDone": "יוצרים זהות חדשה…",
-    "removeAskLoss": "זה יחליף את ה-nsec במכשיר. תאבד/י גישה להודעות ישירות ולא תוכל/י לפרסם או לנהל פוסטים בזהות הזו. פוסטים שכבר בריליי יישארו תחת הזהות הישנה.",
+    "removeAskLoss": "זה יחליף את ה-nsec במכשיר. תאבד/י גישה להודעות ישירות ולא תוכל/י לפרסם או לנהל פוסטים בזהות הזו. פוסטים שכבר בממסרים יישארו תחת הזהות הישנה.",
     "removeIdentityAborted": "שום דבר לא השתנה. גבה/י את ה-nsec לפני יצירת זהות חדשה."
   },
   "mediaUpload": {
     "title": "העלאת מדיה",
     "hint": "URL ישיר או NIP-96. ברירת מחדל: {{default}}. ריק = כבוי.",
-    "defaultBtn": "Default"
+    "defaultBtn": "ברירת מחדל"
   },
   "profileSettings": {
     "title": "פרופיל",
@@ -157,6 +186,7 @@
     "sendingContent": "[שולח...]",
     "sendError": "שגיאה בשליחת הודעה",
     "hiddenByBlocklist": "הודעה מוסתרת (תואמת רשימת חסימה).",
+    "legacyFormat": "תבנית הודעה ישנה בלי סיכום ביקורת. ממסר יכול היה לשנות את הטקסט.",
     "openPeerProfileAria": "פתיחת פרופיל"
   },
   "composer": {
@@ -178,6 +208,8 @@
     "videoTooLarge": "וידאו גדול מדי (עד 25 MB).",
     "imageTooLarge": "תמונה גדולה מדי (עד 12 MB).",
     "compressFailed": "דחיסת תמונה נכשלה.",
+    "videoMetadataUnsupported": "לא ניתן לנקות נתוני מיקום מתבנית הווידאו הזו. השתמשו ב-MP4 או MOV.",
+    "videoMetadataFailed": "לא ניתן היה להסיר נתוני מיקום. הסרטון לא הועלה.",
     "uploadFailed": "העלאה נכשלה.",
     "publishFailed": "פרסום נכשל.",
     "invalidGeohash": "Geohash לא תקין.",
@@ -187,8 +219,8 @@
     "deleted": "נמחק - מתפשט ל-relay",
     "deletedAria": "פוסט שנמחק",
     "openPost": "פתיחת פוסט",
-    "sendReaction": "שליחת תגובה",
-    "sendReactionCount": "שליחת תגובה ({{count}})",
+    "sendReaction": "שליחת ריאקציה",
+    "sendReactionCount": "שליחת ריאקציה ({{count}})",
     "loadOlder": "הצג עוד",
     "loading": "טוען…"
   },
@@ -211,8 +243,8 @@
     "body": "שגיאה בלתי צפויה. נסה/י לרענן.",
     "details": "פרטי שגיאה",
     "errorLabel": "שגיאה:",
-    "stack": "Stack trace:",
-    "componentStack": "Component stack:",
+    "stack": "מחסנית קריאות:",
+    "componentStack": "מחסנית רכיבים:",
     "tryAgain": "נסה שוב",
     "reload": "רענון דף"
   },
@@ -222,10 +254,7 @@
     "offlineDelete": "לא מקוון - לא ניתן לשלוח מחיקה."
   },
   "thread": {
-    "reportRoot": "דיווח על פוסט ראשי",
-    "reportReply": "דיווח על תגובה",
     "reportReason": "סיבת דיווח (אופציונלי)",
-    "submitReport": "שליחת דיווח",
     "replies": "תגובות ({{count}})",
     "offline": "לא מקוון",
     "replyPlaceholder": "כתוב/י תגובה…",
@@ -251,10 +280,7 @@
     "dmAria": "פתיחת הודעה ישירה",
     "message": "הודעה",
     "offlineHint": "לא מקוון - פוסטים בפרופיל עלולים להיות חלקיים.",
-    "loadingPosts": "טוען פוסטים…",
-    "noPosts": "עדיין אין פוסטים",
-    "noPostsFromRelays": "עדיין לא נמצאו פוסטים מ-relay.",
-    "loadError": "טעינת פוסטים נכשלה."
+    "noPostsFromRelays": "עדיין לא נמצאו פוסטים מ-relay."
   },
   "geohashMap": {
     "gpsAria": "מיקום GPS",
@@ -274,7 +300,6 @@
     "daysAgo": "לפני {{count}} י'"
   },
   "common": {
-    "loading": "טוען…",
     "close": "סגירה"
   },
   "search": {

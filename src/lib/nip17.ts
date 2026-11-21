@@ -8,12 +8,14 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
 import { generateSecretKey, getPublicKey } from './nostrPrimitives'
 import type { Event } from './nostrWireTypes'
 import { decryptFromPubkey, encryptToPubkey } from './nip44'
+import { NOSTR_KINDS } from './breznNostr'
 
 export const NIP17_KINDS = {
-  seal: 13,
-  chat: 14,
-  giftWrap: 1059,
-  dmRelays: 10050,
+  seal: NOSTR_KINDS.giftSeal,
+  chat: NOSTR_KINDS.privateDm,
+  /** File-message rumor some clients wrap like a chat message. */
+  fileMessage: 15,
+  giftWrap: NOSTR_KINDS.giftWrap,
 } as const
 
 const TWO_DAYS_SEC = 2 * 24 * 60 * 60

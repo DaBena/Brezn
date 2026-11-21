@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { resolveNavigatorLocale } from '../i18n/localeStorage'
 
-/** Keep `html` `lang` / `dir` in sync with i18n (RTL for Arabic & Persian). */
+/** Keep `html` `lang` / `dir` in sync with i18n (RTL for Arabic, Persian, Hebrew, Urdu). */
 export function useBreznDocumentLang(): void {
   const { i18n } = useTranslation()
 
@@ -10,7 +10,9 @@ export function useBreznDocumentLang(): void {
     const lng = i18n.language
     if (typeof document !== 'undefined') {
       document.documentElement.lang = lng
-      document.documentElement.dir = lng === 'ar' || lng === 'fa' ? 'rtl' : 'ltr'
+      const base = lng.split('-')[0]
+      const rtl = base === 'ar' || base === 'fa' || base === 'he' || base === 'ur'
+      document.documentElement.dir = rtl ? 'rtl' : 'ltr'
     }
   }, [i18n.language])
 

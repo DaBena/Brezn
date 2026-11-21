@@ -12,6 +12,12 @@ import type L from 'leaflet'
 
 type LeafletModule = typeof import('leaflet')
 
+/**
+ * Finest OSM tile is about one 5-character geohash cell.
+ * Street-level zoom would tell the tile host more than a post publishes.
+ */
+const MAP_TILE_MAX_ZOOM = 13
+
 type LatLonBounds = { minLat: number; maxLat: number; minLon: number; maxLon: number }
 
 type MapLayout = { center: GeoPoint; zoom: number; bounds: LatLonBounds | null }
@@ -206,6 +212,7 @@ export function GeohashMap(props: {
         const newMap = L.map(mapContainerRef.current!, {
           center: [layout.center.lat, layout.center.lon],
           zoom: layout.zoom,
+          maxZoom: MAP_TILE_MAX_ZOOM,
           zoomControl: true,
           attributionControl: true,
           zoomAnimation: false,
@@ -214,7 +221,8 @@ export function GeohashMap(props: {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution:
             '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 19,
+          maxZoom: MAP_TILE_MAX_ZOOM,
+          referrerPolicy: 'no-referrer',
         }).addTo(newMap)
 
         postGeo5LayerRef.current = L.layerGroup().addTo(newMap)

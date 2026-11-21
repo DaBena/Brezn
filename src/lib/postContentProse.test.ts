@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   mediaSetsFromPost,
-  proseForPostBodyParts,
+  preparePostContentSource,
   stripLinesThatAreOnlyMediaUrls,
   trimOuterNewlines,
 } from './postContentProse'
@@ -47,10 +47,10 @@ describe('trimOuterNewlines', () => {
   })
 })
 
-describe('proseForPostBodyParts', () => {
+describe('preparePostContentSource', () => {
   it('returns caption-only prose after stripping media-only lines', () => {
-    expect(proseForPostBodyParts(MULTI_IMAGE_NOTE.content, MULTI_IMAGE_NOTE.tags)).toBe(
-      'Caption after URLs.',
-    )
+    expect(
+      preparePostContentSource(MULTI_IMAGE_NOTE.content, MULTI_IMAGE_NOTE.tags).proseContent,
+    ).toBe('Caption after URLs.')
   })
 })

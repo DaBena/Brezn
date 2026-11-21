@@ -4,14 +4,17 @@ import {
   extractUrls,
   isLikelyImageUrl,
   isLikelyVideoUrl,
+  profilePictureImageSrc,
   sanitizeProfilePictureUrl,
   uniqueUrls,
 } from './urls'
 
 describe('sanitizeProfilePictureUrl', () => {
-  test('keeps http and https', () => {
+  test('keeps http and https links, and only embeds https', () => {
     expect(sanitizeProfilePictureUrl('https://cdn.example/a.png')).toBe('https://cdn.example/a.png')
     expect(sanitizeProfilePictureUrl(' http://cdn.example/a.png ')).toBe('http://cdn.example/a.png')
+    expect(profilePictureImageSrc('https://cdn.example/a.png')).toBe('https://cdn.example/a.png')
+    expect(profilePictureImageSrc('http://cdn.example/a.png')).toBeNull()
   })
 
   test('drops javascript and data unless the settings preview allows data', () => {
@@ -83,6 +86,7 @@ describe('extractLinks', () => {
 describe('isLikelyImageUrl', () => {
   test('detects common image extensions', () => {
     expect(isLikelyImageUrl('https://example.com/a.png')).toBe(true)
+    expect(isLikelyImageUrl('http://example.com/a.png')).toBe(false)
     expect(isLikelyImageUrl('https://example.com/a.JPG')).toBe(true)
     expect(isLikelyImageUrl('https://example.com/a.jpeg?x=1')).toBe(true)
     expect(isLikelyImageUrl('https://example.com/a.svg#frag')).toBe(true)
@@ -97,6 +101,7 @@ describe('isLikelyImageUrl', () => {
 describe('isLikelyVideoUrl', () => {
   test('detects common video extensions', () => {
     expect(isLikelyVideoUrl('https://example.com/a.mp4')).toBe(true)
+    expect(isLikelyVideoUrl('http://example.com/a.mp4')).toBe(false)
     expect(isLikelyVideoUrl('https://example.com/a.WEBM')).toBe(true)
     expect(isLikelyVideoUrl('https://example.com/a.mov?x=1')).toBe(true)
     expect(isLikelyVideoUrl('https://example.com/a.m4v#frag')).toBe(true)
