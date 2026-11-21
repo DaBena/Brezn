@@ -222,7 +222,9 @@ export function GeohashMap(props: {
           attribution:
             '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: MAP_TILE_MAX_ZOOM,
-          referrerPolicy: 'no-referrer',
+          // Tile servers answer with a "blocked" PNG when the Referer is missing.
+          // strict-origin sends the site origin only, not the path or query.
+          referrerPolicy: 'strict-origin',
         }).addTo(newMap)
 
         postGeo5LayerRef.current = L.layerGroup().addTo(newMap)

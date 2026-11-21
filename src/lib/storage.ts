@@ -263,8 +263,16 @@ function hasSubtleAes(): boolean {
 }
 
 function isAesGcmCryptoKey(value: unknown): value is CryptoKey {
-  if (typeof CryptoKey === 'undefined' || !(value instanceof CryptoKey)) return false
-  return value.type === 'secret' && value.algorithm.name === 'AES-GCM'
+  if (!value || typeof value !== 'object') return false
+  // IndexedDB can hand a CryptoKey back from another realm, so instanceof is not enough.
+  const sameRealm = typeof CryptoKey !== 'undefined' && value instanceof CryptoKey
+  const crossRealm = Object.prototype.toString.call(value) === '[object CryptoKey]'
+  if (!sameRealm && !crossRealm) return false
+  const key = value as CryptoKey
+  const algorithm = key.algorithm
+  const name =
+    algorithm && typeof algorithm === 'object' && 'name' in algorithm ? algorithm.name : ''
+  return key.type === 'secret' && name === 'AES-GCM'
 }
 
 function coerceAesKeyBytes(stored: unknown): Uint8Array | null {

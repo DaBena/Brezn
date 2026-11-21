@@ -57,7 +57,7 @@ Brezn uses geohash cells for location-based feeds and posts. Root posts get publ
 
 The in-app map shows geohash cells. You can choose a cell freely by clicking the map (on first run and later via plus); alternatively use GPS or enter a geohash manually. On first run the map shows a world overview: coarse OSM overview tiles may already load before you confirm the notice by choosing a location and unlocking local storage. That is a network request to the tile provider (not IndexedDB key storage) and can send connection data such as your IP; the tile provider sees at most a coarse map view, not a fine-grained location the way GPS or a chosen geohash cell would.
 
-The map loads OSM tiles from `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`. Tile use and privacy: [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) and [OSMF Privacy Policy](https://osmfoundation.org/wiki/Privacy_Policy). Some distance links lead to `esp.info` (external cell/distance view in the browser). For public cells, geo jittering and timing, see section 8.
+The map loads OSM tiles from `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`. Those requests send only this site's origin in the Referer header. The tile servers reject requests that send none; the page path is not included. Tile use and privacy: [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) and [OSMF Privacy Policy](https://osmfoundation.org/wiki/Privacy_Policy). Some distance links lead to `esp.info` (external cell/distance view in the browser). For public cells, geo jittering and timing, see section 8.
 
 ---
 

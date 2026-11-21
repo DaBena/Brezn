@@ -47,7 +47,7 @@ function readDeviceKey(): Promise<unknown> {
   })
 }
 
-function putDeviceKey(value: BufferSource): Promise<void> {
+function putDeviceKey(value: unknown): Promise<void> {
   return withStore('readwrite', (store) => {
     store.put(value, 'brezn:encryption-key')
   })
@@ -241,6 +241,32 @@ describe('storage', () => {
         }
       })
       expect(still).toEqual({ not: 'a key' })
+    },
+  )
+
+  it.skipIf(typeof indexedDB === 'undefined' || typeof CryptoKey === 'undefined')(
+    'reads an AES-GCM CryptoKey whose realm fails instanceof',
+    async () => {
+      const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
+        'encrypt',
+        'decrypt',
+      ])
+      const secret = 'cd'.repeat(32)
+      const { aesGcmEncryptTextWithCryptoKey } = await import('./aesGcm')
+      const wrapped = await aesGcmEncryptTextWithCryptoKey(key, secret)
+      await putDeviceKey(key)
+      const Original = globalThis.CryptoKey
+      globalThis.CryptoKey = class CrossRealmCryptoKey {} as unknown as typeof CryptoKey
+      try {
+        expect(key instanceof CryptoKey).toBe(false)
+        expect(Object.prototype.toString.call(key)).toBe('[object CryptoKey]')
+        const loaded = await loadEncryptedJson('cross-realm-device', { secret: wrapped }, [
+          'secret',
+        ])
+        expect(loaded.secret).toBe(secret)
+      } finally {
+        globalThis.CryptoKey = Original
+      }
     },
   )
 
